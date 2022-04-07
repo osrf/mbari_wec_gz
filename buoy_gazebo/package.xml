@@ -12,7 +12,7 @@
 
   <depend>buoy_msgs</depend>
   <depend>buoy_examples</depend>
-  <depend>ignition_gazebo6</depend>
+  <depend>ignition-gazebo6</depend>
   <depend>ros_ign_gazebo</depend>
 
   <test_depend>ament_lint_auto</test_depend>
