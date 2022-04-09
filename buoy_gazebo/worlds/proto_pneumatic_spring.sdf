@@ -1,16 +1,21 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
     <world name="world_demo">
+
         <physics name="1ms" type="ignored">
             <max_step_size>.0005</max_step_size>
             <real_time_factor>1.0</real_time_factor>
         </physics>
+
         <plugin filename="libignition-gazebo-physics-system.so" name="ignition::gazebo::systems::Physics">
             <engine>"libignition-physics-dartsim-plugin.so"</engine>
         </plugin>
+
         <plugin filename="libignition-gazebo-user-commands-system.so" name="ignition::gazebo::systems::UserCommands"/>
         <plugin filename="libignition-gazebo-scene-broadcaster-system.so" name="ignition::gazebo::systems::SceneBroadcaster"/>
+        
         <gui fullscreen="0">
+
             <!-- 3D scene -->
             <plugin filename="GzScene3D" name="3D View">
                 <ignition-gui>
@@ -18,12 +23,14 @@
                     <property key="showTitleBar" type="bool">false</property>
                     <property key="state" type="string">docked</property>
                 </ignition-gui>
+
                 <engine>ogre</engine>
                 <scene>scene</scene>
                 <ambient_light>1.0 1.0 1.0</ambient_light>
                 <background_color>0.8 0.8 0.8</background_color>
                 <camera_pose>-6 0 6 0 0.5 0</camera_pose>
             </plugin>
+
             <!-- World control -->
             <plugin filename="WorldControl" name="World control">
                 <ignition-gui>
@@ -39,12 +46,14 @@
                         <line own="bottom" target="bottom"/>
                     </anchors>
                 </ignition-gui>
+
                 <play_pause>true</play_pause>
                 <step>true</step>
                 <start_paused>true</start_paused>
                 <service>/world/world_demo/control</service>
                 <stats_topic>/world/world_demo/stats</stats_topic>
             </plugin>
+
             <!-- World statistics -->
             <plugin filename="WorldStats" name="World stats">
                 <ignition-gui>
@@ -66,9 +75,11 @@
                 <iterations>true</iterations>
                 <topic>/world/world_demo/stats</topic>
             </plugin>
+
             <!-- Entity tree -->
             <plugin filename="EntityTree" name="Entity tree"/>
         </gui>
+        
         <light name="sun" type="directional">
             <cast_shadows>true</cast_shadows>
             <pose>0 0 10 0 0 0</pose>
@@ -116,6 +127,7 @@
                     </material>
                 </visual>
             </link>
+
             <joint name="joint_right" type="prismatic">
                 <parent>world</parent>
                 <child>Cyl_Right</child>
@@ -325,8 +337,8 @@
                 <P1>410291</P1>
                 <P2>410266</P2>
             </plugin>
-<!--                <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
-
+            
+            <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
             <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
                 <JointName>joint_poly</JointName>
                 <chamber>lower_polytropic</chamber>
@@ -344,8 +356,7 @@
                 <P1>1212090</P1>
                 <P2>1212140</P2>
             </plugin>
-<!--                <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
-            
+            <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
 
         </model>
     </world>

@@ -1,4 +1,4 @@
-
+<?xml version="1.0" ?>
 <sdf version="1.8">
   <world name="world_demo">
 
@@ -14,12 +14,10 @@
     <plugin filename="libignition-gazebo-user-commands-system.so" name="ignition::gazebo::systems::UserCommands"/>
     <plugin filename="libignition-gazebo-scene-broadcaster-system.so" name="ignition::gazebo::systems::SceneBroadcaster"/>
 
-
     <gui fullscreen="0">
 
       <!-- 3D scene -->
       <plugin filename="GzScene3D" name="3D View">
-
         <ignition-gui>
           <title>3D View</title>
           <property key="showTitleBar" type="bool">false</property>
@@ -31,7 +29,6 @@
         <ambient_light>1.0 1.0 1.0</ambient_light>
         <background_color>0.8 0.8 0.8</background_color>
         <camera_pose>-6 0 6 0 0.5 0</camera_pose>
-
       </plugin>
 
       <!-- World control -->
@@ -44,12 +41,10 @@
           <property key="width" type="double">121</property>
           <property key="z" type="double">1</property>
           <property key="state" type="string">floating</property>
-
           <anchors target="3D View">
             <line own="left" target="left"/>
             <line own="bottom" target="bottom"/>
           </anchors>
-
         </ignition-gui>
 
         <play_pause>true</play_pause>
@@ -57,7 +52,6 @@
         <start_paused>true</start_paused>
         <service>/world/world_demo/control</service>
         <stats_topic>/world/world_demo/stats</stats_topic>
-
       </plugin>
 
       <!-- World statistics -->
@@ -70,43 +64,34 @@
           <property key="width" type="double">290</property>
           <property key="z" type="double">1</property>
           <property key="state" type="string">floating</property>
-
           <anchors target="3D View">
             <line own="right" target="right"/>
             <line own="bottom" target="bottom"/>
           </anchors>
-
         </ignition-gui>
-
         <sim_time>true</sim_time>
         <real_time>true</real_time>
         <real_time_factor>true</real_time_factor>
         <iterations>true</iterations>
         <topic>/world/world_demo/stats</topic>
-
       </plugin>
 
         <!-- Entity tree -->
       <plugin filename="EntityTree" name="Entity tree"/>
-
     </gui>
-
 
     <light name="sun" type="directional">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
       <diffuse>0.8 0.8 0.8 1</diffuse>
       <specular>0.2 0.2 0.2 1</specular>
-
       <attenuation>
         <range>1000</range>
         <constant>0.9</constant>
         <linear>0.01</linear>
         <quadratic>0.001</quadratic>
       </attenuation>
-
       <direction>-0.5 0.1 -0.9</direction>
-
     </light>
 
     <model name="Proto Hydraulics Test">
@@ -272,45 +257,42 @@
             <upper>2.03</upper>
           </limit>
           <xyz>0.0 0.0 1.0</xyz>
-<!--          <dynamics>-->
-<!--            <spring_stiffness>18900</spring_stiffness>-->
-<!--            <spring_reference>0.0</spring_reference>-->
-<!--            <damping>0.0</damping>-->
-<!--            <friction>0.0</friction>-->
-<!--          </dynamics>-->
+          <!-- <dynamics>
+              <spring_stiffness>18900</spring_stiffness>
+              <spring_reference>0.0</spring_reference>
+              <damping>0.0</damping>
+              <friction>0.0</friction>
+          </dynamics> -->
         </axis>
       </joint>
 
 
-      <plugin filename="ProtoElectroHydraulicPTO" name="ignition::gazebo::systems::ProtoElectroHydraulicPTO"> 
+      <!-- <plugin filename="ProtoElectroHydraulicPTO" name="ignition::gazebo::systems::ProtoElectroHydraulicPTO"> 
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
         <PistonArea>1.375</PistonArea>
         <HydMotorDisp>0.30</HydMotorDisp>
         <RotorInertia>1</RotorInertia>
+      </plugin> -->
+      <!-- <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController">
+          <joint_name>WaterPlaneArea</joint_name>
+          <p_gain>1</p_gain>
+          <i_gain>0.1</i_gain>
+          <d_gain>0.01</d_gain>
+          <i_max>1</i_max>
+          <i_min>-1</i_min>
+          <cmd_max>1000</cmd_max>
+          <cmd_min>-1000</cmd_min>
       </plugin>
-<!--      <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController">-->
-<!--        <joint_name>WaterPlaneArea</joint_name>-->
-<!--        <p_gain>1</p_gain>-->
-<!--        <i_gain>0.1</i_gain>-->
-<!--        <d_gain>0.01</d_gain>-->
-<!--        <i_max>1</i_max>-->
-<!--        <i_min>-1</i_min>-->
-<!--        <cmd_max>1000</cmd_max>-->
-<!--        <cmd_min>-1000</cmd_min>-->
-<!--      </plugin>-->
-<!--      <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController">-->
-<!--        <joint_name>HydraulicRam</joint_name>-->
-<!--        <p_gain>1</p_gain>-->
-<!--        <i_gain>0.1</i_gain>-->
-<!--        <d_gain>0.01</d_gain>-->
-<!--        <i_max>1</i_max>-->
-<!--        <i_min>-1</i_min>-->
-<!--        <cmd_max>1000</cmd_max>-->
-<!--        <cmd_min>-1000</cmd_min>-->
-<!--      </plugin>-->
-
-
-
+      <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController">
+          <joint_name>HydraulicRam</joint_name>
+          <p_gain>1</p_gain>
+          <i_gain>0.1</i_gain>
+          <d_gain>0.01</d_gain>
+          <i_max>1</i_max>
+          <i_min>-1</i_min>
+          <cmd_max>1000</cmd_max>
+          <cmd_min>-1000</cmd_min>
+      </plugin>-->
 
       <!-- Add Upper/Lower Polytropic Spring plugin -->
       <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
@@ -330,8 +312,8 @@
         <P1>410291</P1>
         <P2>410266</P2>
       </plugin>
-<!--        <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
 
+      <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
       <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
         <JointName>HydraulicRam</JointName>
         <chamber>lower_polytropic</chamber>
@@ -349,11 +331,8 @@
         <P1>1212090</P1>
         <P2>1212140</P2>
       </plugin>
-<!--        <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
-
+      <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
 
     </model>
   </world>
 </sdf>
-
-

@@ -7,9 +7,11 @@ find_package(ignition-cmake2 REQUIRED)
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
 set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
 find_package(ignition-gazebo6 REQUIRED)
+set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
+
 
 # Plugins
-list(APPEND BUOY_IGN_PLUGINS
+list(APPEND BUOY_GZ_PLUGINS
   ProtoPneumaticSpring
   PolytropicPneumaticSpring
 )
@@ -17,14 +19,14 @@ list(APPEND BUOY_IGN_PLUGINS
 foreach(PLUGIN ${BUOY_IGN_PLUGINS})
   add_library(${PLUGIN} SHARED src/${PLUGIN}.cc)
   target_link_libraries(${PLUGIN} PUBLIC
-    ignition-gazebo6::ignition-gazebo6
+    ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
     ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
   )
 endforeach()
 
 install(
   TARGETS ${BUOY_IGN_PLUGINS}
-  DESTINATION ~/.ignition/gazebo/plugins)
+  DESTINATION lib)
 
 # Resources
 install(DIRECTORY
