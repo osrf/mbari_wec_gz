@@ -1,0 +1,157 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+    <world name="world_demo">
+    
+        <physics name="1ms" type="ignored">
+            <max_step_size>.001</max_step_size>
+            <real_time_factor>1.0</real_time_factor>
+        </physics>
+
+        <plugin filename="libignition-gazebo-physics-system.so" name="ignition::gazebo::systems::Physics">
+            <engine>"libignition-physics-dartsim-plugin.so"</engine> 
+        </plugin>
+
+        <plugin filename="libignition-gazebo-user-commands-system.so" name="ignition::gazebo::systems::UserCommands"/>
+        <plugin filename="libignition-gazebo-scene-broadcaster-system.so" name="ignition::gazebo::systems::SceneBroadcaster"/>
+        
+        <gui fullscreen="0">
+        
+            <!-- 3D scene -->
+            <plugin filename="GzScene3D" name="3D View">
+                <ignition-gui>
+                    <title>3D View</title>
+                    <property key="showTitleBar" type="bool">false</property>
+                    <property key="state" type="string">docked</property>
+                </ignition-gui>
+        
+                <engine>ogre</engine>
+                <scene>scene</scene>
+                <ambient_light>1.0 1.0 1.0</ambient_light>
+                <background_color>0.8 0.8 0.8</background_color>
+                <camera_pose>-6 0 6 0 0.5 0</camera_pose>
+            </plugin>
+        
+            <!-- World control -->
+            <plugin filename="WorldControl" name="World control">
+                <ignition-gui>
+                    <title>World control</title>
+                    <property key="showTitleBar" type="bool">false</property>
+                    <property key="resizable" type="bool">false</property>
+                    <property key="height" type="double">72</property>
+                    <property key="width" type="double">121</property>
+                    <property key="z" type="double">1</property>
+                    <property key="state" type="string">floating</property>
+                    <anchors target="3D View">
+                        <line own="left" target="left"/>
+                        <line own="bottom" target="bottom"/>
+                    </anchors>
+                </ignition-gui>
+        
+                <play_pause>true</play_pause>
+                <step>true</step>
+                <start_paused>true</start_paused>
+                <service>/world/world_demo/control</service>
+                <stats_topic>/world/world_demo/stats</stats_topic>
+            </plugin>
+        
+            <!-- World statistics -->
+            <plugin filename="WorldStats" name="World stats">
+                <ignition-gui>
+                    <title>World stats</title>
+                    <property key="showTitleBar" type="bool">false</property>
+                    <property key="resizable" type="bool">false</property>
+                    <property key="height" type="double">110</property>
+                    <property key="width" type="double">290</property>
+                    <property key="z" type="double">1</property>
+                    <property key="state" type="string">floating</property>
+                    <anchors target="3D View">
+                        <line own="right" target="right"/>
+                        <line own="bottom" target="bottom"/>
+                    </anchors>
+                </ignition-gui>
+                <sim_time>true</sim_time>
+                <real_time>true</real_time>
+                <real_time_factor>true</real_time_factor>
+                <iterations>true</iterations>
+                <topic>/world/world_demo/stats</topic>
+            </plugin>
+
+            <!-- Entity tree -->
+            <plugin filename="EntityTree" name="Entity tree"/>
+        </gui>
+
+        <light name="sun" type="directional">
+            <cast_shadows>true</cast_shadows>
+            <pose>0 0 10 0 0 0</pose>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.2 0.2 0.2 1</specular>
+            <attenuation>
+                <range>1000</range>
+                <constant>0.9</constant>
+                <linear>0.01</linear>
+                <quadratic>0.001</quadratic>
+            </attenuation>
+            <direction>-0.5 0.1 -0.9</direction>
+        </light>
+
+        <model name="Proto Hydraulics Test">
+            <pose relative_to="world">0 0 0 0 0 0</pose>
+            <!--the pose is relative to the world by default-->
+
+            <link name="Piston">
+                <pose relative_to="__model__">0 0 -1 0 0 0</pose>
+                <inertial>
+                    <mass>910</mass>
+                    <inertia>
+                        <ixx>10000</ixx>
+                        <ixy>0</ixy>
+                        <ixz>0</ixz>
+                        <iyy>10000</iyy>
+                        <iyz>0</iyz>
+                        <izz>1000</izz>
+                    </inertia>
+                </inertial>
+                <visual name="visual">
+                    <geometry>
+                        <cylinder>
+                            <radius>.1</radius>
+                            <length>2.0</length>
+                        </cylinder>
+                    </geometry>
+                    <!--color-->
+                    <material>
+                        <ambient>0.0 0.0 1.0 1</ambient>
+                        <diffuse>0.0 0.0 1.0 1</diffuse>
+                        <specular>0.0 0.0 1.0 1</specular>
+                    </material>
+                </visual>
+            </link>
+
+            <joint name="HydraulicRam" type="prismatic">
+                <parent>world</parent>
+                <child>Piston</child>
+                <pose>0.0 0.0 0.0 0 0 0</pose>
+                <axis>
+                    <limit>
+                        <lower>-20000.0</lower>
+                        <upper>20000.0</upper>
+                    </limit>
+                    <xyz>0.0 0.0 1.0</xyz>
+                    <dynamics>
+                        <spring_stiffness>18900</spring_stiffness>
+                        <spring_reference>0.0</spring_reference>
+                        <damping>0.0</damping>
+                        <friction>0.0</friction>
+                    </dynamics>
+                </axis>
+            </joint>
+
+            <plugin filename="ProtoElectroHydraulicPTO" name="ignition::gazebo::systems::ProtoElectroHydraulicPTO"> 
+                <PrismaticJointName>HydraulicRam</PrismaticJointName>
+                <PistonArea>1.375</PistonArea>
+                <HydMotorDisp>0.30</HydMotorDisp>
+                <RotorInertia>1</RotorInertia>
+            </plugin>
+        </model>
+    </world>
+</sdf>
