@@ -12,13 +12,13 @@ set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 
 # Plugins
 list(APPEND BUOY_GZ_PLUGINS
-  ProtoElectroHydraulicPTO
-  ProtoPneumaticSpring
+  ElectroHydraulicPTO
+  PneumaticSpring
   PolytropicPneumaticSpring
 )
 
 foreach(PLUGIN ${BUOY_GZ_PLUGINS})
-  add_library(${PLUGIN} SHARED src/${PLUGIN}.cc)
+  add_library(${PLUGIN} SHARED src/${PLUGIN}/${PLUGIN}.cc)
   target_link_libraries(${PLUGIN} PUBLIC
     ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
     ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}

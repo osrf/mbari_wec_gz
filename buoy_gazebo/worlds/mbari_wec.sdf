@@ -94,7 +94,7 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <model name="Proto Hydraulics Test">
+    <model name="Hydraulics Test">
       <pose relative_to="world">0 0 0 0 0 0</pose>
       <!--the pose is relative to the world by default-->
 
@@ -267,7 +267,7 @@
       </joint>
 
 
-      <plugin filename="ProtoElectroHydraulicPTO" name="ignition::gazebo::systems::ProtoElectroHydraulicPTO"> 
+      <plugin filename="ElectroHydraulicPTO" name="ignition::gazebo::systems::ElectroHydraulicPTO">
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
         <PistonArea>1.375</PistonArea>
         <HydMotorDisp>0.30</HydMotorDisp>

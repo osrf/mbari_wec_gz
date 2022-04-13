@@ -15,7 +15,7 @@
  *
  */
 
-#include "ProtoPneumaticSpring.hh"
+#include "PneumaticSpring.hh"
 
 #include <ignition/msgs/double.pb.h>
 
@@ -35,7 +35,7 @@ using namespace ignition;
 using namespace gazebo;
 using namespace systems;
 
-class ignition::gazebo::systems::ProtoPneumaticSpringPrivate
+class ignition::gazebo::systems::PneumaticSpringPrivate
 {
 
 
@@ -66,8 +66,8 @@ class ignition::gazebo::systems::ProtoPneumaticSpringPrivate
 };
 
 //////////////////////////////////////////////////
-ProtoPneumaticSpring::ProtoPneumaticSpring()
-  : dataPtr(std::make_unique<ProtoPneumaticSpringPrivate>())
+PneumaticSpring::PneumaticSpring()
+  : dataPtr(std::make_unique<PneumaticSpringPrivate>())
 {
 }
 
@@ -85,7 +85,7 @@ double SdfParamDouble(
 
 
 //////////////////////////////////////////////////
-void ProtoPneumaticSpring::Configure(const Entity &_entity,
+void PneumaticSpring::Configure(const Entity &_entity,
     const std::shared_ptr<const sdf::Element> &_sdf,
     EntityComponentManager &_ecm,
     EventManager &/*_eventMgr*/)
@@ -101,7 +101,7 @@ void ProtoPneumaticSpring::Configure(const Entity &_entity,
 
   if (!this->dataPtr->model.Valid(_ecm))
   {
-    ignerr << "ProtoPneumaticSpring plugin should be attached to a model entity. "
+    ignerr << "PneumaticSpring plugin should be attached to a model entity. "
            << "Failed to initialize." << std::endl;
     return;
   }
@@ -110,7 +110,7 @@ void ProtoPneumaticSpring::Configure(const Entity &_entity,
   auto jointName = _sdf->Get<std::string>("JointName");
   if (jointName.empty())
   {
-    ignerr << "ProtoPneumaticSpring found an empty jointName parameter. "
+    ignerr << "PneumaticSpring found an empty jointName parameter. "
            << "Failed to initialize.";
     return;
   }
@@ -120,7 +120,7 @@ void ProtoPneumaticSpring::Configure(const Entity &_entity,
   if (this->dataPtr->jointEntity == kNullEntity)
   {
     ignerr << "Joint with name[" << jointName << "] not found. "
-    << "The ProtoPneumaticSpring may not influence this joint.\n";
+    << "The PneumaticSpring may not influence this joint.\n";
     return;
   }
 
@@ -129,10 +129,10 @@ void ProtoPneumaticSpring::Configure(const Entity &_entity,
 }
 
 //////////////////////////////////////////////////
-void ProtoPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
+void PneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
     ignition::gazebo::EntityComponentManager &_ecm)
 {
-  IGN_PROFILE("ProtoPneumaticSpring::PreUpdate");
+  IGN_PROFILE("PneumaticSpring::PreUpdate");
 
   // If the joint hasn't been identified yet, the plugin is disabled
   if (this->dataPtr->jointEntity == kNullEntity)
@@ -183,10 +183,10 @@ void ProtoPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
 }
 
 
-IGNITION_ADD_PLUGIN(ProtoPneumaticSpring,
+IGNITION_ADD_PLUGIN(PneumaticSpring,
                     ignition::gazebo::System,
-                    ProtoPneumaticSpring::ISystemConfigure,
-                    ProtoPneumaticSpring::ISystemPreUpdate)
+                    PneumaticSpring::ISystemConfigure,
+                    PneumaticSpring::ISystemPreUpdate)
 
-IGNITION_ADD_PLUGIN_ALIAS(ProtoPneumaticSpring,
-                          "ignition::gazebo::systems::ProtoPneumaticSpring")
+IGNITION_ADD_PLUGIN_ALIAS(PneumaticSpring,
+                          "ignition::gazebo::systems::PneumaticSpring")

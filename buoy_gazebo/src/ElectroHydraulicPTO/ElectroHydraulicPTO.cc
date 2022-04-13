@@ -15,7 +15,7 @@
  *
  */
 
-#include "ProtoElectroHydraulicPTO.hh"
+#include "ElectroHydraulicPTO.hh"
 #include <ignition/msgs/double.pb.h>
 #include <string>
 #include <iostream>
@@ -37,7 +37,7 @@
 #include <ignition/gazebo/Util.hh>
 #include <unsupported/Eigen/NonLinearOptimization>
 
-#include "PTO_ElectroHydraulicState.hh"
+#include "ElectroHydraulicState.hh"
 #include "JustInterp/JustInterp.hpp"
 #include "ElectroHydraulicSoln.hh"
 
@@ -46,7 +46,7 @@ using namespace gazebo;
 using namespace systems;
 using namespace Eigen;
 
-class ignition::gazebo::systems::ProtoElectroHydraulicPTOPrivate
+class ignition::gazebo::systems::ElectroHydraulicPTOPrivate
 {
 
   /// \brief Piston joint entity
@@ -95,8 +95,8 @@ public: void OnRetract(const msgs::Double &_msg);
 
 
 //////////////////////////////////////////////////
-ProtoElectroHydraulicPTO::ProtoElectroHydraulicPTO()
-  : dataPtr(std::make_unique<ProtoElectroHydraulicPTOPrivate>())
+ElectroHydraulicPTO::ElectroHydraulicPTO()
+  : dataPtr(std::make_unique<ElectroHydraulicPTOPrivate>())
 {
 }
 
@@ -112,7 +112,7 @@ double SdfParamDouble(
 
 
 //////////////////////////////////////////////////
-void ProtoElectroHydraulicPTO::Configure(const Entity &_entity,
+void ElectroHydraulicPTO::Configure(const Entity &_entity,
     const std::shared_ptr<const sdf::Element> &_sdf,
     EntityComponentManager &_ecm,
     EventManager &/*_eventMgr*/)
@@ -120,7 +120,7 @@ void ProtoElectroHydraulicPTO::Configure(const Entity &_entity,
   this->dataPtr->model = Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm))
   {
-    ignerr << "ProtoElectroHydraulicPTO plugin should be attached to a model entity. "
+    ignerr << "ElectroHydraulicPTO plugin should be attached to a model entity. "
            << "Failed to initialize." << std::endl;
     return;
   }
@@ -130,7 +130,7 @@ void ProtoElectroHydraulicPTO::Configure(const Entity &_entity,
   auto PrismaticJointName = _sdf->Get<std::string>("PrismaticJointName");
   if (PrismaticJointName.empty())
   {
-    ignerr << "ProtoElectroHydraulicPTO found an empty PrismaticJointName parameter. "
+    ignerr << "ElectroHydraulicPTO found an empty PrismaticJointName parameter. "
            << "Failed to initialize.";
     return;
   }
@@ -141,7 +141,7 @@ void ProtoElectroHydraulicPTO::Configure(const Entity &_entity,
   if (this->dataPtr->PrismaticJointEntity == kNullEntity)
   {
     ignerr << "Joint with name [" << PrismaticJointName << "] not found. "
-           << "The ProtoElectroHydraulicPTO may not influence this joint.\n";
+           << "The ElectroHydraulicPTO may not influence this joint.\n";
     return;
   }
   else
@@ -183,9 +183,9 @@ void ProtoElectroHydraulicPTO::Configure(const Entity &_entity,
                << "]" << std::endl;
     return;
   }
-  this->dataPtr->node.Subscribe(topic, &ProtoElectroHydraulicPTOPrivate::OnUserCmdCurr,
+  this->dataPtr->node.Subscribe(topic, &ElectroHydraulicPTOPrivate::OnUserCmdCurr,
                                 this->dataPtr.get());
-  std::cout << "###ProtoElectroHydraulicPTO subscribing to Double messages on [" << topic
+  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic
             << "]" << std::endl;
 
 
@@ -198,9 +198,9 @@ void ProtoElectroHydraulicPTO::Configure(const Entity &_entity,
                << "]" << std::endl;
     return;
   }
-  this->dataPtr->node.Subscribe(topic, &ProtoElectroHydraulicPTOPrivate::OnUserBiasCurr,
+  this->dataPtr->node.Subscribe(topic, &ElectroHydraulicPTOPrivate::OnUserBiasCurr,
                                 this->dataPtr.get());
-  std::cout << "###ProtoElectroHydraulicPTO subscribing to Double messages on [" << topic
+  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic
             << "]" << std::endl;
 
 
@@ -213,9 +213,9 @@ void ProtoElectroHydraulicPTO::Configure(const Entity &_entity,
                << "]" << std::endl;
     return;
   }
-  this->dataPtr->node.Subscribe(topic, &ProtoElectroHydraulicPTOPrivate::OnScale,
+  this->dataPtr->node.Subscribe(topic, &ElectroHydraulicPTOPrivate::OnScale,
                                 this->dataPtr.get());
-  std::cout << "###ProtoElectroHydraulicPTO subscribing to Double messages on [" << topic
+  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic
             << "]" << std::endl;
 
 
@@ -228,9 +228,9 @@ void ProtoElectroHydraulicPTO::Configure(const Entity &_entity,
                << "]" << std::endl;
     return;
   }
-  this->dataPtr->node.Subscribe(topic, &ProtoElectroHydraulicPTOPrivate::OnRetract,
+  this->dataPtr->node.Subscribe(topic, &ElectroHydraulicPTOPrivate::OnRetract,
                                 this->dataPtr.get());
-  std::cout << "###ProtoElectroHydraulicPTO subscribing to Double messages on [" << topic
+  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic
             << "]" << std::endl;
 
 
@@ -311,20 +311,20 @@ void ProtoElectroHydraulicPTO::Configure(const Entity &_entity,
 
 
 //////////////////////////////////////////////////
-void ProtoElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
+void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
     ignition::gazebo::EntityComponentManager &_ecm)
 {
   const int n = 2;
   int info;
 
-  IGN_PROFILE("ProtoElectroHydraulicPTO::Update");
+  IGN_PROFILE("ElectroHydraulicPTO::Update");
   // Nothing left to do if paused.
   if (_info.paused)
     return;
 
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
 
-  IGN_PROFILE("#ProtoElectroHydraulicPTO::PreUpdate");
+  IGN_PROFILE("#ElectroHydraulicPTO::PreUpdate");
 
   // If the joints haven't been identified yet, the plugin is disabled
   if (this->dataPtr->PrismaticJointEntity == kNullEntity)
@@ -495,10 +495,10 @@ void ProtoElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_in
 }
 
 //////////////////////////////////////////////////
-void ProtoElectroHydraulicPTO::Update(const ignition::gazebo::UpdateInfo &_info,
+void ElectroHydraulicPTO::Update(const ignition::gazebo::UpdateInfo &_info,
                                       ignition::gazebo::EntityComponentManager &_ecm)
 {
-  IGN_PROFILE("#ProtoElectroHydraulicPTO::Update");
+  IGN_PROFILE("#ElectroHydraulicPTO::Update");
   // Nothing left to do if paused.
   if (_info.paused)
     return;
@@ -507,10 +507,10 @@ void ProtoElectroHydraulicPTO::Update(const ignition::gazebo::UpdateInfo &_info,
 }
 
 //////////////////////////////////////////////////
-void ProtoElectroHydraulicPTO::PostUpdate(const ignition::gazebo::UpdateInfo &_info,
+void ElectroHydraulicPTO::PostUpdate(const ignition::gazebo::UpdateInfo &_info,
     const ignition::gazebo::EntityComponentManager &_ecm)
 {
-  IGN_PROFILE("#ProtoElectroHydraulicPTO::PostUpdate");
+  IGN_PROFILE("#ElectroHydraulicPTO::PostUpdate");
   // Nothing left to do if paused.
   if (_info.paused)
     return;
@@ -520,35 +520,35 @@ void ProtoElectroHydraulicPTO::PostUpdate(const ignition::gazebo::UpdateInfo &_i
 
 
 //////////////////////////////////////////////////
-void ProtoElectroHydraulicPTOPrivate::OnUserCmdCurr(const msgs::Double &_msg)
+void ElectroHydraulicPTOPrivate::OnUserCmdCurr(const msgs::Double &_msg)
 {
   this->functor.I_Wind.SetUserCommandedCurrent(_msg.data());
 }
 
 //////////////////////////////////////////////////
-void ProtoElectroHydraulicPTOPrivate::OnUserBiasCurr(const msgs::Double &_msg)
+void ElectroHydraulicPTOPrivate::OnUserBiasCurr(const msgs::Double &_msg)
 {
   this->functor.I_Wind.SetBiasCurrent(_msg.data());
 }
 
 //////////////////////////////////////////////////
-void ProtoElectroHydraulicPTOPrivate::OnScale(const msgs::Double &_msg)
+void ElectroHydraulicPTOPrivate::OnScale(const msgs::Double &_msg)
 {
   this->functor.I_Wind.SetScaleFactor(_msg.data());
 }
 
 //////////////////////////////////////////////////
-void ProtoElectroHydraulicPTOPrivate::OnRetract(const msgs::Double &_msg)
+void ElectroHydraulicPTOPrivate::OnRetract(const msgs::Double &_msg)
 {
   this->functor.I_Wind.SetRetractFactor(_msg.data());
 }
 
-IGNITION_ADD_PLUGIN(ProtoElectroHydraulicPTO,
+IGNITION_ADD_PLUGIN(ElectroHydraulicPTO,
                     ignition::gazebo::System,
-                    ProtoElectroHydraulicPTO::ISystemConfigure,
-                    ProtoElectroHydraulicPTO::ISystemPreUpdate,
-                    ProtoElectroHydraulicPTO::ISystemUpdate,
-                    ProtoElectroHydraulicPTO::ISystemPostUpdate);
+                    ElectroHydraulicPTO::ISystemConfigure,
+                    ElectroHydraulicPTO::ISystemPreUpdate,
+                    ElectroHydraulicPTO::ISystemUpdate,
+                    ElectroHydraulicPTO::ISystemPostUpdate);
 
-IGNITION_ADD_PLUGIN_ALIAS(ProtoElectroHydraulicPTO,
-                          "ignition::gazebo::systems::ProtoElectroHydraulicPTO")
+IGNITION_ADD_PLUGIN_ALIAS(ElectroHydraulicPTO,
+                          "ignition::gazebo::systems::ElectroHydraulicPTO")
