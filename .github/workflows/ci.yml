@@ -1,0 +1,23 @@
+name: Build and test
+
+on: [push, pull_request]
+
+jobs:
+  tests:
+    name: Build and test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - gz-version: "fortress"
+            ros-distro: "galactic"
+    container:
+      image: ubuntu:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build and Test
+        run: .github/workflows/build-and-test.sh
+        env:
+          IGNITION_VERSION: ${{ matrix.gz-version  }}
+          ROS_DISTRO: ${{ matrix.ros-distro }}

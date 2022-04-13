@@ -10,8 +10,9 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>buoy_msgs</depend>
+  <depend>buoy_description</depend>
   <depend>buoy_examples</depend>
+  <depend>buoy_msgs</depend>
   <depend>ignition-gazebo6</depend>
   <depend>ros_ign_gazebo</depend>
 
