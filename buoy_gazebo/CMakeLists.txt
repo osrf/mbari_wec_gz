@@ -13,6 +13,8 @@ set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 # Plugins
 list(APPEND BUOY_GZ_PLUGINS
   ProtoElectroHydraulicPTO
+  ProtoPneumaticSpring
+  PolytropicPneumaticSpring
 )
 
 foreach(PLUGIN ${BUOY_GZ_PLUGINS})
