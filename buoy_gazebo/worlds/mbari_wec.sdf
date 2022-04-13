@@ -267,12 +267,12 @@
       </joint>
 
 
-      <!-- <plugin filename="ProtoElectroHydraulicPTO" name="ignition::gazebo::systems::ProtoElectroHydraulicPTO"> 
+      <plugin filename="ProtoElectroHydraulicPTO" name="ignition::gazebo::systems::ProtoElectroHydraulicPTO"> 
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
         <PistonArea>1.375</PistonArea>
         <HydMotorDisp>0.30</HydMotorDisp>
         <RotorInertia>1</RotorInertia>
-      </plugin> -->
+      </plugin>
       <!-- <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController">
           <joint_name>WaterPlaneArea</joint_name>
           <p_gain>1</p_gain>

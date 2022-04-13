@@ -12,6 +12,7 @@ set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 
 # Plugins
 list(APPEND BUOY_GZ_PLUGINS
+  ProtoElectroHydraulicPTO
   ProtoPneumaticSpring
   PolytropicPneumaticSpring
 )
@@ -22,6 +23,8 @@ foreach(PLUGIN ${BUOY_GZ_PLUGINS})
     ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
     ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
   )
+  target_include_directories(${PLUGIN}
+      PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
 endforeach()
 
 install(
