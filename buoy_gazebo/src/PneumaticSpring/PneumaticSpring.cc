@@ -19,16 +19,16 @@
 
 #include <ignition/msgs/double.pb.h>
 
-#include <string>
-
 #include <ignition/common/Profiler.hh>
 #include <ignition/math/PID.hh>
 #include <ignition/plugin/Register.hh>
 #include <ignition/transport/Node.hh>
 
+#include <string>
+
 #include "ignition/gazebo/components/JointForceCmd.hh"
 #include "ignition/gazebo/components/JointPosition.hh"
-//#include "ignition/gazebo/components/JointVelocityCmd.hh"
+// #include "ignition/gazebo/components/JointVelocityCmd.hh"
 #include "ignition/gazebo/Model.hh"
 
 using namespace ignition;
@@ -37,13 +37,11 @@ using namespace systems;
 
 class ignition::gazebo::systems::PneumaticSpringPrivate
 {
-
-
   /// \brief Spring Type
-  public: int SpringType;  //TODO:  Need to enumerate this better instead of just using integers
+  // TODO(anyone):  Need to enumerate this better instead of just using integers
+  public: int SpringType;
 
-
-  /// \brief Spring Constant  
+  /// \brief Spring Constant
   public: double SpringConst;
 
   /// \brief Piston Diameter (inches)  - Currently Unused
@@ -90,12 +88,10 @@ void PneumaticSpring::Configure(const Entity &_entity,
     EntityComponentManager &_ecm,
     EventManager &/*_eventMgr*/)
 {
-
-  this->dataPtr->SpringType    = SdfParamDouble(_sdf, "SpringType", 0); 
+  this->dataPtr->SpringType    = SdfParamDouble(_sdf, "SpringType", 0);
   this->dataPtr->SpringConst    = SdfParamDouble(_sdf, "SpringConst", 1);
   this->dataPtr->PistonDiam    = SdfParamDouble(_sdf, "PistonDiam", 5);
   this->dataPtr->RodDiam    = SdfParamDouble(_sdf, "RodDiam", 1.5);
-
 
   this->dataPtr->model = Model(_entity);
 
@@ -115,17 +111,13 @@ void PneumaticSpring::Configure(const Entity &_entity,
     return;
   }
 
-  this->dataPtr->jointEntity = this->dataPtr->model.JointByName(_ecm,
-      jointName);
+  this->dataPtr->jointEntity = this->dataPtr->model.JointByName(_ecm, jointName);
   if (this->dataPtr->jointEntity == kNullEntity)
   {
     ignerr << "Joint with name[" << jointName << "] not found. "
     << "The PneumaticSpring may not influence this joint.\n";
     return;
   }
-
-
-
 }
 
 //////////////////////////////////////////////////
@@ -164,22 +156,18 @@ void PneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   if (jointPosComp == nullptr || jointPosComp->Data().empty())
     return;
 
-
-  double x = jointPosComp->Data().at(0);  //TODO: Figure out if (0) for the index is always correct, some OR code has a process of finding the index for this argument.
+  // TODO(anyone): Figure out if (0) for the index is always correct,
+  // some OR code has a process of finding the index for this argument.
+  double x = jointPosComp->Data().at(0);
   double force = -this->dataPtr->SpringConst*x;
 
-       auto forceComp =
-          _ecm.Component<components::JointForceCmd>(this->dataPtr->jointEntity);
-      if (forceComp == nullptr)
-      {
-        _ecm.CreateComponent(this->dataPtr->jointEntity,
-                             components::JointForceCmd({force}));
-      }
-      else
-      { 
-          forceComp->Data()[0] += force;  //Add force to existing forces.
-      }         
-
+  auto forceComp = _ecm.Component<components::JointForceCmd>(this->dataPtr->jointEntity);
+  if (forceComp == nullptr)
+  {
+    _ecm.CreateComponent(this->dataPtr->jointEntity, components::JointForceCmd({force}));
+  } else {
+    forceComp->Data()[0] += force;  // Add force to existing forces.
+  }
 }
 
 

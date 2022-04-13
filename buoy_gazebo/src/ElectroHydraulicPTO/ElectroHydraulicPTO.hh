@@ -1,5 +1,5 @@
-#ifndef IGNITION_GAZEBO_SYSTEMS_ELECTROHYDRAULICPTO_HH_
-#define IGNITION_GAZEBO_SYSTEMS_ELECTROHYDRAULICPTO_HH_
+#ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICPTO_HH_
+#define ELECTROHYDRAULICPTO__ELECTROHYDRAULICPTO_HH_
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/transport.hh>
@@ -14,7 +14,6 @@ namespace gazebo
 inline namespace IGNITION_GAZEBO_VERSION_NAMESPACE {
 namespace systems
 {
-
    // enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
 
   // Forward declaration
@@ -40,9 +39,6 @@ namespace systems
   ///   For each actuator of revolute type, the following nested tags are required:
   ///
   ///     <Displacement>  Displacement per revolution of rotary pump/motor.
-
-
-
 
 
   class ElectroHydraulicPTO
@@ -82,15 +78,16 @@ namespace systems
 
 private: 
     ignition::transport::Node node;
-    ignition::transport::Node::Publisher pistonvel_pub, rpm_pub, deltaP_pub, targwindcurr_pub, windcurr_pub,
-                                         battcurr_pub, loadcurr_pub, scalefactor_pub, retractfactor_pub;
+    ignition::transport::Node::Publisher pistonvel_pub, rpm_pub, deltaP_pub, targwindcurr_pub,
+                                         windcurr_pub, battcurr_pub, loadcurr_pub,
+                                         scalefactor_pub, retractfactor_pub;
 
     /// \brief Private data pointer
     private: std::unique_ptr<ElectroHydraulicPTOPrivate> dataPtr;
   };
-  }
+}  // namespace systems
 }
-}
-}
+}  // namespace gazebo
+}  // namespace ignition
 
 #endif

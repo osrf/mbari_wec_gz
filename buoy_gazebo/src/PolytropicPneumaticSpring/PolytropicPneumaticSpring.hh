@@ -14,13 +14,13 @@
  * limitations under the License.
  *
  */
-#ifndef IGNITION_GAZEBO_SYSTEMS_POLYTROPIC_PNEUMATICSPRING_HH_
-#define IGNITION_GAZEBO_SYSTEMS_POLYTROPIC_PNEUMATICSPRING_HH_
+#ifndef POLYTROPICPNEUMATICSPRING__POLYTROPICPNEUMATICSPRING_HH_
+#define POLYTROPICPNEUMATICSPRING__POLYTROPICPNEUMATICSPRING_HH_
 
 #include <ignition/gazebo/System.hh>
-#include <memory>
-
 #include <ignition/transport.hh>
+
+#include <memory>
 
 namespace ignition
 {
@@ -30,8 +30,7 @@ namespace gazebo
 inline namespace IGNITION_GAZEBO_VERSION_NAMESPACE {
 namespace systems
 {
-
-    //enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
+  // enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
 
   // Forward declaration
   struct PolytropicPneumaticSpringPrivate;
@@ -46,32 +45,48 @@ namespace systems
   /// xml tags in Ignition Gazebo .sdf file define behavior as follows:
   ///
   /// \brief <JointName>  The name of the joint to control. Required parameter.
-  /// 
-  /// <SpringType> \brief Type of Spring, options are 'linear', 'pneumatic_adiabatic', 'pneumatic_calibrated'  - Currently Unused
-  /// 
-  /// <SpringConst> \brief The spring constant.  Required and used when 'SpringType' is 'trivial'.  The default is 1.
-  /// 
-  /// <PistonDiam> \brief Piston Diam (inches) Required and used whenever 'SpringType' is not 'trivial'.  The default is 5.  - Currently Unused
-  /// 
-  /// <RodDiam> \brief Rod Diamter (inches) Required and used whenever 'SpringType' is not 'trivial'.  The default is 1.5.  - Currently Unused
-  /// 
-  /// <PistonEndVolume> \brief Piston End Dead Volume when position is 0 (inches^3). Required and used whenever 'SpringType' is not 'trivial'.  The default is 1430.  - Currently Unused
-  /// 
-  /// <RodEndVolume> \brief Rod End Dead Volume when position is 0 (inches^3).  Required and used whenever 'SpringType' is not 'trivial'.  The default is 4700.  - Currently Unused
-  /// 
-  /// <PistonEndPressure> \brief Piston End pressure when position is 0 (psia).  Required and used whenever 'SpringType' is not 'trivial'.  The default is 65.  - Currently Unused
-  /// 
-  /// <RodEndPressure> \brief Rod End pressure when position is 0 (psia).  Required and used whenever 'SpringType' is not 'trivial'.  The default is 160.  - Currently Unused
   ///
-  /// <AmbientTemp> \brief Ambient Temperature (degrees C).  Required and used whenever 'SpringType' is not 'trivial'.  The default is 15.  - Currently Unused
-  /// 
+  /// <SpringType> \brief Type of Spring, options are 'linear', 'pneumatic_adiabatic',
+  ///               'pneumatic_calibrated'  - Currently Unused
+  ///
+  /// <SpringConst> \brief The spring constant.
+  ///                Required and used when 'SpringType' is 'trivial'.
+  ///                The default is 1.
+  ///
+  /// <PistonDiam> \brief Piston Diam (inches)
+  ///               Required and used whenever 'SpringType' is not 'trivial'.
+  ///               The default is 5.  - Currently Unused
+  ///
+  /// <RodDiam> \brief Rod Diamter (inches)
+  ///            Required and used whenever 'SpringType' is not 'trivial'.
+  ///            The default is 1.5.  - Currently Unused
+  ///
+  /// <PistonEndVolume> \brief Piston End Dead Volume when position is 0 (inches^3).
+  ///                    Required and used whenever 'SpringType' is not 'trivial'.
+  ///                    The default is 1430.  - Currently Unused
+  ///
+  /// <RodEndVolume> \brief Rod End Dead Volume when position is 0 (inches^3).
+  ///                 Required and used whenever 'SpringType' is not 'trivial'.
+  ///                 The default is 4700.  - Currently Unused
+  ///
+  /// <PistonEndPressure> \brief Piston End pressure when position is 0 (psia).
+  ///                      Required and used whenever 'SpringType' is not 'trivial'.
+  ///                      The default is 65.  - Currently Unused
+  ///
+  /// <RodEndPressure> \brief Rod End pressure when position is 0 (psia).
+  ///                   Required and used whenever 'SpringType' is not 'trivial'.
+  ///                   The default is 160.  - Currently Unused
+  ///
+  /// <AmbientTemp> \brief Ambient Temperature (degrees C).
+  ///                Required and used whenever 'SpringType' is not 'trivial'.
+  ///                The default is 15.  - Currently Unused
+  ///
 
 
-
-  class PolytropicPneumaticSpring
-      : public System,
-        public ISystemConfigure,
-        public ISystemPreUpdate
+class PolytropicPneumaticSpring
+  : public System,
+    public ISystemConfigure,
+    public ISystemPreUpdate
   {
   public:
     /// \brief Constructor
@@ -91,18 +106,18 @@ namespace systems
                    ignition::gazebo::EntityComponentManager &_ecm) override;
 
   private:
-
     void computeForce(const double &x, const double &v, const double &n);
 
     ignition::transport::Node node;
-    ignition::transport::Node::Publisher force_pub, pressure_pub, volume_pub, temperature_pub, heat_rate_pub;
-    
+    ignition::transport::Node::Publisher force_pub, pressure_pub, volume_pub,
+                                         temperature_pub, heat_rate_pub;
+
     /// \brief Private data pointer
     std::unique_ptr<PolytropicPneumaticSpringPrivate> dataPtr;
   };
-  }
+}  // namespace systems
 }
-}
-}
+}  // namespace gazebo
+}  // namespace ignition
 
-#endif //IGNITION_GAZEBO_SYSTEMS_POLYTROPIC_PNEUMATICSPRING_HH_
+#endif  // POLYTROPICPNEUMATICSPRING__POLYTROPICPNEUMATICSPRING_HH_

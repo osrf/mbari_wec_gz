@@ -16,18 +16,10 @@
  */
 
 #include "ElectroHydraulicPTO.hh"
-#include <ignition/msgs/double.pb.h>
-#include <string>
-#include <iostream>
-#include <stdio.h>
-#include <cmath>
+
 #include <ignition/common/Profiler.hh>
 #include <ignition/common/Console.hh>
-#include <ignition/math/PID.hh>
-#include <ignition/plugin/Register.hh>
-#include <ignition/transport/Node.hh>
 #include <ignition/gazebo/Types.hh>
-#include <ignition/msgs.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
 #include <ignition/gazebo/components/JointForceCmd.hh>
@@ -35,11 +27,22 @@
 #include <ignition/gazebo/components/JointVelocity.hh>
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Util.hh>
+#include <ignition/math/PID.hh>
+#include <ignition/msgs.hh>
+#include <ignition/msgs/double.pb.h>
+#include <ignition/plugin/Register.hh>
+#include <ignition/transport/Node.hh>
 #include <unsupported/Eigen/NonLinearOptimization>
 
+#include <string>
+#include <iostream>
+#include <stdio.h>
+#include <cmath>
+
 #include "ElectroHydraulicState.hh"
-#include "JustInterp/JustInterp.hpp"
 #include "ElectroHydraulicSoln.hh"
+
+#include "JustInterp/JustInterp.hpp"
 
 using namespace ignition;
 using namespace gazebo;
@@ -48,7 +51,6 @@ using namespace Eigen;
 
 class ignition::gazebo::systems::ElectroHydraulicPTOPrivate
 {
-
   /// \brief Piston joint entity
 public: Entity PrismaticJointEntity;
 
@@ -144,13 +146,13 @@ void ElectroHydraulicPTO::Configure(const Entity &_entity,
            << "The ElectroHydraulicPTO may not influence this joint.\n";
     return;
   }
-  else
-  {
+  else {
     this->dataPtr->PistonArea    = SdfParamDouble(_sdf, "PistonArea", 1.);
   }
 
-  this->dataPtr->functor.HydMotorDisp    = SdfParamDouble(_sdf, "HydMotorDisp", 0.30);  //Default to Parker F11-5  0.30in^3/rev
-  this->dataPtr->RotorInertia    = SdfParamDouble(_sdf, "RotorInertia", 1);
+  // Default to Parker F11-5  0.30in^3/rev
+  this->dataPtr->functor.HydMotorDisp = SdfParamDouble(_sdf, "HydMotorDisp", 0.30);
+  this->dataPtr->RotorInertia = SdfParamDouble(_sdf, "RotorInertia", 1);
 
   if (_sdf->HasElement("VelMode"))
     this->dataPtr->VelMode = true;
@@ -162,7 +164,7 @@ void ElectroHydraulicPTO::Configure(const Entity &_entity,
 
 
 
-//Set Default Damping Relation
+  // Set Default Damping Relation
   {
     std::vector<double> P{0, 2800, 3000};
     std::vector<double> hyd_eff_v{1, 1, 0};
@@ -330,7 +332,7 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   if (this->dataPtr->PrismaticJointEntity == kNullEntity)
     return;
 
-  // \TODO(anyone) Support rewind
+  // \TODO(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero())
   {
     ignwarn << "Detected jump back in time ["
@@ -352,39 +354,49 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   if (prismaticJointVelComp == nullptr || prismaticJointVelComp->Data().empty())
     return;
 
-//Retrieve Piston velocity, compute flow and provide as input to hydraulic solver.
-  double xdot = prismaticJointVelComp->Data().at(0);  //TODO: Figure out if (0) for the index is always correct, some OR code has a process of finding the index for this argument.
-  this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea; //inch^3/second
+  // Retrieve Piston velocity, compute flow and provide as input to hydraulic solver.
+  //TODO(anyone): Figure out if (0) for the index is always correct,
+  // some OR code has a process of finding the index for this argument.
+  double xdot = prismaticJointVelComp->Data().at(0);
+  this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
-//Retrieve Piston position and simulation time, and provide as input to hydraulic solver.
-//  double x = prismaticJointVelComp->Data().at(0);  //TODO: Figure out if (0) for the index is always correct, some OR code has a process of finding the index for this argument.
-  this->dataPtr->functor.I_Wind.PistonPos = 12.12; //x*39.4;  //inch^3/second
-  this->dataPtr->functor.I_Wind.SimTime = SimTime;  //Set Sim time in IWind so it knows when to timeout user and bias current commands.
+  // Retrieve Piston position and simulation time, and provide as input to hydraulic solver.
+  // double x = prismaticJointVelComp->Data().at(0);
+  // TODO(anyone): Figure out if (0) for the index is always correct, 
+  // some OR code has a process of finding the index for this argument.
+  this->dataPtr->functor.I_Wind.PistonPos = 12.12;  // x*39.4;  // inch^3/second
+  // Set Sim time in IWind so it knows when to timeout user and bias current commands.
+  this->dataPtr->functor.I_Wind.SimTime = SimTime;
 
-//Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
+  // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
   // but do include mechanical and volumetric efficiency of hydraulic motor.
-  // This is an implicit non-linear relation so iteration required, performed by Eigen HybridNonLinearSolver
+  // This is an implicit non-linear relation so iteration required, 
+  // performed by Eigen HybridNonLinearSolver
 
-  this->dataPtr->functor.I_Wind.UserCommandMutex.lock();  //Preclude changing User Commanded Current while it may be being read.
-  //this->dataPtr->x[0] = 60*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp; //Initial Guess based on perfect efficiency
-  //this->dataPtr->x[1] = this->dataPtr->functor.T_applied/(this->dataPtr->functor.HydMotorDisp); //Initial Guess based on perfect efficiency
+  //Preclude changing User Commanded Current while it may be being read.
+  this->dataPtr->functor.I_Wind.UserCommandMutex.lock();
+  //Initial Guess based on perfect efficiency
+  // this->dataPtr->x[0] = 60*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
+  // this->dataPtr->x[1] = this->dataPtr->functor.T_applied/(this->dataPtr->functor.HydMotorDisp);
   HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
   info = solver.solveNumericalDiff(this->dataPtr->x);
-  //info = solver.hybrd1(this->dataPtr->x);
+  // info = solver.hybrd1(this->dataPtr->x);
   this->dataPtr->functor.I_Wind.UserCommandMutex.unlock();
 
 
-//Solve Electrical.
+  // Solve Electrical
   double N = this->dataPtr->x[0];
   double deltaP = this->dataPtr->x[1];
-  this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind(N);  //Shame to have to re-compute this, but small effort...
+  // Shame to have to re-compute this, but small effort...
+  this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind(N);
   this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent + 0.001 * (rand() % 200 - 100);
 
   double eff_e = 0.85;
-  double ShaftPower = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp * this->dataPtr->WindingCurrent * 2 * M_PI * N / 60; //Watts
+  double ShaftPower = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp * 
+                      this->dataPtr->WindingCurrent * 2 * M_PI * N / 60;  // Watts
   double P = eff_e * ShaftPower;
-  double Ri = 8;    //Ohms
+  double Ri = 8;    // Ohms
 
   double a = (1.0 / Ri);
   double b = -this->dataPtr->Ve / Ri;
@@ -405,7 +417,7 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   double I_Batt = (VBus - this->dataPtr->Ve) / Ri;
   double I_BattMax = 7;
 
-  if (I_Batt > I_BattMax) //Need to limit charge current
+  if (I_Batt > I_BattMax)  // Need to limit charge current
   {
     I_Batt = I_BattMax;
     VBus = this->dataPtr->Ve + Ri * I_BattMax;
@@ -413,9 +425,10 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   double I_Load = P / VBus - I_Batt;
 
 
-//Report results
-//  std::cout << SimTime << "  "  << "  " << xdot / .0254 << "    " << N << "   " << deltaP << "   "  << VBus << "   "
-//            << this->dataPtr->TargetWindingCurrent << "  "  << this->dataPtr->WindingCurrent << "  "  << I_Batt << "   " << I_Load << std::endl;
+// Report results
+//  std::cout << SimTime << "  "  << "  " << xdot / .0254 << "    " << N << "   " << deltaP << "   "  
+//            << VBus << "   " << this->dataPtr->TargetWindingCurrent << "  "
+//            << this->dataPtr->WindingCurrent << "  "  << I_Batt << "   " << I_Load << std::endl;
 
 
 
@@ -460,7 +473,7 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
     ignerr << "could not publish retractfactor" << std::endl;
 
 
-//Assign Values
+  // Assign Values
   ElectroHydraulicState PTO_Values;
   PTO_Values.xdot = xdot / 0.0254;
   PTO_Values.N = N;
@@ -474,7 +487,7 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   PTO_Values.RetractFactor = this->dataPtr->functor.I_Wind.RetractFactor;
 
 
-//Create new component for this entitiy in ECM (if it doesn't already exist)
+// Create new component for this entitiy in ECM (if it doesn't already exist)
   auto PTO_State_comp = _ecm.Component<components::PTO_State>(this->dataPtr->PrismaticJointEntity);
   if (PTO_State_comp == nullptr)
     _ecm.CreateComponent(this->dataPtr->PrismaticJointEntity, components::PTO_State({PTO_Values}));
@@ -482,15 +495,20 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
     PTO_State_comp->Data() = PTO_Values;
 
 
-  if (!this->dataPtr->VelMode) //Apply force if not in Velocity Mode, in which case a joint velocity is applied elsewhere (likely by a test Fixture)
+  // Apply force if not in Velocity Mode, in which case a joint velocity is applied elsewhere
+  // (likely by a test Fixture)
+  if (!this->dataPtr->VelMode)
   {
     double piston_force = deltaP * this->dataPtr->PistonArea;
-//Create new component for this entitiy in ECM (if it doesn't already exist)
+    // Create new component for this entitiy in ECM (if it doesn't already exist)
     auto forceComp = _ecm.Component<components::JointForceCmd>(this->dataPtr->PrismaticJointEntity);
     if (forceComp == nullptr)
-      _ecm.CreateComponent(this->dataPtr->PrismaticJointEntity, components::JointForceCmd({piston_force}));  //Create this iteration
-    else
-      forceComp->Data()[0] += piston_force;  //Add force to existing forces.
+    {
+      //Create this iteration
+      _ecm.CreateComponent(this->dataPtr->PrismaticJointEntity, 
+                           components::JointForceCmd({piston_force}));
+    } else
+      forceComp->Data()[0] += piston_force;  // Add force to existing forces.
   }
 }
 
@@ -515,7 +533,7 @@ void ElectroHydraulicPTO::PostUpdate(const ignition::gazebo::UpdateInfo &_info,
   if (_info.paused)
     return;
 
-  //auto SimTime = std::chrono::duration<double>(_info.simTime).count();
+  // auto SimTime = std::chrono::duration<double>(_info.simTime).count();
 }
 
 
