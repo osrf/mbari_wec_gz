@@ -1,0 +1,338 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <world name="world_demo">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="libignition-gazebo-physics-system.so" name="ignition::gazebo::systems::Physics">
+      <engine>"libignition-physics-dartsim-plugin.so"</engine> 
+    </plugin>
+
+    <plugin filename="libignition-gazebo-user-commands-system.so" name="ignition::gazebo::systems::UserCommands"/>
+    <plugin filename="libignition-gazebo-scene-broadcaster-system.so" name="ignition::gazebo::systems::SceneBroadcaster"/>
+
+    <gui fullscreen="0">
+
+      <!-- 3D scene -->
+      <plugin filename="GzScene3D" name="3D View">
+        <ignition-gui>
+          <title>3D View</title>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="state" type="string">docked</property>
+        </ignition-gui>
+
+        <engine>ogre</engine>
+        <scene>scene</scene>
+        <ambient_light>1.0 1.0 1.0</ambient_light>
+        <background_color>0.8 0.8 0.8</background_color>
+        <camera_pose>-6 0 6 0 0.5 0</camera_pose>
+      </plugin>
+
+      <!-- World control -->
+      <plugin filename="WorldControl" name="World control">
+        <ignition-gui>
+          <title>World control</title>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="resizable" type="bool">false</property>
+          <property key="height" type="double">72</property>
+          <property key="width" type="double">121</property>
+          <property key="z" type="double">1</property>
+          <property key="state" type="string">floating</property>
+          <anchors target="3D View">
+            <line own="left" target="left"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </ignition-gui>
+
+        <play_pause>true</play_pause>
+        <step>true</step>
+        <start_paused>true</start_paused>
+        <service>/world/world_demo/control</service>
+        <stats_topic>/world/world_demo/stats</stats_topic>
+      </plugin>
+
+      <!-- World statistics -->
+      <plugin filename="WorldStats" name="World stats">
+        <ignition-gui>
+          <title>World stats</title>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="resizable" type="bool">false</property>
+          <property key="height" type="double">110</property>
+          <property key="width" type="double">290</property>
+          <property key="z" type="double">1</property>
+          <property key="state" type="string">floating</property>
+          <anchors target="3D View">
+            <line own="right" target="right"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </ignition-gui>
+        <sim_time>true</sim_time>
+        <real_time>true</real_time>
+        <real_time_factor>true</real_time_factor>
+        <iterations>true</iterations>
+        <topic>/world/world_demo/stats</topic>
+      </plugin>
+
+        <!-- Entity tree -->
+      <plugin filename="EntityTree" name="Entity tree"/>
+    </gui>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="Proto Hydraulics Test">
+      <pose relative_to="world">0 0 0 0 0 0</pose>
+      <!--the pose is relative to the world by default-->
+
+      <link name="Buoy">
+        <pose relative_to="__model__">0 0 .56 0 0 0</pose>
+        <inertial>
+          <mass>1080</mass>
+          <inertia>
+            <ixx>10000</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>10000</iyy>
+            <iyz>0</iyz>
+            <izz>1000</izz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>1.32</radius>
+              <length>1.12</length>
+            </cylinder>
+          </geometry>
+          <!--color-->
+          <material>
+            <ambient>1.0 1.0 0.0 1</ambient>
+            <diffuse>1.0 1.0 0.0 1</diffuse>
+            <specular>1.0 1.0 0.0 1</specular>
+          </material>
+        </visual>
+      </link>
+
+      <link name="PTO">
+        <pose relative_to="Buoy">0 0 -3.8 0 0 0</pose>
+        <inertial>
+          <mass>605</mass>
+          <inertia>
+            <ixx>10000</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>10000</iyy>
+            <iyz>0</iyz>
+            <izz>1000</izz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>.16</radius>
+              <length>6.0</length>
+            </cylinder>
+          </geometry>
+          <!--color-->
+          <material>
+            <ambient>.2 .2 0.2 0.5</ambient>
+            <diffuse>.2 .2 0.2 0.5</diffuse>
+            <specular>.2 .2 0.2 0.5</specular>
+          </material>
+        </visual>
+      </link>
+
+      <link name="Piston">
+        <pose relative_to="PTO">0 0 -4 0 0 0</pose>
+        <inertial>
+          <mass>48</mass>
+          <inertia>
+            <ixx>10000</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>10000</iyy>
+            <iyz>0</iyz>
+            <izz>1000</izz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>.03</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+          <!--color-->
+          <material>
+            <ambient>0.0 0.0 1.0 1</ambient>
+            <diffuse>0.0 0.0 1.0 1</diffuse>
+            <specular>0.0 0.0 1.0 1</specular>
+          </material>
+        </visual>
+      </link>
+
+      <link name="HeaveCone">
+        <pose relative_to="Piston">0 0 -10 0 0 0</pose>
+        <inertial>
+          <mass>1000</mass>
+          <inertia>
+            <ixx>10000</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>10000</iyy>
+            <iyz>0</iyz>
+            <izz>1000</izz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>1.5</radius>
+              <length>.3</length>
+            </cylinder>
+          </geometry>
+          <!--color-->
+          <material>
+            <ambient>0.1 0.1 .1 1</ambient>
+            <diffuse>0.1 0.1 .1 1</diffuse>
+            <specular>0.1 0.1 .1 1</specular>
+          </material>
+        </visual>
+      </link>
+
+      <joint name="WaterPlaneArea" type="prismatic">
+        <parent>world</parent>
+        <child>Buoy</child>
+        <pose>0.0 0.0 0.0 0 0 0</pose>
+        <axis>
+          <limit>
+            <lower>-2.0</lower>
+            <upper>2.0</upper>
+          </limit>
+          <xyz>0.0 0.0 1.0</xyz>
+          <dynamics>
+            <spring_stiffness>55000</spring_stiffness>  
+            <spring_reference>0.0</spring_reference>
+            <damping>1000.0</damping>
+            <friction>0.0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+
+      <joint name="Universal" type="ball">
+        <parent>Buoy</parent>
+        <child>PTO</child>
+        <provide_feedback>1</provide_feedback>
+        <pose>0.0 0.0 -4.0 0 0 0</pose>
+      </joint>
+
+      <joint name="TetherProxy" type="fixed">
+        <parent>Piston</parent>
+        <child>HeaveCone</child>
+        <provide_feedback>1</provide_feedback>
+        <pose>0.0 0.0 -10.0 0 0 0</pose>
+      </joint>
+
+      <joint name="HydraulicRam" type="prismatic">
+        <parent>PTO</parent>
+          <child>Piston</child>
+          <pose>0.0 0.0 0.0 0 0 0</pose>
+          <axis>
+          <limit>
+            <lower>0.0</lower>
+            <upper>2.03</upper>
+          </limit>
+          <xyz>0.0 0.0 1.0</xyz>
+          <!-- <dynamics>
+              <spring_stiffness>18900</spring_stiffness>
+              <spring_reference>0.0</spring_reference>
+              <damping>0.0</damping>
+              <friction>0.0</friction>
+          </dynamics> -->
+        </axis>
+      </joint>
+
+
+      <plugin filename="ProtoElectroHydraulicPTO" name="ignition::gazebo::systems::ProtoElectroHydraulicPTO"> 
+        <PrismaticJointName>HydraulicRam</PrismaticJointName>
+        <PistonArea>1.375</PistonArea>
+        <HydMotorDisp>0.30</HydMotorDisp>
+        <RotorInertia>1</RotorInertia>
+      </plugin>
+      <!-- <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController">
+          <joint_name>WaterPlaneArea</joint_name>
+          <p_gain>1</p_gain>
+          <i_gain>0.1</i_gain>
+          <d_gain>0.01</d_gain>
+          <i_max>1</i_max>
+          <i_min>-1</i_min>
+          <cmd_max>1000</cmd_max>
+          <cmd_min>-1000</cmd_min>
+      </plugin>
+      <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController">
+          <joint_name>HydraulicRam</joint_name>
+          <p_gain>1</p_gain>
+          <i_gain>0.1</i_gain>
+          <d_gain>0.01</d_gain>
+          <i_max>1</i_max>
+          <i_min>-1</i_min>
+          <cmd_max>1000</cmd_max>
+          <cmd_min>-1000</cmd_min>
+      </plugin>-->
+
+      <!-- Add Upper/Lower Polytropic Spring plugin -->
+      <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
+        <JointName>HydraulicRam</JointName>
+        <chamber>upper_polytropic</chamber>
+        <stroke>2.03</stroke>
+        <piston_area>0.0127</piston_area>
+        <dead_volume>0.0266</dead_volume>
+        <T0>283.15</T0>
+        <R_specific>0.2968</R_specific>
+        <c_p>1.04</c_p>
+        <hysteresis>true</hysteresis>
+        <n1>1.2371</n1>
+        <n2>1.2307</n2>
+        <x1>0.9790</x1>
+        <x2>1.1912</x2>
+        <P1>410291</P1>
+        <P2>410266</P2>
+      </plugin>
+
+      <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
+      <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
+        <JointName>HydraulicRam</JointName>
+        <chamber>lower_polytropic</chamber>
+        <stroke>2.03</stroke>
+        <piston_area>0.0115</piston_area>
+        <dead_volume>0.0523</dead_volume>
+        <T0>283.15</T0>
+        <R_specific>0.2968</R_specific>
+        <c_p>1.04</c_p>
+        <hysteresis>true</hysteresis>
+        <n1>1.2327</n1>
+        <n2>1.2518</n2>
+        <x1>1.1958</x1>
+        <x2>1.3935</x2>
+        <P1>1212090</P1>
+        <P2>1212140</P2>
+      </plugin>
+      <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
+
+    </model>
+  </world>
+</sdf>
