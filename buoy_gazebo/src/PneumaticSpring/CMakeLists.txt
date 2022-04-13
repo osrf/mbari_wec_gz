@@ -1,0 +1,9 @@
+gz_add_plugin(PneumaticSpring
+  SOURCES
+   PneumaticSpring.cc
+  HEADERS
+   PneumaticSpring.hh
+  PUBLIC_LINK_LIBS
+   ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
+   ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
+)

@@ -11,25 +11,33 @@ set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 
 
 # Plugins
-list(APPEND BUOY_GZ_PLUGINS
-  ElectroHydraulicPTO
-  PneumaticSpring
-  PolytropicPneumaticSpring
-)
-
-foreach(PLUGIN ${BUOY_GZ_PLUGINS})
-  add_library(${PLUGIN} SHARED src/${PLUGIN}/${PLUGIN}.cc)
-  target_link_libraries(${PLUGIN} PUBLIC
-    ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
-    ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
+function(gz_add_plugin plugin_name)
+  set(multiValueArgs
+    SOURCES
+    HEADERS
+    PUBLIC_LINK_LIBS
+    PRIVATE_LINK_LIBS
+    INCLUDE_DIRS
   )
-  target_include_directories(${PLUGIN}
-      PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
-endforeach()
 
-install(
-  TARGETS ${BUOY_GZ_PLUGINS}
-  DESTINATION lib)
+  cmake_parse_arguments(gz_add_plugin "${multiValueArgs}" ${ARGN})
+
+  add_library(${plugin_name} SHARED
+    ${gz_add_plugin_SOURCES}
+  )
+  target_link_libraries(${plugin_name}
+    PUBLIC
+      ${gz_add_plugin_PUBLIC_LINK_LIBS}
+    PRIVATE
+      ${gz_add_plugin_PRIVATE_LINK_LIBS}
+  )
+  target_include_directories(${plugin_name}
+      PUBLIC ${gz_add_plugin_INCLUDE_DIRS})
+  install (
+    TARGETS ${plugin_name} 
+    DESTINATION lib)
+endfunction()
+
 
 # Resources
 install(DIRECTORY
