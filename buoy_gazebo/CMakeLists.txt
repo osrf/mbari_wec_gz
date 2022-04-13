@@ -15,18 +15,18 @@ list(APPEND BUOY_GZ_PLUGINS
   ProtoElectroHydraulicPTO
 )
 
-foreach(PLUGIN ${BUOY_IGN_PLUGINS})
+foreach(PLUGIN ${BUOY_GZ_PLUGINS})
   add_library(${PLUGIN} SHARED src/${PLUGIN}.cc)
   target_link_libraries(${PLUGIN} PUBLIC
     ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
     ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
   )
   target_include_directories(${PLUGIN}
-      PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+      PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
 endforeach()
 
 install(
-  TARGETS ${BUOY_IGN_PLUGINS}
+  TARGETS ${BUOY_GZ_PLUGINS}
   DESTINATION lib)
 
 # Resources
