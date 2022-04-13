@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
-#ifndef IGNITION_GAZEBO_SYSTEMS_PROTOPNEUMATICSPRING_HH_
-#define IGNITION_GAZEBO_SYSTEMS_PROTOPNEUMATICSPRING_HH_
+#ifndef IGNITION_GAZEBO_SYSTEMS_PNEUMATICSPRING_HH_
+#define IGNITION_GAZEBO_SYSTEMS_PNEUMATICSPRING_HH_
 
 #include <ignition/gazebo/System.hh>
 #include <memory>
@@ -32,7 +32,7 @@ namespace systems
     enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
 
   // Forward declaration
-  class ProtoPneumaticSpringPrivate;
+  class PneumaticSpringPrivate;
 
   /// \brief This can be attached to a model with a reference
   /// to a single prismatic joint. A force proportional to the
@@ -66,16 +66,16 @@ namespace systems
 
 
 
-  class ProtoPneumaticSpring
+  class PneumaticSpring
       : public System,
         public ISystemConfigure,
         public ISystemPreUpdate
   {
     /// \brief Constructor
-    public: ProtoPneumaticSpring();
+    public: PneumaticSpring();
 
     /// \brief Destructor
-    public: ~ProtoPneumaticSpring() override = default;
+    public: ~PneumaticSpring() override = default;
 
     // Documentation inherited
     public: void Configure(const Entity &_entity,
@@ -89,7 +89,7 @@ namespace systems
                 ignition::gazebo::EntityComponentManager &_ecm) override;
 
     /// \brief Private data pointer
-    private: std::unique_ptr<ProtoPneumaticSpringPrivate> dataPtr;
+    private: std::unique_ptr<PneumaticSpringPrivate> dataPtr;
   };
   }
 }
