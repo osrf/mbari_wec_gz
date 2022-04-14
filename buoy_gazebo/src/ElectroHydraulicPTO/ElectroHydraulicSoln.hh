@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <cmath>
 
-#include "PTO_ElectroHydraulicState.hh"
+#include "ElectroHydraulicState.hh"
 #include <unsupported/Eigen/NonLinearOptimization>
 
 //Interpolation library for efficiency maps

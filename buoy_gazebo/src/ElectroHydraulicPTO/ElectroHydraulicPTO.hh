@@ -1,5 +1,5 @@
-#ifndef IGNITION_GAZEBO_SYSTEMS_PROTOELECTROHYDRAULICPTO_HH_
-#define IGNITION_GAZEBO_SYSTEMS_PROTOELECTROHYDRAULICPTO_HH_
+#ifndef IGNITION_GAZEBO_SYSTEMS_ELECTROHYDRAULICPTO_HH_
+#define IGNITION_GAZEBO_SYSTEMS_ELECTROHYDRAULICPTO_HH_
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/transport.hh>
@@ -18,7 +18,7 @@ namespace systems
    // enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
 
   // Forward declaration
-  class ProtoElectroHydraulicPTOPrivate;
+  class ElectroHydraulicPTOPrivate;
 
   /// \brief To use, several parameters are required.  
   /// Two ignition gazebo joints that are either prismatic or continous with 1DOF each, a desciption of 
@@ -45,7 +45,7 @@ namespace systems
 
 
 
-  class ProtoElectroHydraulicPTO
+  class ElectroHydraulicPTO
       : public System,
         public ISystemConfigure,
         public ISystemPreUpdate,
@@ -53,10 +53,10 @@ namespace systems
         public ISystemPostUpdate 
   {
     /// \brief Constructor
-    public: ProtoElectroHydraulicPTO();
+    public: ElectroHydraulicPTO();
 
     /// \brief Destructor
-    public: ~ProtoElectroHydraulicPTO() override = default;
+    public: ~ElectroHydraulicPTO() override = default;
 
     // Documentation inherited
     public: void Configure(const Entity &_entity,
@@ -86,7 +86,7 @@ private:
                                          battcurr_pub, loadcurr_pub, scalefactor_pub, retractfactor_pub;
 
     /// \brief Private data pointer
-    private: std::unique_ptr<ProtoElectroHydraulicPTOPrivate> dataPtr;
+    private: std::unique_ptr<ElectroHydraulicPTOPrivate> dataPtr;
   };
   }
 }

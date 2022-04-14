@@ -94,7 +94,7 @@
             <direction>-0.5 0.1 -0.9</direction>
         </light>
 
-        <model name="Proto Pneumatic Spring Test">
+        <model name="Pneumatic Spring Test">
             <pose relative_to="world">0 0 0 0 0 0</pose>
             <!--the pose is relative to the world by default-->
 
@@ -192,11 +192,11 @@
             </joint>
 
             <!-- Add two springs in parallel that add up to match the inherent spring constant for the right cylinder -->
-            <plugin filename="ProtoPneumaticSpring" name="ignition::gazebo::systems::ProtoPneumaticSpring">
+            <plugin filename="PneumaticSpring" name="ignition::gazebo::systems::PneumaticSpring">
                 <JointName>joint_left</JointName>
                 <SpringConst>50</SpringConst>
             </plugin>
-            <plugin filename="ProtoPneumaticSpring" name="ignition::gazebo::systems::ProtoPneumaticSpring">
+            <plugin filename="PneumaticSpring" name="ignition::gazebo::systems::PneumaticSpring">
                 <JointName>joint_left</JointName>
                 <SpringConst>50</SpringConst>
             </plugin>

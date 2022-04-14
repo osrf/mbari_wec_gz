@@ -11,25 +11,58 @@ set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 
 
 # Plugins
-list(APPEND BUOY_GZ_PLUGINS
-  ProtoElectroHydraulicPTO
-  ProtoPneumaticSpring
-  PolytropicPneumaticSpring
-)
-
-foreach(PLUGIN ${BUOY_GZ_PLUGINS})
-  add_library(${PLUGIN} SHARED src/${PLUGIN}.cc)
-  target_link_libraries(${PLUGIN} PUBLIC
-    ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
-    ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
+#
+# gz_add_plugin (<plugin_name>
+#              SOURCES <sources>
+#              [PUBLIC_LINK_LIBS <libraries...>]
+#              [PRIVATE_LINK_LIBS <libraries...>])
+#              [INCLUDE_DIRS <paths_to_directories...>
+#
+# Add a system plugin
+#
+# <plugin_name> Required. Name of the library
+#
+# [SOURCES]: Specify the source files for the plugin.
+#
+#
+# [PUBLIC_LINK_LIBS]: Specify a list of libraries to be publicly linked.
+#
+# [PRIVATE_LINK_LIBS]: Specify a list of libraries to be privately linked.
+#
+# [INCLUDE_DIRS]: Specify a list of path to directories to be included,
+#
+function(gz_add_plugin plugin_name)
+  set(options)
+  set(oneValueArgs)
+  set(multiValueArgs
+    SOURCES
+    PUBLIC_LINK_LIBS
+    PRIVATE_LINK_LIBS
+    INCLUDE_DIRS
   )
-  target_include_directories(${PLUGIN}
-      PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
-endforeach()
 
-install(
-  TARGETS ${BUOY_GZ_PLUGINS}
-  DESTINATION lib)
+  cmake_parse_arguments(gz_add_plugin "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  add_library(${plugin_name} SHARED
+    ${gz_add_plugin_SOURCES}
+  )
+  target_link_libraries(${plugin_name}
+    PUBLIC
+      ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
+      ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
+      ${gz_add_plugin_PUBLIC_LINK_LIBS}
+    PRIVATE
+      ${gz_add_plugin_PRIVATE_LINK_LIBS}
+  )
+  target_include_directories(${plugin_name}
+      PUBLIC ${gz_add_plugin_INCLUDE_DIRS})
+  install (
+    TARGETS ${plugin_name} 
+    DESTINATION lib)
+endfunction()
+
+add_subdirectory(src)
+
 
 # Resources
 install(DIRECTORY
