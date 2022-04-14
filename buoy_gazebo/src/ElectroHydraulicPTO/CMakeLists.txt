@@ -1,11 +1,6 @@
 gz_add_plugin(ElectroHydraulicPTO
   SOURCES
    ElectroHydraulicPTO.cc
-  HEADERS
-   ElectroHydraulicPTO.hh
-  PUBLIC_LINK_LIBS
-   ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
-   ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
   INCLUDE_DIRS
-   ../include/
+   include/
 )

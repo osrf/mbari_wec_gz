@@ -1,9 +1,4 @@
 gz_add_plugin(PolytropicPneumaticSpring
   SOURCES
    PolytropicPneumaticSpring.cc
-  HEADERS
-   PolytropicPneumaticSpring.hh
-  PUBLIC_LINK_LIBS
-   ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
-   ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
 )
