@@ -18,7 +18,7 @@ set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 #              [PRIVATE_LINK_LIBS <libraries...>])
 #              [INCLUDE_DIRS <paths_to_directories...>
 #
-# Add a plugin to Gazebo GUI.
+# Add a system plugin
 #
 # <plugin_name> Required. Name of the library
 #
