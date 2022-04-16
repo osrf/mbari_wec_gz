@@ -1,19 +1,17 @@
-/*
- * Copyright (C) 2019 Open Source Robotics Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+// Copyright 2022 Open Source Robotics Foundation, Inc. and Monterey Bay Aquarium Research Institute
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef PNEUMATICSPRING__PNEUMATICSPRING_HH_
 #define PNEUMATICSPRING__PNEUMATICSPRING_HH_
 
@@ -31,7 +29,7 @@ namespace systems
   enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
 
   // Forward declaration
-  class PneumaticSpringPrivate;
+class PneumaticSpringPrivate;
 
   /// \brief This can be attached to a model with a reference
   /// to a single prismatic joint. A force proportional to the
@@ -79,30 +77,32 @@ namespace systems
 
 
 
-  class PneumaticSpring
-      : public System,
-        public ISystemConfigure,
-        public ISystemPreUpdate
+class PneumaticSpring:
+      public System,
+      public ISystemConfigure,
+      public ISystemPreUpdate
   {
-    /// \brief Constructor
-    public: PneumaticSpring();
+    public:
+      /// \brief Constructor
+      PneumaticSpring();
 
-    /// \brief Destructor
-    public: ~PneumaticSpring() override = default;
+      /// \brief Destructor
+      ~PneumaticSpring() override = default;
 
-    // Documentation inherited
-    public: void Configure(const Entity &_entity,
-                           const std::shared_ptr<const sdf::Element> &_sdf,
-                           EntityComponentManager &_ecm,
-                           EventManager &_eventMgr) override;
+      // Documentation inherited
+      void Configure(const Entity &_entity,
+                            const std::shared_ptr<const sdf::Element> &_sdf,
+                            EntityComponentManager &_ecm,
+                            EventManager &_eventMgr) override;
 
-    // Documentation inherited
-    public: void PreUpdate(
-                const ignition::gazebo::UpdateInfo &_info,
-                ignition::gazebo::EntityComponentManager &_ecm) override;
+      // Documentation inherited
+      void PreUpdate(
+                  const ignition::gazebo::UpdateInfo &_info,
+                  ignition::gazebo::EntityComponentManager &_ecm) override;
 
-    /// \brief Private data pointer
-    private: std::unique_ptr<PneumaticSpringPrivate> dataPtr;
+    private:
+      /// \brief Private data pointer
+      std::unique_ptr<PneumaticSpringPrivate> dataPtr;
   };
 }  // namespace systems
 }

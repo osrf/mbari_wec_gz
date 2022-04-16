@@ -1,19 +1,16 @@
-/*
- * Copyright (C) 2022 MBARI
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+// Copyright 2022 Open Source Robotics Foundation, Inc. and Monterey Bay Aquarium Research Institute
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include "ElectroHydraulicPTO.hh"
 #include <ignition/common/Profiler.hh>
@@ -31,11 +28,13 @@
 #include <ignition/msgs/double.pb.h>
 #include <ignition/plugin/Register.hh>
 #include <ignition/transport/Node.hh>
+
+#include <stdio.h>
+
 #include <unsupported/Eigen/NonLinearOptimization>
 
 #include <string>
 #include <iostream>
-#include <stdio.h>
 #include <cmath>
 
 #include "ElectroHydraulicState.hh"
@@ -50,73 +49,74 @@ using namespace Eigen;
 
 class ignition::gazebo::systems::ElectroHydraulicPTOPrivate
 {
+public:
   /// \brief Piston joint entity
-public: Entity PrismaticJointEntity;
+  Entity PrismaticJointEntity;
 
   /// \brief Piston area
-public: double PistonArea;
+  double PistonArea;
 
   /// \brief Rotor Inertia
-public: double RotorInertia;
+  double RotorInertia;
 
   /// \brief Model interface
-public: Model model{kNullEntity};
+  Model model {kNullEntity};
 
-public: ElectroHydraulicSoln functor;
+  ElectroHydraulicSoln functor;
 
-public: VectorXd x;
+  VectorXd x;
 
-public: double TargetWindingCurrent;
+  double TargetWindingCurrent;
 
-public: double WindingCurrent;
+  double WindingCurrent;
 
-public: double Ve;
+  double Ve;
 
-public: bool VelMode;
+  bool VelMode;
 
   /// \brief Ignition communication node.
-public: transport::Node node;
+  transport::Node node;
 
   /// \brief Callback for User Commanded Current subscription
   /// \param[in] _msg Current
-public: void OnUserCmdCurr(const ignition::msgs::Double &_msg);
+  void OnUserCmdCurr(const ignition::msgs::Double & _msg);
 
   /// \brief Callback for BiasCurrent subscription
   /// \param[in] _msg Current
-public: void OnUserBiasCurr(const ignition::msgs::Double &_msg);
+  void OnUserBiasCurr(const ignition::msgs::Double & _msg);
 
   /// \brief Callback for ScaleFactor subscription
   /// \param[in] _msg Current
-public: void OnScale(const msgs::Double &_msg);
+  void OnScale(const msgs::Double & _msg);
 
   /// \brief Callback for RetractFactor subscription
   /// \param[in] _msg Current
-public: void OnRetract(const msgs::Double &_msg);
+  void OnRetract(const msgs::Double &_msg);
 };
 
 
 //////////////////////////////////////////////////
 ElectroHydraulicPTO::ElectroHydraulicPTO()
-  : dataPtr(std::make_unique<ElectroHydraulicPTOPrivate>())
+: dataPtr(std::make_unique<ElectroHydraulicPTOPrivate>())
 {
 }
 
 
 /////////////////////////////////////////////////
 double SdfParamDouble(
-  const std::shared_ptr<const sdf::Element> &_sdf,
-  const std::string& _field,
-  double _default)
+const std::shared_ptr<const sdf::Element> &_sdf,
+const std::string& _field,
+double _default)
 {
-  return _sdf->Get<double>(_field, _default).first;
+return _sdf->Get<double>(_field, _default).first;
 }
 
 
 //////////////////////////////////////////////////
 void ElectroHydraulicPTO::Configure(const Entity &_entity,
-    const std::shared_ptr<const sdf::Element> &_sdf,
-    EntityComponentManager &_ecm,
-    EventManager &/*_eventMgr*/)
+  const std::shared_ptr<const sdf::Element> &_sdf,
+  EntityComponentManager &_ecm,
+  EventManager &/*_eventMgr*/)
 {
   this->dataPtr->model = Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm))
@@ -144,8 +144,7 @@ void ElectroHydraulicPTO::Configure(const Entity &_entity,
     ignerr << "Joint with name [" << PrismaticJointName << "] not found. "
            << "The ElectroHydraulicPTO may not influence this joint.\n";
     return;
-  }
-  else {
+  } else {
     this->dataPtr->PistonArea    = SdfParamDouble(_sdf, "PistonArea", 1.);
   }
 
@@ -306,8 +305,6 @@ void ElectroHydraulicPTO::Configure(const Entity &_entity,
     ignerr << "Error advertising topic [" << retractfactor_topic << "]" << std::endl;
     return;
   }
-
-
 }
 
 
@@ -354,14 +351,14 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
     return;
 
   // Retrieve Piston velocity, compute flow and provide as input to hydraulic solver.
-  //TODO(anyone): Figure out if (0) for the index is always correct,
+  // TODO(anyone): Figure out if (0) for the index is always correct,
   // some OR code has a process of finding the index for this argument.
   double xdot = prismaticJointVelComp->Data().at(0);
   this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
   // Retrieve Piston position and simulation time, and provide as input to hydraulic solver.
   // double x = prismaticJointVelComp->Data().at(0);
-  // TODO(anyone): Figure out if (0) for the index is always correct, 
+  // TODO(anyone): Figure out if (0) for the index is always correct,
   // some OR code has a process of finding the index for this argument.
   this->dataPtr->functor.I_Wind.PistonPos = 12.12;  // x*39.4;  // inch^3/second
   // Set Sim time in IWind so it knows when to timeout user and bias current commands.
@@ -370,12 +367,12 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
   // but do include mechanical and volumetric efficiency of hydraulic motor.
-  // This is an implicit non-linear relation so iteration required, 
+  // This is an implicit non-linear relation so iteration required,
   // performed by Eigen HybridNonLinearSolver
 
-  //Preclude changing User Commanded Current while it may be being read.
+  // Preclude changing User Commanded Current while it may be being read.
   this->dataPtr->functor.I_Wind.UserCommandMutex.lock();
-  //Initial Guess based on perfect efficiency
+  // Initial Guess based on perfect efficiency
   // this->dataPtr->x[0] = 60*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
   // this->dataPtr->x[1] = this->dataPtr->functor.T_applied/(this->dataPtr->functor.HydMotorDisp);
   HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
@@ -389,10 +386,11 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   double deltaP = this->dataPtr->x[1];
   // Shame to have to re-compute this, but small effort...
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind(N);
-  this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent + 0.001 * (rand() % 200 - 100);
+  this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent + 0.001 *
+                                  (rand() % 200 - 100);
 
   double eff_e = 0.85;
-  double ShaftPower = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp * 
+  double ShaftPower = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
                       this->dataPtr->WindingCurrent * 2 * M_PI * N / 60;  // Watts
   double P = eff_e * ShaftPower;
   double Ri = 8;    // Ohms
@@ -425,13 +423,14 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
 
 
 // Report results
-//  std::cout << SimTime << "  "  << "  " << xdot / .0254 << "    " << N << "   " << deltaP << "   "  
-//            << VBus << "   " << this->dataPtr->TargetWindingCurrent << "  "
-//            << this->dataPtr->WindingCurrent << "  "  << I_Batt << "   " << I_Load << std::endl;
+// std::cout << SimTime << "  " << "  " << xdot / .0254 << "    " << N << "   " << deltaP << "   "
+//           << VBus << "   " << this->dataPtr->TargetWindingCurrent << "  "
+//           << this->dataPtr->WindingCurrent << "  "  << I_Batt << "   " << I_Load << std::endl;
 
 
 
-  ignition::msgs::Double pistonvel, rpm, deltap, targwindcurr, windcurr,battcurr,loadcurr,scalefactor,retractfactor;
+  ignition::msgs::Double pistonvel, rpm, deltap, targwindcurr, windcurr,
+                         battcurr, loadcurr, scalefactor, retractfactor;
   pistonvel.set_data(xdot);
   rpm.set_data(N);
   deltap.set_data(deltaP);
@@ -484,6 +483,11 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   PTO_Values.I_Load = I_Load;
   PTO_Values.ScaleFactor = this->dataPtr->functor.I_Wind.ScaleFactor;
   PTO_Values.RetractFactor = this->dataPtr->functor.I_Wind.RetractFactor;
+  PTO_Values.BattChargeLimit = 0;
+  PTO_Values.BattDrawLimit = 0;
+  PTO_Values.RPMStdDev = 0;
+  PTO_Values.BiasCurrent = 0;
+  PTO_Values.Status = 0;
 
 
 // Create new component for this entitiy in ECM (if it doesn't already exist)
@@ -503,11 +507,12 @@ void ElectroHydraulicPTO::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
     auto forceComp = _ecm.Component<components::JointForceCmd>(this->dataPtr->PrismaticJointEntity);
     if (forceComp == nullptr)
     {
-      //Create this iteration
-      _ecm.CreateComponent(this->dataPtr->PrismaticJointEntity, 
+      // Create this iteration
+      _ecm.CreateComponent(this->dataPtr->PrismaticJointEntity,
                            components::JointForceCmd({piston_force}));
-    } else
+    } else {
       forceComp->Data()[0] += piston_force;  // Add force to existing forces.
+    }
   }
 }
 

@@ -1,19 +1,16 @@
-/*
- * Copyright (C) 2019 Open Source Robotics Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+// Copyright 2022 Open Source Robotics Foundation, Inc. and Monterey Bay Aquarium Research Institute
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include "PneumaticSpring.hh"
 
@@ -37,30 +34,31 @@ using namespace systems;
 
 class ignition::gazebo::systems::PneumaticSpringPrivate
 {
+  public:
   /// \brief Spring Type
   // TODO(anyone):  Need to enumerate this better instead of just using integers
-  public: int SpringType;
+  int SpringType;
 
   /// \brief Spring Constant
-  public: double SpringConst;
+  double SpringConst;
 
   /// \brief Piston Diameter (inches)  - Currently Unused
-  public: double PistonDiam;
+  double PistonDiam;
 
   /// \brief Rod Diameter (inches) - Currently Unused
-  public: double RodDiam;
+  double RodDiam;
 
   /// \brief Piston-End Dead Volume (inches^3)  - Currently Unused
-  public: double PistonEndVolume_0;
+  double PistonEndVolume_0;
 
   /// \brief Piston-End Dead Volume (inches^3) - Currently Unused
-  public: double RodEndVolume_0;
+  double RodEndVolume_0;
 
   /// \brief Joint Entity
-  public: Entity jointEntity;
+  Entity jointEntity;
 
   /// \brief Model interface
-  public: Model model{kNullEntity};
+  Model model{kNullEntity};
 };
 
 //////////////////////////////////////////////////

@@ -1,81 +1,82 @@
-/*
- * Copyright (C) 2022 MBARI
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+// Copyright 2022 Open Source Robotics Foundation, Inc. and Monterey Bay Aquarium Research Institute
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
+#ifndef ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HH_
+#define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HH_
 
-#ifndef WINDINGCURRENTTARGET_HH_
-#define WINDINGCURRENTTARGET_HH_
-
-
-#include <string>
-#include <iostream>
 #include <stdio.h>
-#include <cmath>
+
 #include <JustInterp/JustInterp.hpp>
 
-//Defines from Controller Firmware, behavior replicated here.
-#define TORQUE_CONSTANT 0.438   //0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
-#define CURRENT_CMD_RATELIMIT 200 //A/second.  Set to zero to disable feature.
-#define TORQUE_CMD_TIMEOUT 2  //Torque Command Timeut, in seconds.   //Set to zero to disable timeout.
-#define BIAS_CMD_TIMEOUT 10  //Bias Current Command Timeut, in seconds.    //Set to zero to disable timeout.
-#define DEFAULT_SCALE_FACTOR 1.0 //-RPM on Kollemogen is +RPM here and extension
+#include <cmath>
+#include <iostream>
+#include <string>
+#include <vector>
+
+// Defines from Controller Firmware, behavior replicated here
+#define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
+#define CURRENT_CMD_RATELIMIT 200  // A/second.  Set to zero to disable feature
+#define TORQUE_CMD_TIMEOUT 2  // Torque Command Timeut, in secs. Set to zero to disable timeout
+#define BIAS_CMD_TIMEOUT 10  // Bias Current Command Timeut, secs. Set to zero to disable timeout
+#define DEFAULT_SCALE_FACTOR 1.0  // -RPM on Kollemogen is +RPM here and extension
 #define MAX_SCALE_FACTOR 1.4
 #define MIN_SCALE_FACTOR 0.5
 #define DEFAULT_RETRACT_FACTOR 0.6
 #define MAX_RETRACT_FACTOR 1.0
-#define MIN_RETRACT_FACTOR 0.4     
-#define DEFAULT_BIASCURRENT 0.0  //Start with zero bias current
-#define MAX_BIASCURRENT 20.0  //Maximum allowable winding bias current Magnitude that can be applied.
-#define MAX_WINDCURRENTLIMIT 35 //Winding Current Limit, Amps.  Limit on internal target
-#define SC_RANGE_MIN 0  //Inches
-#define SC_RANGE_MAX 80  //Inches
-#define STOP_RANGE 10  //Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
-#define MAX_RPM_ADJUSTMENT 5000 //Maximum amount to modify RPM in determining WindingCurrentLimit near ends of stroke.
+#define MIN_RETRACT_FACTOR 0.4
+#define DEFAULT_BIASCURRENT 0.0  // Start with zero bias current
+#define MAX_BIASCURRENT 20.0  // Max allowable winding bias current Magnitude that can be applied
+#define MAX_WINDCURRENTLIMIT 35  // Winding Current Limit, Amps.  Limit on internal target
+#define SC_RANGE_MIN 0  // Inches
+#define SC_RANGE_MAX 80  // Inches
+#define STOP_RANGE 10  // Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
+// Max amount to modify RPM in determining WindingCurrentLimit near ends of stroke
+#define MAX_RPM_ADJUSTMENT 5000
 
 
 class WindingCurrentTarget
 {
-  public: double TorqueConstantNMPerAmp;   // N-m/Amp
-  public: double TorqueConstantInLbPerAmp; // in-lb/Amp 
-  public: JustInterp::LinearInterpolator<double> DefaultDamping;
-  public: double ScaleFactor;
-  public: double RetractFactor;
-  public: double PistonPos;
-  public: double SimTime;
-  public: double UserCommandedCurrent;
-  private: double UserCurrentSetSimTime;
-  private: double UserCommandedCurrentTimeout;
-  public: double BiasCurrent;
-  private: double BiasCurrentSetSimTime;
-  private: double BiasCurrentTimeout;
+  public:
+  double TorqueConstantNMPerAmp;   // N-m/Amp
+  double TorqueConstantInLbPerAmp;  // in-lb/Amp
+  JustInterp::LinearInterpolator<double> DefaultDamping;
+  double ScaleFactor;
+  double RetractFactor;
+  double PistonPos;
+  double SimTime;
+  double UserCommandedCurrent;
+  double BiasCurrent;
+  double BiasCurrentTimeout;
 
+  private:
+  double BiasCurrentSetSimTime;
+  double UserCurrentSetSimTime;
+  double UserCommandedCurrentTimeout;
+
+  public:
   /// \brief mutex to protect jointVelCmd
-  public: std::mutex UserCommandMutex;
+  std::mutex UserCommandMutex;
 
-
-public:
   WindingCurrentTarget(void)
- {     
-      std::vector<double> N{0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};  //RPM
-      std::vector<double> Torque{0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};  //N-m
-      this->DefaultDamping.SetData(N.size(),N.data(),Torque.data());  
-      
-      //Set Electric Motor Torque Constant
+ {
+      std::vector<double> N{0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};  // RPM
+      std::vector<double> Torque{0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};  // N-m
+      this->DefaultDamping.SetData(N.size(), N.data(), Torque.data());
+
+      // Set Electric Motor Torque Constant
       this->TorqueConstantNMPerAmp = TORQUE_CONSTANT;   // N-m/Amp
-      this->TorqueConstantInLbPerAmp = this->TorqueConstantNMPerAmp*8.851; // in-lb/Amp
+      this->TorqueConstantInLbPerAmp = this->TorqueConstantNMPerAmp*8.851;  // in-lb/Amp
 
       this->ScaleFactor = DEFAULT_SCALE_FACTOR;
       this->RetractFactor = DEFAULT_RETRACT_FACTOR;
@@ -115,7 +116,6 @@ void SetRetractFactor(double RF)
 
 void SetUserCommandedCurrent(double I)
 {
-
   this->UserCommandMutex.lock();
   std::cout << "## Adjusting UserCommanded Current "  << I << std::endl;
 
@@ -126,8 +126,9 @@ void SetUserCommandedCurrent(double I)
   else
     this->UserCommandedCurrent = I;
 
-
-    this->UserCurrentSetSimTime = this->SimTime;  //Arguably could pass the current sim time in here, but assuming the timeouts are larger than the timestep...
+  // Arguably could pass the current sim time in here,
+  // but assuming the timeouts are larger than the timestep
+  this->UserCurrentSetSimTime = this->SimTime;
   this->UserCommandMutex.unlock();
 
   return;
@@ -145,7 +146,9 @@ void SetBiasCurrent(double BC)
   else
     this->BiasCurrent = BC;
 
-  this->BiasCurrentSetSimTime = this->SimTime;  //Arguably could pass the current sim time in here, but assuming the timeouts are larger than the timestep...
+  // Arguably could pass the current sim time in here,
+  // but assuming the timeouts are larger than the timestep
+  this->BiasCurrentSetSimTime = this->SimTime;
   this->UserCommandMutex.unlock();
 
   return;
@@ -156,18 +159,17 @@ double operator()(const double &N) const
       double I;
         if((SimTime-UserCurrentSetSimTime) <  UserCommandedCurrentTimeout)
         {
-        //this->UserCommandedCurrentMutex.lock();  //Can't do this b/c this () is const
-          I = UserCommandedCurrent; 
-        //this->UserCommandedCurrentMutex.unlock();
-        }
-        else
-        {
-        I = this->DefaultDamping(fabs(N))*this->ScaleFactor/this->TorqueConstantNMPerAmp;    //TODO.  1.375 makes this match experiment, not sure what is wrong...
+        // this->UserCommandedCurrentMutex.lock();  // Can't do this b/c this () is const
+          I = UserCommandedCurrent;
+        // this->UserCommandedCurrentMutex.unlock();
+        } else {
+        // TODO(anyone):  1.375 makes this match experiment, not sure what is wrong...
+        I = this->DefaultDamping(fabs(N))*this->ScaleFactor/this->TorqueConstantNMPerAmp;
         if(N > 0)
           I *= -this->RetractFactor;
 
         if((SimTime-BiasCurrentSetSimTime) <  BiasCurrentTimeout)
-          I += BiasCurrent; 
+          I += BiasCurrent;
         }
 
 
@@ -178,4 +180,4 @@ double operator()(const double &N) const
 
 
 
-#endif
+#endif  // ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HH_
