@@ -194,7 +194,7 @@
       </joint>
 
 
-      <plugin filename="ElectroHydraulicPTO" name="ignition::gazebo::systems::ElectroHydraulicPTO">
+      <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
         <PistonArea>1.375</PistonArea>
         <HydMotorDisp>0.30</HydMotorDisp>
@@ -222,7 +222,7 @@
       </plugin>-->
 
       <!-- Add Upper/Lower Polytropic Spring plugin -->
-      <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
+      <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
         <JointName>HydraulicRam</JointName>
         <chamber>upper_polytropic</chamber>
         <stroke>2.03</stroke>
@@ -241,7 +241,7 @@
       </plugin>
 
       <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
-      <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
+      <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
         <JointName>HydraulicRam</JointName>
         <chamber>lower_polytropic</chamber>
         <stroke>2.03</stroke>

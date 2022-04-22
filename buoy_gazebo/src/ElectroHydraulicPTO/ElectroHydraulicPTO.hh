@@ -21,14 +21,7 @@
 #include <ignition/transport.hh>
 #include <memory>
 
-namespace ignition
-{
-namespace gazebo
-{
-// Inline bracket to help doxygen filtering.
-inline namespace IGNITION_GAZEBO_VERSION_NAMESPACE
-{
-namespace systems
+namespace buoy_gazebo
 {
 // enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
 
@@ -36,9 +29,8 @@ namespace systems
 class ElectroHydraulicPTOPrivate;
 
 /// \brief To use, several parameters are required.
-/// Two ignition gazebo joints that are either prismatic or continous with 1DOF each,
-/// a desciption of the connectoins between actuator (joints), and an oil
-/// characteristic specification.
+/// Two ignition gazebo joints that are either prismatic or continous with 1DOF each, a desciption of
+/// the connectoins between actuator (joints), and an oil characteristic specification.
 ///
 /// ## System Parameters
 ///
@@ -56,9 +48,12 @@ class ElectroHydraulicPTOPrivate;
 ///   For each actuator of revolute type, the following nested tags are required:
 ///
 ///     <Displacement>  Displacement per revolution of rotary pump/motor.
-
-class ElectroHydraulicPTO : public System, public ISystemConfigure, public ISystemPreUpdate,
-  public ISystemUpdate, public ISystemPostUpdate
+class ElectroHydraulicPTO
+  : public ignition::gazebo::System,
+  public ignition::gazebo::ISystemConfigure,
+  public ignition::gazebo::ISystemPreUpdate,
+  public ignition::gazebo::ISystemUpdate,
+  public ignition::gazebo::ISystemPostUpdate
 {
   /// \brief Constructor
 
@@ -74,10 +69,10 @@ public:
 
 public:
   void Configure(
-    const Entity & _entity,
+    const ignition::gazebo::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    EntityComponentManager & _ecm,
-    EventManager & _eventMgr) override;
+    ignition::gazebo::EntityComponentManager & _ecm,
+    ignition::gazebo::EventManager & _eventMgr) override;
 
   // Documentation inherited
 
@@ -102,18 +97,15 @@ public:
 
 private:
   ignition::transport::Node node;
-  ignition::transport::Node::Publisher pistonvel_pub, rpm_pub, deltaP_pub,
-    targwindcurr_pub, windcurr_pub, battcurr_pub, loadcurr_pub,
-    scalefactor_pub, retractfactor_pub;
+  ignition::transport::Node::Publisher pistonvel_pub, rpm_pub, deltaP_pub, targwindcurr_pub,
+    windcurr_pub,
+    battcurr_pub, loadcurr_pub, scalefactor_pub, retractfactor_pub;
 
   /// \brief Private data pointer
 
 private:
   std::unique_ptr<ElectroHydraulicPTOPrivate> dataPtr;
 };
-}       // namespace systems
-}
-}   // namespace gazebo
-}  // namespace ignition
+} // namespace buoy_gazebo
 
 #endif  // ELECTROHYDRAULICPTO__ELECTROHYDRAULICPTO_HH_

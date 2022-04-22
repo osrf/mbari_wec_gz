@@ -118,7 +118,7 @@
             </joint>
 
             <!-- Add Upper/Lower Adiabatic Spring plugin -->
-            <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
+            <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
                 <JointName>joint_adiabatic</JointName>
                 <chamber>upper_adiabatic</chamber>
                 <n>1.4</n>
@@ -132,7 +132,7 @@
                 <c_p>1.04</c_p>
             </plugin>
 
-            <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
+            <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
                 <JointName>joint_adiabatic</JointName>
                 <chamber>lower_adiabatic</chamber>
                 <n>1.4</n>
@@ -192,7 +192,7 @@
 
 
             <!-- Add Upper/Lower Polytropic Spring plugin -->
-            <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
+            <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
                 <JointName>joint_poly</JointName>
                 <chamber>upper_polytropic</chamber>
                 <stroke>2.03</stroke>
@@ -211,7 +211,7 @@
             </plugin>
 
             <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
-            <plugin filename="PolytropicPneumaticSpring" name="ignition::gazebo::systems::PolytropicPneumaticSpring">
+            <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
                 <JointName>joint_poly</JointName>
                 <chamber>lower_polytropic</chamber>
                 <stroke>2.03</stroke>

@@ -20,16 +20,9 @@
 
 #include <memory>
 
-namespace ignition
+namespace buoy_gazebo
 {
-namespace gazebo
-{
-// Inline bracket to help doxygen filtering.
-inline namespace IGNITION_GAZEBO_VERSION_NAMESPACE
-{
-namespace systems
-{
-// enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
+//enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
 
 // Forward declaration
 struct PolytropicPneumaticSpringPrivate;
@@ -82,7 +75,10 @@ struct PolytropicPneumaticSpringPrivate;
 ///
 
 
-class PolytropicPneumaticSpring : public System, public ISystemConfigure, public ISystemPreUpdate
+class PolytropicPneumaticSpring
+    : public ignition::gazebo::System,
+      public ignition::gazebo::ISystemConfigure,
+      public ignition::gazebo::ISystemPreUpdate
 {
 public:
   /// \brief Constructor
@@ -92,19 +88,18 @@ public:
   ~PolytropicPneumaticSpring() override = default;
 
   // Documentation inherited
-  void Configure(
-    const Entity & _entity,
-    const std::shared_ptr<const sdf::Element> & _sdf,
-    EntityComponentManager & _ecm,
-    EventManager & _eventMgr) override;
+  void Configure(const ignition::gazebo::Entity &_entity,
+                 const std::shared_ptr<const sdf::Element> &_sdf,
+                 ignition::gazebo::EntityComponentManager &_ecm,
+                 ignition::gazebo::EventManager &_eventMgr) override;
 
   // Documentation inherited
-  void PreUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
+  void PreUpdate(const ignition::gazebo::UpdateInfo &_info,
+                 ignition::gazebo::EntityComponentManager &_ecm) override;
 
 private:
-  void computeForce(const double & x, const double & v, const double & n);
+
+  void computeForce(const double &x, const double &v, const double &n);
 
   ignition::transport::Node node;
   ignition::transport::Node::Publisher force_pub, pressure_pub, volume_pub,
@@ -113,9 +108,6 @@ private:
   /// \brief Private data pointer
   std::unique_ptr<PolytropicPneumaticSpringPrivate> dataPtr;
 };
-}  // namespace systems
-}
-}  // namespace gazebo
-}  // namespace ignition
+} // namespace buoy_gazebo
 
 #endif  // POLYTROPICPNEUMATICSPRING__POLYTROPICPNEUMATICSPRING_HH_

@@ -42,16 +42,14 @@
 
 #include "JustInterp/JustInterp.hpp"
 
-using namespace ignition;
-using namespace gazebo;
-using namespace systems;
-using namespace Eigen;
+namespace buoy_gazebo
+{
 
-class ignition::gazebo::systems::ElectroHydraulicPTOPrivate
+class ElectroHydraulicPTOPrivate
 {
 public:
   /// \brief Piston joint entity
-  Entity PrismaticJointEntity;
+  ignition::gazebo:: PrismaticJointEntity;
 
   /// \brief Piston area
   double PistonArea;
@@ -60,11 +58,11 @@ public:
   double RotorInertia;
 
   /// \brief Model interface
-  Model model {kNullEntity};
+  ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
 
   ElectroHydraulicSoln functor;
 
-  VectorXd x;
+  Eigen::VectorXd x;
 
   double TargetWindingCurrent;
 
@@ -75,25 +73,24 @@ public:
   bool VelMode;
 
   /// \brief Ignition communication node.
-  transport::Node node;
+  ignition::transport::Node node;
 
   /// \brief Callback for User Commanded Current subscription
   /// \param[in] _msg Current
-  void OnUserCmdCurr(const ignition::msgs::Double & _msg);
+  void OnUserCmdCurr(const ignition::msgs::Double &_msg);
 
   /// \brief Callback for BiasCurrent subscription
   /// \param[in] _msg Current
-  void OnUserBiasCurr(const ignition::msgs::Double & _msg);
+  void OnUserBiasCurr(const ignition::msgs::Double &_msg);
 
   /// \brief Callback for ScaleFactor subscription
   /// \param[in] _msg Current
-  void OnScale(const msgs::Double & _msg);
+  void OnScale(const ignition::msgs::Double &_msg);
 
   /// \brief Callback for RetractFactor subscription
   /// \param[in] _msg Current
-  void OnRetract(const msgs::Double & _msg);
+  void OnRetract(const ignition::msgs::Double &_msg);
 };
-
 
 //////////////////////////////////////////////////
 ElectroHydraulicPTO::ElectroHydraulicPTO()
@@ -113,16 +110,16 @@ double SdfParamDouble(
 
 
 //////////////////////////////////////////////////
-void ElectroHydraulicPTO::Configure(
-  const Entity & _entity,
-  const std::shared_ptr < const sdf::Element > & _sdf,
-  EntityComponentManager & _ecm,
-  EventManager & /*_eventMgr*/)
+void ElectroHydraulicPTO::Configure(const ignition::gazebo::Entity &_entity,
+    const std::shared_ptr<const sdf::Element> &_sdf,
+    ignition::gazebo::EntityComponentManager &_ecm,
+    ignition::gazebo::EventManager &/*_eventMgr*/)
 {
-  this->dataPtr->model = Model(_entity);
-  if (!this->dataPtr->model.Valid(_ecm)) {
-    ignerr << "ElectroHydraulicPTO plugin should be attached to a model entity. " <<
-      "Failed to initialize." << std::endl;
+  this->dataPtr->model = ignition::gazebo::Model(_entity);
+  if (!this->dataPtr->model.Valid(_ecm))
+  {
+    ignerr << "ElectroHydraulicPTO plugin should be attached to a model entity. "
+           << "Failed to initialize." << std::endl;
     return;
   }
 
@@ -136,12 +133,12 @@ void ElectroHydraulicPTO::Configure(
   }
 
 
-  this->dataPtr->PrismaticJointEntity = this->dataPtr->model.JointByName(
-    _ecm,
-    PrismaticJointName);
-  if (this->dataPtr->PrismaticJointEntity == kNullEntity) {
-    ignerr << "Joint with name [" << PrismaticJointName << "] not found. " <<
-      "The ElectroHydraulicPTO may not influence this joint.\n";
+  this->dataPtr->PrismaticJointEntity = this->dataPtr->model.JointByName(_ecm,
+                                        PrismaticJointName);
+  if (this->dataPtr->PrismaticJointEntity == ignition::gazebo::kNullEntity)
+  {
+    ignerr << "Joint with name [" << PrismaticJointName << "] not found. "
+           << "The ElectroHydraulicPTO may not influence this joint.\n";
     return;
   } else {
     this->dataPtr->PistonArea = SdfParamDouble(_sdf, "PistonArea", 1.);
@@ -171,61 +168,58 @@ void ElectroHydraulicPTO::Configure(
   this->dataPtr->x.setConstant(2, 0.);
 
   // Subscribe to commands
-  std::string topic = transport::TopicUtils::AsValidTopic(
-    "/model/" +
-    this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
-    "/UserCommandedCurr");
-  if (topic.empty()) {
-    std::cout << "###Failed to create topic for joint [" << PrismaticJointName <<
-      "]" << std::endl;
+  std::string topic = ignition::transport::TopicUtils::AsValidTopic("/model/" +
+                      this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
+                      "/UserCommandedCurr");
+  if (topic.empty())
+  {
+    std::cout  << "###Failed to create topic for joint [" << PrismaticJointName
+               << "]" << std::endl;
     return;
   }
-  this->dataPtr->node.Subscribe(
-    topic, &ElectroHydraulicPTOPrivate::OnUserCmdCurr,
-    this->dataPtr.get());
-  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic <<
-    "]" << std::endl;
+  this->dataPtr->node.Subscribe(topic, &ElectroHydraulicPTOPrivate::OnUserCmdCurr,
+                                this->dataPtr.get());
+  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic
+            << "]" << std::endl;
 
 
-  topic = transport::TopicUtils::AsValidTopic(
-    "/model/" +
-    this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
-    "/BiasCurrent");
-  if (topic.empty()) {
-    std::cout << "###Failed to create topic for joint [" << PrismaticJointName <<
-      "]" << std::endl;
+  topic = ignition::transport::TopicUtils::AsValidTopic("/model/" +
+          this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
+          "/BiasCurrent");
+  if (topic.empty())
+  {
+    std::cout  << "###Failed to create topic for joint [" << PrismaticJointName
+               << "]" << std::endl;
     return;
   }
-  this->dataPtr->node.Subscribe(
-    topic, &ElectroHydraulicPTOPrivate::OnUserBiasCurr,
-    this->dataPtr.get());
-  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic <<
-    "]" << std::endl;
+  this->dataPtr->node.Subscribe(topic, &ElectroHydraulicPTOPrivate::OnUserBiasCurr,
+                                this->dataPtr.get());
+  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic
+            << "]" << std::endl;
 
 
-  topic = transport::TopicUtils::AsValidTopic(
-    "/model/" +
-    this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
-    "/ScaleFactor");
-  if (topic.empty()) {
-    std::cout << "###Failed to create topic for joint [" << PrismaticJointName <<
-      "]" << std::endl;
+  topic = ignition::transport::TopicUtils::AsValidTopic("/model/" +
+          this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
+          "/ScaleFactor");
+  if (topic.empty())
+  {
+    std::cout  << "###Failed to create topic for joint [" << PrismaticJointName
+               << "]" << std::endl;
     return;
   }
-  this->dataPtr->node.Subscribe(
-    topic, &ElectroHydraulicPTOPrivate::OnScale,
-    this->dataPtr.get());
-  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic <<
-    "]" << std::endl;
+  this->dataPtr->node.Subscribe(topic, &ElectroHydraulicPTOPrivate::OnScale,
+                                this->dataPtr.get());
+  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic
+            << "]" << std::endl;
 
 
-  topic = transport::TopicUtils::AsValidTopic(
-    "/model/" +
-    this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
-    "/RetractFactor");
-  if (topic.empty()) {
-    std::cout << "###Failed to create topic for joint [" << PrismaticJointName <<
-      "]" << std::endl;
+  topic = ignition::transport::TopicUtils::AsValidTopic("/model/" +
+          this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
+          "/RetractFactor");
+  if (topic.empty())
+  {
+    std::cout  << "###Failed to create topic for joint [" << PrismaticJointName
+               << "]" << std::endl;
     return;
   }
   this->dataPtr->node.Subscribe(
@@ -319,7 +313,7 @@ void ElectroHydraulicPTO::PreUpdate(
   IGN_PROFILE("#ElectroHydraulicPTO::PreUpdate");
 
   // If the joints haven't been identified yet, the plugin is disabled
-  if (this->dataPtr->PrismaticJointEntity == kNullEntity) {
+  if (this->dataPtr->PrismaticJointEntity == ignition::gazebo::kNullEntity)
     return;
   }
 
@@ -332,11 +326,12 @@ void ElectroHydraulicPTO::PreUpdate(
 
 
   // Create joint velocity component for piston if one doesn't exist
-  auto prismaticJointVelComp =
-    _ecm.Component < components::JointVelocity > (this->dataPtr->PrismaticJointEntity);
-  if (prismaticJointVelComp == nullptr) {
+  auto prismaticJointVelComp = _ecm.Component<ignition::gazebo::components::JointVelocity>(
+    this->dataPtr->PrismaticJointEntity);
+  if (prismaticJointVelComp == nullptr)
+  {
     _ecm.CreateComponent(
-      this->dataPtr->PrismaticJointEntity, components::JointVelocity());
+      this->dataPtr->PrismaticJointEntity, ignition::gazebo::components::JointVelocity());
   }
   // We just created the joint velocity component, give one iteration for the
   // physics system to update its size
@@ -369,7 +364,7 @@ void ElectroHydraulicPTO::PreUpdate(
   // Initial Guess based on perfect efficiency
   // this->dataPtr->x[0] = 60*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
   // this->dataPtr->x[1] = this->dataPtr->functor.T_applied/(this->dataPtr->functor.HydMotorDisp);
-  HybridNonLinearSolver < ElectroHydraulicSoln > solver(this->dataPtr->functor);
+  Eigen::HybridNonLinearSolver < ElectroHydraulicSoln > solver(this->dataPtr->functor);
   info = solver.solveNumericalDiff(this->dataPtr->x);
   // info = solver.hybrd1(this->dataPtr->x);
   this->dataPtr->functor.I_Wind.UserCommandMutex.unlock();
@@ -487,12 +482,12 @@ void ElectroHydraulicPTO::PreUpdate(
   PTO_Values.RetractFactor = this->dataPtr->functor.I_Wind.RetractFactor;
 
 
-// Create new component for this entitiy in ECM (if it doesn't already exist)
-  auto PTO_State_comp = _ecm.Component < components::PTO_State >
+//Create new component for this entitiy in ECM (if it doesn't already exist)
+  auto PTO_State_comp = _ecm.Component<buoy_gazebo::PTO_State>
     (this->dataPtr->PrismaticJointEntity);
-  if (PTO_State_comp == nullptr) {
-    _ecm.CreateComponent(this->dataPtr->PrismaticJointEntity, components::PTO_State({PTO_Values}));
-  } else {
+  if (PTO_State_comp == nullptr)
+    _ecm.CreateComponent(this->dataPtr->PrismaticJointEntity, buoy_gazebo::PTO_State({PTO_Values}));
+  else
     PTO_State_comp->Data() = PTO_Values;
   }
 
@@ -501,17 +496,14 @@ void ElectroHydraulicPTO::PreUpdate(
   // (likely by a test Fixture)
   if (!this->dataPtr->VelMode) {
     double piston_force = deltaP * this->dataPtr->PistonArea;
-    // Create new component for this entitiy in ECM (if it doesn't already exist)
-    auto forceComp = _ecm.Component < components::JointForceCmd >
+//Create new component for this entitiy in ECM (if it doesn't already exist)
+    auto forceComp = _ecm.Component<ignition::gazebo::components::JointForceCmd>
       (this->dataPtr->PrismaticJointEntity);
-    if (forceComp == nullptr) {
-      // Create this iteration
-      _ecm.CreateComponent(
-        this->dataPtr->PrismaticJointEntity,
-        components::JointForceCmd({piston_force}));
-    } else {
-      forceComp->Data()[0] += piston_force;  // Add force to existing forces.
-    }
+    if (forceComp == nullptr)
+      _ecm.CreateComponent(this->dataPtr->PrismaticJointEntity,
+       ignition::gazebo::components::JointForceCmd({piston_force}));  //Create this iteration
+    else
+      forceComp->Data()[0] += piston_force;  //Add force to existing forces.
   }
 }
 
@@ -545,37 +537,33 @@ void ElectroHydraulicPTO::PostUpdate(
 
 
 //////////////////////////////////////////////////
-void ElectroHydraulicPTOPrivate::OnUserCmdCurr(const msgs::Double & _msg)
+void ElectroHydraulicPTOPrivate::OnUserCmdCurr(const ignition::msgs::Double &_msg)
 {
   this->functor.I_Wind.SetUserCommandedCurrent(_msg.data());
 }
 
 //////////////////////////////////////////////////
-void ElectroHydraulicPTOPrivate::OnUserBiasCurr(const msgs::Double & _msg)
+void ElectroHydraulicPTOPrivate::OnUserBiasCurr(const ignition::msgs::Double &_msg)
 {
   this->functor.I_Wind.SetBiasCurrent(_msg.data());
 }
 
 //////////////////////////////////////////////////
-void ElectroHydraulicPTOPrivate::OnScale(const msgs::Double & _msg)
+void ElectroHydraulicPTOPrivate::OnScale(const ignition::msgs::Double &_msg)
 {
   this->functor.I_Wind.SetScaleFactor(_msg.data());
 }
 
 //////////////////////////////////////////////////
-void ElectroHydraulicPTOPrivate::OnRetract(const msgs::Double & _msg)
+void ElectroHydraulicPTOPrivate::OnRetract(const ignition::msgs::Double &_msg)
 {
   this->functor.I_Wind.SetRetractFactor(_msg.data());
 }
+} // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
-  ElectroHydraulicPTO,
-  ignition::gazebo::System,
-  ElectroHydraulicPTO::ISystemConfigure,
-  ElectroHydraulicPTO::ISystemPreUpdate,
-  ElectroHydraulicPTO::ISystemUpdate,
-  ElectroHydraulicPTO::ISystemPostUpdate);
-
-IGNITION_ADD_PLUGIN_ALIAS(
-  ElectroHydraulicPTO,
-  "ignition::gazebo::systems::ElectroHydraulicPTO")
+IGNITION_ADD_PLUGIN(buoy_gazebo::ElectroHydraulicPTO,
+                    ignition::gazebo::System,
+                    buoy_gazebo::ElectroHydraulicPTO::ISystemConfigure,
+                    buoy_gazebo::ElectroHydraulicPTO::ISystemPreUpdate,
+                    buoy_gazebo::ElectroHydraulicPTO::ISystemUpdate,
+                    buoy_gazebo::ElectroHydraulicPTO::ISystemPostUpdate);
