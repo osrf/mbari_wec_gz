@@ -30,11 +30,9 @@
 #include "WindingCurrentTarget.hh"
 
 
-using namespace Eigen;
-
 /////////////////////////////////////////////////////
 // Generic functor
-template<typename _Scalar, int NX=Dynamic, int NY=Dynamic>
+template<typename _Scalar, int NX=Eigen::Dynamic, int NY=Eigen::Dynamic>
 struct Functor
 {
   typedef _Scalar Scalar;
@@ -42,9 +40,9 @@ struct Functor
     InputsAtCompileTime = NX,
     ValuesAtCompileTime = NY
   };
-  typedef Matrix<Scalar,InputsAtCompileTime,1> InputType;
-  typedef Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
-  typedef Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
+  typedef Eigen::Matrix<Scalar,InputsAtCompileTime,1> InputType;
+  typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
+  typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
 
   const int m_inputs, m_values;
 
@@ -70,7 +68,7 @@ struct ElectroHydraulicSoln : Functor<double>
   /// \brief Pump/Motor Displacement per Revolution
   public: double HydMotorDisp;
 
-  ElectroHydraulicSoln(void) : Functor<double>(2,2) 
+  ElectroHydraulicSoln(void) : Functor<double>(2,2)
   {
   //Set Pressure versus flow relationship for relief valve
     {
@@ -148,8 +146,8 @@ struct ElectroHydraulicSoln : Functor<double>
     }
 
 //  x[0] = RPM
-//  x[1] = Pressure (psi)     
-    int operator()(const VectorXd &x, VectorXd &fvec) const
+//  x[1] = Pressure (psi)
+    int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
     {
         const int n = x.size();
         assert(fvec.size()==n);
@@ -166,7 +164,7 @@ struct ElectroHydraulicSoln : Functor<double>
 
         fvec[0] = x[0]-eff_v*60.0*QQ/this->HydMotorDisp;
         fvec[1] = x[1]-eff_m*T_applied/(this->HydMotorDisp/(2*M_PI));
-       
+
         return 0;
     }
 };

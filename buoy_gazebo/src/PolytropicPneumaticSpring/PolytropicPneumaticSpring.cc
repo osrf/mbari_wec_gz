@@ -34,21 +34,20 @@
 #include "ignition/gazebo/components/JointVelocityCmd.hh"
 #include "ignition/gazebo/Model.hh"
 
-using namespace ignition;
-using namespace gazebo;
-using namespace systems;
+namespace buoy_gazebo
+{
 
-struct ignition::gazebo::systems::PolytropicPneumaticSpringPrivate
+struct PolytropicPneumaticSpringPrivate
 {
   /// \brief Name of cylinder
   std::string name;
-  
+
   /// \brief is hysteresis present in piston travel direction
   bool hysteresis;
 
   //SpringType type;
 
-  /// \brief adiabatic index 
+  /// \brief adiabatic index
   double n, n1, n2;
 
   /// \brief piston stroke (m)
@@ -71,16 +70,16 @@ struct ignition::gazebo::systems::PolytropicPneumaticSpringPrivate
 
   /// \brief R (specific gas)
   double R;
-  
+
   /// \brief specific heat of gas under constant pressure (kJ/(kg K))
   double c_p;
-  
+
   /// \brief initial Volume (m^3)
   double V0, V1, V2;
-  
+
   /// \brief mass of gas (kg)
   double mass;
-  
+
   /// \brief c=mR(specific) (Pa*m^3)/K
   double c;
 
@@ -89,13 +88,13 @@ struct ignition::gazebo::systems::PolytropicPneumaticSpringPrivate
 
   /// \brief current Pressure of gas (Pa)
   double P;
-  
+
   /// \brief current Temperature of gas (K)
   double T;
-  
+
   /// \brief current Force of gas on piston (N)
   double F;
-  
+
   /// \brief current rate of heat loss (Watts)
   double Q_rate;
 
@@ -103,10 +102,10 @@ struct ignition::gazebo::systems::PolytropicPneumaticSpringPrivate
   bool debug_prescribed_velocity;
 
   /// \brief Joint Entity
-  Entity jointEntity;
+  ignition::gazebo::Entity jointEntity;
 
   /// \brief Model interface
-  Model model{kNullEntity};
+  ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
 };
 
 //////////////////////////////////////////////////
@@ -137,21 +136,21 @@ void PolytropicPneumaticSpring::computeForce(const double &x, const double &v, c
   else this->dataPtr->Q_rate = (1.0-n/1.4)*(this->dataPtr->c_p/this->dataPtr->R)*this->dataPtr->P*this->dataPtr->pistonArea*v;
 
   this->dataPtr->F = this->dataPtr->P*this->dataPtr->pistonArea;
-  
+
   ignwarn << "V (" << this->dataPtr->name << "):" << this->dataPtr->V << std::endl;
   ignwarn << "P (" << this->dataPtr->name << "):" << this->dataPtr->P << std::endl;
   ignwarn << "T (" << this->dataPtr->name << "):" << this->dataPtr->T << std::endl;
 }
 
 //////////////////////////////////////////////////
-void PolytropicPneumaticSpring::Configure(const Entity &_entity,
+void PolytropicPneumaticSpring::Configure(const ignition::gazebo::Entity &_entity,
     const std::shared_ptr<const sdf::Element> &_sdf,
-    EntityComponentManager &_ecm,
-    EventManager &/*_eventMgr*/)
+    ignition::gazebo::EntityComponentManager &_ecm,
+    ignition::gazebo::EventManager &/*_eventMgr*/)
 {
   this->dataPtr->name = _sdf->Get<std::string>("chamber", "upper_adiabatic").first;
   ignwarn << "name: " << this->dataPtr->name << std::endl;
-  
+
   this->dataPtr->stroke = SdfParamDouble(_sdf, "stroke", 2.03);
   this->dataPtr->pistonArea = SdfParamDouble(_sdf, "piston_area", 0.0127);
   this->dataPtr->deadVolume = SdfParamDouble(_sdf, "dead_volume", 0.0266);
@@ -159,7 +158,7 @@ void PolytropicPneumaticSpring::Configure(const Entity &_entity,
   this->dataPtr->R = SdfParamDouble(_sdf, "R_specific", 0.2968);
   this->dataPtr->c_p = SdfParamDouble(_sdf, "c_p", 1.04);
   this->dataPtr->debug_prescribed_velocity = _sdf->Get<bool>("debug_prescribed_velocity", false).first;
-  
+
   this->dataPtr->hysteresis = _sdf->Get<bool>("hysteresis", false).first;
   if(this->dataPtr->hysteresis)
   {
@@ -169,14 +168,14 @@ void PolytropicPneumaticSpring::Configure(const Entity &_entity,
     this->dataPtr->P2 = SdfParamDouble(_sdf, "P2", 410240);
     this->dataPtr->x1 = SdfParamDouble(_sdf, "x1", 0.9921);
     this->dataPtr->x2 = SdfParamDouble(_sdf, "x2", 0.9921);
-    
+
     this->dataPtr->V1 = this->dataPtr->deadVolume + \
                         this->dataPtr->x1*this->dataPtr->pistonArea;
     ignwarn << "V1: " << this->dataPtr->V1 << std::endl;
     this->dataPtr->V2 = this->dataPtr->deadVolume + \
                         this->dataPtr->x2*this->dataPtr->pistonArea;
     ignwarn << "V2: " << this->dataPtr->V2 << std::endl;
-    
+
     this->dataPtr->c = this->dataPtr->P1*this->dataPtr->V1/this->dataPtr->T0;
     ignwarn << "c: " << this->dataPtr->c << std::endl;
     this->dataPtr->mass = this->dataPtr->c/this->dataPtr->R;
@@ -190,15 +189,15 @@ void PolytropicPneumaticSpring::Configure(const Entity &_entity,
     this->dataPtr->x0 = SdfParamDouble(_sdf, "x0", 0.9921);
     this->dataPtr->V0 = this->dataPtr->deadVolume + \
                         this->dataPtr->x0*this->dataPtr->pistonArea;
-    
+
     ignwarn << "V0: " << this->dataPtr->V0 << std::endl;
     this->dataPtr->c = this->dataPtr->P0*this->dataPtr->V0/this->dataPtr->T0;
     ignwarn << "c: " << this->dataPtr->c << std::endl;
     this->dataPtr->mass = this->dataPtr->c/this->dataPtr->R;
     ignwarn << "mass: " << this->dataPtr->mass << std::endl;
   }
-  
-  this->dataPtr->model = Model(_entity);
+
+  this->dataPtr->model = ignition::gazebo::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm))
   {
     ignerr << "PolytropicPneumaticSpring plugin should be attached to a model entity. "
@@ -217,13 +216,13 @@ void PolytropicPneumaticSpring::Configure(const Entity &_entity,
 
   this->dataPtr->jointEntity = this->dataPtr->model.JointByName(_ecm,
       jointName);
-  if (this->dataPtr->jointEntity == kNullEntity)
+  if (this->dataPtr->jointEntity == ignition::gazebo::kNullEntity)
   {
     ignerr << "Joint with name[" << jointName << "] not found. "
     << "The PolytropicPneumaticSpring may not influence this joint.\n";
     return;
   }
-  
+
   std::string force_topic = std::string("/force_") + this->dataPtr->name;
   force_pub = node.Advertise<ignition::msgs::Double>(force_topic);
   if (!force_pub)
@@ -239,7 +238,7 @@ void PolytropicPneumaticSpring::Configure(const Entity &_entity,
     ignerr << "Error advertising topic [" << pressure_topic << "]" << std::endl;
     return;
   }
-  
+
   std::string volume_topic = std::string("/volume_") + this->dataPtr->name;
   volume_pub = node.Advertise<ignition::msgs::Double>(volume_topic);
   if (!volume_pub)
@@ -255,7 +254,7 @@ void PolytropicPneumaticSpring::Configure(const Entity &_entity,
     ignerr << "Error advertising topic [" << temperature_topic << "]" << std::endl;
     return;
   }
-  
+
   std::string heat_rate_topic = std::string("/heat_rate_") + this->dataPtr->name;
   heat_rate_pub = node.Advertise<ignition::msgs::Double>(heat_rate_topic);
   if (!heat_rate_pub)
@@ -272,7 +271,7 @@ void PolytropicPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_i
   IGN_PROFILE("PolytropicPneumaticSpring::PreUpdate");
 
   // If the joint hasn't been identified yet, the plugin is disabled
-  if (this->dataPtr->jointEntity == kNullEntity)
+  if (this->dataPtr->jointEntity == ignition::gazebo::kNullEntity)
     return;
 
   // \TODO(anyone) Support rewind
@@ -290,31 +289,31 @@ void PolytropicPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_i
 
   // Create joint position component if one doesn't exist
   auto jointPosComp =
-      _ecm.Component<components::JointPosition>(this->dataPtr->jointEntity);
+      _ecm.Component<ignition::gazebo::components::JointPosition>(this->dataPtr->jointEntity);
   if (jointPosComp == nullptr)
   {
     _ecm.CreateComponent(
-        this->dataPtr->jointEntity, components::JointPosition());
+        this->dataPtr->jointEntity, ignition::gazebo::components::JointPosition());
   }
   // We just created the joint position component, give one iteration for the
   // physics system to update its size
   if (jointPosComp == nullptr || jointPosComp->Data().empty())
     return;
-  
+
   // Create joint velocity component if one doesn't exist
   auto jointVelComp =
-      _ecm.Component<components::JointVelocity>(this->dataPtr->jointEntity);
+      _ecm.Component<ignition::gazebo::components::JointVelocity>(this->dataPtr->jointEntity);
   if (jointVelComp == nullptr)
   {
     _ecm.CreateComponent(
-        this->dataPtr->jointEntity, components::JointVelocity());
+        this->dataPtr->jointEntity, ignition::gazebo::components::JointVelocity());
   }
   // We just created the joint velocity component, give one iteration for the
   // physics system to update its size
   if (jointVelComp == nullptr || jointVelComp->Data().empty())
     return;
 
-  
+
   double x = jointPosComp->Data().at(0);  //TODO: Figure out if (0) for the index is always correct, some OR code has a process of finding the index for this argument.
   double v = jointVelComp->Data().at(0);
   ignwarn << "velocity: " << v << std::endl;
@@ -324,7 +323,7 @@ void PolytropicPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_i
     v *= -1.0;
     ignwarn << "swap direction (" << this->dataPtr->name << ")" << std::endl;
   }
-  
+
   if(this->dataPtr->hysteresis)
   {
     ignwarn << "hysteresis (" << this->dataPtr->name << "): " << this->dataPtr->hysteresis << std::endl;
@@ -343,7 +342,7 @@ void PolytropicPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_i
       this->dataPtr->P0 = this->dataPtr->P2;
     }
   }
-  
+
   computeForce(x, v, this->dataPtr->n);
   if(this->dataPtr->name.compare(0,5,std::string("upper"))==0)
   {
@@ -354,9 +353,9 @@ void PolytropicPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_i
   {
     ignwarn << "F (" << this->dataPtr->name << "):" << this->dataPtr->F << std::endl;
   }
-  
+
   //TODO use sensor to access to F (load cell?), P (pressure sensor), and T (thermometer)
-  
+
   ignition::msgs::Double force, pressure, volume, temperature, heat_rate;
   force.set_data(this->dataPtr->F);
   pressure.set_data(this->dataPtr->P);
@@ -368,7 +367,7 @@ void PolytropicPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_i
   {
     ignerr << "could not publish force" << std::endl;
   }
-  
+
   if (!pressure_pub.Publish(pressure))
   {
     ignerr << "could not publish pressure" << std::endl;
@@ -378,7 +377,7 @@ void PolytropicPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_i
   {
     ignerr << "could not publish volume" << std::endl;
   }
-  
+
   if (!temperature_pub.Publish(temperature))
   {
     ignerr << "could not publish temperature" << std::endl;
@@ -392,11 +391,11 @@ void PolytropicPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_i
   if(!this->dataPtr->debug_prescribed_velocity)
   {
     auto forceComp =
-        _ecm.Component<components::JointForceCmd>(this->dataPtr->jointEntity);
+        _ecm.Component<ignition::gazebo::components::JointForceCmd>(this->dataPtr->jointEntity);
     if (forceComp == nullptr)
     {
       _ecm.CreateComponent(this->dataPtr->jointEntity,
-                           components::JointForceCmd({this->dataPtr->F}));
+                           ignition::gazebo::components::JointForceCmd({this->dataPtr->F}));
     }
     else
     {
@@ -406,26 +405,23 @@ void PolytropicPneumaticSpring::PreUpdate(const ignition::gazebo::UpdateInfo &_i
   else
   {
     double period = 2.0; // sec
-    
+
     double piston_velocity = this->dataPtr->stroke*cos(2.0*3.14159265358979*std::chrono::duration_cast<std::chrono::seconds>(_info.simTime).count()/period);
-    auto joint_vel = _ecm.Component<components::JointVelocityCmd>(this->dataPtr->jointEntity);
+    auto joint_vel = _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(this->dataPtr->jointEntity);
     if (joint_vel == nullptr)
     {
       _ecm.CreateComponent(this->dataPtr->jointEntity,
-          components::JointVelocityCmd({piston_velocity}));
+          ignition::gazebo::components::JointVelocityCmd({piston_velocity}));
     }
     else
     {
-      *joint_vel = components::JointVelocityCmd({piston_velocity});
+      *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_velocity});
     }
   }
 }
+} // namespace buoy_gazebo
 
-
-IGNITION_ADD_PLUGIN(PolytropicPneumaticSpring,
+IGNITION_ADD_PLUGIN(buoy_gazebo::PolytropicPneumaticSpring,
                     ignition::gazebo::System,
-                    PolytropicPneumaticSpring::ISystemConfigure,
-                    PolytropicPneumaticSpring::ISystemPreUpdate)
-
-IGNITION_ADD_PLUGIN_ALIAS(PolytropicPneumaticSpring,
-                          "ignition::gazebo::systems::PolytropicPneumaticSpring")
+                    buoy_gazebo::PolytropicPneumaticSpring::ISystemConfigure,
+                    buoy_gazebo::PolytropicPneumaticSpring::ISystemPreUpdate)
