@@ -21,6 +21,9 @@
 #include <ignition/gazebo/components/Component.hh>
 #include <ignition/gazebo/config.hh>
 
+namespace buoy_gazebo
+{
+
 struct ElectroHydraulicState
 {
   double xdot;
@@ -38,26 +41,15 @@ struct ElectroHydraulicState
   double RPMStdDev;
   double BiasCurrent;
   short Status; //should be 16 bits...
-  
+
 };
 
-
-namespace ignition
-{
-namespace gazebo
-{
-// Inline bracket to help doxygen filtering.
-inline namespace IGNITION_GAZEBO_VERSION_NAMESPACE {
-namespace components
-{
-  /// \brief A volume component where the units are m^3.
-  /// Double value indicates volume of an entity.
-  using PTO_State = Component<ElectroHydraulicState, class ElectroHydraulicStateTag>;
-  IGN_GAZEBO_REGISTER_COMPONENT("ign_gazebo_components.PTO_State", PTO_State)
-}
-}
-}
-}
+/// \brief A volume component where the units are m^3.
+/// Double value indicates volume of an entity.
+using PTO_State =
+    ignition::gazebo::components::Component<ElectroHydraulicState, class ElectroHydraulicStateTag>;
+IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.PTO_State", PTO_State)
+} // namespace buoy_gazebo
 
 #endif
 
