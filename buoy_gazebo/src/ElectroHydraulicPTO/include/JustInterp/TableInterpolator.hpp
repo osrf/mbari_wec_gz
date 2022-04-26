@@ -152,5 +152,4 @@ private:
     std::vector<LinearInterpolator<Real, ExtrapolationType_>> yInterpData_;
 
 };
-
 }

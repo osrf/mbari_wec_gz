@@ -154,7 +154,6 @@ private:
 private:
 
     std::vector<Real> xData_, yData_;
-    
-};
 
+};
 }

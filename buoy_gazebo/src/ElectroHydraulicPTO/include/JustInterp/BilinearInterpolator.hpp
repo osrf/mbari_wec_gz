@@ -289,5 +289,4 @@ private:
 
     std::vector<Real> x_1d_, y_1d_, z_all_;
 };
-
 }
