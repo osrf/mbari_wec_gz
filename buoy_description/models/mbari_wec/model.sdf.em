@@ -71,6 +71,7 @@ for point_index in range(pto_num_points):
 }@
 <sdf version="1.8">
   <model name="MBARI_WEC">
+    <self_collide>true</self_collide>
     <link name="Buoy">
       <pose relative_to="__model__">0 0 0 0 0 0</pose>
       <inertial>
@@ -138,7 +139,7 @@ for point_index in range(pto_num_points):
         <!--color-->
         <material>
           <ambient>1 1 1 0.9</ambient>
-          <diffuse>.2 .2 0.2 0.9</diffuse>
+          <diffuse>.2 .2 1 0.9</diffuse>
           <specular>1 1 1 1</specular>
         </material>
       </visual>
