@@ -23,10 +23,10 @@ tether_radius = 0.01905
 tether_density = 3350 # kg/m^3
 tether_length = 20.3
 
-num_tether_top_links = 10
+num_tether_top_links = 5
 tether_top_length = 2.0
 
-num_tether_bottom_links = 10
+num_tether_bottom_links = 5
 
 # PTO
 pto_outer_radius = 0.16
@@ -137,9 +137,9 @@ for point_index in range(pto_num_points):
         </geometry>
         <!--color-->
         <material>
-          <ambient>.2 .2 0.2 0.5</ambient>
-          <diffuse>.2 .2 0.2 0.5</diffuse>
-          <specular>.2 .2 0.2 0.5</specular>
+          <ambient>1 1 1 0.9</ambient>
+          <diffuse>.2 .2 0.2 0.9</diffuse>
+          <specular>1 1 1 1</specular>
         </material>
       </visual>
       <collision name="collision">
@@ -147,6 +147,20 @@ for point_index in range(pto_num_points):
           <mesh>
             <uri>meshes/pto_collision.stl</uri>
           </mesh>
+          <!-- outer -->
+          <!--polyline>
+@[for point in pto_outer_points]@
+            <point>@(point[0]) @(point[1])</point>
+@[end for]@
+            <height>@(pto_length)</height>
+          </polyline>
+          <!-- inner -->
+          <polyline>
+@[for point in pto_inner_points]@
+            <point>@(point[0]) @(point[1])</point>
+@[end for]@
+            <height>@(pto_length)</height>
+          </polyline-->
         </geometry>
       </collision>
     </link>
