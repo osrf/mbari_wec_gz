@@ -23,8 +23,8 @@ tether_radius = 0.01905
 tether_density = 3350 # kg/m^3
 tether_length = 20.3
 
-num_tether_top_links = 5
-tether_top_length = 2.0
+num_tether_top_links = 4
+tether_top_length = 3.0
 
 num_tether_bottom_links = 5
 
@@ -54,6 +54,15 @@ tether_bottom_link_cylinder = Cylinderd(tether_bottom_link_length, tether_radius
 tether_bottom_link_cylinder.set_mat(Material(tether_density))
 tether_bottom_link_mm = MassMatrix3d()
 tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
+
+def tether_joint_dynamics():
+    """ Prints the <dynamics> block for tether joints. """
+    print("""
+        <dynamics>
+          <damping>10000.0</damping>
+          <friction>1000</friction>
+        </dynamics>
+    """)
 
 # PTO
 pto_outer_points = []
@@ -163,6 +172,12 @@ for point_index in range(pto_num_points):
             <height>@(pto_length)</height>
           </polyline-->
         </geometry>
+        <surface>
+          <contact>
+            <!-- Collide with top tether -->
+            <!--collide_bitmask>0x01</collide_bitmask-->
+          </contact>
+        </surface>
       </collision>
     </link>
 
@@ -229,10 +244,16 @@ for point_index in range(pto_num_points):
             <length>@(tether_top_link_length)</length>
           </cylinder>
         </geometry>
+        <surface>
+          <contact>
+            <!-- Collide with PTO -->
+            <!--collide_bitmask>0x01</collide_bitmask-->
+          </contact>
+        </surface>
       </collision>
     </link>
 
-    <joint name="tether_top_joint_@(link_index)" type="ball">
+    <joint name="tether_top_joint_@(link_index)" type="universal">
       <pose>0 0 @(tether_top_link_length * 0.5) 0 0 0</pose>
 @[if link_index == 0]@
       <parent>Piston</parent>
@@ -240,6 +261,14 @@ for point_index in range(pto_num_points):
       <parent>tether_top_@(link_index-1)</parent>
 @[end if]@
       <child>tether_top_@(link_index)</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        @(tether_joint_dynamics())
+      </axis>
+      <axis2>
+        <xyz>0 1 0</xyz>
+        @(tether_joint_dynamics())
+      </axis2>
     </joint>
 @[end for]@
     <!-- end tether top -->
@@ -264,9 +293,9 @@ for point_index in range(pto_num_points):
           </cylinder>
         </geometry>
         <material>
-          <ambient>0.1 0.1 .1 1</ambient>
-          <diffuse>0.1 0.1 .1 1</diffuse>
-          <specular>0.1 0.1 .1 1</specular>
+          <ambient>0.1 1 .1 1</ambient>
+          <diffuse>0.1 1 .1 1</diffuse>
+          <specular>0.1 1 .1 1</specular>
         </material>
       </visual>
       <collision name="collision">
@@ -279,7 +308,7 @@ for point_index in range(pto_num_points):
       </collision>
     </link>
 
-    <joint name="tether_bottom_joint_@(link_index)" type="ball">
+    <joint name="tether_bottom_joint_@(link_index)" type="universal">
       <pose>0 0 @(tether_bottom_link_length * 0.5) 0 0 0</pose>
 @[if link_index == 0]@
       <parent>tether_top_@(num_tether_top_links-1)</parent>
@@ -287,10 +316,18 @@ for point_index in range(pto_num_points):
       <parent>tether_bottom_@(link_index-1)</parent>
 @[end if]@
       <child>tether_bottom_@(link_index)</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        @(tether_joint_dynamics())
+      </axis>
+      <axis2>
+        <xyz>0 1 0</xyz>
+        @(tether_joint_dynamics())
+      </axis2>
     </joint>
 @[end for]@
 
-    <joint name="TetherToHeaveCone" type="ball">
+    <joint name="TetherToHeaveCone" type="fixed">
       <parent>tether_bottom_@(num_tether_bottom_links-1)</parent>
       <child>HeaveCone</child>
     </joint>
@@ -372,11 +409,19 @@ for point_index in range(pto_num_points):
       </axis>
     </joint>
 
-    <joint name="Universal" type="ball">
+    <joint name="Universal" type="universal">
       <parent>Buoy</parent>
       <child>PTO</child>
       <provide_feedback>1</provide_feedback>
       <pose>0.0 0.0 0.0 0 0 0</pose>
+      <axis>
+        <xyz>1 0 0</xyz>
+        @(tether_joint_dynamics())
+      </axis>
+      <axis2>
+        <xyz>0 1 0</xyz>
+        @(tether_joint_dynamics())
+      </axis2>
     </joint>
 
     <joint name="hydraulic_ram" type="prismatic">
