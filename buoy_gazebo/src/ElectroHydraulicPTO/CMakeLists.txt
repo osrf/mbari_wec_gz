@@ -1,6 +1,6 @@
 gz_add_plugin(ElectroHydraulicPTO
   SOURCES
-    ElectroHydraulicPTO.cc
+    ElectroHydraulicPTO.cpp
   INCLUDE_DIRS
     include/
 )
