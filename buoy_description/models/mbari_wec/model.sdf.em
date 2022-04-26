@@ -353,7 +353,7 @@ for point_index in range(pto_num_points):
     </link>
 
     <!-- TODO(chapulina) Remove once buoyancy is in action -->
-    <joint name="WaterPlaneArea" type="prismatic">
+    <joint name="WaterPlaneArea" type="revolute">
       <parent>world</parent>
       <child>Buoy</child>
       <pose>0 0 0 0 0 0</pose>
@@ -362,13 +362,13 @@ for point_index in range(pto_num_points):
           <lower>-2.0</lower>
           <upper>2.0</upper>
         </limit>
-        <xyz>0.0 0.0 1.0</xyz>
-        <dynamics>
+        <xyz>1.0 0.0 0.0</xyz>
+        <!--dynamics>
           <spring_stiffness>55000</spring_stiffness>
           <spring_reference>0.0</spring_reference>
           <damping>1000.0</damping>
           <friction>0.0</friction>
-        </dynamics>
+        </dynamics-->
       </axis>
     </joint>
 
@@ -379,7 +379,7 @@ for point_index in range(pto_num_points):
       <pose>0.0 0.0 0.0 0 0 0</pose>
     </joint>
 
-    <joint name="HydraulicRam" type="prismatic">
+    <joint name="hydraulic_ram" type="prismatic">
       <parent>PTO</parent>
       <child>Piston</child>
       <pose>0.0 0.0 0.0 0 0 0</pose>
