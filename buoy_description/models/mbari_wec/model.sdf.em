@@ -3,10 +3,16 @@
 from ignition.math import Cylinderd
 from ignition.math import MassMatrix3d
 from ignition.math import Material
+import math
 
 ##############
 # Parameters #
 ##############
+
+# Buoy
+buoy_z_offset = 0.56
+buoy_radius = 1.32
+buoy_height = 1.12
 
 # Piston
 piston_length = 5.08
@@ -21,6 +27,12 @@ num_tether_top_links = 10
 tether_top_length = 2.0
 
 num_tether_bottom_links = 10
+
+# PTO
+pto_outer_radius = 0.16
+pto_inner_radius = 0.1
+pto_length = 9.7
+pto_num_points = 8
 
 ###################
 # Computed values #
@@ -42,6 +54,20 @@ tether_bottom_link_cylinder = Cylinderd(tether_bottom_link_length, tether_radius
 tether_bottom_link_cylinder.set_mat(Material(tether_density))
 tether_bottom_link_mm = MassMatrix3d()
 tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
+
+# PTO
+pto_outer_points = []
+pto_inner_points = []
+for point_index in range(pto_num_points):
+    angle = 2.0 * math.pi * point_index / pto_num_points
+
+    px = pto_outer_radius * math.cos(angle)
+    py = pto_outer_radius * math.sin(angle)
+    pto_outer_points.append((px, py))
+
+    px = pto_inner_radius * math.cos(angle)
+    py = pto_inner_radius * math.sin(angle)
+    pto_inner_points.append((px, py))
 }@
 <sdf version="1.8">
   <model name="MBARI_WEC">
@@ -72,6 +98,9 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
         </material>
       </visual>
     </link>
+    <frame name="BuoyBottom" attached_to="Buoy">
+      <pose>0 0 -@(buoy_height * 0.5) 0 0 0</pose>
+    </frame>
 
     <link name="PTO">
       <pose relative_to="Buoy">0 0 0 0 0 0</pose>
@@ -91,6 +120,20 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
           <mesh>
             <uri>meshes/pto.stl</uri>
           </mesh>
+          <!-- outer -->
+          <!--polyline>
+@[for point in pto_outer_points]@
+            <point>@(point[0]) @(point[1])</point>
+@[end for]@
+            <height>@(pto_length)</height>
+          </polyline-->
+          <!-- inner -->
+          <!--polyline>
+@[for point in pto_inner_points]@
+            <point>@(point[0]) @(point[1])</point>
+@[end for]@
+            <height>@(pto_length)</height>
+          </polyline-->
         </geometry>
         <!--color-->
         <material>
