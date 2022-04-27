@@ -37,7 +37,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
           'ign_args',
-          default_value=[os.path.join(pkg_buoy_gazebo, 'worlds', 'buoy_no_plugins.sdf'), ''],
+          default_value=[os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf'), ''],
           description='Ignition Gazebo arguments'),
         gazebo
     ])
