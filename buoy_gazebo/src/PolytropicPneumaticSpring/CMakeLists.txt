@@ -1,4 +1,4 @@
 gz_add_plugin(PolytropicPneumaticSpring
   SOURCES
-    PolytropicPneumaticSpring.cpp
+    PolytropicPneumaticSpring.cc
 )

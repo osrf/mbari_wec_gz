@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
-#define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
+#ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HH_
+#define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HH_
 
 #include <stdio.h>
 
@@ -24,17 +24,17 @@
 #include <string>
 #include <vector>
 
-#include "ElectroHydraulicState.hpp"
+#include "ElectroHydraulicState.hh"
 
 // Interpolation library for efficiency maps
 #include "JustInterp/JustInterp.hpp"
-#include "WindingCurrentTarget.hpp"
+#include "WindingCurrentTarget.hh"
 
 
 /////////////////////////////////////////////////////
 // Generic functor
-template<typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
-struct Functor
+template < typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic >
+  struct Functor
 {
   typedef _Scalar Scalar;
   enum
@@ -42,19 +42,17 @@ struct Functor
     InputsAtCompileTime = NX,
     ValuesAtCompileTime = NY
   };
-  typedef Eigen::Matrix<Scalar, InputsAtCompileTime, 1> InputType;
-  typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, 1> ValueType;
-  typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, InputsAtCompileTime> JacobianType;
+  typedef Eigen::Matrix < Scalar, InputsAtCompileTime, 1 > InputType;
+  typedef Eigen::Matrix < Scalar, ValuesAtCompileTime, 1 > ValueType;
+  typedef Eigen::Matrix < Scalar, ValuesAtCompileTime, InputsAtCompileTime > JacobianType;
 
   const int m_inputs, m_values;
 
   Functor()
-  : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime)
-  {
+    : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {
   }
   Functor(int inputs, int values)
-  : m_inputs(inputs), m_values(values)
-  {
+    : m_inputs(inputs), m_values(values) {
   }
 
   int inputs() const {return m_inputs;}
@@ -65,12 +63,12 @@ struct Functor
 };
 
 
-struct ElectroHydraulicSoln : Functor<double>
+struct ElectroHydraulicSoln : Functor < double >
 {
 public:
-  JustInterp::TableInterpolator<double> hyd_eff_v;
-  JustInterp::TableInterpolator<double> hyd_eff_m;
-  JustInterp::LinearInterpolator<double> reliefValve;
+  JustInterp::TableInterpolator < double > hyd_eff_v;
+  JustInterp::TableInterpolator < double > hyd_eff_m;
+  JustInterp::LinearInterpolator < double > reliefValve;
   // Class that computes Target Winding Current based on RPM, Scale Factor, limits, etc..
   WindingCurrentTarget I_Wind;
   double Q;
@@ -78,24 +76,24 @@ public:
   double HydMotorDisp;
 
   ElectroHydraulicSoln(void)
-  : Functor<double>(2, 2)
+    : Functor < double > (2, 2)
   {
     // Set Pressure versus flow relationship for relief valve
     {
       double Pset = 2000;  // 750;  // psi
       // ~50GPM/600psi ~= .33472 in^3/psi -> From SUN RPECLAN data sheet
       double QPerP = (50 * 241 / 60) / 600;
-      std::vector<double> P {0, Pset, Pset + 600};
-      std::vector<double> Qrelief {0, 0, QPerP *600};
+      std::vector < double > P {0, Pset, Pset + 600};
+      std::vector < double > Qrelief {0, 0, QPerP *600};
       this->reliefValve.SetData(P.size(), P.data(), Qrelief.data());
     }
 
     // Set HydrualicMotor Volumetric Efficiency
     {
       // psi
-      std::vector<double>
+      std::vector < double >
       P {0, 145, 290, 435, 580, 725, 870, 1015, 1160, 1305, 1450, 2176, 2901};
-      std::vector<std::vector<double>> N
+      std::vector < std::vector < double >> N
       {
         {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500,
           4000, 4500, 5000, 5500, 6000, 15000},  // 0Mpa/0psi
@@ -118,7 +116,7 @@ public:
           4000, 4500, 5000, 5500, 6000, 15000}  // 20Mpa/2901psi
       };
 
-      std::vector<std::vector<double>> eff_v
+      std::vector < std::vector < double >> eff_v
       {
         // {0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10,
         //  0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10},  // 0Mpa/0psi
@@ -144,7 +142,7 @@ public:
       };
 
 
-      std::vector<std::vector<double>> eff_m
+      std::vector < std::vector < double >> eff_m
       {
         // {0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10,
         //  0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10},  // 0Mpa/0psi
@@ -200,4 +198,4 @@ public:
   }
 };
 
-#endif  // ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
+#endif  // ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HH_

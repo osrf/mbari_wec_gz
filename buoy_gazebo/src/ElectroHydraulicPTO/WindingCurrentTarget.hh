@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
-#define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
+#ifndef ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HH_
+#define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HH_
 
 #include <stdio.h>
 
@@ -50,7 +50,7 @@ class WindingCurrentTarget
 public:
   double TorqueConstantNMPerAmp;   // N-m/Amp
   double TorqueConstantInLbPerAmp;  // in-lb/Amp
-  JustInterp::LinearInterpolator<double> DefaultDamping;
+  JustInterp::LinearInterpolator < double > DefaultDamping;
   double ScaleFactor;
   double RetractFactor;
   double PistonPos;
@@ -70,8 +70,8 @@ public:
 
   WindingCurrentTarget(void)
   {
-    std::vector<double> N {0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};       // RPM
-    std::vector<double> Torque {0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};       // N-m
+    std::vector < double > N {0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};    // RPM
+    std::vector < double > Torque {0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};    // N-m
     this->DefaultDamping.SetData(N.size(), N.data(), Torque.data());
 
     // Set Electric Motor Torque Constant
@@ -177,4 +177,4 @@ public:
 };
 
 
-#endif  // ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
+#endif  // ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HH_
