@@ -378,8 +378,10 @@ void ElectroHydraulicPTO::PreUpdate(
   double deltaP = this->dataPtr->x[1];
   // Shame to have to re-compute this, but small effort...
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind(N);
+  // Create seed on thread using current time
+  unsigned int seed = (unsigned) time(NULL);
   this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent + 0.001 *
-    (rand_r(static_cast<unsigned int *>(nullptr)) % 200 - 100);
+    (rand_r(&seed) % 200 - 100);
 
   double eff_e = 0.85;
   double ShaftPower = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
