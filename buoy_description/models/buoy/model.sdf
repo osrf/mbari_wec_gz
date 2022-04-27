@@ -144,7 +144,7 @@
     <joint name="WaterPlaneArea" type="prismatic">
       <parent>world</parent>
       <child>Buoy</child>
-      <pose>0.0 0.0 4.0 0 0 0</pose>
+      <pose>0 0 0 0 0 0</pose>
       <axis>
         <limit>
           <lower>-2.0</lower>
@@ -166,7 +166,8 @@
       <provide_feedback>1</provide_feedback>
       <pose>0.0 0.0 0.0 0 0 0</pose>
     </joint>
-     <joint name="TetherProxy" type="fixed">
+    
+    <joint name="TetherProxy" type="fixed">
       <parent>Piston</parent>
       <child>HeaveCone</child>
       <provide_feedback>1</provide_feedback>

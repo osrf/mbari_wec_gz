@@ -22,53 +22,54 @@
     </light>
 
     <include>
+      <pose relative_to="world">0 0 -2 0 0 0</pose>
       <uri>model://buoy</uri>
 
-    <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
-      <PrismaticJointName>HydraulicRam</PrismaticJointName>
-      <PistonArea>1.375</PistonArea>
-      <HydMotorDisp>0.30</HydMotorDisp>
-      <RotorInertia>1</RotorInertia>
-    </plugin>
+      <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
+        <PrismaticJointName>HydraulicRam</PrismaticJointName>
+        <PistonArea>1.375</PistonArea>
+        <HydMotorDisp>0.30</HydMotorDisp>
+        <RotorInertia>1</RotorInertia>
+      </plugin>
 
-    <!-- Add Upper/Lower Polytropic Spring plugin -->
-    <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
-      <JointName>HydraulicRam</JointName>
-      <chamber>upper_polytropic</chamber>
-      <stroke>2.03</stroke>
-      <piston_area>0.0127</piston_area>
-      <dead_volume>0.0266</dead_volume>
-      <T0>283.15</T0>
-      <R_specific>0.2968</R_specific>
-      <c_p>1.04</c_p>
-      <hysteresis>true</hysteresis>
-      <n1>1.2371</n1>
-      <n2>1.2307</n2>
-      <x1>0.9790</x1>
-      <x2>1.1912</x2>
-      <P1>410291</P1>
-      <P2>410266</P2>
-    </plugin>
+      <!-- Add Upper/Lower Polytropic Spring plugin -->
+      <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
+        <JointName>HydraulicRam</JointName>
+        <chamber>upper_polytropic</chamber>
+        <stroke>2.03</stroke>
+        <piston_area>0.0127</piston_area>
+        <dead_volume>0.0266</dead_volume>
+        <T0>283.15</T0>
+        <R_specific>0.2968</R_specific>
+        <c_p>1.04</c_p>
+        <hysteresis>true</hysteresis>
+        <n1>1.2371</n1>
+        <n2>1.2307</n2>
+        <x1>0.9790</x1>
+        <x2>1.1912</x2>
+        <P1>410291</P1>
+        <P2>410266</P2>
+      </plugin>
 
-    <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
-    <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
-      <JointName>HydraulicRam</JointName>
-      <chamber>lower_polytropic</chamber>
-      <stroke>2.03</stroke>
-      <piston_area>0.0115</piston_area>
-      <dead_volume>0.0523</dead_volume>
-      <T0>283.15</T0>
-      <R_specific>0.2968</R_specific>
-      <c_p>1.04</c_p>
-      <hysteresis>true</hysteresis>
-      <n1>1.2327</n1>
-      <n2>1.2518</n2>
-      <x1>1.1958</x1>
-      <x2>1.3935</x2>
-      <P1>1212090</P1>
-      <P2>1212140</P2>
-    </plugin>
-    <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
+      <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
+      <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
+        <JointName>HydraulicRam</JointName>
+        <chamber>lower_polytropic</chamber>
+        <stroke>2.03</stroke>
+        <piston_area>0.0115</piston_area>
+        <dead_volume>0.0523</dead_volume>
+        <T0>283.15</T0>
+        <R_specific>0.2968</R_specific>
+        <c_p>1.04</c_p>
+        <hysteresis>true</hysteresis>
+        <n1>1.2327</n1>
+        <n2>1.2518</n2>
+        <x1>1.1958</x1>
+        <x2>1.3935</x2>
+        <P1>1212090</P1>
+        <P2>1212140</P2>
+      </plugin>
+      <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
     </include>
   </world>
 </sdf>
