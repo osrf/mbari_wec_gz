@@ -55,6 +55,19 @@
           <specular>.2 .2 0.2 0.5</specular>
         </material>
       </visual>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>models://pto_collision.stl</uri>
+          </mesh>
+        </geometry>
+        <!--color-->
+        <material>
+          <ambient>.2 .2 0.2 0.5</ambient>
+          <diffuse>.2 .2 0.2 0.5</diffuse>
+          <specular>.2 .2 0.2 0.5</specular>
+        </material>
+      </collision>
     </link>
 
     <link name="Piston">
