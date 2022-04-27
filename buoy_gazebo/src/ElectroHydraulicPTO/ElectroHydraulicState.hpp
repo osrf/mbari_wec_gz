@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSTATE_HH_
-#define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSTATE_HH_
+#ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSTATE_HPP_
+#define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSTATE_HPP_
 
 #include <ignition/gazebo/components/Factory.hh>
 #include <ignition/gazebo/components/Component.hh>
@@ -22,36 +22,37 @@
 namespace buoy_gazebo
 {
 
-  struct ElectroHydraulicState
+struct ElectroHydraulicState
+{
+  double xdot;
+  double N;
+  double deltaP;
+  double VBus;
+  double TargetWindingCurrent;
+  double WindingCurrent;
+  double I_Batt;
+  double I_Load;
+  double ScaleFactor;
+  double RetractFactor;
+  double BattChargeLimit;
+  double BattDrawLimit;
+  double RPMStdDev;
+  double BiasCurrent;
+  int16_t Status;
+  ElectroHydraulicState()
+  : xdot(0.0), N(0.0), deltaP(0.0), VBus(0.0),
+    TargetWindingCurrent(0.0), WindingCurrent(0.0), I_Batt(0.0), I_Load(0.0),
+    ScaleFactor(0.0), RetractFactor(0.0), BattChargeLimit(0.0),
+    BattDrawLimit(0.0), RPMStdDev(0.0), BiasCurrent(0.0), Status(0)
   {
-    double xdot;
-    double N;
-    double deltaP;
-    double VBus;
-    double TargetWindingCurrent;
-    double WindingCurrent;
-    double I_Batt;
-    double I_Load;
-    double ScaleFactor;
-    double RetractFactor;
-    double BattChargeLimit;
-    double BattDrawLimit;
-    double RPMStdDev;
-    double BiasCurrent;
-    int16_t Status;
-    ElectroHydraulicState()
-      : xdot(0.0), N(0.0), deltaP(0.0), VBus(0.0),
-      TargetWindingCurrent(0.0), WindingCurrent(0.0), I_Batt(0.0), I_Load(0.0),
-      ScaleFactor(0.0), RetractFactor(0.0), BattChargeLimit(0.0),
-      BattDrawLimit(0.0), RPMStdDev(0.0), BiasCurrent(0.0), Status(0) {
-    }
-  };
+  }
+};
 
-  /// \brief A volume component where the units are m^3.
-  /// Double value indicates volume of an entity.
-  using PTO_State = ignition::gazebo::components::Component < ElectroHydraulicState,
-  class ElectroHydraulicStateTag >;
-  IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.PTO_State", PTO_State)
+/// \brief A volume component where the units are m^3.
+/// Double value indicates volume of an entity.
+using PTO_State = ignition::gazebo::components::Component<ElectroHydraulicState,
+    class ElectroHydraulicStateTag>;
+IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.PTO_State", PTO_State)
 }  // namespace buoy_gazebo
 
-#endif  // ELECTROHYDRAULICPTO__ELECTROHYDRAULICSTATE_HH_
+#endif  // ELECTROHYDRAULICPTO__ELECTROHYDRAULICSTATE_HPP_
