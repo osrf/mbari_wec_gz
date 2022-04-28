@@ -17,7 +17,7 @@
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>models://buoy_float.stl</uri>
+            <uri>meshes/buoy_float.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -45,7 +45,7 @@
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>models://pto.stl</uri>
+            <uri>meshes/pto.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -58,7 +58,7 @@
       <collision name="collision">
         <geometry>
           <mesh>
-            <uri>models://pto_collision.stl</uri>
+            <uri>meshes/pto_collision.stl</uri>
           </mesh>
         </geometry>
       </collision>
@@ -80,7 +80,7 @@
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>models://rod_and_piston.stl</uri>
+            <uri>meshes/rod_and_piston.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -108,7 +108,7 @@
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>models://heave_cone.stl</uri>
+            <uri>meshes/heave_cone.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -119,7 +119,7 @@
         </material>
       </visual>
     </link>
-      
+
     <link name="Trefoil">
       <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
       <inertial>
@@ -136,7 +136,7 @@
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>models://trefoil.stl</uri>
+            <uri>meshes/trefoil.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -173,7 +173,7 @@
       <provide_feedback>1</provide_feedback>
       <pose>0.0 0.0 0.0 0 0 0</pose>
     </joint>
-    
+
     <joint name="TetherProxy" type="fixed">
       <parent>Piston</parent>
       <child>HeaveCone</child>
