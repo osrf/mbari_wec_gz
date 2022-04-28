@@ -55,19 +55,14 @@ class ElectroHydraulicPTO : public ignition::gazebo::System,
   public ignition::gazebo::ISystemUpdate,
   public ignition::gazebo::ISystemPostUpdate
 {
-  /// \brief Constructor
-
 public:
+  /// \brief Constructor
   ElectroHydraulicPTO();
 
   /// \brief Destructor
-
-public:
   ~ElectroHydraulicPTO() override = default;
 
   // Documentation inherited
-
-public:
   void Configure(
     const ignition::gazebo::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
@@ -75,22 +70,16 @@ public:
     ignition::gazebo::EventManager & _eventMgr) override;
 
   // Documentation inherited
-
-public:
   void PreUpdate(
     const ignition::gazebo::UpdateInfo & _info,
     ignition::gazebo::EntityComponentManager & _ecm) override;
 
   // Documentation inherited
-
-public:
   void Update(
     const ignition::gazebo::UpdateInfo & _info,
     ignition::gazebo::EntityComponentManager & _ecm) override;
 
   // Documentation inherited
-
-public:
   void PostUpdate(
     const ignition::gazebo::UpdateInfo & _info,
     const ignition::gazebo::EntityComponentManager & _ecm) override;
@@ -102,8 +91,6 @@ private:
     battcurr_pub, loadcurr_pub, scalefactor_pub, retractfactor_pub;
 
   /// \brief Private data pointer
-
-private:
   std::unique_ptr<ElectroHydraulicPTOPrivate> dataPtr;
 };
 }  // namespace buoy_gazebo
