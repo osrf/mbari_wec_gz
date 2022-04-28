@@ -17,11 +17,13 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
+from launch.substitutions import ThisLaunchFileDir
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    """Launch the ElectroHydraulicPTO world and bridge topics to ROS"""
 
     pkg_ros_ign_gazebo = get_package_share_directory('ros_ign_gazebo')
 
@@ -32,28 +34,15 @@ def generate_launch_description():
         launch_arguments={'ign_args': '-r electrohydraulicPTO.sdf'}.items(),
     )
 
-    bridge = Node(
-        package='ros_ign_bridge',
-        executable='parameter_bridge',
-        arguments=[
-            '/battcurr_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/deltaP_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/loadcurr_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/pistonvel_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/retractfactor_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/rpm_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/scalefactor_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/targwindcurr_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/windcurr_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/model/Hydraulics_Test/joint/HydraulicRam/UserCommandedCurr@std_msgs/msg/Float64]ignition.msgs.Double',
-            '/model/Hydraulics_Test/joint/HydraulicRam/BiasCurrent@std_msgs/msg/Float64]ignition.msgs.Double',
-            '/model/Hydraulics_Test/joint/HydraulicRam/ScaleFactor@std_msgs/msg/Float64]ignition.msgs.Double',
-            '/model/Hydraulics_Test/joint/HydraulicRam/RetractFactor@std_msgs/msg/Float64]ignition.msgs.Double',
-        ],
-        output='screen'
+    bridge = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([ThisLaunchFileDir(), '/pto_bridge.launch.py']),
+        launch_arguments={
+            'model_name': 'Hydraulics_Test',
+            'joint_name': 'HydraulicRam'
+        }.items(),
     )
 
     return LaunchDescription([
-        gazebo,
-        bridge
+        bridge,
+        gazebo
     ])
