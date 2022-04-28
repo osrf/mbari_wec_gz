@@ -23,7 +23,7 @@
 
     <include>
       <pose relative_to="world">0 0 -2 0 0 0</pose>
-      <uri>model://buoy</uri>
+      <uri>model://mbari_wec</uri>
 
       <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
