@@ -56,8 +56,8 @@ function(gz_add_plugin plugin_name)
   )
   target_include_directories(${plugin_name}
       PUBLIC ${gz_add_plugin_INCLUDE_DIRS})
-  install (
-    TARGETS ${plugin_name} 
+  install(
+    TARGETS ${plugin_name}
     DESTINATION lib)
 endfunction()
 
