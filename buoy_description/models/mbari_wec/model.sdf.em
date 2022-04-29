@@ -154,11 +154,11 @@ for point_index in range(pto_num_points):
       </visual>
       <collision name="collision">
         <geometry>
-          <mesh>
+          <!--mesh>
             <uri>meshes/pto_collision.stl</uri>
-          </mesh>
+          </mesh-->
           <!-- outer -->
-          <!--polyline>
+          <polyline>
 @[for point in pto_outer_points]@
             <point>@(point[0]) @(point[1])</point>
 @[end for]@
@@ -170,7 +170,7 @@ for point_index in range(pto_num_points):
             <point>@(point[0]) @(point[1])</point>
 @[end for]@
             <height>@(pto_length)</height>
-          </polyline-->
+          </polyline>
         </geometry>
         <surface>
           <contact>
@@ -393,7 +393,7 @@ for point_index in range(pto_num_points):
     <joint name="WaterPlaneArea" type="revolute">
       <parent>world</parent>
       <child>Buoy</child>
-      <pose>0 0 0 0 0 0</pose>
+      <pose>0 0 2 0 0 0</pose>
       <axis>
         <limit>
           <lower>-2.0</lower>
@@ -424,7 +424,7 @@ for point_index in range(pto_num_points):
       </axis2>
     </joint>
 
-    <joint name="hydraulic_ram" type="prismatic">
+    <joint name="HydraulicRam" type="prismatic">
       <parent>PTO</parent>
       <child>Piston</child>
       <pose>0.0 0.0 0.0 0 0 0</pose>

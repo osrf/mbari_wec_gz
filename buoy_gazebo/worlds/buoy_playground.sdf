@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
-  <world name="world_demo">
+  <world name="playground">
     <physics name="1ms" type="ignored">
       <!-- bullet + pgs seem to work ok for the tether -->
       <dart>
@@ -142,7 +142,7 @@
         <ignition-gui>
           <property type="string" key="state">docked</property>
         </ignition-gui>
-        <model_name>buoy</model_name>
+        <model_name>MBARI_WEC</model_name>
       </plugin>
 
       <plugin filename="EntityTree" name="Entity tree">
@@ -200,12 +200,12 @@
 
     <include>
       <!--pose>0 0 10 1.57 0 0</pose-->
-      <uri>buoy</uri>
+      <uri>model://mbari_wec</uri>
 
       <plugin
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
-        <joint_name>hydraulic_ram</joint_name>
+        <joint_name>HydraulicRam</joint_name>
         <p_gain>10000</p_gain>
         <i_gain>1000</i_gain>
         <d_gain>1000</d_gain>
