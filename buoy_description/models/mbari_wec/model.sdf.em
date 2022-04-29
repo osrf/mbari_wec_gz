@@ -19,7 +19,7 @@ piston_length = 5.08
 piston_z_offset = -3.50066
 
 # Tether
-tether_radius = 0.01905
+tether_radius = 0.009525 # Nominal O.D. 0.75 in
 tether_density = 3350 # kg/m^3
 tether_length = 20.3
 
@@ -154,23 +154,23 @@ for point_index in range(pto_num_points):
       </visual>
       <collision name="collision">
         <geometry>
-          <!--mesh>
+          <mesh>
             <uri>meshes/pto_collision.stl</uri>
-          </mesh-->
+          </mesh>
           <!-- outer -->
-          <polyline>
+          <!--polyline>
 @[for point in pto_outer_points]@
             <point>@(point[0]) @(point[1])</point>
 @[end for]@
             <height>@(pto_length)</height>
-          </polyline>
+          </polyline-->
           <!-- inner -->
-          <polyline>
+          <!--polyline>
 @[for point in pto_inner_points]@
             <point>@(point[0]) @(point[1])</point>
 @[end for]@
             <height>@(pto_length)</height>
-          </polyline>
+          </polyline-->
         </geometry>
         <surface>
           <contact>
