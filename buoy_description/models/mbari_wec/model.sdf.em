@@ -9,7 +9,7 @@ from ignition.math import Material
 ##############
 
 # Piston
-piston_length = 5.0
+piston_length = 5.08
 piston_z_offset = -3.50066
 
 # Tether
