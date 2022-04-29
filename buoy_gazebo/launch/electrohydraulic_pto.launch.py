@@ -12,37 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
-from launch.substitutions import ThisLaunchFileDir
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
+from launch.substitutions import ThisLaunchFileDir
 
 
 def generate_launch_description():
-    """Launch the ElectroHydraulicPTO world and bridge topics to ROS"""
-
-    pkg_ros_ign_gazebo = get_package_share_directory('ros_ign_gazebo')
-
-    gazebo = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_ign_gazebo, 'launch', 'ign_gazebo.launch.py'),
-        ),
-        launch_arguments={'ign_args': '-r electrohydraulicPTO.sdf'}.items(),
-    )
-
-    bridge = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([ThisLaunchFileDir(), '/pto_bridge.launch.py']),
-        launch_arguments={
-            'model_name': 'Hydraulics_Test',
-            'joint_name': 'HydraulicRam'
-        }.items(),
-    )
-
+    """Launch the ElectroHydraulicPTO world and bridge topics to ROS."""
     return LaunchDescription([
-        bridge,
-        gazebo
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([ThisLaunchFileDir(), '/mbari_wec.launch.py']),
+            launch_arguments={
+                'ign_args': 'electrohydraulicPTO.sdf',
+                'model_name': 'Hydraulics_Test',
+                'pto_joint_name': 'HydraulicRam',
+                'has_lower_spring': 'False',
+                'has_upper_spring': 'False'
+            }.items(),
+        )
     ])

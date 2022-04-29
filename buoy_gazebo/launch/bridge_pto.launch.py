@@ -12,13 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import TextSubstitution
 from launch_ros.actions import Node
@@ -26,7 +21,6 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     """Bridge all the topics provided by the ElectroHydraulicPTO plugin."""
-
     # For now, each field is published in its own topic as a double / float64
     ros_msg_type = 'std_msgs/msg/Float64'
     gz_msg_type = 'ignition.msgs.Double'
@@ -65,13 +59,17 @@ def generate_launch_description():
                 '@', ros_msg_type, '[', gz_msg_type],
             ['/windcurr_', LaunchConfiguration('joint_name'),
                 '@', ros_msg_type, '[', gz_msg_type],
-            ['/model/', LaunchConfiguration('model_name'), '/joint/', LaunchConfiguration('joint_name'),
+            ['/model/', LaunchConfiguration('model_name'), '/joint/',
+                LaunchConfiguration('joint_name'),
                 '/UserCommandedCurr@', ros_msg_type, ']', gz_msg_type],
-            ['/model/', LaunchConfiguration('model_name'), '/joint/', LaunchConfiguration('joint_name'),
+            ['/model/', LaunchConfiguration('model_name'), '/joint/',
+                LaunchConfiguration('joint_name'),
                 '/BiasCurrent@', ros_msg_type, ']', gz_msg_type],
-            ['/model/', LaunchConfiguration('model_name'), '/joint/', LaunchConfiguration('joint_name'),
+            ['/model/', LaunchConfiguration('model_name'), '/joint/',
+                LaunchConfiguration('joint_name'),
                 '/ScaleFactor@', ros_msg_type, ']', gz_msg_type],
-            ['/model/', LaunchConfiguration('model_name'), '/joint/', LaunchConfiguration('joint_name'),
+            ['/model/', LaunchConfiguration('model_name'), '/joint/',
+                LaunchConfiguration('joint_name'),
                 '/RetractFactor@', ros_msg_type, ']', gz_msg_type],
         ],
         output='screen'
