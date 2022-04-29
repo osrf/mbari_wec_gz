@@ -318,7 +318,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <parent>Buoy</parent>
       <child>PTO</child>
       <provide_feedback>1</provide_feedback>
-      <pose>0.0 0.0 4.0 0 0 0</pose>
+      <pose>0.0 0.0 0.0 0 0 0</pose>
     </joint>
 
     <joint name="HydraulicRam" type="prismatic">
