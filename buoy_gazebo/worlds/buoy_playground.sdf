@@ -198,9 +198,24 @@
       </link>
     </model-->
 
-    <include>
-      <!--pose>0 0 10 1.57 0 0</pose-->
-      <uri>model://mbari_wec</uri>
+    <model name="MBARI_WEC">
+      <include merge="true">
+        <uri>model://mbari_wec</uri>
+      </include>
+
+      <!-- TODO(chapulina) Remove once buoyancy is in action -->
+      <joint name="WaterPlaneArea" type="revolute">
+        <parent>world</parent>
+        <child>Buoy</child>
+        <pose>0 0 2 0 0 0</pose>
+        <axis>
+          <limit>
+            <lower>-2.0</lower>
+            <upper>2.0</upper>
+          </limit>
+          <xyz>1.0 0.0 0.0</xyz>
+        </axis>
+      </joint>
 
       <plugin
         filename="ignition-gazebo-joint-position-controller-system"
@@ -227,6 +242,6 @@
         <cmd_max>100000</cmd_max>
         <cmd_min>-100000</cmd_min>
       </plugin>
-    </include>
+    </model>
   </world>
 </sdf>

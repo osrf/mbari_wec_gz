@@ -333,26 +333,6 @@ def tether_joint_dynamics():
       </visual>
     </link>
 
-    <!-- TODO(chapulina) Remove once buoyancy is in action -->
-    <joint name="WaterPlaneArea" type="revolute">
-      <parent>world</parent>
-      <child>Buoy</child>
-      <pose>0 0 2 0 0 0</pose>
-      <axis>
-        <limit>
-          <lower>-2.0</lower>
-          <upper>2.0</upper>
-        </limit>
-        <xyz>1.0 0.0 0.0</xyz>
-        <!--dynamics>
-          <spring_stiffness>55000</spring_stiffness>
-          <spring_reference>0.0</spring_reference>
-          <damping>1000.0</damping>
-          <friction>0.0</friction>
-        </dynamics-->
-      </axis>
-    </joint>
-
     <joint name="Universal" type="universal">
       <parent>Buoy</parent>
       <child>PTO</child>
