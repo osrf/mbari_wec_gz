@@ -264,6 +264,14 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
           <specular>0.1 0.1 .1 1</specular>
         </material>
       </visual>
+      <collision name="HeaveConeCollision">
+        <pose>0 0 -1.21 0 0 0 </pose>
+        <geometry>
+          <mesh>
+            <uri>meshes/heave_cone.stl</uri>
+          </mesh>
+        </geometry>
+      </collision>
     </link>
 
     <link name="Trefoil">
