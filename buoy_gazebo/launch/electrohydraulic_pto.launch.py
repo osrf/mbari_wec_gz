@@ -32,23 +32,32 @@ def generate_launch_description():
         launch_arguments={'ign_args': '-r electrohydraulicPTO.sdf'}.items(),
     )
 
+    # For now, each field is published in its own topic as a double / float64
+    ros_msg_type = 'std_msgs/msg/Float64'
+    gz_msg_type = 'ignition.msgs.Double'
+    joint_name = 'HydraulicRam'
+    model_name = 'Hydraulics_Test'
+
+    gz_to_ros = ros_msg_type + '[' + gz_msg_type
+    ros_to_gz = ros_msg_type + ']' + gz_msg_type
+
     bridge = Node(
         package='ros_ign_bridge',
         executable='parameter_bridge',
         arguments=[
-            '/battcurr_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/deltaP_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/loadcurr_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/pistonvel_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/retractfactor_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/rpm_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/scalefactor_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/targwindcurr_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/windcurr_HydraulicRam@std_msgs/msg/Float64[ignition.msgs.Double',
-            '/model/Hydraulics_Test/joint/HydraulicRam/UserCommandedCurr@std_msgs/msg/Float64]ignition.msgs.Double',
-            '/model/Hydraulics_Test/joint/HydraulicRam/BiasCurrent@std_msgs/msg/Float64]ignition.msgs.Double',
-            '/model/Hydraulics_Test/joint/HydraulicRam/ScaleFactor@std_msgs/msg/Float64]ignition.msgs.Double',
-            '/model/Hydraulics_Test/joint/HydraulicRam/RetractFactor@std_msgs/msg/Float64]ignition.msgs.Double',
+            ['/battcurr_' + joint_name + '@' + gz_to_ros],
+            ['/deltaP_' + joint_name + '@' + gz_to_ros],
+            ['/loadcurr_' + joint_name + '@' + gz_to_ros],
+            ['/pistonvel_' + joint_name + '@' + gz_to_ros],
+            ['/retractfactor_' + joint_name + '@' + gz_to_ros],
+            ['/rpm_' + joint_name + '@' + gz_to_ros],
+            ['/scalefactor_' + joint_name + '@' + gz_to_ros],
+            ['/targwindcurr_' + joint_name + '@' + gz_to_ros],
+            ['/windcurr_' + joint_name + '@' + gz_to_ros],
+            ['/model/' + model_name + '/joint/' + joint_name + '/UserCommandedCurr@' + ros_to_gz],
+            ['/model/' + model_name + '/joint/' + joint_name + '/BiasCurrent@' + ros_to_gz],
+            ['/model/' + model_name + '/joint/' + joint_name + '/ScaleFactor@' + ros_to_gz],
+            ['/model/' + model_name + '/joint/' + joint_name + '/RetractFactor@' + ros_to_gz],
         ],
         output='screen'
     )
