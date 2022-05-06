@@ -28,11 +28,11 @@
         <uri>model://mbari_wec</uri>
       </include>
 
-      <joint
-        name="WaterPlaneArea"
-        type="prismatic">
+      <!-- TODO(chapulina) Remove once buoyancy is in action -->
+      <joint name="WaterPlaneArea" type="prismatic">
         <parent>world</parent>
         <child>Buoy</child>
+        <pose>0 0 0 0 0 0</pose>
         <axis>
           <limit>
             <lower>-2.0</lower>
