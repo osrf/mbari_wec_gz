@@ -21,9 +21,32 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <include>
+    <model name="MBARI_WEC">
       <pose relative_to="world">0 0 -2 0 0 0</pose>
-      <uri>model://mbari_wec</uri>
+
+      <include merge="true">
+        <uri>model://mbari_wec</uri>
+      </include>
+
+      <!-- TODO(chapulina) Remove once buoyancy is in action -->
+      <joint name="WaterPlaneArea" type="prismatic">
+        <parent>world</parent>
+        <child>Buoy</child>
+        <pose>0 0 0 0 0 0</pose>
+        <axis>
+          <limit>
+            <lower>-2.0</lower>
+            <upper>2.0</upper>
+          </limit>
+          <xyz>0.0 0.0 1.0</xyz>
+          <dynamics>
+            <spring_stiffness>55000</spring_stiffness>
+            <spring_reference>0.0</spring_reference>
+            <damping>1000.0</damping>
+            <friction>0.0</friction>
+          </dynamics>
+        </axis>
+      </joint>
 
       <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
@@ -70,6 +93,6 @@
         <P2>1212140</P2>
       </plugin>
       <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
-    </include>
+    </model>
   </world>
 </sdf>
