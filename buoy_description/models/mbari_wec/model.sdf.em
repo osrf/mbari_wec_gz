@@ -18,8 +18,8 @@ tether_radius = 0.009525 # Nominal O.D. 0.75 in
 tether_density = 3350 # kg/m^3
 tether_length = 20.3
 
-num_tether_top_links = 4
-tether_top_length = 3.0
+num_tether_top_links = 10
+tether_top_length = 2.5
 
 num_tether_bottom_links = 5
 
@@ -48,13 +48,19 @@ tether_bottom_link_cylinder.set_mat(Material(tether_density))
 tether_bottom_link_mm = MassMatrix3d()
 tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
 
-def tether_joint_dynamics():
-    """ Prints the <dynamics> block for tether joints. """
+def tether_joint_properties():
+    """ Prints the <dynamics> and <limit> blocks for tether joints. """
     print("""
         <dynamics>
           <damping>10000.0</damping>
           <friction>1000</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>100</spring_stiffness>
         </dynamics>
+        <limit>
+          <lower>-0.1</lower>
+          <upper>0.1</upper>
+        </limit>
     """)
 }@
 <sdf version="1.8">
@@ -215,11 +221,11 @@ def tether_joint_dynamics():
       <child>tether_top_@(link_index)</child>
       <axis>
         <xyz>1 0 0</xyz>
-        @(tether_joint_dynamics())
+        @(tether_joint_properties())
       </axis>
       <axis2>
         <xyz>0 1 0</xyz>
-        @(tether_joint_dynamics())
+        @(tether_joint_properties())
       </axis2>
     </joint>
 @[end for]@
@@ -270,11 +276,11 @@ def tether_joint_dynamics():
       <child>tether_bottom_@(link_index)</child>
       <axis>
         <xyz>1 0 0</xyz>
-        @(tether_joint_dynamics())
+        @(tether_joint_properties())
       </axis>
       <axis2>
         <xyz>0 1 0</xyz>
-        @(tether_joint_dynamics())
+        @(tether_joint_properties())
       </axis2>
     </joint>
 @[end for]@
@@ -351,11 +357,11 @@ def tether_joint_dynamics():
       <pose>0.0 0.0 0.0 0 0 0</pose>
       <axis>
         <xyz>1 0 0</xyz>
-        @(tether_joint_dynamics())
+        @(tether_joint_properties())
       </axis>
       <axis2>
         <xyz>0 1 0</xyz>
-        @(tether_joint_dynamics())
+        @(tether_joint_properties())
       </axis2>
     </joint>
 
@@ -366,6 +372,7 @@ def tether_joint_dynamics():
       <axis>
         <limit>
           <lower>0.0</lower>
+          <!-- TODO(chapulina) Check why it's only going up to ~1.16-->
           <upper>2.03</upper>
         </limit>
         <xyz>0.0 0.0 1.0</xyz>
