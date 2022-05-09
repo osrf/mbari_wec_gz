@@ -10,7 +10,7 @@ import math
 ##############
 
 # PTO
-# Roughly match STL 
+# Roughly match STL
 # pto_outer_radius = 0.08
 # pto_inner_radius = 0.02
 # Radius from original PR

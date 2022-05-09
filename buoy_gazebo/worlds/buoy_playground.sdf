@@ -199,6 +199,8 @@
     </model-->
 
     <model name="MBARI_WEC">
+      <self_collide>true</self_collide>
+      <!--pose>0 0 2 0 1.57 0</pose-->
       <include merge="true">
         <uri>model://mbari_wec</uri>
       </include>
