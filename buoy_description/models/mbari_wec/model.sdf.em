@@ -72,11 +72,11 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
         </material>
       </visual>
       <collision name="collision">
-        <pose>0 0 2.16 0 0 0 </pose>
+        <pose>0 0 2.26 0 0 0 </pose>
         <geometry>
-          <mesh>
-            <uri>meshes/buoy_float.stl</uri>
-          </mesh>
+          <box>
+            <size>2.65 2.65 4.65</size>
+          </box>
         </geometry>
       </collision>
     </link>
@@ -108,7 +108,6 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
         </material>
       </visual>
       <collision name="collision">
-        <pose>0 0 -3.04 0 0 0 </pose>
         <geometry>
           <mesh>
             <uri>meshes/pto_collision.stl</uri>
