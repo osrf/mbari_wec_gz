@@ -1,12 +1,28 @@
 #include "SpringController.hpp"
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 
+#include <ignition/gazebo/Model.hh>
+#include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/plugin/Register.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
 #include <buoy_msgs/msg/sc_record.hpp>
+
+
+struct buoy_gazebo::SpringControllerPrivate
+{
+  ignition::gazebo::Entity entity_;
+  std::chrono::steady_clock::duration current_time_;
+  rclcpp::Node::SharedPtr rosnode_{nullptr};
+  std::thread thread_executor_spin_;
+  rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
+  bool stop_{false};
+  rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
+  const buoy_gazebo::SpringStateComponent * spring_state_comp;
+  int16_t seq_num{0};
+};
 
 
 IGNITION_ADD_PLUGIN(
@@ -18,17 +34,6 @@ IGNITION_ADD_PLUGIN(
 using namespace buoy_gazebo;
 
 
-struct SpringControllerPrivate
-{
-  ignition::gazebo::Entity entity_;
-  std::chrono::steady_clock::duration current_time_;
-  rclcpp::Node::SharedPtr rosnode_{nullptr};
-  std::thread thread_executor_spin_;
-  rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
-  bool stop_{false};
-  rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
-  buoy_gazebo::SpringState spring_state_;
-};
 
 //////////////////////////////////////////////////
 SpringController::SpringController()
@@ -100,45 +105,51 @@ void SpringController::Configure(const ignition::gazebo::Entity &_entity,
   };
   this->dataPtr->thread_executor_spin_ = std::thread(spin);
 
-  RCLCPP_DEBUG_STREAM(
-    this->dataPtr->node_->get_logger(), "[ROS 2 Spring Control] Setting up controller for [" <<
+  RCLCPP_INFO_STREAM(
+    this->dataPtr->rosnode_->get_logger(), "[ROS 2 Spring Control] Setting up controller for [" <<
       model.Name(_ecm) << "] (Entity=" << _entity << ")].");
 
   // Publisher
   auto topic = _sdf->Get<std::string>("topic", "sc_record").first;
-  this->dataPtr->sc_pub_ = this->dataPtr->node_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
+  this->dataPtr->sc_pub_ = this->dataPtr->rosnode_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 void SpringController::PostUpdate(const ignition::gazebo::UpdateInfo &_info,
     const ignition::gazebo::EntityComponentManager &_ecm)
 {
+  const auto model = ignition::gazebo::Model(this->dataPtr->entity_);
+  RCLCPP_INFO_STREAM(
+    this->dataPtr->rosnode_->get_logger(), "[ROS 2 Spring Control] filling spring data [" <<
+      model.Name(_ecm) << "] (Entity=" << this->dataPtr->entity_ << ")].");
   this->dataPtr->current_time_ = _info.simTime;
-  if (this->dataPtr->sc_pub_.getNumSubscribers() <= 0 || _height == 0 || _width == 0)
-    return;
+  //if (this->dataPtr->sc_pub_->get_subscription_count() <= 0)
+  //  return;
   
   auto sec_nsec = ignition::math::durationToSecNsec(_info.simTime);
   
   // Create new component for this entitiy in ECM (if it doesn't already exist)
-  this->dataPtr->spring_state_ = _ecm.Component<buoy_gazebo::SpringState>(this->dataPtr->entity_);
-  if (this->dataPtr->spring_state_ == nullptr)
+  this->dataPtr->spring_state_comp = _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->entity_);
+  if (this->dataPtr->spring_state_comp == nullptr)
     // Pneumatic Spring hasn't updated values yet
     return;
   
   buoy_msgs::msg::SCRecord sc_record;
   sc_record.header.stamp.sec = sec_nsec.first;
-  sc_record.header.stamp.nsec = sec_nsec.second;
+  sc_record.header.stamp.nanosec = sec_nsec.second;
   sc_record.seq_num = this->dataPtr->seq_num++;
-  sc_record.load_cell = this->dataPtr->spring_state_->load_cell;
-  sc_record.range_finder = this->dataPtr->spring_state_->range_finder;
-  sc_record.upper_psi = this->dataPtr->spring_state_->upper_psi;
-  sc_record.lower_psi = this->dataPtr->spring_state_->lower_psi;
+  
+
+  sc_record.load_cell = this->dataPtr->spring_state_comp->Data().load_cell;
+  sc_record.range_finder = this->dataPtr->spring_state_comp->Data().range_finder;
+  sc_record.upper_psi = this->dataPtr->spring_state_comp->Data().upper_psi;
+  sc_record.lower_psi = this->dataPtr->spring_state_comp->Data().lower_psi;
   // sc_record.epoch = this->dataPtr->epoch_;
   // sc_record.salinity = this->dataPtr->salinity_;
   // sc_record.temperature = this->dataPtr->temperature_;
   // sc_record.status = this->dataPtr->status_;
 
-  this->dataPtr->sc_pub_.publish(sc_record);
+  this->dataPtr->sc_pub_->publish(sc_record);
 }
 
 

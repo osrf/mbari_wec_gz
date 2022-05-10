@@ -7,7 +7,7 @@
 namespace buoy_gazebo
 {
   // Forward declarations.
-  class SpringControllerPrivate;
+  struct SpringControllerPrivate;
 
   /// SDF parameters:
   /// * `<namespace>`: Namespace for ROS node, defaults to sensor scoped name
@@ -36,6 +36,6 @@ namespace buoy_gazebo
     /// \brief Private data pointer.
     private: std::unique_ptr<SpringControllerPrivate> dataPtr;
   };
-}
+}  // buoy_gazebo
 
 #endif  // CONTROLLERS__SPRINGCONTROLLER__SPRINGCONTROLLER_HPP_
