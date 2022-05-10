@@ -33,6 +33,7 @@
       </plugin>
       
       <plugin filename="SpringController" name="buoy_gazebo::SpringController">
+        <JointName>HydraulicRam</JointName>
       </plugin>
 
       <!-- Add Upper/Lower Polytropic Spring plugin -->
