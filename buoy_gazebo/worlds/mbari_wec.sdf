@@ -31,6 +31,9 @@
         <HydMotorDisp>0.30</HydMotorDisp>
         <RotorInertia>1</RotorInertia>
       </plugin>
+      
+      <plugin filename="SpringController" name="buoy_gazebo::SpringController">
+      </plugin>
 
       <!-- Add Upper/Lower Polytropic Spring plugin -->
       <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">

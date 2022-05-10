@@ -22,7 +22,7 @@
 namespace buoy_gazebo
 {
 
-struct SpringState_
+struct SpringState
 {
   int16_t load_cell{0};
   float range_finder{0.0F};
@@ -30,9 +30,9 @@ struct SpringState_
   float lower_psi{0.0F};
 };
 
-using SpringState = ignition::gazebo::components::Component<SpringState_,
+using SpringStateComponent = ignition::gazebo::components::Component<SpringState,
     class SpringStateTag>;
-IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.SpringState", SpringState)
+IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.SpringState", SpringStateComponent)
 }  // namespace buoy_gazebo
 
 #endif  // POLYTROPICPNEUMATICSPRING__SPRINGSTATE_HPP_
