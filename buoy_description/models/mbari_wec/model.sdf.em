@@ -72,10 +72,10 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
         </material>
       </visual>
       <collision name="collision">
-        <pose>0 0 2.26 0 0 0 </pose>
+        <pose>0 0 2.46 0 0 0 </pose>
         <geometry>
           <box>
-            <size>2.65 2.65 4.65</size>
+            <size>2.34 2.34 1</size>
           </box>
         </geometry>
       </collision>
