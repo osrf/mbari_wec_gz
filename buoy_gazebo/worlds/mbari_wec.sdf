@@ -7,6 +7,33 @@
       <real_time_factor>1.0</real_time_factor>
     </physics>
 
+    <plugin
+      filename="ignition-gazebo-physics-system"
+      name="ignition::gazebo::systems::Physics">
+    </plugin>
+
+    <plugin
+      filename="ignition-gazebo-user-commands-system"
+      name="ignition::gazebo::systems::UserCommands">
+    </plugin>
+
+    <plugin
+      filename="ignition-gazebo-scene-broadcaster-system"
+      name="ignition::gazebo::systems::SceneBroadcaster">
+    </plugin>
+
+    <plugin
+      filename="ignition-gazebo-buoyancy-system"
+      name="ignition::gazebo::systems::Buoyancy">
+      <graded_buoyancy>
+        <default_density>1025</default_density>
+        <density_change>
+          <above_depth>0</above_depth>
+          <density>1</density>
+        </density_change>
+      </graded_buoyancy>
+    </plugin>
+
     <light name="sun" type="directional">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -21,32 +48,31 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
+    <model name="water_plane">
+      <static>true</static>
+      <link name="link">
+        <visual name="water_plane">
+          <geometry>
+            <plane>
+              <size>100 100</size>
+              <normal>0 0 1</normal>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0 0 1 0.5</ambient>
+            <diffuse>0 0 1 0.5</diffuse>
+            <specular>0 0 1 0.5</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
     <model name="MBARI_WEC">
       <pose relative_to="world">0 0 -2 0 0 0</pose>
 
       <include merge="true">
         <uri>model://mbari_wec</uri>
       </include>
-
-      <!-- TODO(chapulina) Remove once buoyancy is in action -->
-      <joint name="WaterPlaneArea" type="prismatic">
-        <parent>world</parent>
-        <child>Buoy</child>
-        <pose>0 0 0 0 0 0</pose>
-        <axis>
-          <limit>
-            <lower>-2.0</lower>
-            <upper>2.0</upper>
-          </limit>
-          <xyz>0.0 0.0 1.0</xyz>
-          <dynamics>
-            <spring_stiffness>55000</spring_stiffness>
-            <spring_reference>0.0</spring_reference>
-            <damping>1000.0</damping>
-            <friction>0.0</friction>
-          </dynamics>
-        </axis>
-      </joint>
 
       <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
         <PrismaticJointName>HydraulicRam</PrismaticJointName>

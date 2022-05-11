@@ -27,6 +27,10 @@ num_tether_bottom_links = 5
 heave_total_mass = 817
 trefoil_mass = 10
 
+# Heave cone
+heave_total_mass = 817
+trefoil_mass = 10
+
 ###################
 # Computed values #
 ###################
@@ -93,6 +97,14 @@ def tether_joint_properties():
           <specular>1.0 1.0 0.0 1</specular>
         </material>
       </visual>
+      <collision name="collision">
+        <pose>0 0 2.46 0 0 0 </pose>
+        <geometry>
+          <box>
+            <size>2.34 2.34 1</size>
+          </box>
+        </geometry>
+      </collision>
     </link>
 
     <link name="PTO">
@@ -318,6 +330,14 @@ def tether_joint_properties():
           <specular>0.1 0.1 .1 1</specular>
         </material>
       </visual>
+      <collision name="collision">
+        <pose>0 0 -1.21 0 0 0 </pose>
+        <geometry>
+          <box>
+            <size>0.578 0.578 0.5771</size>
+          </box>
+        </geometry>
+      </collision>
     </link>
 
     <link name="Trefoil">
