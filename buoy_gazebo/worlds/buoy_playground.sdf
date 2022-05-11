@@ -13,6 +13,33 @@
       </dart>
     </physics>
 
+    <plugin
+      filename="ignition-gazebo-physics-system"
+      name="ignition::gazebo::systems::Physics">
+    </plugin>
+
+    <plugin
+      filename="ignition-gazebo-user-commands-system"
+      name="ignition::gazebo::systems::UserCommands">
+    </plugin>
+
+    <plugin
+      filename="ignition-gazebo-scene-broadcaster-system"
+      name="ignition::gazebo::systems::SceneBroadcaster">
+    </plugin>
+
+    <plugin
+      filename="ignition-gazebo-buoyancy-system"
+      name="ignition::gazebo::systems::Buoyancy">
+      <graded_buoyancy>
+        <default_density>1025</default_density>
+        <density_change>
+          <above_depth>0</above_depth>
+          <density>1</density>
+        </density_change>
+      </graded_buoyancy>
+    </plugin>
+
     <gui fullscreen="0">
 
       <plugin filename="MinimalScene" name="3D View">
@@ -91,6 +118,21 @@
           <property key="state" type="string">floating</property>
           <property key="showTitleBar" type="bool">false</property>
         </ignition-gui>
+      </plugin>
+
+      <!-- Translate / rotate -->
+      <plugin filename="TransformControl" name="Transform control">
+        <ignition-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">250</property>
+          <property key="height" type="double">50</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="cardBackground" type="string">#777777</property>
+        </ignition-gui>
+
+        <!-- disable legacy features used to connect this plugin to GzScene3D -->
+        <legacy>false</legacy>
       </plugin>
 
       <!-- World control -->
@@ -173,53 +215,39 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <!--model name="ground_plane">
+    <model name="water_plane">
       <static>true</static>
       <link name="link">
-        <collision name="collision">
+        <!--collision name="collision">
           <geometry>
             <plane>
-              <normal>0 0 1</normal>
               <size>100 100</size>
+              <normal>0 0 1</normal>
             </plane>
           </geometry>
-        </collision>
-        <visual name="visual">
+        </collision-->
+        <visual name="water_plane">
           <geometry>
             <plane>
-              <normal>0 0 1</normal>
               <size>100 100</size>
+              <normal>0 0 1</normal>
             </plane>
           </geometry>
           <material>
-            <ambient>0.8 0.8 0.8 1</ambient>
-            <diffuse>0.8 0.8 0.8 1</diffuse>
-            <specular>0.8 0.8 0.8 1</specular>
+            <ambient>0 0 1 0.5</ambient>
+            <diffuse>0 0 1 0.5</diffuse>
+            <specular>0 0 1 0.5</specular>
           </material>
         </visual>
       </link>
-    </model-->
+    </model>
 
     <model name="MBARI_WEC">
       <self_collide>true</self_collide>
-      <!--pose>0 0 2 0 1.57 0</pose-->
+      <pose>0 0 -2 0 0 0</pose>
       <include merge="true">
         <uri>model://mbari_wec</uri>
       </include>
-
-      <!-- TODO(chapulina) Remove once buoyancy is in action -->
-      <joint name="WaterPlaneArea" type="revolute">
-        <parent>world</parent>
-        <child>Buoy</child>
-        <pose>0 0 2 0 0 0</pose>
-        <axis>
-          <limit>
-            <lower>-2.0</lower>
-            <upper>2.0</upper>
-          </limit>
-          <xyz>1.0 0.0 0.0</xyz>
-        </axis>
-      </joint>
 
       <plugin
         filename="ignition-gazebo-joint-position-controller-system"
