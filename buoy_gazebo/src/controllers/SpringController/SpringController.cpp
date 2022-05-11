@@ -93,7 +93,7 @@ void SpringController::Configure(
   // Get params from SDF
   auto jointName = _sdf->Get<std::string>("JointName");
   if (jointName.empty()) {
-    ignerr << "SpringController found an empty jointName parameter. " <<
+    ignerr << "SpringController found an empty JointName parameter. " <<
       "Failed to initialize.";
     return;
   }
