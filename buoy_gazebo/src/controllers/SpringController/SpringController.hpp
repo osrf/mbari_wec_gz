@@ -24,8 +24,10 @@ namespace buoy_gazebo
 struct SpringControllerPrivate;
 
 /// SDF parameters:
-/// * `<namespace>`: Namespace for ROS node, defaults to sensor scoped name
-/// * `<topic>`: ROS topic to publish to, defaults to "sc_record"
+/// * `<namespace>`: Namespace for ROS node, defaults to scoped name
+/// * `<node_name>`: ROS2 node name, defaults to "spring_controller"
+/// * `<topic>`: ROS2 topic to publish to, defaults to "sc_record"
+/// * `<publish_rate>`: ROS2 topic publish rate, defaults to 10Hz
 class SpringController
   : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,

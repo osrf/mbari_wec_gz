@@ -34,13 +34,16 @@ struct buoy_gazebo::SpringControllerPrivate
 {
   ignition::gazebo::Entity entity_;
   ignition::gazebo::Entity jointEntity_;
-  std::chrono::steady_clock::duration current_time_;
   rclcpp::Node::SharedPtr rosnode_{nullptr};
-  std::thread thread_executor_spin_;
+  rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
+  rclcpp::Rate pub_rate_{10.0};
+  std::chrono::steady_clock::duration current_time_;
+  buoy_msgs::msg::SCRecord sc_record_;
+  std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
+  bool data_valid_{false};
+  std::thread thread_executor_spin_, thread_publish_;
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
   bool stop_{false};
-  rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
-  const buoy_gazebo::SpringStateComponent * spring_state_comp_;
   int16_t seq_num{0};
 };
 
@@ -63,7 +66,6 @@ SpringController::~SpringController()
 {
   // Stop controller manager thread
   this->dataPtr->stop_ = true;
-  // this->dataPtr->executor_->remove_node(this->dataPtr->rosnode_);
   this->dataPtr->executor_->cancel();
   this->dataPtr->thread_executor_spin_.join();
 }
@@ -77,12 +79,9 @@ void SpringController::Configure(
   // Make sure the controller is attached to a valid model
   auto model = ignition::gazebo::Model(_entity);
   if (!model.Valid(_ecm)) {
-    // TODO(andermi) this should not use rclcpp logging
-    // RCLCPP_ERROR(
-    //  this->dataPtr->rosnode_->get_logger(),
-    //  "[ROS 2 Spring Control] Failed to initialize because [%s] (Entity=%lu)] is not a model."
-    //  "Please make sure that ROS 2 Spring Control is attached to a valid model.",
-    //  model.Name(_ecm).c_str(), _entity);
+    ignerr << "[ROS 2 Spring Control] Failed to initialize because [" << \
+      model.Name(_ecm) << "] is not a model." << std::endl << \
+      "Please make sure that ROS 2 Spring Control is attached to a valid model." << std::endl;
     return;
   }
 
@@ -96,9 +95,7 @@ void SpringController::Configure(
     return;
   }
 
-  this->dataPtr->jointEntity_ = model.JointByName(
-    _ecm,
-    jointName);
+  this->dataPtr->jointEntity_ = model.JointByName(_ecm, jointName);
   if (this->dataPtr->jointEntity_ == ignition::gazebo::kNullEntity) {
     ignerr << "Joint with name[" << jointName << "] not found. " <<
       "The SpringController may not influence this joint.\n";
@@ -130,21 +127,44 @@ void SpringController::Configure(
   this->dataPtr->executor_->add_node(this->dataPtr->rosnode_);
   this->dataPtr->stop_ = false;
   auto spin = [this]()
-    {
-      while (rclcpp::ok() && !this->dataPtr->stop_) {
-        this->dataPtr->executor_->spin_once();
-      }
-    };
+  {
+    while (rclcpp::ok() && !this->dataPtr->stop_) {
+      this->dataPtr->executor_->spin_once();
+    }
+  };
   this->dataPtr->thread_executor_spin_ = std::thread(spin);
 
+
   RCLCPP_INFO_STREAM(
-    this->dataPtr->rosnode_->get_logger(), "[ROS 2 Spring Control] Setting up controller for [" <<
-      model.Name(_ecm) << "] (Entity=" << _entity << ")].");
+    this->dataPtr->rosnode_->get_logger(),
+    "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm));
 
   // Publisher
   auto topic = _sdf->Get<std::string>("topic", "sc_record").first;
   this->dataPtr->sc_pub_ = \
     this->dataPtr->rosnode_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
+
+  auto publish = [this]()
+  {
+    while (rclcpp::ok() && !this->dataPtr->stop_) {
+      if (this->dataPtr->sc_pub_->get_subscription_count() <= 0)  continue;
+      
+      buoy_msgs::msg::SCRecord sc_record;
+      // high prio data access
+      std::unique_lock next(this->dataPtr->next_access_mutex_);
+      std::unique_lock data(this->dataPtr->data_mutex_);
+      next.unlock();
+      this->dataPtr->sc_record_.seq_num = \
+        this->dataPtr->seq_num++ % std::numeric_limits<int16_t>::max();
+      sc_record = this->dataPtr->sc_record_;
+      data.unlock();
+      
+      if(this->dataPtr->data_valid_)  this->dataPtr->sc_pub_->publish(sc_record);
+      
+      this->dataPtr->pub_rate_.sleep();
+    }
+  };
+  this->dataPtr->thread_publish_ = std::thread(publish);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -153,39 +173,47 @@ void SpringController::PostUpdate(
   const ignition::gazebo::EntityComponentManager & _ecm)
 {
   const auto model = ignition::gazebo::Model(this->dataPtr->entity_);
-  this->dataPtr->current_time_ = _info.simTime;
-  if (this->dataPtr->sc_pub_->get_subscription_count() <= 0) {
-    return;
-  }
 
-  auto sec_nsec = ignition::math::durationToSecNsec(_info.simTime);
-
-  // Create new component for this entitiy in ECM (if it doesn't already exist)
-  this->dataPtr->spring_state_comp_ = \
+  auto spring_state_comp = \
     _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->jointEntity_);
-  RCLCPP_INFO_STREAM(
+  RCLCPP_DEBUG_STREAM(
     this->dataPtr->rosnode_->get_logger(), "[ROS 2 Spring Control] filling spring data [" <<
-      model.Name(_ecm) << "] (Entity=" << this->dataPtr->entity_ << "spring data component: " << \
-      this->dataPtr->spring_state_comp_ << ")].");
-  if (this->dataPtr->spring_state_comp_ == nullptr) {
+      model.Name(_ecm) << "] spring data component: " << \
+      spring_state_comp << ")].");
+  if (spring_state_comp == nullptr) {
     // Pneumatic Spring hasn't updated values yet
+    // low prio data access
+    std::unique_lock low(this->dataPtr->low_prio_mutex_);
+    std::unique_lock next(this->dataPtr->next_access_mutex_);
+    std::unique_lock data(this->dataPtr->data_mutex_);
+    next.unlock();
+    this->dataPtr->data_valid_ = false;
+    data.unlock();
     return;
   }
 
-  buoy_msgs::msg::SCRecord sc_record;
-  sc_record.header.stamp.sec = sec_nsec.first;
-  sc_record.header.stamp.nanosec = sec_nsec.second;
-  sc_record.seq_num = this->dataPtr->seq_num++;
+  // low prio data access
+  std::unique_lock low(this->dataPtr->low_prio_mutex_);
+  std::unique_lock next(this->dataPtr->next_access_mutex_);
+  std::unique_lock data(this->dataPtr->data_mutex_);
+  next.unlock();
+  this->dataPtr->data_valid_ = true;
 
-  sc_record.load_cell = this->dataPtr->spring_state_comp_->Data().load_cell;
-  sc_record.range_finder = this->dataPtr->spring_state_comp_->Data().range_finder;
-  sc_record.upper_psi = this->dataPtr->spring_state_comp_->Data().upper_psi;
-  sc_record.lower_psi = this->dataPtr->spring_state_comp_->Data().lower_psi;
-  // sc_record.epoch = this->dataPtr->epoch_;
-  // sc_record.salinity = this->dataPtr->salinity_;
-  // sc_record.temperature = this->dataPtr->temperature_;
-  // sc_record.status = this->dataPtr->status_;
+  this->dataPtr->current_time_ = _info.simTime;
+  auto sec_nsec = ignition::math::durationToSecNsec(dataPtr->current_time_);
+  
+  this->dataPtr->sc_record_.header.stamp.sec = sec_nsec.first;
+  this->dataPtr->sc_record_.header.stamp.nanosec = sec_nsec.second;
+  //this->dataPtr->sc_record_.seq_num = dataPtr->seq_num++;
 
-  this->dataPtr->sc_pub_->publish(sc_record);
+  this->dataPtr->sc_record_.load_cell = spring_state_comp->Data().load_cell;
+  this->dataPtr->sc_record_.range_finder = spring_state_comp->Data().range_finder;
+  this->dataPtr->sc_record_.upper_psi = spring_state_comp->Data().upper_psi;
+  this->dataPtr->sc_record_.lower_psi = spring_state_comp->Data().lower_psi;
+  // this->dataPtr->sc_record_.epoch = spring_state_comp->Data().epoch_;
+  // this->dataPtr->sc_record_.salinity = spring_state_comp->Data().salinity_;
+  // this->dataPtr->sc_record_.temperature = spring_state_comp->Data().temperature_;
+  // this->dataPtr->sc_record_.status = spring_state_comp->Data().status_;
+  data.unlock();
 }
 }  // namespace buoy_gazebo
