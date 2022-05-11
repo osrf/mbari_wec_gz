@@ -76,6 +76,14 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
           <specular>1.0 1.0 0.0 1</specular>
         </material>
       </visual>
+      <collision name="collision">
+        <pose>0 0 2.46 0 0 0 </pose>
+        <geometry>
+          <box>
+            <size>2.34 2.34 1</size>
+          </box>
+        </geometry>
+      </collision>
     </link>
 
     <link name="PTO">
@@ -273,6 +281,14 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
           <specular>0.1 0.1 .1 1</specular>
         </material>
       </visual>
+      <collision name="collision">
+        <pose>0 0 -1.21 0 0 0 </pose>
+        <geometry>
+          <box>
+            <size>0.578 0.578 0.5771</size>
+          </box>
+        </geometry>
+      </collision>
     </link>
 
     <link name="Trefoil">
