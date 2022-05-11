@@ -18,6 +18,8 @@
 #include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/plugin/Register.hh>
+#include <ignition/msgs.hh>
+#include <ignition/transport.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -36,6 +38,8 @@ struct buoy_gazebo::SpringControllerPrivate
   ignition::gazebo::Entity entity_;
   ignition::gazebo::Entity jointEntity_;
   rclcpp::Node::SharedPtr rosnode_{nullptr};
+  ignition::transport::Node node_;
+  std::function<void(const ignition::msgs::Wrench &)> ft_cb_;
   rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
   double pub_rate_hz_{10.0};
   std::unique_ptr<rclcpp::Rate> pub_rate_;
@@ -137,6 +141,22 @@ void SpringController::Configure(
     this->dataPtr->rosnode_->get_logger(),
     "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm));
 
+  // Force Torque Sensor
+  this->dataPtr->ft_cb_ = [this](const ignition::msgs::Wrench & _msg)
+    {
+      // low prio data access
+      std::unique_lock low(this->dataPtr->low_prio_mutex_);
+      std::unique_lock next(this->dataPtr->next_access_mutex_);
+      std::unique_lock data(this->dataPtr->data_mutex_);
+      next.unlock();
+      this->dataPtr->sc_record_.load_cell = _msg.force().z();
+      data.unlock();
+    };
+  if (!this->dataPtr->node_.Subscribe("/Universal_joint/force_torque", this->dataPtr->ft_cb_)) {
+    ignerr << "Error subscribing to topic [" << "/Universal_joint/force_torque" << "]" << std::endl;
+    return;  // TODO(anyone) abort?
+  }
+
   // Publisher
   std::string topic = _sdf->Get<std::string>("topic", "sc_record").first;
   this->dataPtr->sc_pub_ = \
@@ -209,7 +229,7 @@ void SpringController::PostUpdate(
 
   this->dataPtr->sc_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->sc_record_.header.stamp.nanosec = sec_nsec.second;
-  this->dataPtr->sc_record_.load_cell = spring_state_comp->Data().load_cell;
+  // this->dataPtr->sc_record_.load_cell = spring_state_comp->Data().load_cell;
   this->dataPtr->sc_record_.range_finder = spring_state_comp->Data().range_finder;
   this->dataPtr->sc_record_.upper_psi = spring_state_comp->Data().upper_psi;
   this->dataPtr->sc_record_.lower_psi = spring_state_comp->Data().lower_psi;

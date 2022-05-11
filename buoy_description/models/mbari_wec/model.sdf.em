@@ -299,6 +299,16 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <child>PTO</child>
       <provide_feedback>1</provide_feedback>
       <pose>0.0 0.0 0.0 0 0 0</pose>
+      <sensor name="force_torque_sensor" type="force_torque">
+        <always_on>true</always_on>
+        <update_rate>50</update_rate>
+        <visualize>true</visualize>
+        <topic>Universal_joint/force_torque</topic>
+        <force_torque>
+          <frame>sensor</frame>
+          <measure_direction>parent_to_child</measure_direction>
+        </force_torque>
+      </sensor>
     </joint>
 
     <joint name="HydraulicRam" type="prismatic">

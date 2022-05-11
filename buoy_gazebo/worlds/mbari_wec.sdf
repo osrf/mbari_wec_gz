@@ -48,6 +48,11 @@
         </axis>
       </joint>
 
+      <plugin
+        filename="ignition-gazebo-forcetorque-system"
+        name="ignition::gazebo::systems::ForceTorque">
+      </plugin>
+
       <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
         <PistonArea>1.375</PistonArea>
