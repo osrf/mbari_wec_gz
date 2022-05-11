@@ -26,6 +26,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <limits>
 
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 
@@ -36,14 +37,15 @@ struct buoy_gazebo::SpringControllerPrivate
   ignition::gazebo::Entity jointEntity_;
   rclcpp::Node::SharedPtr rosnode_{nullptr};
   rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
-  rclcpp::Rate pub_rate_{10.0};
+  double pub_rate_hz_{10.0};
+  std::unique_ptr<rclcpp::Rate> pub_rate_;
   std::chrono::steady_clock::duration current_time_;
   buoy_msgs::msg::SCRecord sc_record_;
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
   bool data_valid_{false};
   std::thread thread_executor_spin_, thread_publish_;
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
-  bool stop_{false};
+  bool stop_{false}, paused_{true};
   int16_t seq_num{0};
 };
 
@@ -64,10 +66,11 @@ SpringController::SpringController()
 
 SpringController::~SpringController()
 {
-  // Stop controller manager thread
+  // Stop ros2 threads
   this->dataPtr->stop_ = true;
   this->dataPtr->executor_->cancel();
   this->dataPtr->thread_executor_spin_.join();
+  this->dataPtr->thread_publish_.join();
 }
 
 void SpringController::Configure(
@@ -103,35 +106,30 @@ void SpringController::Configure(
   }
 
   // controller scoped name
-  auto scoped_name = ignition::gazebo::scopedName(this->dataPtr->entity_, _ecm, "/", false);
+  std::string scoped_name = ignition::gazebo::scopedName(this->dataPtr->entity_, _ecm, "/", false);
 
   // ROS node
-  std::vector<std::string> arguments = {"--ros-args"};
-  auto ns = _sdf->Get<std::string>("namespace", scoped_name).first;
+  std::string ns = _sdf->Get<std::string>("namespace", scoped_name).first;
   if (ns.empty() || ns[0] != '/') {
     ns = '/' + ns;
   }
-  std::string ns_arg = std::string("__ns:=") + ns;
-  arguments.push_back(RCL_REMAP_FLAG);
-  arguments.push_back(ns_arg);
-  std::vector<const char *> argv;
-  for (const auto & arg : arguments) {
-    argv.push_back(reinterpret_cast<const char *>(arg.data()));
-  }
+
   if (!rclcpp::ok()) {
-    rclcpp::init(static_cast<int>(argv.size()), argv.data());
-    std::string node_name = "spring_controller";
-    this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name);
+    rclcpp::init(0, nullptr);
+    std::string node_name = _sdf->Get<std::string>("node_name", "spring_controller").first;
+    this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name, ns);
   }
+
   this->dataPtr->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
   this->dataPtr->executor_->add_node(this->dataPtr->rosnode_);
   this->dataPtr->stop_ = false;
+
   auto spin = [this]()
-  {
-    while (rclcpp::ok() && !this->dataPtr->stop_) {
-      this->dataPtr->executor_->spin_once();
-    }
-  };
+    {
+      while (rclcpp::ok() && !this->dataPtr->stop_) {
+        this->dataPtr->executor_->spin_once();
+      }
+    };
   this->dataPtr->thread_executor_spin_ = std::thread(spin);
 
 
@@ -140,30 +138,36 @@ void SpringController::Configure(
     "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm));
 
   // Publisher
-  auto topic = _sdf->Get<std::string>("topic", "sc_record").first;
+  std::string topic = _sdf->Get<std::string>("topic", "sc_record").first;
   this->dataPtr->sc_pub_ = \
     this->dataPtr->rosnode_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
 
+  this->dataPtr->pub_rate_hz_ = \
+    _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
+  this->dataPtr->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
+
   auto publish = [this]()
-  {
-    while (rclcpp::ok() && !this->dataPtr->stop_) {
-      if (this->dataPtr->sc_pub_->get_subscription_count() <= 0)  continue;
-      
-      buoy_msgs::msg::SCRecord sc_record;
-      // high prio data access
-      std::unique_lock next(this->dataPtr->next_access_mutex_);
-      std::unique_lock data(this->dataPtr->data_mutex_);
-      next.unlock();
-      this->dataPtr->sc_record_.seq_num = \
-        this->dataPtr->seq_num++ % std::numeric_limits<int16_t>::max();
-      sc_record = this->dataPtr->sc_record_;
-      data.unlock();
-      
-      if(this->dataPtr->data_valid_)  this->dataPtr->sc_pub_->publish(sc_record);
-      
-      this->dataPtr->pub_rate_.sleep();
-    }
-  };
+    {
+      while (rclcpp::ok() && !this->dataPtr->stop_) {
+        if (this->dataPtr->sc_pub_->get_subscription_count() <= 0) {continue;}
+        // Only update and publish if not paused.
+        if (this->dataPtr->paused_) {continue;}
+
+        buoy_msgs::msg::SCRecord sc_record;
+        // high prio data access
+        std::unique_lock next(this->dataPtr->next_access_mutex_);
+        std::unique_lock data(this->dataPtr->data_mutex_);
+        next.unlock();
+        this->dataPtr->sc_record_.seq_num = \
+          this->dataPtr->seq_num++ % std::numeric_limits<int16_t>::max();
+        sc_record = this->dataPtr->sc_record_;
+        data.unlock();
+
+        if (this->dataPtr->data_valid_) {this->dataPtr->sc_pub_->publish(sc_record);}
+
+        this->dataPtr->pub_rate_->sleep();
+      }
+    };
   this->dataPtr->thread_publish_ = std::thread(publish);
 }
 
@@ -174,13 +178,10 @@ void SpringController::PostUpdate(
 {
   const auto model = ignition::gazebo::Model(this->dataPtr->entity_);
 
-  auto spring_state_comp = \
-    _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->jointEntity_);
-  RCLCPP_DEBUG_STREAM(
-    this->dataPtr->rosnode_->get_logger(), "[ROS 2 Spring Control] filling spring data [" <<
-      model.Name(_ecm) << "] spring data component: " << \
-      spring_state_comp << ")].");
-  if (spring_state_comp == nullptr) {
+  if (!_ecm.EntityHasComponentType(
+      this->dataPtr->jointEntity_,
+      buoy_gazebo::SpringStateComponent().TypeId()))
+  {
     // Pneumatic Spring hasn't updated values yet
     // low prio data access
     std::unique_lock low(this->dataPtr->low_prio_mutex_);
@@ -192,6 +193,9 @@ void SpringController::PostUpdate(
     return;
   }
 
+  auto spring_state_comp = \
+    _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->jointEntity_);
+
   // low prio data access
   std::unique_lock low(this->dataPtr->low_prio_mutex_);
   std::unique_lock next(this->dataPtr->next_access_mutex_);
@@ -200,12 +204,11 @@ void SpringController::PostUpdate(
   this->dataPtr->data_valid_ = true;
 
   this->dataPtr->current_time_ = _info.simTime;
+  this->dataPtr->paused_ = _info.paused;
   auto sec_nsec = ignition::math::durationToSecNsec(dataPtr->current_time_);
-  
+
   this->dataPtr->sc_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->sc_record_.header.stamp.nanosec = sec_nsec.second;
-  //this->dataPtr->sc_record_.seq_num = dataPtr->seq_num++;
-
   this->dataPtr->sc_record_.load_cell = spring_state_comp->Data().load_cell;
   this->dataPtr->sc_record_.range_finder = spring_state_comp->Data().range_finder;
   this->dataPtr->sc_record_.upper_psi = spring_state_comp->Data().upper_psi;

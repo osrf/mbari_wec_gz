@@ -348,44 +348,27 @@ void PolytropicPneumaticSpring::PreUpdate(
   // TODO(anyone): use sensor to access to F (load cell?), P (pressure sensor),
   // and T (thermometer)
 
-  // Create new component for this entitiy in ECM (if it doesn't already exist)
-  auto spring_state_comp = \
-    _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->jointEntity);
-  if (spring_state_comp == nullptr) {
-    // Assign Values
-    SpringState spring_state_data;
-    if (this->dataPtr->name.compare(0, 5, std::string("upper")) == 0) {
-      spring_state_data.range_finder = x;
-      spring_state_data.upper_psi = 1.450377e-4 * this->dataPtr->P;
-    } else {
-      // TODO(hamilton8415) how should we handle this?
-      spring_state_data.load_cell = this->dataPtr->F;
-      spring_state_data.lower_psi = 1.450377e-4 * this->dataPtr->P;
-    }
-    _ecm.CreateComponent(
+  buoy_gazebo::SpringState spring_state;
+  if (_ecm.EntityHasComponentType(
       this->dataPtr->jointEntity,
-      buoy_gazebo::SpringStateComponent({spring_state_data}));
-  } else {
-    SpringState spring_state_data(spring_state_comp->Data());
-    if (this->dataPtr->name.compare(0, 5, std::string("upper")) == 0) {
-      spring_state_data.range_finder = x;
-      spring_state_data.upper_psi = 1.450377e-4 * this->dataPtr->P;
-    } else {
-      // TODO(hamilton8415) how should we handle this?
-      spring_state_data.load_cell = this->dataPtr->F;
-      spring_state_data.lower_psi = 1.450377e-4 * this->dataPtr->P;
-    }
-    spring_state_comp->SetData(
-      spring_state_data,
-      [](const SpringState & lhs, const SpringState & rhs) -> bool {
-        bool equal = true;
-        equal &= lhs.range_finder == rhs.range_finder;
-        equal &= lhs.upper_psi == rhs.upper_psi;
-        equal &= lhs.load_cell == rhs.load_cell;
-        equal &= lhs.lower_psi == rhs.lower_psi;
-        return equal;
-      });
+      buoy_gazebo::SpringStateComponent().TypeId()))
+  {
+    auto spring_state_comp = \
+      _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->jointEntity);
+    spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
   }
+
+  const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
+  if (this->dataPtr->name.compare(0, 5, std::string("upper")) == 0) {
+    spring_state.range_finder = x;
+    spring_state.upper_psi = PASCAL_TO_PSI * this->dataPtr->P;
+  } else {
+    spring_state.lower_psi = PASCAL_TO_PSI * this->dataPtr->P;
+  }
+
+  _ecm.SetComponentData<buoy_gazebo::SpringStateComponent>(
+    this->dataPtr->jointEntity,
+    spring_state);
 
   ignition::msgs::Double force, pressure, volume, temperature, heat_rate;
   force.set_data(this->dataPtr->F);

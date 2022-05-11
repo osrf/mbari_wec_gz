@@ -57,6 +57,10 @@
       
       <plugin filename="SpringController" name="buoy_gazebo::SpringController">
         <JointName>HydraulicRam</JointName>
+        <namespace>/</namespace>
+        <node_name>spring_controller</node_name>
+        <topic>sc_record</topic>
+        <publish_rate>33</publish_rate>
       </plugin>
 
       <!-- Add Upper/Lower Polytropic Spring plugin -->

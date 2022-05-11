@@ -24,10 +24,19 @@ namespace buoy_gazebo
 
 struct SpringState
 {
-  int16_t load_cell{0};
-  float range_finder{0.0F};
-  float upper_psi{0.0F};
-  float lower_psi{0.0F};
+  int16_t load_cell{0};  // load on Buoy->PTO universal joint in Newtons (TODO(andermi) for now)
+  float range_finder{0.0F};  // position in meters (TODO(andermi) for now)
+  float upper_psi{0.0F};  // pressure in PSI
+  float lower_psi{0.0F};  // pressure in PSI
+
+  bool operator==(const SpringState & that) const
+  {
+    bool equal = this->load_cell == that.load_cell;
+    equal &= fabs(this->range_finder - that.range_finder) < 1e-6;
+    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-6;
+    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-6;
+    return equal;
+  }
 };
 
 using SpringStateComponent = ignition::gazebo::components::Component<SpringState,
