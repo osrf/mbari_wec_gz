@@ -154,7 +154,7 @@ void SpringController::Configure(
     };
   if (!this->dataPtr->node_.Subscribe("/Universal_joint/force_torque", this->dataPtr->ft_cb_)) {
     ignerr << "Error subscribing to topic [" << "/Universal_joint/force_torque" << "]" << std::endl;
-    return;  // TODO(anyone) abort?
+    return;
   }
 
   // Publisher
