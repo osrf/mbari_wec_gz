@@ -120,9 +120,9 @@ void SpringController::Configure(
 
   if (!rclcpp::ok()) {
     rclcpp::init(0, nullptr);
-    std::string node_name = _sdf->Get<std::string>("node_name", "spring_controller").first;
-    this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name, ns);
   }
+  std::string node_name = _sdf->Get<std::string>("node_name", "spring_controller").first;
+  this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name, ns);
 
   this->dataPtr->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
   this->dataPtr->executor_->add_node(this->dataPtr->rosnode_);
