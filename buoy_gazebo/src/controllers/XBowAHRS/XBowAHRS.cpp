@@ -19,8 +19,8 @@
 #include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/plugin/Register.hh>
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <ignition/msgs/imu.pb.h>
+#include <ignition/transport/Node.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -46,10 +46,10 @@ struct buoy_gazebo::XBowAHRSPrivate
   std::chrono::steady_clock::duration current_time_;
   buoy_msgs::msg::XBRecord xb_record_;
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
-  bool imu_data_valid_{false}, velocity_data_valid_{false};
+  std::atomic<bool> imu_data_valid_{false}, velocity_data_valid_{false};
   std::thread thread_executor_spin_, thread_publish_;
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
-  bool stop_{false}, paused_{true};
+  std::atomic<bool> stop_{false}, paused_{true};
 
   void set_xb_record_imu(const ignition::msgs::IMU & _imu)
   {
@@ -195,9 +195,9 @@ void XBowAHRS::Configure(
         std::unique_lock next(this->dataPtr->next_access_mutex_);
         std::unique_lock data(this->dataPtr->data_mutex_);
         next.unlock();
-        xb_record = this->dataPtr->xb_record_;
 
         if (this->dataPtr->data_valid()) {
+          xb_record = this->dataPtr->xb_record_;
           data.unlock();
           if (this->dataPtr->xb_pub_->get_subscription_count() > 0) {
             this->dataPtr->xb_pub_->publish(xb_record);
@@ -219,6 +219,7 @@ void XBowAHRS::PostUpdate(
   const ignition::gazebo::UpdateInfo & _info,
   const ignition::gazebo::EntityComponentManager & _ecm)
 {
+  this->dataPtr->paused_ = _info.paused;
   auto model = ignition::gazebo::Model(this->dataPtr->entity_);
   const auto link_entity = model.LinkByName(_ecm, "Buoy");
   ignition::gazebo::Link link(link_entity);
@@ -229,13 +230,11 @@ void XBowAHRS::PostUpdate(
   std::unique_lock next(this->dataPtr->next_access_mutex_);
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
-  this->dataPtr->paused_ = _info.paused;
   if (v_world) {
-    this->dataPtr->velocity_data_valid_ = true;
-
     this->dataPtr->xb_record_.ned_velocity.x = v_world->Y();
     this->dataPtr->xb_record_.ned_velocity.y = v_world->X();
     this->dataPtr->xb_record_.ned_velocity.z = -v_world->Z();
+    this->dataPtr->velocity_data_valid_ = true;
   } else {
     this->dataPtr->velocity_data_valid_ = false;
   }
