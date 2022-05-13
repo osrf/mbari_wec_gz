@@ -49,11 +49,6 @@
         <uri>model://mbari_wec</uri>
       </include>
 
-      <plugin
-        filename="ignition-gazebo-forcetorque-system"
-        name="ignition::gazebo::systems::ForceTorque">
-      </plugin>
-
       <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
         <PistonArea>1.375</PistonArea>
