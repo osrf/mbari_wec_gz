@@ -1,3 +1,4 @@
 prepend-non-duplicate;IGN_GAZEBO_RESOURCE_PATH;share/@PROJECT_NAME@/worlds
 prepend-non-duplicate;IGN_GAZEBO_SYSTEM_PLUGIN_PATH;@CMAKE_INSTALL_PREFIX@/lib
+prepend-non-duplicate;IGN_GAZEBO_SERVER_CONFIG_PATH;share/@PROJECT_NAME@/gazebo/server.config
 set-if-unset;MESA_GL_VERSION_OVERRIDE;3.3

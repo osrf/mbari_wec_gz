@@ -68,6 +68,7 @@ add_subdirectory(src)
 install(DIRECTORY
   worlds
   launch
+  gazebo
   DESTINATION share/${PROJECT_NAME}/
 )
 
