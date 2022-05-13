@@ -3,7 +3,7 @@
   <world name="playground">
     <physics name="1ms" type="ignored">
       <real_time_factor>0</real_time_factor>
-      <max_step_size>0.0005</max_step_size>
+      <max_step_size>0.001</max_step_size>
       <!-- bullet + pgs seem to work ok for the tether -->
       <dart>
         <collision_detector>bullet</collision_detector>
@@ -12,33 +12,6 @@
         </solver>
       </dart>
     </physics>
-
-    <plugin
-      filename="ignition-gazebo-physics-system"
-      name="ignition::gazebo::systems::Physics">
-    </plugin>
-
-    <plugin
-      filename="ignition-gazebo-user-commands-system"
-      name="ignition::gazebo::systems::UserCommands">
-    </plugin>
-
-    <plugin
-      filename="ignition-gazebo-scene-broadcaster-system"
-      name="ignition::gazebo::systems::SceneBroadcaster">
-    </plugin>
-
-    <plugin
-      filename="ignition-gazebo-buoyancy-system"
-      name="ignition::gazebo::systems::Buoyancy">
-      <graded_buoyancy>
-        <default_density>1025</default_density>
-        <density_change>
-          <above_depth>0</above_depth>
-          <density>1</density>
-        </density_change>
-      </graded_buoyancy>
-    </plugin>
 
     <gui fullscreen="0">
 
@@ -244,15 +217,10 @@
 
     <model name="MBARI_WEC">
       <self_collide>true</self_collide>
-      <pose>0 0 -2 0.2 0 0</pose>
+      <pose>0 0 -2 0.01 0 0</pose>
       <include merge="true">
         <uri>model://mbari_wec</uri>
       </include>
-
-      <joint name="WaterPlaneArea" type="fixed">
-        <parent>world</parent>
-        <child>Buoy</child>
-      </joint>
 
       <plugin
         filename="ignition-gazebo-joint-position-controller-system"

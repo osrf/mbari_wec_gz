@@ -63,7 +63,7 @@ def tether_joint_properties():
           <damping>10000.0</damping>
           <friction>1000</friction>
           <spring_reference>0</spring_reference>
-          <spring_stiffness>100</spring_stiffness>
+          <spring_stiffness>1000</spring_stiffness>
         </dynamics>
         <limit>
           <lower>-0.05</lower>
@@ -151,8 +151,8 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <surface>
           <friction>
             <ode>
-              <mu>0</mu>
-              <mu2>0</mu2>
+              <mu>10</mu>
+              <mu2>10</mu2>
             </ode>
           </friction>
           <contact>
@@ -231,8 +231,8 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <surface>
           <friction>
             <ode>
-              <mu>0</mu>
-              <mu2>0</mu2>
+              <mu>10</mu>
+              <mu2>10</mu2>
             </ode>
           </friction>
           <contact>
