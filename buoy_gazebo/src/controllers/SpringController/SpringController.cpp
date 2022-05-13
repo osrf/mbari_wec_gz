@@ -214,13 +214,7 @@ void SpringController::PostUpdate(
       buoy_gazebo::SpringStateComponent().TypeId()))
   {
     // Pneumatic Spring hasn't updated values yet
-    // low prio data access
-    // std::unique_lock low(this->dataPtr->low_prio_mutex_);
-    // std::unique_lock next(this->dataPtr->next_access_mutex_);
-    // std::unique_lock data(this->dataPtr->data_mutex_);
-    // next.unlock();
     this->dataPtr->spring_data_valid_ = false;
-    // data.unlock();
     return;
   }
 
