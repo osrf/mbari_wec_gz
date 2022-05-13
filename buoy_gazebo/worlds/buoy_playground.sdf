@@ -191,14 +191,6 @@
     <model name="water_plane">
       <static>true</static>
       <link name="link">
-        <!--collision name="collision">
-          <geometry>
-            <plane>
-              <size>100 100</size>
-              <normal>0 0 1</normal>
-            </plane>
-          </geometry>
-        </collision-->
         <visual name="water_plane">
           <geometry>
             <plane>
