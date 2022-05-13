@@ -60,8 +60,8 @@ def tether_joint_properties():
     """ Prints the <dynamics> and <limit> blocks for tether joints. """
     print("""
         <dynamics>
-          <damping>10000.0</damping>
-          <friction>1000</friction>
+          <damping>1000.0</damping>
+          <friction>500</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>1000</spring_stiffness>
         </dynamics>
