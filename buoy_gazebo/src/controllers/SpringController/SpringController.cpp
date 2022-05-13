@@ -18,8 +18,8 @@
 #include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/plugin/Register.hh>
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <ignition/msgs/wrench.pb.h>
+#include <ignition/transport/Node.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -46,11 +46,16 @@ struct buoy_gazebo::SpringControllerPrivate
   std::chrono::steady_clock::duration current_time_;
   buoy_msgs::msg::SCRecord sc_record_;
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
-  bool data_valid_{false};
+  std::atomic<bool> spring_data_valid_{false}, load_cell_data_valid_{false};
   std::thread thread_executor_spin_, thread_publish_;
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
-  bool stop_{false}, paused_{true};
+  std::atomic<bool> stop_{false}, paused_{true};
   int16_t seq_num{0};
+
+  bool data_valid() const
+  {
+    return spring_data_valid_ && load_cell_data_valid_;
+  }
 };
 
 
@@ -150,6 +155,7 @@ void SpringController::Configure(
       std::unique_lock data(this->dataPtr->data_mutex_);
       next.unlock();
       this->dataPtr->sc_record_.load_cell = _msg.force().z();
+      this->dataPtr->load_cell_data_valid_ = true;
       data.unlock();
     };
   if (!this->dataPtr->node_.Subscribe("/Universal_joint/force_torque", this->dataPtr->ft_cb_)) {
@@ -178,12 +184,16 @@ void SpringController::Configure(
         std::unique_lock next(this->dataPtr->next_access_mutex_);
         std::unique_lock data(this->dataPtr->data_mutex_);
         next.unlock();
-        this->dataPtr->sc_record_.seq_num = \
-          this->dataPtr->seq_num++ % std::numeric_limits<int16_t>::max();
-        sc_record = this->dataPtr->sc_record_;
-        data.unlock();
 
-        if (this->dataPtr->data_valid_) {this->dataPtr->sc_pub_->publish(sc_record);}
+        if (this->dataPtr->data_valid()) {
+          this->dataPtr->sc_record_.seq_num = \
+            this->dataPtr->seq_num++ % std::numeric_limits<int16_t>::max();
+          sc_record = this->dataPtr->sc_record_;
+          data.unlock();
+          this->dataPtr->sc_pub_->publish(sc_record);
+        } else {
+          data.unlock();
+        }
 
         this->dataPtr->pub_rate_->sleep();
       }
@@ -196,7 +206,8 @@ void SpringController::PostUpdate(
   const ignition::gazebo::UpdateInfo & _info,
   const ignition::gazebo::EntityComponentManager & _ecm)
 {
-  const auto model = ignition::gazebo::Model(this->dataPtr->entity_);
+  this->dataPtr->paused_ = _info.paused;
+  this->dataPtr->current_time_ = _info.simTime;
 
   if (!_ecm.EntityHasComponentType(
       this->dataPtr->jointEntity_,
@@ -204,12 +215,12 @@ void SpringController::PostUpdate(
   {
     // Pneumatic Spring hasn't updated values yet
     // low prio data access
-    std::unique_lock low(this->dataPtr->low_prio_mutex_);
-    std::unique_lock next(this->dataPtr->next_access_mutex_);
-    std::unique_lock data(this->dataPtr->data_mutex_);
-    next.unlock();
-    this->dataPtr->data_valid_ = false;
-    data.unlock();
+    // std::unique_lock low(this->dataPtr->low_prio_mutex_);
+    // std::unique_lock next(this->dataPtr->next_access_mutex_);
+    // std::unique_lock data(this->dataPtr->data_mutex_);
+    // next.unlock();
+    this->dataPtr->spring_data_valid_ = false;
+    // data.unlock();
     return;
   }
 
@@ -221,11 +232,8 @@ void SpringController::PostUpdate(
   std::unique_lock next(this->dataPtr->next_access_mutex_);
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
-  this->dataPtr->data_valid_ = true;
 
-  this->dataPtr->current_time_ = _info.simTime;
-  this->dataPtr->paused_ = _info.paused;
-  auto sec_nsec = ignition::math::durationToSecNsec(dataPtr->current_time_);
+  auto sec_nsec = ignition::math::durationToSecNsec(this->dataPtr->current_time_);
 
   this->dataPtr->sc_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->sc_record_.header.stamp.nanosec = sec_nsec.second;
@@ -237,6 +245,7 @@ void SpringController::PostUpdate(
   // this->dataPtr->sc_record_.salinity = spring_state_comp->Data().salinity_;
   // this->dataPtr->sc_record_.temperature = spring_state_comp->Data().temperature_;
   // this->dataPtr->sc_record_.status = spring_state_comp->Data().status_;
+  this->dataPtr->spring_data_valid_ = true;
   data.unlock();
 }
 }  // namespace buoy_gazebo
