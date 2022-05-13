@@ -9,12 +9,22 @@ import math
 # Parameters #
 ##############
 
+# PTO
+# Roughly match STL
+# pto_outer_radius = 0.08
+# pto_inner_radius = 0.02
+# Radius from original PR
+pto_outer_radius = 0.16
+pto_inner_radius = 0.1
+pto_length = 9.7
+pto_num_points = 8
+
 # Piston
 piston_length = 5.08
 piston_z_offset = -3.50066
 
 # Tether
-tether_radius = 0.009525 # Nominal O.D. 0.75 in
+tether_radius = 0.025 #0.009525 # Nominal O.D. 0.75 in
 tether_density = 3350 # kg/m^3
 tether_length = 20.3
 
@@ -62,10 +72,24 @@ def tether_joint_properties():
           <spring_stiffness>100</spring_stiffness>
         </dynamics>
         <limit>
-          <lower>-0.1</lower>
-          <upper>0.1</upper>
+          <lower>-0.05</lower>
+          <upper>0.05</upper>
         </limit>
     """)
+
+# PTO
+pto_outer_points = []
+pto_inner_points = []
+for point_index in range(pto_num_points):
+    angle = 2.0 * math.pi * point_index / pto_num_points
+
+    px = pto_outer_radius * math.cos(angle)
+    py = pto_outer_radius * math.sin(angle)
+    pto_outer_points.append((px, py))
+
+    px = pto_inner_radius * math.cos(angle)
+    py = pto_inner_radius * math.sin(angle)
+    pto_inner_points.append((px, py))
 }@
 <sdf version="1.8">
   <model name="MBARI_WEC">
@@ -121,24 +145,57 @@ def tether_joint_properties():
           <izz>7.28</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <!--visual name="visual">
         <geometry>
           <mesh>
             <uri>meshes/pto.stl</uri>
           </mesh>
         </geometry>
-        <!--color-->
         <material>
           <ambient>1 1 1 0.9</ambient>
           <diffuse>.2 .2 1 0.9</diffuse>
           <specular>1 1 1 1</specular>
         </material>
+      </visual-->
+      <visual name="visual_poly">
+        <pose>0 0 -8.78 0 0 0</pose>
+        <geometry>
+          <!-- outer -->
+          <polyline>
+@[for point in pto_outer_points]@
+            <point>@(point[0]) @(point[1])</point>
+@[end for]@
+            <height>@(pto_length)</height>
+          </polyline>
+          <!-- inner -->
+          <polyline>
+@[for point in pto_inner_points]@
+            <point>@(point[0]) @(point[1])</point>
+@[end for]@
+            <height>@(pto_length)</height>
+          </polyline>
+        </geometry>
       </visual>
       <collision name="collision">
+        <pose>0 0 -8.78 0 0 0</pose>
         <geometry>
-          <mesh>
+          <!--mesh>
             <uri>meshes/pto_collision.stl</uri>
-          </mesh>
+          </mesh-->
+          <!-- outer -->
+          <polyline>
+@[for point in pto_outer_points]@
+            <point>@(point[0]) @(point[1])</point>
+@[end for]@
+            <height>@(pto_length)</height>
+          </polyline>
+          <!-- inner -->
+          <polyline>
+@[for point in pto_inner_points]@
+            <point>@(point[0]) @(point[1])</point>
+@[end for]@
+            <height>@(pto_length)</height>
+          </polyline>
         </geometry>
         <surface>
           <contact>

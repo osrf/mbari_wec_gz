@@ -3,7 +3,7 @@
   <world name="playground">
     <physics name="1ms" type="ignored">
       <real_time_factor>0</real_time_factor>
-      <max_step_size>0.001</max_step_size>
+      <max_step_size>0.0005</max_step_size>
       <!-- bullet + pgs seem to work ok for the tether -->
       <dart>
         <collision_detector>bullet</collision_detector>
@@ -244,28 +244,20 @@
 
     <model name="MBARI_WEC">
       <self_collide>true</self_collide>
-      <pose>0 0 -2 0 0 0</pose>
+      <pose>0 0 -2 0.2 0 0</pose>
       <include merge="true">
         <uri>model://mbari_wec</uri>
       </include>
+
+      <joint name="WaterPlaneArea" type="fixed">
+        <parent>world</parent>
+        <child>Buoy</child>
+      </joint>
 
       <plugin
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
         <joint_name>HydraulicRam</joint_name>
-        <p_gain>10000</p_gain>
-        <i_gain>1000</i_gain>
-        <d_gain>1000</d_gain>
-        <i_max>10</i_max>
-        <i_min>-10</i_min>
-        <cmd_max>100000</cmd_max>
-        <cmd_min>-100000</cmd_min>
-      </plugin>
-
-      <plugin
-        filename="ignition-gazebo-joint-position-controller-system"
-        name="ignition::gazebo::systems::JointPositionController">
-        <joint_name>WaterPlaneArea</joint_name>
         <p_gain>10000</p_gain>
         <i_gain>1000</i_gain>
         <d_gain>1000</d_gain>
