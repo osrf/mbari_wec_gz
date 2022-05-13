@@ -49,7 +49,7 @@ struct buoy_gazebo::SpringControllerPrivate
   bool data_valid_{false};
   std::thread thread_executor_spin_, thread_publish_;
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
-  bool stop_{false}, paused_{true};
+  std::atomic<bool> stop_{false}, paused_{true};
   int16_t seq_num{0};
 };
 
