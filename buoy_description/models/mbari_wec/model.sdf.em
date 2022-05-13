@@ -10,14 +10,8 @@ import math
 ##############
 
 # PTO
-# Roughly match STL
-# pto_outer_radius = 0.08
-# pto_inner_radius = 0.02
-# Radius from original PR
-pto_outer_radius = 0.16
-pto_inner_radius = 0.1
-pto_length = 9.7
-pto_num_points = 8
+pto_stl_inner_radius = 0.02
+pto_gap = 0.02
 
 # Piston
 piston_length = 5.08
@@ -28,7 +22,7 @@ tether_radius = 0.025 #0.009525 # Nominal O.D. 0.75 in
 tether_density = 3350 # kg/m^3
 tether_length = 20.3
 
-num_tether_top_links = 10
+num_tether_top_links = 15
 tether_top_length = 2.5
 
 num_tether_bottom_links = 5
@@ -78,18 +72,8 @@ def tether_joint_properties():
     """)
 
 # PTO
-pto_outer_points = []
-pto_inner_points = []
-for point_index in range(pto_num_points):
-    angle = 2.0 * math.pi * point_index / pto_num_points
-
-    px = pto_outer_radius * math.cos(angle)
-    py = pto_outer_radius * math.sin(angle)
-    pto_outer_points.append((px, py))
-
-    px = pto_inner_radius * math.cos(angle)
-    py = pto_inner_radius * math.sin(angle)
-    pto_inner_points.append((px, py))
+pto_inner_radius = tether_radius + pto_gap
+pto_scale = pto_inner_radius / pto_stl_inner_radius
 }@
 <sdf version="1.8">
   <model name="MBARI_WEC">
@@ -145,7 +129,7 @@ for point_index in range(pto_num_points):
           <izz>7.28</izz>
         </inertia>
       </inertial>
-      <!--visual name="visual">
+      <visual name="visual">
         <geometry>
           <mesh>
             <uri>meshes/pto.stl</uri>
@@ -156,48 +140,21 @@ for point_index in range(pto_num_points):
           <diffuse>.2 .2 1 0.9</diffuse>
           <specular>1 1 1 1</specular>
         </material>
-      </visual-->
-      <visual name="visual_poly">
-        <pose>0 0 -8.78 0 0 0</pose>
-        <geometry>
-          <!-- outer -->
-          <polyline>
-@[for point in pto_outer_points]@
-            <point>@(point[0]) @(point[1])</point>
-@[end for]@
-            <height>@(pto_length)</height>
-          </polyline>
-          <!-- inner -->
-          <polyline>
-@[for point in pto_inner_points]@
-            <point>@(point[0]) @(point[1])</point>
-@[end for]@
-            <height>@(pto_length)</height>
-          </polyline>
-        </geometry>
       </visual>
       <collision name="collision">
-        <pose>0 0 -8.78 0 0 0</pose>
         <geometry>
-          <!--mesh>
+          <mesh>
             <uri>meshes/pto_collision.stl</uri>
-          </mesh-->
-          <!-- outer -->
-          <polyline>
-@[for point in pto_outer_points]@
-            <point>@(point[0]) @(point[1])</point>
-@[end for]@
-            <height>@(pto_length)</height>
-          </polyline>
-          <!-- inner -->
-          <polyline>
-@[for point in pto_inner_points]@
-            <point>@(point[0]) @(point[1])</point>
-@[end for]@
-            <height>@(pto_length)</height>
-          </polyline>
+            <scale>@(pto_scale) @(pto_scale) 1.0</scale>
+          </mesh>
         </geometry>
         <surface>
+          <friction>
+            <ode>
+              <mu>0</mu>
+              <mu2>0</mu2>
+            </ode>
+          </friction>
           <contact>
             <!-- Collide with top tether -->
             <!--collide_bitmask>0x01</collide_bitmask-->
@@ -272,6 +229,12 @@ for point_index in range(pto_num_points):
           </cylinder>
         </geometry>
         <surface>
+          <friction>
+            <ode>
+              <mu>0</mu>
+              <mu2>0</mu2>
+            </ode>
+          </friction>
           <contact>
             <!-- Collide with PTO -->
             <!--collide_bitmask>0x01</collide_bitmask-->
@@ -354,9 +317,17 @@ for point_index in range(pto_num_points):
     </joint>
 @[end for]@
 
-    <joint name="TetherToHeaveCone" type="fixed">
+    <joint name="TetherToHeaveCone" type="universal">
       <parent>tether_bottom_@(num_tether_bottom_links-1)</parent>
       <child>HeaveCone</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        @(tether_joint_properties())
+      </axis>
+      <axis2>
+        <xyz>0 1 0</xyz>
+        @(tether_joint_properties())
+      </axis2>
     </joint>
     <!-- end tether bottom -->
 
