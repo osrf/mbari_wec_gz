@@ -347,6 +347,7 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   // TODO(anyone): use sensor to access to F (load cell?), P (pressure sensor),
   // and T (thermometer)
+  auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
   buoy_gazebo::SpringState spring_state;
   if (_ecm.EntityHasComponentType(
@@ -370,11 +371,24 @@ void PolytropicPneumaticSpring::PreUpdate(
     this->dataPtr->jointEntity,
     spring_state);
 
-  ignition::msgs::Double force, pressure, volume, temperature, heat_rate;
+  ignition::msgs::Double force;
+  force.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   force.set_data(this->dataPtr->F);
+
+  ignition::msgs::Double pressure;
+  pressure.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   pressure.set_data(this->dataPtr->P);
+
+  ignition::msgs::Double volume;
+  volume.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   volume.set_data(this->dataPtr->V);
+
+  ignition::msgs::Double temperature;
+  temperature.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   temperature.set_data(this->dataPtr->T);
+
+  ignition::msgs::Double heat_rate;
+  heat_rate.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   heat_rate.set_data(this->dataPtr->Q_rate);
 
   if (!force_pub.Publish(force)) {
