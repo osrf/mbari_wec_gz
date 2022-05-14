@@ -84,6 +84,17 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
           </box>
         </geometry>
       </collision>
+      <sensor name='xbow_imu' type='imu'>
+        <topic>Buoy_link/xbow_imu</topic>
+        <update_rate>50</update_rate>
+        <imu>
+          <orientation_reference_frame>
+            <localization>ENU</localization>
+          </orientation_reference_frame>
+        </imu>
+        <always_on>1</always_on>
+        <visualize>true</visualize>
+      </sensor>
     </link>
 
     <link name="PTO">

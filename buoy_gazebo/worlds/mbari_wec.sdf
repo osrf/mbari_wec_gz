@@ -61,7 +61,15 @@
         <namespace>/</namespace>
         <node_name>spring_controller</node_name>
         <topic>sc_record</topic>
-        <publish_rate>33</publish_rate>
+        <publish_rate>31</publish_rate>
+      </plugin>
+      
+      <plugin filename="XBowAHRS" name="buoy_gazebo::XBowAHRS">
+        <namespace>/</namespace>
+        <node_name>xbow_ahrs</node_name>
+        <xb_topic>xb_record</xb_topic>
+        <imu_topic>xb_imu</imu_topic>
+        <publish_rate>17</publish_rate>
       </plugin>
 
       <!-- Add Upper/Lower Polytropic Spring plugin -->
