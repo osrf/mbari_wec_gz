@@ -113,6 +113,17 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           </box>
         </geometry>
       </collision>
+      <sensor name='xbow_imu' type='imu'>
+        <topic>Buoy_link/xbow_imu</topic>
+        <update_rate>50</update_rate>
+        <imu>
+          <orientation_reference_frame>
+            <localization>ENU</localization>
+          </orientation_reference_frame>
+        </imu>
+        <always_on>1</always_on>
+        <visualize>true</visualize>
+      </sensor>
     </link>
 
     <link name="PTO">
@@ -411,6 +422,16 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <xyz>0 1 0</xyz>
         @(tether_joint_properties())
       </axis2>
+      <sensor name="force_torque_sensor" type="force_torque">
+        <always_on>true</always_on>
+        <update_rate>50</update_rate>
+        <visualize>true</visualize>
+        <topic>Universal_joint/force_torque</topic>
+        <force_torque>
+          <frame>sensor</frame>
+          <measure_direction>parent_to_child</measure_direction>
+        </force_torque>
+      </sensor>
     </joint>
 
     <joint name="HydraulicRam" type="prismatic">

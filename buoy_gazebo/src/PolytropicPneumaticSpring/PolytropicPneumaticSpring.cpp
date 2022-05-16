@@ -15,7 +15,6 @@
 #include "PolytropicPneumaticSpring.hpp"
 
 #include <ignition/msgs/double.pb.h>
-
 #include <ignition/common/Profiler.hh>
 #include <ignition/math/PID.hh>
 #include <ignition/msgs.hh>
@@ -24,6 +23,9 @@
 
 #include <memory>
 #include <string>
+
+#include "SpringState.hpp"
+
 
 #include "ignition/gazebo/components/JointForceCmd.hh"
 #include "ignition/gazebo/components/JointPosition.hh"
@@ -278,7 +280,6 @@ void PolytropicPneumaticSpring::PreUpdate(
     return;
   }
 
-
   // Create joint position component if one doesn't exist
   auto jointPosComp =
     _ecm.Component<ignition::gazebo::components::JointPosition>(this->dataPtr->jointEntity);
@@ -346,12 +347,48 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   // TODO(anyone): use sensor to access to F (load cell?), P (pressure sensor),
   // and T (thermometer)
+  auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
-  ignition::msgs::Double force, pressure, volume, temperature, heat_rate;
+  buoy_gazebo::SpringState spring_state;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->jointEntity,
+      buoy_gazebo::SpringStateComponent().TypeId()))
+  {
+    auto spring_state_comp = \
+      _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->jointEntity);
+    spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
+  }
+
+  const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
+  if (this->dataPtr->name.compare(0, 5, std::string("upper")) == 0) {
+    spring_state.range_finder = x;
+    spring_state.upper_psi = PASCAL_TO_PSI * this->dataPtr->P;
+  } else {
+    spring_state.lower_psi = PASCAL_TO_PSI * this->dataPtr->P;
+  }
+
+  _ecm.SetComponentData<buoy_gazebo::SpringStateComponent>(
+    this->dataPtr->jointEntity,
+    spring_state);
+
+  ignition::msgs::Double force;
+  force.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   force.set_data(this->dataPtr->F);
+
+  ignition::msgs::Double pressure;
+  pressure.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   pressure.set_data(this->dataPtr->P);
+
+  ignition::msgs::Double volume;
+  volume.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   volume.set_data(this->dataPtr->V);
+
+  ignition::msgs::Double temperature;
+  temperature.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   temperature.set_data(this->dataPtr->T);
+
+  ignition::msgs::Double heat_rate;
+  heat_rate.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   heat_rate.set_data(this->dataPtr->Q_rate);
 
   if (!force_pub.Publish(force)) {
