@@ -24,37 +24,103 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <buoy_msgs/msg/sc_record.hpp>
+#include <buoy_msgs/srv/sc_pack_rate_command.hpp>
 
+#include <algorithm>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
-#include <limits>
 
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 
+struct buoy_gazebo::SpringControllerROS2
+{
+  rclcpp::Node::SharedPtr node_{nullptr};
+  rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
+  rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
+  std::unique_ptr<rclcpp::Rate> pub_rate_;
+  buoy_msgs::msg::SCRecord sc_record_;
+};
+
+struct buoy_gazebo::SpringControllerServices
+{
+  rclcpp::Service<buoy_msgs::srv::SCPackRateCommand>::SharedPtr sc_pack_rate_service_;
+  std::function<void(std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Request>,
+    std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Response>)> sc_pack_rate_handler_;
+};
 
 struct buoy_gazebo::SpringControllerPrivate
 {
   ignition::gazebo::Entity entity_;
   ignition::gazebo::Entity jointEntity_;
-  rclcpp::Node::SharedPtr rosnode_{nullptr};
   ignition::transport::Node node_;
   std::function<void(const ignition::msgs::Wrench &)> ft_cb_;
-  rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
-  double pub_rate_hz_{10.0};
-  std::unique_ptr<rclcpp::Rate> pub_rate_;
   std::chrono::steady_clock::duration current_time_;
-  buoy_msgs::msg::SCRecord sc_record_;
+
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
   std::atomic<bool> spring_data_valid_{false}, load_cell_data_valid_{false};
+
   std::thread thread_executor_spin_, thread_publish_;
-  rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
   std::atomic<bool> stop_{false}, paused_{true};
+
   int16_t seq_num{0};
+  double pub_rate_hz_{10.0};
+
+  std::unique_ptr<buoy_gazebo::SpringControllerROS2> ros_;
+  std::unique_ptr<buoy_gazebo::SpringControllerServices> services_;
 
   bool data_valid() const
   {
     return spring_data_valid_ && load_cell_data_valid_;
+  }
+
+  void ros2_setup(const std::string & node_name, const std::string & ns)
+  {
+    if (!rclcpp::ok()) {
+      rclcpp::init(0, nullptr);
+    }
+    ros_->node_ = rclcpp::Node::make_shared(node_name, ns);
+
+    ros_->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+    ros_->executor_->add_node(ros_->node_);
+    stop_ = false;
+
+    auto spin = [this]()
+      {
+        while (rclcpp::ok() && !stop_) {
+          ros_->executor_->spin_once();
+        }
+      };
+    thread_executor_spin_ = std::thread(spin);
+  }
+
+  void setup_services()
+  {
+    // SCPackRateCommand
+    services_->sc_pack_rate_handler_ = \
+      [this](const std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Request> request,
+        std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Response> response)
+      {
+        if (request->rate_hz < 10 || request->rate_hz > 50) {
+          response->result.value = response->result.BAD_INPUT;
+          RCLCPP_WARN_STREAM(
+            ros_->node_->get_logger(),
+            "[ROS 2 Spring Control] SCPackRateCommand out of bounds -- clipped between [10,50]");
+        }
+        pub_rate_hz_ = std::min(std::max(static_cast<double>(request->rate_hz), 10.0), 50.0);
+        // low prio data access
+        std::unique_lock low(low_prio_mutex_);
+        std::unique_lock next(next_access_mutex_);
+        std::unique_lock data(data_mutex_);
+        next.unlock();
+        ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(pub_rate_hz_);
+        data.unlock();
+      };
+    services_->sc_pack_rate_service_ = \
+      ros_->node_->create_service<buoy_msgs::srv::SCPackRateCommand>(
+      "sc_pack_rate_command",
+      services_->sc_pack_rate_handler_);
   }
 };
 
@@ -71,13 +137,17 @@ namespace buoy_gazebo
 SpringController::SpringController()
 : dataPtr(std::make_unique<SpringControllerPrivate>())
 {
+  this->dataPtr->ros_ = std::make_unique<SpringControllerROS2>();
+  this->dataPtr->services_ = std::make_unique<SpringControllerServices>();
 }
 
 SpringController::~SpringController()
 {
   // Stop ros2 threads
   this->dataPtr->stop_ = true;
-  this->dataPtr->executor_->cancel();
+  if (this->dataPtr->ros_->executor_) {
+    this->dataPtr->ros_->executor_->cancel();
+  }
   this->dataPtr->thread_executor_spin_.join();
   this->dataPtr->thread_publish_.join();
 }
@@ -114,37 +184,23 @@ void SpringController::Configure(
     return;
   }
 
+
   // controller scoped name
-  std::string scoped_name = ignition::gazebo::scopedName(this->dataPtr->entity_, _ecm, "/", false);
+  std::string scoped_name = ignition::gazebo::scopedName(_entity, _ecm, "/", false);
 
   // ROS node
   std::string ns = _sdf->Get<std::string>("namespace", scoped_name).first;
   if (ns.empty() || ns[0] != '/') {
     ns = '/' + ns;
   }
-
-  if (!rclcpp::ok()) {
-    rclcpp::init(0, nullptr);
-  }
   std::string node_name = _sdf->Get<std::string>("node_name", "spring_controller").first;
-  this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name, ns);
 
-  this->dataPtr->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
-  this->dataPtr->executor_->add_node(this->dataPtr->rosnode_);
-  this->dataPtr->stop_ = false;
-
-  auto spin = [this]()
-    {
-      while (rclcpp::ok() && !this->dataPtr->stop_) {
-        this->dataPtr->executor_->spin_once();
-      }
-    };
-  this->dataPtr->thread_executor_spin_ = std::thread(spin);
-
+  this->dataPtr->ros2_setup(node_name, ns);
 
   RCLCPP_INFO_STREAM(
-    this->dataPtr->rosnode_->get_logger(),
+    this->dataPtr->ros_->node_->get_logger(),
     "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm));
+
 
   // Force Torque Sensor
   this->dataPtr->ft_cb_ = [this](const ignition::msgs::Wrench & _msg)
@@ -154,7 +210,7 @@ void SpringController::Configure(
       std::unique_lock next(this->dataPtr->next_access_mutex_);
       std::unique_lock data(this->dataPtr->data_mutex_);
       next.unlock();
-      this->dataPtr->sc_record_.load_cell = _msg.force().z();
+      this->dataPtr->ros_->sc_record_.load_cell = _msg.force().z();
       this->dataPtr->load_cell_data_valid_ = true;
       data.unlock();
     };
@@ -165,17 +221,17 @@ void SpringController::Configure(
 
   // Publisher
   std::string topic = _sdf->Get<std::string>("topic", "sc_record").first;
-  this->dataPtr->sc_pub_ = \
-    this->dataPtr->rosnode_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
+  this->dataPtr->ros_->sc_pub_ = \
+    this->dataPtr->ros_->node_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
 
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
-  this->dataPtr->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
+  this->dataPtr->ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
 
   auto publish = [this]()
     {
       while (rclcpp::ok() && !this->dataPtr->stop_) {
-        if (this->dataPtr->sc_pub_->get_subscription_count() <= 0) {continue;}
+        if (this->dataPtr->ros_->sc_pub_->get_subscription_count() <= 0) {continue;}
         // Only update and publish if not paused.
         if (this->dataPtr->paused_) {continue;}
 
@@ -186,19 +242,21 @@ void SpringController::Configure(
         next.unlock();
 
         if (this->dataPtr->data_valid()) {
-          this->dataPtr->sc_record_.seq_num = \
+          this->dataPtr->ros_->sc_record_.seq_num = \
             this->dataPtr->seq_num++ % std::numeric_limits<int16_t>::max();
-          sc_record = this->dataPtr->sc_record_;
+          sc_record = this->dataPtr->ros_->sc_record_;
           data.unlock();
-          this->dataPtr->sc_pub_->publish(sc_record);
+          this->dataPtr->ros_->sc_pub_->publish(sc_record);
         } else {
           data.unlock();
         }
 
-        this->dataPtr->pub_rate_->sleep();
+        this->dataPtr->ros_->pub_rate_->sleep();
       }
     };
   this->dataPtr->thread_publish_ = std::thread(publish);
+
+  this->dataPtr->setup_services();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -229,12 +287,12 @@ void SpringController::PostUpdate(
 
   auto sec_nsec = ignition::math::durationToSecNsec(this->dataPtr->current_time_);
 
-  this->dataPtr->sc_record_.header.stamp.sec = sec_nsec.first;
-  this->dataPtr->sc_record_.header.stamp.nanosec = sec_nsec.second;
+  this->dataPtr->ros_->sc_record_.header.stamp.sec = sec_nsec.first;
+  this->dataPtr->ros_->sc_record_.header.stamp.nanosec = sec_nsec.second;
   // this->dataPtr->sc_record_.load_cell = spring_state_comp->Data().load_cell;
-  this->dataPtr->sc_record_.range_finder = spring_state_comp->Data().range_finder;
-  this->dataPtr->sc_record_.upper_psi = spring_state_comp->Data().upper_psi;
-  this->dataPtr->sc_record_.lower_psi = spring_state_comp->Data().lower_psi;
+  this->dataPtr->ros_->sc_record_.range_finder = spring_state_comp->Data().range_finder;
+  this->dataPtr->ros_->sc_record_.upper_psi = spring_state_comp->Data().upper_psi;
+  this->dataPtr->ros_->sc_record_.lower_psi = spring_state_comp->Data().lower_psi;
   // this->dataPtr->sc_record_.epoch = spring_state_comp->Data().epoch_;
   // this->dataPtr->sc_record_.salinity = spring_state_comp->Data().salinity_;
   // this->dataPtr->sc_record_.temperature = spring_state_comp->Data().temperature_;

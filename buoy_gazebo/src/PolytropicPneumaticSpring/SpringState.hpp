@@ -24,10 +24,13 @@ namespace buoy_gazebo
 
 struct SpringState
 {
+  // SCRecord
   int16_t load_cell{0};  // load on Buoy->PTO universal joint in Newtons (TODO(andermi) for now)
   float range_finder{0.0F};  // position in meters (TODO(andermi) for now)
   float upper_psi{0.0F};  // pressure in PSI
   float lower_psi{0.0F};  // pressure in PSI
+
+  // Commands
 
   bool operator==(const SpringState & that) const
   {

@@ -22,6 +22,8 @@ namespace buoy_gazebo
 {
 // Forward declarations.
 struct SpringControllerPrivate;
+struct SpringControllerROS2;
+struct SpringControllerServices;
 
 /// SDF parameters:
 /// * `<namespace>`: Namespace for ROS node, defaults to scoped name
