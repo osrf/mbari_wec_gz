@@ -83,7 +83,7 @@ struct buoy_gazebo::SpringControllerPrivate
       rclcpp::init(0, nullptr);
     }
     ros_->node_ = rclcpp::Node::make_shared(node_name, ns);
-    
+
     rcl_interfaces::msg::ParameterDescriptor descriptor;
     rcl_interfaces::msg::FloatingPointRange range;
     range.set__from_value(10.0F).set__to_value(50.0F).set__step(1.0F);
@@ -91,17 +91,20 @@ struct buoy_gazebo::SpringControllerPrivate
     ros_->node_->declare_parameter("publish_rate", pub_rate_hz_, descriptor);
 
     ros_->parameter_handler_ = ros_->node_->add_on_set_parameters_callback(
-     [this](const std::vector<rclcpp::Parameter> & parameters)
-     {
-       rcl_interfaces::msg::SetParametersResult result;
-       result.successful = true;
+      [this](const std::vector<rclcpp::Parameter> & parameters)
+      {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
         for (const auto & parameter : parameters) {
           if (
             parameter.get_name() == "publish_rate" &&
             parameter.get_type() == rclcpp::PARAMETER_DOUBLE)
           {
             double rate_hz = ros_->node_->get_parameter("publish_rate").as_double();
-            if (rate_hz < 10 || rate_hz > 50) {
+            RCLCPP_WARN_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] getting publish_rate param: " << rate_hz);
+            if (rate_hz < 10.0 || rate_hz > 50.0) {
               RCLCPP_WARN_STREAM(
                 ros_->node_->get_logger(),
                 "[ROS 2 Spring Control] publish_rate out of bounds -- clipped between [10,50]");
@@ -112,6 +115,9 @@ struct buoy_gazebo::SpringControllerPrivate
             std::unique_lock next(next_access_mutex_);
             std::unique_lock data(data_mutex_);
             next.unlock();
+            RCLCPP_WARN_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] setting publish_rate param: " << pub_rate_hz_);
             ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(pub_rate_hz_);
             data.unlock();
           }
@@ -238,7 +244,6 @@ void SpringController::Configure(
     this->dataPtr->ros_->node_->get_logger(),
     "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm));
 
-
   // Force Torque Sensor
   this->dataPtr->ft_cb_ = [this](const ignition::msgs::Wrench & _msg)
     {
@@ -263,7 +268,12 @@ void SpringController::Configure(
 
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
-  this->dataPtr->ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
+  this->dataPtr->ros_->node_->set_parameter(
+    rclcpp::Parameter(
+      "publish_rate",
+      this->dataPtr->pub_rate_hz_));
+
+  // this->dataPtr->ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
 
   auto publish = [this]()
     {
