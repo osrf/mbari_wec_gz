@@ -22,6 +22,7 @@
 #include <ignition/transport/Node.hh>
 
 #include <rclcpp/rclcpp.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
 
 #include <buoy_msgs/msg/sc_record.hpp>
 #include <buoy_msgs/srv/sc_pack_rate_command.hpp>
@@ -41,6 +42,7 @@ struct buoy_gazebo::SpringControllerROS2
   rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
   std::unique_ptr<rclcpp::Rate> pub_rate_;
   buoy_msgs::msg::SCRecord sc_record_;
+  rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr parameter_handler_;
 };
 
 struct buoy_gazebo::SpringControllerServices
@@ -81,6 +83,41 @@ struct buoy_gazebo::SpringControllerPrivate
       rclcpp::init(0, nullptr);
     }
     ros_->node_ = rclcpp::Node::make_shared(node_name, ns);
+    
+    rcl_interfaces::msg::ParameterDescriptor descriptor;
+    rcl_interfaces::msg::FloatingPointRange range;
+    range.set__from_value(10.0F).set__to_value(50.0F).set__step(1.0F);
+    descriptor.floating_point_range = {range};
+    ros_->node_->declare_parameter("publish_rate", pub_rate_hz_, descriptor);
+
+    ros_->parameter_handler_ = ros_->node_->add_on_set_parameters_callback(
+     [this](const std::vector<rclcpp::Parameter> & parameters)
+     {
+       rcl_interfaces::msg::SetParametersResult result;
+       result.successful = true;
+        for (const auto & parameter : parameters) {
+          if (
+            parameter.get_name() == "publish_rate" &&
+            parameter.get_type() == rclcpp::PARAMETER_DOUBLE)
+          {
+            double rate_hz = ros_->node_->get_parameter("publish_rate").as_double();
+            if (rate_hz < 10 || rate_hz > 50) {
+              RCLCPP_WARN_STREAM(
+                ros_->node_->get_logger(),
+                "[ROS 2 Spring Control] publish_rate out of bounds -- clipped between [10,50]");
+            }
+            pub_rate_hz_ = std::min(std::max(rate_hz, 10.0), 50.0);
+            // low prio data access
+            std::unique_lock low(low_prio_mutex_);
+            std::unique_lock next(next_access_mutex_);
+            std::unique_lock data(data_mutex_);
+            next.unlock();
+            ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(pub_rate_hz_);
+            data.unlock();
+          }
+        }
+        return result;
+      });
 
     ros_->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
     ros_->executor_->add_node(ros_->node_);
@@ -256,7 +293,7 @@ void SpringController::Configure(
     };
   this->dataPtr->thread_publish_ = std::thread(publish);
 
-  this->dataPtr->setup_services();
+  // this->dataPtr->setup_services();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
