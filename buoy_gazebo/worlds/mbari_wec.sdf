@@ -75,23 +75,23 @@
       <plugin filename="ignition-gazebo-hydrodynamics-system"
         name="ignition::gazebo::systems::Hydrodynamics">
         <link_name>HeaveCone</link_name>
-        <xDotU>-4.876161</xDotU>
-        <yDotV>-126.324739</yDotV>
-        <zDotW>-126.324739</zDotW>
+        <xDotU>0</xDotU>
+        <yDotV>0</yDotV>
+        <zDotW>3000</zDotW>  <!-- 3000 open, 10000 close -->
         <kDotP>0</kDotP>
-        <mDotQ>-33.46</mDotQ>
-        <nDotR>-33.46</nDotR>
-        <xUU>-6.2282</xUU>
+        <mDotQ>0</mDotQ>
+        <nDotR>0</nDotR>
+        <xUU>0</xUU>
         <xU>0</xU>
-        <yVV>-601.27</yVV>
+        <yVV>0</yVV>
         <yV>0</yV>
-        <zWW>-601.27</zWW>
+        <zWW>2700.10625</zWW>  <!-- 2700.10625 open, 3782.25 close -->
         <zW>0</zW>
-        <kPP>-0.1916</kPP>
+        <kPP>0</kPP>
         <kP>0</kP>
-        <mQQ>-632.698957</mQQ>
+        <mQQ>0</mQQ>
         <mQ>0</mQ>
-        <nRR>-632.698957</nRR>
+        <nRR>0</nRR>
         <nR>0</nR>
       </plugin>
     </include>
