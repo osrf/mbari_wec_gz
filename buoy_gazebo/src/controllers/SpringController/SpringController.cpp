@@ -35,7 +35,10 @@
 
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 
-struct buoy_gazebo::SpringControllerROS2
+
+namespace buoy_gazebo
+{
+struct SpringControllerROS2
 {
   rclcpp::Node::SharedPtr node_{nullptr};
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
@@ -45,7 +48,7 @@ struct buoy_gazebo::SpringControllerROS2
   rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr parameter_handler_;
 };
 
-struct buoy_gazebo::SpringControllerServices
+struct SpringControllerServices
 {
   // TODO(andermi) set up other services like this
   // rclcpp::Service<buoy_msgs::srv::SCPackRateCommand>::SharedPtr sc_pack_rate_service_;
@@ -53,7 +56,7 @@ struct buoy_gazebo::SpringControllerServices
   //   std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Response>)> sc_pack_rate_handler_;
 };
 
-struct buoy_gazebo::SpringControllerPrivate
+struct SpringControllerPrivate
 {
   ignition::gazebo::Entity entity_;
   ignition::gazebo::Entity jointEntity_;
@@ -70,8 +73,8 @@ struct buoy_gazebo::SpringControllerPrivate
   int16_t seq_num{0};
   double pub_rate_hz_{10.0};
 
-  std::unique_ptr<buoy_gazebo::SpringControllerROS2> ros_;
-  std::unique_ptr<buoy_gazebo::SpringControllerServices> services_;
+  std::unique_ptr<SpringControllerROS2> ros_;
+  std::unique_ptr<SpringControllerServices> services_;
 
   bool data_valid() const
   {
@@ -168,14 +171,6 @@ struct buoy_gazebo::SpringControllerPrivate
 */
 };
 
-IGNITION_ADD_PLUGIN(
-  buoy_gazebo::SpringController,
-  ignition::gazebo::System,
-  buoy_gazebo::SpringController::ISystemConfigure,
-  buoy_gazebo::SpringController::ISystemPostUpdate)
-
-namespace buoy_gazebo
-{
 //////////////////////////////////////////////////
 SpringController::SpringController()
 : dataPtr(std::make_unique<SpringControllerPrivate>())
@@ -349,3 +344,9 @@ void SpringController::PostUpdate(
   data.unlock();
 }
 }  // namespace buoy_gazebo
+
+IGNITION_ADD_PLUGIN(
+  buoy_gazebo::SpringController,
+  ignition::gazebo::System,
+  buoy_gazebo::SpringController::ISystemConfigure,
+  buoy_gazebo::SpringController::ISystemPostUpdate)
