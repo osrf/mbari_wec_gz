@@ -47,9 +47,10 @@ struct buoy_gazebo::SpringControllerROS2
 
 struct buoy_gazebo::SpringControllerServices
 {
-  rclcpp::Service<buoy_msgs::srv::SCPackRateCommand>::SharedPtr sc_pack_rate_service_;
-  std::function<void(std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Response>)> sc_pack_rate_handler_;
+  // TODO(andermi) set up other services like this
+  // rclcpp::Service<buoy_msgs::srv::SCPackRateCommand>::SharedPtr sc_pack_rate_service_;
+  // std::function<void(std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Request>,
+  //   std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Response>)> sc_pack_rate_handler_;
 };
 
 struct buoy_gazebo::SpringControllerPrivate
@@ -82,6 +83,7 @@ struct buoy_gazebo::SpringControllerPrivate
     if (!rclcpp::ok()) {
       rclcpp::init(0, nullptr);
     }
+
     ros_->node_ = rclcpp::Node::make_shared(node_name, ns);
 
     rcl_interfaces::msg::ParameterDescriptor descriptor;
@@ -100,10 +102,10 @@ struct buoy_gazebo::SpringControllerPrivate
             parameter.get_name() == "publish_rate" &&
             parameter.get_type() == rclcpp::PARAMETER_DOUBLE)
           {
-            double rate_hz = ros_->node_->get_parameter("publish_rate").as_double();
-            RCLCPP_WARN_STREAM(
+            double rate_hz = parameter.as_double();
+            RCLCPP_INFO_STREAM(
               ros_->node_->get_logger(),
-              "[ROS 2 Spring Control] getting publish_rate param: " << rate_hz);
+              "[ROS 2 Spring Control] setting publish_rate: " << rate_hz);
             if (rate_hz < 10.0 || rate_hz > 50.0) {
               RCLCPP_WARN_STREAM(
                 ros_->node_->get_logger(),
@@ -115,9 +117,6 @@ struct buoy_gazebo::SpringControllerPrivate
             std::unique_lock next(next_access_mutex_);
             std::unique_lock data(data_mutex_);
             next.unlock();
-            RCLCPP_WARN_STREAM(
-              ros_->node_->get_logger(),
-              "[ROS 2 Spring Control] setting publish_rate param: " << pub_rate_hz_);
             ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(pub_rate_hz_);
             data.unlock();
           }
@@ -138,6 +137,7 @@ struct buoy_gazebo::SpringControllerPrivate
     thread_executor_spin_ = std::thread(spin);
   }
 
+/*  TODO(andermi) set up other services like this
   void setup_services()
   {
     // SCPackRateCommand
@@ -165,8 +165,8 @@ struct buoy_gazebo::SpringControllerPrivate
       "sc_pack_rate_command",
       services_->sc_pack_rate_handler_);
   }
+*/
 };
-
 
 IGNITION_ADD_PLUGIN(
   buoy_gazebo::SpringController,
@@ -227,7 +227,6 @@ void SpringController::Configure(
     return;
   }
 
-
   // controller scoped name
   std::string scoped_name = ignition::gazebo::scopedName(_entity, _ecm, "/", false);
 
@@ -242,7 +241,7 @@ void SpringController::Configure(
 
   RCLCPP_INFO_STREAM(
     this->dataPtr->ros_->node_->get_logger(),
-    "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm));
+    "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm) << "]");
 
   // Force Torque Sensor
   this->dataPtr->ft_cb_ = [this](const ignition::msgs::Wrench & _msg)
@@ -268,12 +267,14 @@ void SpringController::Configure(
 
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
+
+  RCLCPP_INFO_STREAM(
+    this->dataPtr->ros_->node_->get_logger(),
+    "[ROS 2 Spring Control] Set publish_rate param from SDF: " << this->dataPtr->pub_rate_hz_);
   this->dataPtr->ros_->node_->set_parameter(
     rclcpp::Parameter(
       "publish_rate",
       this->dataPtr->pub_rate_hz_));
-
-  // this->dataPtr->ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
 
   auto publish = [this]()
     {
