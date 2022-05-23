@@ -7,6 +7,8 @@
       <real_time_factor>1.0</real_time_factor>
     </physics>
 
+    <!-- rely on world plugins from server.config -->
+
     <light name="sun" type="directional">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -21,15 +23,53 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <include>
+    <model name="water_plane">
+      <static>true</static>
+      <link name="link">
+        <visual name="water_plane">
+          <geometry>
+            <plane>
+              <size>100 100</size>
+              <normal>0 0 1</normal>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0 0 1 0.5</ambient>
+            <diffuse>0 0 1 0.5</diffuse>
+            <specular>0 0 1 0.5</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="MBARI_WEC">
       <pose relative_to="world">0 0 -2 0 0 0</pose>
-      <uri>model://mbari_wec</uri>
+
+      <include merge="true">
+        <uri>model://mbari_wec</uri>
+      </include>
 
       <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
         <PistonArea>1.375</PistonArea>
         <HydMotorDisp>0.30</HydMotorDisp>
         <RotorInertia>1</RotorInertia>
+      </plugin>
+      
+      <plugin filename="SpringController" name="buoy_gazebo::SpringController">
+        <JointName>HydraulicRam</JointName>
+        <namespace>/</namespace>
+        <node_name>spring_controller</node_name>
+        <topic>sc_record</topic>
+        <publish_rate>31</publish_rate>
+      </plugin>
+      
+      <plugin filename="XBowAHRS" name="buoy_gazebo::XBowAHRS">
+        <namespace>/</namespace>
+        <node_name>xbow_ahrs</node_name>
+        <xb_topic>xb_record</xb_topic>
+        <imu_topic>xb_imu</imu_topic>
+        <publish_rate>17</publish_rate>
       </plugin>
 
       <!-- Add Upper/Lower Polytropic Spring plugin -->
@@ -94,6 +134,6 @@
         <nRR>0</nRR>
         <nR>0</nR>
       </plugin>
-    </include>
+    </model>
   </world>
 </sdf>

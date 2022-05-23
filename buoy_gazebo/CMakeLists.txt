@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 project(buoy_gazebo)
 
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(buoy_msgs REQUIRED)
 
 find_package(ignition-cmake2 REQUIRED)
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
@@ -32,7 +34,7 @@ set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 # [INCLUDE_DIRS]: Specify a list of path to directories to be included,
 #
 function(gz_add_plugin plugin_name)
-  set(options)
+  set(options ROS)
   set(oneValueArgs)
   set(multiValueArgs
     SOURCES
@@ -54,6 +56,9 @@ function(gz_add_plugin plugin_name)
     PRIVATE
       ${gz_add_plugin_PRIVATE_LINK_LIBS}
   )
+  if(gz_add_plugin_ROS)
+    ament_target_dependencies(${plugin_name} PUBLIC rclcpp buoy_msgs)
+  endif()
   target_include_directories(${plugin_name}
       PUBLIC ${gz_add_plugin_INCLUDE_DIRS})
   install(
@@ -68,6 +73,7 @@ add_subdirectory(src)
 install(DIRECTORY
   worlds
   launch
+  gazebo
   DESTINATION share/${PROJECT_NAME}/
 )
 

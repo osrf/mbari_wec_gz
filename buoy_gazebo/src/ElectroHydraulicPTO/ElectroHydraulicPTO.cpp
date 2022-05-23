@@ -422,19 +422,43 @@ void ElectroHydraulicPTO::PreUpdate(
   //           << "  " << this->dataPtr->WindingCurrent << "  "  << I_Batt << "   "
   //           << I_Load << std::endl;
 
+  auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
-  ignition::msgs::Double pistonvel, rpm, deltap, targwindcurr, windcurr,
-    battcurr, loadcurr, scalefactor, retractfactor;
+  ignition::msgs::Double pistonvel;
+  pistonvel.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   pistonvel.set_data(xdot);
-  rpm.set_data(N);
-  deltap.set_data(deltaP);
-  targwindcurr.set_data(this->dataPtr->TargetWindingCurrent);
-  windcurr.set_data(this->dataPtr->WindingCurrent);
-  battcurr.set_data(I_Batt);
-  loadcurr.set_data(I_Load);
-  scalefactor.set_data(this->dataPtr->functor.I_Wind.ScaleFactor);
-  retractfactor.set_data(this->dataPtr->functor.I_Wind.RetractFactor);
 
+  ignition::msgs::Double rpm;
+  rpm.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
+  rpm.set_data(N);
+
+  ignition::msgs::Double deltap;
+  deltap.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
+  deltap.set_data(deltaP);
+
+  ignition::msgs::Double targwindcurr;
+  targwindcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
+  targwindcurr.set_data(this->dataPtr->TargetWindingCurrent);
+
+  ignition::msgs::Double windcurr;
+  windcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
+  windcurr.set_data(this->dataPtr->WindingCurrent);
+
+  ignition::msgs::Double battcurr;
+  battcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
+  battcurr.set_data(I_Batt);
+
+  ignition::msgs::Double loadcurr;
+  loadcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
+  loadcurr.set_data(I_Load);
+
+  ignition::msgs::Double scalefactor;
+  scalefactor.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
+  scalefactor.set_data(this->dataPtr->functor.I_Wind.ScaleFactor);
+
+  ignition::msgs::Double retractfactor;
+  retractfactor.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
+  retractfactor.set_data(this->dataPtr->functor.I_Wind.RetractFactor);
 
   if (!pistonvel_pub.Publish(pistonvel)) {
     ignerr << "could not publish pistonvel" << std::endl;
