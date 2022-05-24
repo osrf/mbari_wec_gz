@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(buoy_gazebo)
 
+#set( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG=0 -D_DEBUG=0" )
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(buoy_msgs REQUIRED)
@@ -10,7 +12,6 @@ find_package(ignition-plugin1 REQUIRED COMPONENTS register)
 set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
 find_package(ignition-gazebo6 REQUIRED)
 set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
-
 
 # Plugins
 #
@@ -60,7 +61,8 @@ function(gz_add_plugin plugin_name)
     ament_target_dependencies(${plugin_name} PUBLIC rclcpp buoy_msgs)
   endif()
   target_include_directories(${plugin_name}
-      PUBLIC ${gz_add_plugin_INCLUDE_DIRS})
+    PUBLIC
+      ${gz_add_plugin_INCLUDE_DIRS})
   install(
     TARGETS ${plugin_name}
     DESTINATION lib)
