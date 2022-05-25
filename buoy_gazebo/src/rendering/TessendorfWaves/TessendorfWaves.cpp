@@ -21,11 +21,11 @@
 #include <mutex>
 #include <string>
 
-#include <OgreEntity.h>
-#include <OgreMesh.h>
-#include <ignition/rendering/ogre/OgreConversions.hh>
-#include <ignition/rendering/ogre/OgreGeometry.hh>
-#include <ignition/rendering/ogre/OgreMesh.hh>
+#include <OgreItem.h>
+#include <OgreMesh2.h>
+#include <ignition/rendering/ogre2/Ogre2Conversions.hh>
+#include <ignition/rendering/ogre2/Ogre2Geometry.hh>
+#include <ignition/rendering/ogre2/Ogre2Mesh.hh>
 
 #include <ignition/rendering/Visual.hh>
 #include <ignition/rendering/Mesh.hh>
@@ -73,7 +73,6 @@ void TessendorfWaves::Configure(const ignition::gazebo::Entity &_entity,
   this->dataPtr->connection =
     _eventMgr.Connect<ignition::gazebo::events::SceneUpdate>(
     std::bind(&TessendorfWavesPrivate::OnUpdate, this->dataPtr.get()));
-  ignerr << "configured TessendorfWaves on " << this->dataPtr->visualName << std::endl;
 }
 
 //////////////////////////////////////////////////
@@ -88,25 +87,18 @@ void TessendorfWaves::PreUpdate(
 //////////////////////////////////////////////////
 void TessendorfWavesPrivate::OnUpdate()
 {
-  ignerr << "1 OnUpdate TessendorfWavesPrivate" << std::endl;
-
   std::lock_guard<std::mutex> lock(this->mutex);
   if (this->visualName.empty())
     return;
-  ignerr << "2 OnUpdate TessendorfWavesPrivate" << std::endl;
 
   if (!this->scene)
     this->scene = ignition::rendering::sceneFromFirstRenderEngine();
-  ignerr << "3 OnUpdate TessendorfWavesPrivate" << std::endl;
 
   if (!this->scene)
     return;
-  ignerr << "4 OnUpdate TessendorfWavesPrivate" << std::endl;
 
   if (!this->visual)
   {
-    ignerr << "5 OnUpdate TessendorfWavesPrivate" << std::endl;
-
     // this does a breadth first search for visual with the entity id
     // \todo(anyone) provide a helper function in RenderUtil to search for
     // visual by entity id?
@@ -133,69 +125,60 @@ void TessendorfWavesPrivate::OnUpdate()
         nodes.push_back(n->ChildByIndex(i));
     }
   }
-  ignerr << "6 OnUpdate TessendorfWavesPrivate" << std::endl;
 
   if (!this->visual)
     return;
 
-  ignerr << "7 OnUpdate TessendorfWavesPrivate geometry count = " << this->visual->GeometryCount() << std::endl;
-
   ignition::rendering::GeometryPtr geo = this->visual->GeometryByIndex(0U);
-  if (geo)
+  ignition::rendering::MeshPtr derived = \
+    std::dynamic_pointer_cast<ignition::rendering::Mesh>(geo);
+  ignition::rendering::Ogre2MeshPtr ogre_derived = \
+    std::dynamic_pointer_cast<ignition::rendering::Ogre2Mesh>(derived);
+  Ogre::MovableObject *movable = ogre_derived->OgreObject();
+  Ogre::Item *ogreItem = static_cast<Ogre::Item*>(movable);
+
+  // mesh data to retrieve
+  size_t vertexCount;
+  size_t indexCount;
+  Ogre::Vector3 *vertices;
+  Ogre::uint32 *indices;
+
+  // Get the mesh information
+  mesh_utils::getMeshInformation(ogreItem->getMesh(), vertexCount,
+    vertices, indexCount, indices,
+    ogreItem->getParentNode()->_getDerivedPosition(),
+    ogreItem->getParentNode()->_getDerivedOrientation(),
+    ogreItem->getParentNode()->_getDerivedScale());
+  ignerr << vertexCount << std::endl;
+  /*
+  
+  Ogre::SubMesh* subMesh = mesh->getSubMesh(0);
+  Ogre::VertexArrayObjectArray vaos = subMesh->mVao[0];
+
+  if (!vaos.empty())
   {
-    ignerr << "7.1 OnUpdate TessendorfWavesPrivate " << geo << std::endl;
+      const Ogre::VertexBufferPackedVec& vertexBuffers = vaos[0]->getVertexBuffers();
+      auto count = vertexBuffers[0]->getNumElements();
+      AsyncTicketPtr asyncTicket = vertexBuffers[0]->readRequest(0, vertexBuffers[0]->getNumElements());
+      const uint8* vertexData = static_cast<const uint8*>(asyncTicket->map());
+      void* data = malloc(vertexBuffers[0]->getTotalSizeBytes());
+      memcpy(data, vertexData, vertexBuffers[0]->getTotalSizeBytes());
+      asyncTicket->unmap();
+      struct Vertices {
+          float px, py, pz;
+          float nx, ny, nz;
+          float texx, texy;
+      };
+      //some temp manipulation with data
+      float* start = reinterpret_cast<float*>(data);
+      float px = *start++;
+      float py = *start++;
+      float pz = *start++;
+
+      py = 44;
+      vertexBuffers[0]->upload(data, 0, vertexBuffers[0]->getNumElements());
   }
-  ignerr << "8 OnUpdate TessendorfWavesPrivate" << std::endl;
-  ignition::rendering::MeshPtr derived(std::dynamic_pointer_cast<ignition::rendering::Mesh>(geo));
-  ignerr << "9 OnUpdate TessendorfWavesPrivate " << derived << std::endl;
-  if (derived)
-  {
-    ignition::rendering::OgreMeshPtr ogre_derived(std::dynamic_pointer_cast<ignition::rendering::OgreMesh>(derived));
-    if (ogre_derived)
-    {
-      ignerr << "9.1 OnUpdate TessendorfWavesPrivate " << ogre_derived << std::endl;
-      Ogre::MovableObject *movable = ogre_derived->OgreObject();
-      ignerr << "10 OnUpdate TessendorfWavesPrivate" << std::endl;
-
-      Ogre::Entity *ogreEntity = static_cast<Ogre::Entity*>(movable);
-      ignerr << "11 OnUpdate TessendorfWavesPrivate" << std::endl;
-
-      // mesh data to retrieve
-      size_t vertexCount;
-      size_t indexCount;
-      Ogre::Vector3 *vertices;
-      uint64_t *indices;
-
-      if (ogreEntity)
-      {
-        ignerr << "12 OnUpdate TessendorfWavesPrivate" << std::endl;
-        if (ogreEntity->getMesh().get())
-        {
-          ignerr << "13 OnUpdate TessendorfWavesPrivate" << std::endl;
-
-          // Get the mesh information
-          mesh_utils::getMeshInformation(ogreEntity->getMesh().get(), vertexCount,
-            vertices, indexCount, indices,
-            ignition::rendering::OgreConversions::Convert(
-              ogreEntity->getParentNode()->_getDerivedPosition()),
-            ignition::rendering::OgreConversions::Convert(
-              ogreEntity->getParentNode()->_getDerivedOrientation()),
-            ignition::rendering::OgreConversions::Convert(
-              ogreEntity->getParentNode()->_getDerivedScale()));
-
-          ignerr << vertexCount << std::endl;
-        }
-      }
-    }
-    else
-    {
-      ignerr << "ogre derived not init OnUpdate TessendorfWavesPrivate" << std::endl;
-    }
-  }
-  else
-  {
-    ignerr << "derived not init OnUpdate TessendorfWavesPrivate" << std::endl;
-  }
+*/
 }
 }  // namespace buoy
 

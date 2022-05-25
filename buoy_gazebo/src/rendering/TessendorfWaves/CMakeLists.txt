@@ -1,9 +1,7 @@
 set(OpenGL_GL_PREFERENCE "GLVND")
-find_package(ignition-rendering6 REQUIRED COMPONENTS ogre)
+find_package(ignition-rendering6 REQUIRED COMPONENTS ogre2)
 set(IGN_RENDERING_VER ${ignition-rendering6_VERSION_MAJOR})
-list(APPEND ign_ogre_components "Paging") #"RTShaderSystem" "Terrain" "Overlay" "Paging")
-ign_find_package(IgnOGRE VERSION 1.9.0
-  COMPONENTS ${ign_ogre_components})
+ign_find_package(IgnOGRE2 VERSION 2.2.0)
 
 find_package(ignition-math6 REQUIRED)
 set(IGN_RENDERING_VER ${ignition-math6_VERSION_MAJOR})
@@ -13,10 +11,10 @@ gz_add_plugin(TessendorfWaves
     TessendorfWaves.cpp
     MeshUtils.cpp
   INCLUDE_DIRS
-    ${OGRE_INCLUDE_DIRS}
+    ${OGRE2_INCLUDE_DIRS}
   PUBLIC_LINK_LIBS
     ignition-rendering${IGN_RENDERING_VER}::ignition-rendering${IGN_RENDERING_VER}
-    ignition-rendering${IGN_RENDERING_VER}::ignition-rendering${IGN_RENDERING_VER}-ogre
+    ignition-rendering${IGN_RENDERING_VER}::ignition-rendering${IGN_RENDERING_VER}-ogre2
     ignition-math${IGN_RENDERING_VER}::ignition-math${IGN_RENDERING_VER}
-    ${OGRE_LIBRARIES}
+    ${OGRE2_LIBRARIES}
 )

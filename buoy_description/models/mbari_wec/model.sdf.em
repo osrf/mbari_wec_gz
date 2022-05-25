@@ -64,7 +64,6 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
         </inertia>
       </inertial>
       <visual name="visual">
-        <plugin filename="TessendorfWaves" name="buoy::TessendorfWaves"/>
         <geometry>
           <mesh>
             <uri>meshes/buoy_float.stl</uri>
