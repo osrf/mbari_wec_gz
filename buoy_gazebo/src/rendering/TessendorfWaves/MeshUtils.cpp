@@ -157,6 +157,8 @@ void getV1MeshInformation(const Ogre::v1::MeshPtr mesh,
 void getMeshInformation(const Ogre::MeshPtr mesh,
   size_t &vertex_count,
   Ogre::Vector3* &vertices,
+  Ogre::Vector3* &normals,
+  Ogre::Vector3* &textures,
   size_t &index_count,
   Ogre::uint32* &indices,
   const Ogre::Vector3 &position,
@@ -179,6 +181,8 @@ void getMeshInformation(const Ogre::MeshPtr mesh,
   }
 
   vertices = new Ogre::Vector3[numVertices];
+  normals = new Ogre::Vector3[numVertices];
+  textures = new Ogre::Vector3[numVertices];
   indices = new Ogre::uint32[numIndices];
 
   vertex_count = numVertices;
@@ -215,28 +219,48 @@ void getMeshInformation(const Ogre::MeshPtr mesh,
       unsigned int subMeshVerticiesNum = requests[0].vertexBuffer->getNumElements();
       if (requests[0].type == Ogre::VET_HALF4)
       {
+        ignerr << "VET_HALF4" << std::endl;
         for (size_t i = 0; i < subMeshVerticiesNum; ++i)
         {
           const Ogre::uint16* pos = reinterpret_cast<const Ogre::uint16*>(requests[0].data);
-          Ogre::Vector3 vec;
-          vec.x = Ogre::Bitwise::halfToFloat(pos[0]);
-          vec.y = Ogre::Bitwise::halfToFloat(pos[1]);
-          vec.z = Ogre::Bitwise::halfToFloat(pos[2]);
+          Ogre::Vector3 p;
+          Ogre::Vector3 n;
+          Ogre::Vector3 tex;
+          p.x = Ogre::Bitwise::halfToFloat(*pos++);
+          p.y = Ogre::Bitwise::halfToFloat(*pos++);
+          p.z = Ogre::Bitwise::halfToFloat(*pos++);
+          n.x = Ogre::Bitwise::halfToFloat(*pos++);
+          n.y = Ogre::Bitwise::halfToFloat(*pos++);
+          n.z = Ogre::Bitwise::halfToFloat(*pos++);
+          tex.x = Ogre::Bitwise::halfToFloat(*pos++);
+          tex.y = Ogre::Bitwise::halfToFloat(*pos++);
           requests[0].data += requests[0].vertexBuffer->getBytesPerElement();
-          vertices[i + subMeshOffset] = (orient * (vec * scale)) + position;
+          vertices[i + subMeshOffset] = (orient * (p * scale)) + position;
+          normals[i + subMeshOffset] = (orient * (n * scale)) + position;
+          textures[i + subMeshOffset] = tex;
         }
       }
       else if (requests[0].type == Ogre::VET_FLOAT3)
       {
+        ignerr << "VET_FLOAT3" << std::endl;
         for (size_t i = 0; i < subMeshVerticiesNum; ++i)
         {
           const float* pos = reinterpret_cast<const float*>(requests[0].data);
-          Ogre::Vector3 vec;
-          vec.x = *pos++;
-          vec.y = *pos++;
-          vec.z = *pos++;
+          Ogre::Vector3 p;
+          Ogre::Vector3 n;
+          Ogre::Vector3 tex;
+          p.x = *pos++;
+          p.y = *pos++;
+          p.z = *pos++;
+          n.x = *pos++;
+          n.y = *pos++;
+          n.z = *pos++;
+          tex.x = *pos++;
+          tex.y = *pos++;
           requests[0].data += requests[0].vertexBuffer->getBytesPerElement();
-          vertices[i + subMeshOffset] = (orient * (vec * scale)) + position;
+          vertices[i + subMeshOffset] = (orient * (p * scale)) + position;
+          normals[i + subMeshOffset] = (orient * (n * scale)) + position;
+          textures[i + subMeshOffset] = tex;
         }
       }
       else

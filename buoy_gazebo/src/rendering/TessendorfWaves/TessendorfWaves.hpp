@@ -12,12 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef RENDERING__TESSENDORFWAVES__TESSENDORFWAVES_HPP_
+#define RENDERING__TESSENDORFWAVES__TESSENDORFWAVES_HPP_
+
 #include <memory>
 
 #include <ignition/gazebo/System.hh>
 
 namespace buoy
 {
+#pragma pack(push,1)
+struct Vertices {
+  float px, py, pz;
+  float nx, ny, nz;
+  float texx, texy;
+};
+#pragma pack(pop)
+
 class TessendorfWavesPrivate;
 
 class TessendorfWaves
@@ -49,3 +60,8 @@ private:
 };
 
 }  // namespace buoy
+
+std::ostream & operator<<(std::ostream &os, const buoy::Vertices &verts);
+
+#endif  // RENDERING__TESSENDORFWAVES__TESSENDORFWAVES_HPP_
+

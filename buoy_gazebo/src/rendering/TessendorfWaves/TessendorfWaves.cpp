@@ -21,8 +21,16 @@
 #include <mutex>
 #include <string>
 
+#include <OgreMesh.h>
+#include <OgreMeshManager.h>
 #include <OgreItem.h>
+#include <OgreResource.h>
 #include <OgreMesh2.h>
+#include <OgreSubMesh2.h>
+#include <OgreMeshManager2.h>
+#include <Vao/OgreStagingBuffer.h>
+#include <Vao/OgreVaoManager.h>
+#include <Vao/OgreAsyncTicket.h>
 #include <ignition/rendering/ogre2/Ogre2Conversions.hh>
 #include <ignition/rendering/ogre2/Ogre2Geometry.hh>
 #include <ignition/rendering/ogre2/Ogre2Mesh.hh>
@@ -48,6 +56,7 @@ struct TessendorfWavesPrivate
   ignition::gazebo::Entity entity = ignition::gazebo::kNullEntity;
   std::chrono::steady_clock::duration currentSimTime;
   ignition::common::ConnectionPtr connection{nullptr};
+  Ogre::MeshPtr mesh_;
   
   void OnUpdate();
 };
@@ -55,7 +64,6 @@ struct TessendorfWavesPrivate
 TessendorfWaves::TessendorfWaves()
   : dataPtr(std::make_unique<TessendorfWavesPrivate>())
 {
-
 }
 
 void TessendorfWaves::Configure(const ignition::gazebo::Entity &_entity,
@@ -130,57 +138,138 @@ void TessendorfWavesPrivate::OnUpdate()
     return;
 
   ignition::rendering::GeometryPtr geo = this->visual->GeometryByIndex(0U);
-  ignition::rendering::MeshPtr derived = \
-    std::dynamic_pointer_cast<ignition::rendering::Mesh>(geo);
-  ignition::rendering::Ogre2MeshPtr ogre_derived = \
-    std::dynamic_pointer_cast<ignition::rendering::Ogre2Mesh>(derived);
-  Ogre::MovableObject *movable = ogre_derived->OgreObject();
-  Ogre::Item *ogreItem = static_cast<Ogre::Item*>(movable);
+  ignition::rendering::Ogre2MeshPtr derived = \
+    std::dynamic_pointer_cast<ignition::rendering::Ogre2Mesh>(geo);
+  //ignition::rendering::Ogre2MeshPtr ogre_derived = \
+  //  std::dynamic_pointer_cast<ignition::rendering::Ogre2Mesh>(derived);
+  Ogre::Item *ogreItem = derived->OgreObject();
+  //Ogre::MovableObject *movable = ogre_derived->OgreObject();
+  //Ogre::Item *ogreItem = static_cast<Ogre::Item*>(movable);
+  
+  Ogre::SubMesh* subMesh{nullptr};
+  static bool clone = true;
+  if (clone)
+  {
+    this->mesh_ = ogreItem->getMesh()->clone("mutable_ocean",
+      Ogre::BLANKSTRING, Ogre::BT_DEFAULT, Ogre::BT_DEFAULT);
 
+    this->visual->RemoveGeometries();
+
+    ignition::rendering::Ogre2MeshPtr mutable_ocean{derived};
+    mutable_ocean->OgreObject() = this->mesh_
+    this->visual->AddGeometry(
+      this->mesh_
+    clone = false;
+    subMesh = this->mesh_->getSubMesh(0);
+  }
+
+
+  Ogre::VertexArrayObjectArray vaos = subMesh->mVao[0];
+  if (!vaos.empty())
+  {
+    const Ogre::VertexBufferPackedVec& vertexBuffers = vaos[0]->getVertexBuffers();
+    Ogre::StagingBuffer *stagingBuffer =
+      ogreItem->getMesh()->_getVaoManager()->getStagingBuffer(
+        vertexBuffers[0]->getTotalSizeBytes(), true);
+
+    Ogre::AsyncTicketPtr asyncTicket = vertexBuffers[0]->readRequest(
+      0, vertexBuffers[0]->getNumElements());
+
+    float const *srcData = reinterpret_cast<float const *>(asyncTicket->map());
+    float *dstData = reinterpret_cast<float *>(
+      stagingBuffer->map(
+        vertexBuffers[0]->getTotalSizeBytes()));
+
+    memcpy(dstData, srcData, vertexBuffers[0]->getTotalSizeBytes());
+    
+    Vertices* start = reinterpret_cast<Vertices*>(dstData);
+    start[0U].pz = 50.0F;
+
+    // Copy data from Staging to real buffer (GPU -> GPU)
+    stagingBuffer->unmap(
+      Ogre::StagingBuffer::Destination(
+        vertexBuffers[0],
+        vertexBuffers[0]->getTotalSizeBytes(), 0,
+        vertexBuffers[0]->getTotalSizeBytes()));
+
+    stagingBuffer->removeReferenceCount();
+    asyncTicket->unmap();
+  }
+
+/*
   // mesh data to retrieve
   size_t vertexCount;
   size_t indexCount;
   Ogre::Vector3 *vertices;
+  Ogre::Vector3 *normals;
+  Ogre::Vector3 *textures;
   Ogre::uint32 *indices;
 
   // Get the mesh information
   mesh_utils::getMeshInformation(ogreItem->getMesh(), vertexCount,
-    vertices, indexCount, indices,
+    vertices, normals, textures,
+    indexCount, indices,
     ogreItem->getParentNode()->_getDerivedPosition(),
     ogreItem->getParentNode()->_getDerivedOrientation(),
     ogreItem->getParentNode()->_getDerivedScale());
   ignerr << vertexCount << std::endl;
-  /*
-  
-  Ogre::SubMesh* subMesh = mesh->getSubMesh(0);
+*/
+/*
+  Ogre::SubMesh* subMesh = ogreItem->getMesh()->getSubMesh(0);
+  ogreItem->getMesh()->setVertexBufferPolicy(Ogre::BT_DEFAULT);
+  ignerr << "before reload: " << ogreItem->getMesh()->getLoadingState() << std::endl;
+  ogreItem->getMesh()->reload(Ogre::Resource::LF_PRESERVE_STATE);
+  ignerr << "after reload: " << ogreItem->getMesh()->getLoadingState() << std::endl;
+  //Ogre::SubMesh* newSubMesh = ogreItem->getMesh()->createSubMesh();
+  Ogre::SubMesh* newSubMesh = subMesh->clone(ogreItem->getMesh().get(), Ogre::BT_DEFAULT, -1);
+  ignerr << "num subs: " << ogreItem->getMesh()->getNumSubMeshes() << std::endl;
+*/
+/*
+  Ogre::SubMesh* subMesh = ogreItem->getMesh()->getSubMesh(0);
   Ogre::VertexArrayObjectArray vaos = subMesh->mVao[0];
 
   if (!vaos.empty())
   {
       const Ogre::VertexBufferPackedVec& vertexBuffers = vaos[0]->getVertexBuffers();
       auto count = vertexBuffers[0]->getNumElements();
-      AsyncTicketPtr asyncTicket = vertexBuffers[0]->readRequest(0, vertexBuffers[0]->getNumElements());
-      const uint8* vertexData = static_cast<const uint8*>(asyncTicket->map());
+      Ogre::AsyncTicketPtr asyncTicket = vertexBuffers[0]->readRequest(0, vertexBuffers[0]->getNumElements());
+      const uint8_t* vertexData = static_cast<const uint8_t*>(asyncTicket->map());
       void* data = malloc(vertexBuffers[0]->getTotalSizeBytes());
       memcpy(data, vertexData, vertexBuffers[0]->getTotalSizeBytes());
       asyncTicket->unmap();
-      struct Vertices {
-          float px, py, pz;
-          float nx, ny, nz;
-          float texx, texy;
-      };
-      //some temp manipulation with data
-      float* start = reinterpret_cast<float*>(data);
-      float px = *start++;
-      float py = *start++;
-      float pz = *start++;
 
-      py = 44;
-      vertexBuffers[0]->upload(data, 0, vertexBuffers[0]->getNumElements());
+      //some temp manipulation with data
+      Vertices* start = reinterpret_cast<Vertices*>(data);
+      for(size_t idx = 0U; idx < count; ++idx)
+      {
+        ignerr << "Vertex id: " << idx << std::endl;
+        ignerr << start[idx] << std::endl;
+        ignerr << vertices[idx] << std::endl;
+        ignerr << normals[idx] << std::endl;
+        ignerr << textures[idx] << std::endl;
+      }
+      
+      //static int counter = 0;
+      //if (counter++ < 1000)
+      //{
+      //  start[0U].pz += 0.1F;
+      //}
+      //vertexBuffers[0]->upload(data, 0, vertexBuffers[0]->getNumElements());
+      free(data);
   }
 */
+
 }
 }  // namespace buoy
+
+std::ostream & operator<<(std::ostream &os, const buoy::Vertices &verts)
+{
+  os << "Vertices:" << std::endl;
+  os << "\t" << verts.px << ", " << verts.py << ", " << verts.pz << std::endl;
+  os << "\t" << verts.nx << ", " << verts.ny << ", " << verts.nz << std::endl;
+  os << "\t" << verts.texx << ", " << verts.texy << std::endl;
+  return os;
+}
 
 IGNITION_ADD_PLUGIN(
   buoy::TessendorfWaves,
