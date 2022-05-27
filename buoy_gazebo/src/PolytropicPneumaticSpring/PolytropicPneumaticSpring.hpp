@@ -98,9 +98,11 @@ public:
     ignition::gazebo::EntityComponentManager & _ecm) override;
 
 private:
-  void openValve(const int dt_nano,
+  void openValve(
+    const int dt_nano,
     double & P0, double & V0);
-  void openValve(const int dt_nano,
+  void openValve(
+    const int dt_nano,
     double & P1, double & V1,
     double & P2, double & V2);
   void computeForce(const double & x, const double & v, const double & n);

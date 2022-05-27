@@ -42,7 +42,7 @@ struct PolytropicPneumaticSpringPrivate
 {
   /// \brief Name of cylinder
   std::string name;
-  
+
   bool is_upper;
 
   /// \brief is hysteresis present in piston travel direction
@@ -82,7 +82,6 @@ struct PolytropicPneumaticSpringPrivate
 
   /// \brief mass of gas (kg)
   double mass{0.0};
-  double delta_mass{0.0};
 
   /// \brief c=mR(specific) (Pa*m^3)/K
   double c{0.0};
@@ -147,16 +146,13 @@ void PolytropicPneumaticSpring::openValve(
   double dt_sec = dt_nano * 1e-9;
   static const double absement{5e-6};  // measure of valve opening cross-section and duration
                                        // units of meter-seconds
-  double mass_flow = absement*this->dataPtr->P;  // P in Pascals (kg/(m*s^2) so, mass_flow in kg/s
-  double delta_mass = dt_sec*mass_flow;  // kg of gas per step
-  if (this->dataPtr->is_upper)
-  {
+  double mass_flow = absement * this->dataPtr->P;  // P in Pascals (kg/(m*s^2) so, mass_flow in kg/s
+  double delta_mass = dt_sec * mass_flow;  // kg of gas per step
+  if (this->dataPtr->is_upper) {
     this->dataPtr->mass += delta_mass;
     P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V1;
     P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V2;
-  }
-  else
-  {
+  } else {
     this->dataPtr->mass -= delta_mass;
     P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V1;
     P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V2;
@@ -196,7 +192,8 @@ void PolytropicPneumaticSpring::Configure(
   ignwarn << "name: " << this->dataPtr->name << std::endl;
 
   this->dataPtr->is_upper = _sdf->Get<bool>("is_upper");
-  ignwarn << "is upper? " << std::boolalpha << this->dataPtr->is_upper << std::noboolalpha << std::endl;
+  ignwarn << "is upper? " << std::boolalpha << this->dataPtr->is_upper << std::noboolalpha <<
+    std::endl;
 
   this->dataPtr->stroke = SdfParamDouble(_sdf, "stroke", 2.03);
   this->dataPtr->pistonArea = SdfParamDouble(_sdf, "piston_area", 0.0127);
@@ -299,9 +296,8 @@ void PolytropicPneumaticSpring::Configure(
     ignerr << "Error advertising topic [" << heat_rate_topic << "]" << std::endl;
     return;
   }
-  
-  if (this->dataPtr->is_upper)
-  {
+
+  if (this->dataPtr->is_upper) {
     std::string piston_velocity_topic = std::string("/piston_velocity_") + this->dataPtr->name;
     piston_velocity_pub = node.Advertise<ignition::msgs::Double>(piston_velocity_topic);
     if (!piston_velocity_pub) {
@@ -374,34 +370,29 @@ void PolytropicPneumaticSpring::PreUpdate(
     // =====================
     static size_t count{0U};
     static bool once = true;
-    if (once && (count++ > static_cast<int>(20U / 0.001F)))
-    {
+    if (once && (count++ > static_cast<int>(20U / 0.001F))) {
       once = false;
       spring_state_comp->Data().valve_command = true;
       spring_state_comp->Data().command_duration = 5s;
     }
     // =====================
 
-    if (spring_state_comp->Data().valve_command || spring_state_comp->Data().pump_command)
-    {
-      if (!spring_state_comp->Data().command_watch.Running())
-      {
+    if (spring_state_comp->Data().valve_command || spring_state_comp->Data().pump_command) {
+      if (!spring_state_comp->Data().command_watch.Running()) {
         spring_state_comp->Data().command_watch.Start(true);
-        this->dataPtr->delta_mass = 0.0;
-
-      } else if (spring_state_comp->Data().command_watch.ElapsedRunTime() >= \
+      } else {
+        if (spring_state_comp->Data().command_watch.ElapsedRunTime() >= \
           spring_state_comp->Data().command_duration)
-      {
-        spring_state_comp->Data().command_watch.Stop();
-
-        if (spring_state_comp->Data().valve_command)
         {
-          spring_state_comp->Data().valve_command = false;
-        }
+          spring_state_comp->Data().command_watch.Stop();
 
-        if (spring_state_comp->Data().pump_command)
-        {
-          spring_state_comp->Data().pump_command = false;
+          if (spring_state_comp->Data().valve_command) {
+            spring_state_comp->Data().valve_command = false;
+          }
+
+          if (spring_state_comp->Data().pump_command) {
+            spring_state_comp->Data().pump_command = false;
+          }
         }
       }
     }
@@ -423,8 +414,7 @@ void PolytropicPneumaticSpring::PreUpdate(
   if (this->dataPtr->hysteresis) {
     ignwarn << "hysteresis (" << this->dataPtr->name << "): " <<
       this->dataPtr->hysteresis << std::endl;
-    if (spring_state.valve_command)
-    {
+    if (spring_state.valve_command) {
       openValve(
         static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count()),
         this->dataPtr->P1, this->dataPtr->V1,
@@ -445,8 +435,7 @@ void PolytropicPneumaticSpring::PreUpdate(
       this->dataPtr->P0 = this->dataPtr->P2;
     }
   } else {
-    if (spring_state.valve_command)
-    {
+    if (spring_state.valve_command) {
       openValve(
         static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count()),
         this->dataPtr->P0, this->dataPtr->V0);
@@ -496,7 +485,7 @@ void PolytropicPneumaticSpring::PreUpdate(
   ignition::msgs::Double heat_rate;
   heat_rate.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   heat_rate.set_data(this->dataPtr->Q_rate);
-  
+
   ignition::msgs::Double piston_velocity;
   piston_velocity.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   piston_velocity.set_data(v);
@@ -521,8 +510,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     ignerr << "could not publish heat loss rate" << std::endl;
   }
 
-  if (this->dataPtr->is_upper)
-  {
+  if (this->dataPtr->is_upper) {
     if (!piston_velocity_pub.Publish(piston_velocity)) {
       ignerr << "could not publish piston velocity" << std::endl;
     }
