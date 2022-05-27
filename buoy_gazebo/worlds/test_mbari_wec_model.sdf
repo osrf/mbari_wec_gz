@@ -16,10 +16,10 @@
                 <izz>1476</izz>
             </inertia>
         </inertial>
-        <visual name="visual">
+        <visual name="visualBuoy">
             <geometry>
                 <mesh>
-                    <uri>meshes/buoy_float.stl</uri>
+                    <uri>model://mbari_wec/meshes/buoy_float.stl</uri>
                 </mesh>
             </geometry>
             <!--color-->
@@ -37,17 +37,6 @@
                 </box>
             </geometry>
         </collision>
-        <sensor name='xbow_imu' type='imu'>
-            <topic>Buoy_link/xbow_imu</topic>
-            <update_rate>50</update_rate>
-            <imu>
-                <orientation_reference_frame>
-                    <localization>ENU</localization>
-                </orientation_reference_frame>
-            </imu>
-            <always_on>1</always_on>
-            <visualize>true</visualize>
-        </sensor>
      </link>
 
       <link name="PTO">
@@ -64,10 +53,10 @@
             <izz>7.28</izz>
             </inertia>
         </inertial>
-        <visual name="visual">
+        <visual name="visualPTO">
             <geometry>
                 <mesh>
-                    <uri>meshes/pto.stl</uri>
+                    <uri>model://mbari_wec/meshes/pto.stl</uri>
                 </mesh>
             </geometry>
             <!--color-->
@@ -80,7 +69,7 @@
         <collision name="collision">
             <geometry>
                 <mesh>
-                    <uri>meshes/pto_collision.stl</uri>
+                    <uri>model://mbari_wec/meshes/pto_collision.stl</uri>
                 </mesh>
            </geometry>
         </collision>
@@ -100,10 +89,10 @@
           <izz>0.0216</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="visualPiston">
         <geometry>
           <mesh>
-            <uri>meshes/rod_and_piston.stl</uri>
+            <uri>model://mbari_wec/meshes/rod_and_piston.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -114,91 +103,13 @@
         </material>
       </visual>
     </link>
-    <frame name="PistonBottom" attached_to="Piston">
-      <pose>0 0 -5.08 0 0 0</pose>
-    </frame>
+    
 
-    <link name="HeaveCone">
-      <pose relative_to="PistonBottom">0 0 -20.3 0 0 0</pose>
-      <inertial>
-        <pose>0 0 -1.25 0 0 0</pose>
-        <mass>807</mass>
-        <inertia>
-          <ixx>339.8</ixx>
-          <ixy>0.16</ixy>
-          <ixz>-0.29</ixz>
-          <iyy>343.73</iyy>
-          <iyz>0.33</iyz>
-          <izz>613.52</izz>
-        </inertia>
-      </inertial>
-      <visual name="visual">
-        <geometry>
-          <mesh>
-            <uri>meshes/heave_cone.stl</uri>
-          </mesh>
-        </geometry>
-        <!--color-->
-        <material>
-          <ambient>0.1 0.1 .1 1</ambient>
-          <diffuse>0.1 0.1 .1 1</diffuse>
-          <specular>0.1 0.1 .1 1</specular>
-        </material>
-      </visual>
-      <collision name="collision">
-        <pose>0 0 -1.21 0 0 0 </pose>
-        <geometry>
-          <box>
-            <size>0.578 0.578 0.5771</size>
-          </box>
-        </geometry>
-      </collision>
-    </link>
-
-    <link name="Trefoil">
-      <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
-      <inertial>
-        <pose>0 0 -1.25 0 0 0</pose>
-        <mass>10</mass>
-        <inertia>
-          <ixx>10</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>10</iyy>
-          <iyz>0</iyz>
-          <izz>19.9</izz>
-        </inertia>
-      </inertial>
-      <visual name="visual">
-        <geometry>
-          <mesh>
-            <uri>meshes/trefoil.stl</uri>
-          </mesh>
-        </geometry>
-        <!--color-->
-        <material>
-          <ambient>0.1 0.1 .1 1</ambient>
-          <diffuse>0.1 0.1 .1 1</diffuse>
-          <specular>0.1 0.1 .1 1</specular>
-        </material>
-      </visual>
-    </link>
-
-    <joint name="Universal" type="ball">
+    <joint name="Universal" type="fixed">
       <parent>Buoy</parent>
       <child>PTO</child>
       <provide_feedback>1</provide_feedback>
       <pose>0.0 0.0 0.0 0 0 0</pose>
-      <sensor name="force_torque_sensor" type="force_torque">
-        <always_on>true</always_on>
-        <update_rate>50</update_rate>
-        <visualize>true</visualize>
-        <topic>Universal_joint/force_torque</topic>
-        <force_torque>
-          <frame>sensor</frame>
-          <measure_direction>parent_to_child</measure_direction>
-        </force_torque>
-      </sensor>
     </joint>
 
     <joint name="HydraulicRam" type="prismatic">
@@ -214,18 +125,9 @@
       </axis>
     </joint>
 
-    <joint name="TrefoilDoors" type="revolute">
-      <parent>HeaveCone</parent>
-      <child>Trefoil</child>
-      <provide_feedback>1</provide_feedback>
-      <pose>0.0 0.0 0.0 0 0 0</pose>
-      <axis>
-        <limit>
-          <lower>0.0</lower>
-          <upper>1.047</upper>
-        </limit>
-        <xyz>0.0 0.0 1.0</xyz>
-      </axis>
-    </joint>
+    <plugin
+        filename="ignition-gazebo-joint-state-publisher-system"
+        name="ignition::gazebo::systems::JointStatePublisher">
+    </plugin>
     </model>
 </sdf>
