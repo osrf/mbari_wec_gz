@@ -76,6 +76,7 @@
       <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
         <JointName>HydraulicRam</JointName>
         <chamber>upper_polytropic</chamber>
+        <is_upper>true</is_upper>
         <stroke>2.03</stroke>
         <piston_area>0.0127</piston_area>
         <dead_volume>0.0266</dead_volume>
@@ -95,6 +96,7 @@
       <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
         <JointName>HydraulicRam</JointName>
         <chamber>lower_polytropic</chamber>
+        <is_upper>false</is_upper>
         <stroke>2.03</stroke>
         <piston_area>0.0115</piston_area>
         <dead_volume>0.0523</dead_volume>

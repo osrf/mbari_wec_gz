@@ -19,6 +19,8 @@
 #include <ignition/gazebo/components/Component.hh>
 #include <ignition/gazebo/config.hh>
 
+#include <ignition/math/Stopwatch.hh>
+
 namespace buoy_gazebo
 {
 
@@ -31,6 +33,10 @@ struct SpringState
   float lower_psi{0.0F};  // pressure in PSI
 
   // Commands
+  ignition::math::Stopwatch command_watch;
+  ignition::math::clock::duration command_duration;
+  bool valve_command{false};
+  bool pump_command{false};
 
   bool operator==(const SpringState & that) const
   {
@@ -42,9 +48,13 @@ struct SpringState
   }
 };
 
-using SpringStateComponent = ignition::gazebo::components::Component<SpringState,
+namespace components
+{
+using SpringState = ignition::gazebo::components::Component<buoy_gazebo::SpringState,
     class SpringStateTag>;
-IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.SpringState", SpringStateComponent)
+IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.components.SpringState", SpringState)
+}  // namespace components
+
 }  // namespace buoy_gazebo
 
 #endif  // POLYTROPICPNEUMATICSPRING__SPRINGSTATE_HPP_

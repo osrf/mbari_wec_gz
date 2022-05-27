@@ -98,6 +98,9 @@ public:
     ignition::gazebo::EntityComponentManager & _ecm) override;
 
 private:
+  void openValve(const double & x, const double & v, double & P, double & V);
+  void openValve(const double & x, const double & v,
+    double & P1, double & V1, double & P2, double & V2);
   void computeForce(const double & x, const double & v, const double & n);
 
   ignition::transport::Node node;

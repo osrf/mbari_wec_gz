@@ -33,6 +33,8 @@
 #include "ignition/gazebo/components/JointVelocityCmd.hh"
 #include "ignition/gazebo/Model.hh"
 
+using namespace std::chrono_literals;
+
 namespace buoy_gazebo
 {
 
@@ -40,65 +42,68 @@ struct PolytropicPneumaticSpringPrivate
 {
   /// \brief Name of cylinder
   std::string name;
+  
+  bool is_upper;
 
   /// \brief is hysteresis present in piston travel direction
-  bool hysteresis;
+  bool hysteresis{false};
 
   // SpringType type;
 
   /// \brief adiabatic index
-  double n, n1, n2;
+  double n{1.4}, n1{1.4}, n2{1.4};
 
   /// \brief piston stroke (m)
-  double stroke;
+  double stroke{2.03};
 
   /// \brief initial piston position (m)
-  double x0, x1, x2;
+  double x0{0.9921}, x1{0.9921}, x2{0.9921};
 
   /// \brief piston area (m^3)
-  double pistonArea;
+  double pistonArea{0.0127};
 
   /// \brief Piston-End Dead Volume (m^3)
-  double deadVolume;
+  double deadVolume{0.0266};
 
   /// \brief initial Pressure (Pa)
-  double P0, P1, P2;
+  double P0{410240}, P1{410240}, P2{410240};
 
   /// \brief initial Temp (K)
-  double T0;
+  double T0{283.15};
 
   /// \brief R (specific gas)
-  double R;
+  double R{0.2968};
 
   /// \brief specific heat of gas under constant pressure (kJ/(kg K))
-  double c_p;
+  double c_p{1.04};
 
   /// \brief initial Volume (m^3)
-  double V0, V1, V2;
+  double V0{0.0}, V1{0.0}, V2{0.0};
 
   /// \brief mass of gas (kg)
-  double mass;
+  double mass{0.0};
+  double delta_mass{0.0};
 
   /// \brief c=mR(specific) (Pa*m^3)/K
-  double c;
+  double c{0.0};
 
   /// \brief current Volume (m^3)
-  double V;
+  double V{0.0};
 
   /// \brief current Pressure of gas (Pa)
-  double P;
+  double P{0.0};
 
   /// \brief current Temperature of gas (K)
-  double T;
+  double T{0.0};
 
   /// \brief current Force of gas on piston (N)
-  double F;
+  double F{0.0};
 
   /// \brief current rate of heat loss (Watts)
-  double Q_rate;
+  double Q_rate{0.0};
 
   /// \brief move piston along prescribed velocity for sysID
-  bool debug_prescribed_velocity;
+  bool debug_prescribed_velocity{false};
 
   /// \brief Joint Entity
   ignition::gazebo::Entity jointEntity;
@@ -123,6 +128,79 @@ double SdfParamDouble(
   return _sdf->Get<double>(_field, _default).first;
 }
 
+void PolytropicPneumaticSpring::openValve(
+  const double & x, const double & v,
+  double & P, double & V)
+{
+  double _P{0.0}, _V{0.0};
+  openValve(x, v, P, V, _P, _V);
+}
+
+void PolytropicPneumaticSpring::openValve(
+  const double & x, const double & v,
+  double & P1, double & V1,
+  double & P2, double & V2)
+{
+  static const double desired_v = 1.0 * 0.0254;  // desired v = 1 inch/sec
+  ignerr << "Piston Velocity desired : " << desired_v << std::endl;
+  ignerr << "Piston Velocity actual : " << v << std::endl;
+  ignerr << "Piston Velocity error : " << desired_v - v << std::endl;
+/*
+  static double err1 = 0.0;
+  double err0 = err1;
+  err1 = desired_v - v;
+  ignerr << "is upper : " << std::boolalpha << this->dataPtr->is_upper << std::noboolalpha << std::endl;
+  // This is not right per units...
+  // double delta_mass = this->dataPtr->P*desired_v;
+  // Should be Pressure * Absement (Pascal = kg/(m*s^2)) * (m*s) = kg/s
+  // This might also work? -- unstable...
+  // double dV = this->dataPtr->deadVolume + v * this->dataPtr->pistonArea;
+  // double delta_mass = (this->dataPtr->P * dV) / (this->dataPtr->R * this->dataPtr->T);
+
+  // try this
+  const double Kp = 10.0, Ki = 1.0, Kd = 100.0;
+  const double dd = 0.5;
+  const double di = 0.5;
+  static double ud = 0.0;
+  ud *= dd;
+  ud += (1.0 - dd)*(err1 - err0);
+  static double ui = 0.0;
+  ui += err1;
+  ui = std::min(std::max(ui, -di), di);
+  this->dataPtr->delta_mass *= Kp;
+  this->dataPtr->delta_mass += Ki*ui + Kd*ud;
+  
+  ignerr << "delta_mass : " << this->dataPtr->delta_mass << std::endl;
+
+  // increase mass to increase pressure to extend piston mean position
+  if (this->dataPtr->is_upper)
+  {
+    this->dataPtr->mass += this->dataPtr->delta_mass;
+  } else {
+    // decrease mass to decrease pressure to extend piston mean position
+    this->dataPtr->mass -= this->dataPtr->delta_mass;
+  }
+
+  ignerr << "mass : " << this->dataPtr->mass << std::endl;
+*/
+
+  //V1 = this->dataPtr->deadVolume + x * this->dataPtr->pistonArea;
+  //P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T / V1;
+  //V2 = this->dataPtr->deadVolume + x * this->dataPtr->pistonArea;
+  //P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T / V2;
+  
+  if (this->dataPtr->is_upper)
+  {
+    P1 -= 10.0;
+    P2 -= 10.0;
+  }
+  else
+  {
+    P1 += 10.0;
+    P2 += 10.0;
+  }
+}
+
 //////////////////////////////////////////////////
 void PolytropicPneumaticSpring::computeForce(const double & x, const double & v, const double & n)
 {
@@ -131,7 +209,9 @@ void PolytropicPneumaticSpring::computeForce(const double & x, const double & v,
     pow(this->dataPtr->V0 / this->dataPtr->V, this->dataPtr->n);
   this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->c;
 
-  if (fabs(n - 1.4) < 1.0e-7) {this->dataPtr->Q_rate = 0.0;} else {
+  if (fabs(n - 1.4) < 1.0e-7) {
+    this->dataPtr->Q_rate = 0.0;
+  } else {
     this->dataPtr->Q_rate = (1.0 - n / 1.4) * (this->dataPtr->c_p / this->dataPtr->R) *
       this->dataPtr->P * this->dataPtr->pistonArea * v;
   }
@@ -152,6 +232,9 @@ void PolytropicPneumaticSpring::Configure(
 {
   this->dataPtr->name = _sdf->Get<std::string>("chamber", "upper_adiabatic").first;
   ignwarn << "name: " << this->dataPtr->name << std::endl;
+
+  this->dataPtr->is_upper = _sdf->Get<bool>("is_upper");
+  ignwarn << "is upper? " << std::boolalpha << this->dataPtr->is_upper << std::noboolalpha << std::endl;
 
   this->dataPtr->stroke = SdfParamDouble(_sdf, "stroke", 2.03);
   this->dataPtr->pistonArea = SdfParamDouble(_sdf, "piston_area", 0.0127);
@@ -306,13 +389,57 @@ void PolytropicPneumaticSpring::PreUpdate(
     return;
   }
 
+  buoy_gazebo::SpringState spring_state;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->jointEntity,
+      buoy_gazebo::components::SpringState().TypeId()))
+  {
+    auto spring_state_comp = \
+      _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity);
+
+    static size_t count{0U};
+    static bool once = true;
+    if (once && (count++ > static_cast<int>(20U / 0.001F)))
+    {
+      once = false;
+      spring_state_comp->Data().valve_command = true;
+      spring_state_comp->Data().command_duration = 5s;
+    }
+
+    if (spring_state_comp->Data().valve_command || spring_state_comp->Data().pump_command)
+    {
+      if (!spring_state_comp->Data().command_watch.Running())
+      {
+        spring_state_comp->Data().command_watch.Start(true);
+        this->dataPtr->delta_mass = 0.0;
+
+      } else if (spring_state_comp->Data().command_watch.ElapsedRunTime() >= \
+          spring_state_comp->Data().command_duration)
+      {
+        spring_state_comp->Data().command_watch.Stop();
+
+        if (spring_state_comp->Data().valve_command)
+        {
+          spring_state_comp->Data().valve_command = false;
+        }
+
+        if (spring_state_comp->Data().pump_command)
+        {
+          spring_state_comp->Data().pump_command = false;
+        }
+      }
+    }
+
+    spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
+  }
+
 
   // TODO(anyone): Figure out if (0) for the index is always correct,
   // some OR code has a process of finding the index for this argument.
   double x = jointPosComp->Data().at(0);
   double v = jointVelComp->Data().at(0);
   ignwarn << "velocity: " << v << std::endl;
-  if (this->dataPtr->name.compare(0, 5, std::string("upper")) == 0) {
+  if (this->dataPtr->is_upper) {
     x = this->dataPtr->stroke - x;
     v *= -1.0;
     ignwarn << "swap direction (" << this->dataPtr->name << ")" << std::endl;
@@ -321,6 +448,12 @@ void PolytropicPneumaticSpring::PreUpdate(
   if (this->dataPtr->hysteresis) {
     ignwarn << "hysteresis (" << this->dataPtr->name << "): " <<
       this->dataPtr->hysteresis << std::endl;
+    if (spring_state.valve_command)
+    {
+      openValve(x, v, this->dataPtr->P1, this->dataPtr->V1,
+        this->dataPtr->P2, this->dataPtr->V2);
+    }
+
     if (v >= 0.0) {
       this->dataPtr->n = this->dataPtr->n1;
       ignwarn << "polytropic index for increasing volume (" << this->dataPtr->name << "): " <<
@@ -334,10 +467,16 @@ void PolytropicPneumaticSpring::PreUpdate(
       this->dataPtr->V0 = this->dataPtr->V2;
       this->dataPtr->P0 = this->dataPtr->P2;
     }
+  } else {
+    if (spring_state.valve_command)
+    {
+      openValve(x, v, this->dataPtr->P0, this->dataPtr->V0);
+    }
   }
 
+  // TODO(anyone): use sensor to access to P (pressure sensor) and T (thermometer)
   computeForce(x, v, this->dataPtr->n);
-  if (this->dataPtr->name.compare(0, 5, std::string("upper")) == 0) {
+  if (this->dataPtr->is_upper) {
     this->dataPtr->F *= -1.0;
     ignwarn << "swap F for direction of piston (" << this->dataPtr->name << "): " <<
       this->dataPtr->F << std::endl;
@@ -345,29 +484,17 @@ void PolytropicPneumaticSpring::PreUpdate(
     ignwarn << "F (" << this->dataPtr->name << "):" << this->dataPtr->F << std::endl;
   }
 
-  // TODO(anyone): use sensor to access to F (load cell?), P (pressure sensor),
-  // and T (thermometer)
   auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
-  buoy_gazebo::SpringState spring_state;
-  if (_ecm.EntityHasComponentType(
-      this->dataPtr->jointEntity,
-      buoy_gazebo::SpringStateComponent().TypeId()))
-  {
-    auto spring_state_comp = \
-      _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->jointEntity);
-    spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
-  }
-
   const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
-  if (this->dataPtr->name.compare(0, 5, std::string("upper")) == 0) {
+  if (this->dataPtr->is_upper) {
     spring_state.range_finder = x;
     spring_state.upper_psi = PASCAL_TO_PSI * this->dataPtr->P;
   } else {
     spring_state.lower_psi = PASCAL_TO_PSI * this->dataPtr->P;
   }
 
-  _ecm.SetComponentData<buoy_gazebo::SpringStateComponent>(
+  _ecm.SetComponentData<buoy_gazebo::components::SpringState>(
     this->dataPtr->jointEntity,
     spring_state);
 

@@ -312,7 +312,7 @@ void SpringController::PostUpdate(
 
   if (!_ecm.EntityHasComponentType(
       this->dataPtr->jointEntity_,
-      buoy_gazebo::SpringStateComponent().TypeId()))
+      buoy_gazebo::components::SpringState().TypeId()))
   {
     // Pneumatic Spring hasn't updated values yet
     this->dataPtr->spring_data_valid_ = false;
@@ -320,7 +320,7 @@ void SpringController::PostUpdate(
   }
 
   auto spring_state_comp = \
-    _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->jointEntity_);
+    _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity_);
 
   // low prio data access
   std::unique_lock low(this->dataPtr->low_prio_mutex_);
