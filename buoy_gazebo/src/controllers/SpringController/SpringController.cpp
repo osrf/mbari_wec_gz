@@ -14,13 +14,13 @@
 
 #include "SpringController.hpp"
 
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/common/Profiler.hh>
-#include <ignition/plugin/Register.hh>
-#include <ignition/msgs/wrench.pb.h>
-#include <ignition/transport/Node.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/plugin/Register.hh>
+#include <gz/msgs/wrench.pb.h>
+#include <gz/transport/Node.hh>
+#include <gz/common/Profiler.hh>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
@@ -78,10 +78,10 @@ struct SpringControllerServices
 
 struct SpringControllerPrivate
 {
-  ignition::gazebo::Entity entity_{ignition::gazebo::kNullEntity};
-  ignition::gazebo::Entity jointEntity_{ignition::gazebo::kNullEntity};
-  ignition::transport::Node node_;
-  std::function<void(const ignition::msgs::Wrench &)> ft_cb_;
+  gz::sim::Entity entity_{gz::sim::kNullEntity};
+  gz::sim::Entity jointEntity_{gz::sim::kNullEntity};
+  gz::transport::Node node_;
+  std::function<void(const gz::msgs::Wrench &)> ft_cb_;
   std::chrono::steady_clock::duration current_time_;
 
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
@@ -328,7 +328,7 @@ struct SpringControllerPrivate
             services_->command_watch_.ElapsedRunTime().seconds() << "s)");
 
         igndbg << "piston moved: " << (state.range_finder - init_x) /
-        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
+        (services_->command_watch_.ElapsedRunTime().nanoseconds() * GZ_NANO_TO_SEC) <<
           " m/s" << std::endl;
       }
 
@@ -346,7 +346,7 @@ struct SpringControllerPrivate
               services_->command_watch_.ElapsedRunTime().seconds() << "s)");
 
           igndbg << "piston moved: " << (state.range_finder - init_x) /
-          (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
+          (services_->command_watch_.ElapsedRunTime().nanoseconds() * GZ_NANO_TO_SEC) <<
             " m/s" << std::endl;
         } else {
           // set pump toggle -- linear pump servo drives back and forth
@@ -444,13 +444,13 @@ SpringController::~SpringController()
 }
 
 void SpringController::Configure(
-  const ignition::gazebo::Entity & _entity,
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  ignition::gazebo::EntityComponentManager & _ecm,
-  ignition::gazebo::EventManager &)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager &)
 {
   // Make sure the controller is attached to a valid model
-  auto model = ignition::gazebo::Model(_entity);
+  auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
     ignerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
@@ -469,14 +469,14 @@ void SpringController::Configure(
   }
 
   this->dataPtr->jointEntity_ = model.JointByName(_ecm, jointName);
-  if (this->dataPtr->jointEntity_ == ignition::gazebo::kNullEntity) {
+  if (this->dataPtr->jointEntity_ == gz::sim::kNullEntity) {
     ignerr << "Joint with name[" << jointName << "] not found. " <<
       "The SpringController may not influence this joint.\n";
     return;
   }
 
   // controller scoped name
-  std::string scoped_name = ignition::gazebo::scopedName(_entity, _ecm, "/", false);
+  std::string scoped_name = gz::sim::scopedName(this->dataPtr->entity_, _ecm, "/", false);
 
   // ROS node
   std::string ns = _sdf->Get<std::string>("namespace", scoped_name).first;
@@ -492,7 +492,7 @@ void SpringController::Configure(
     "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm) << "]");
 
   // Force Torque Sensor
-  this->dataPtr->ft_cb_ = [this](const ignition::msgs::Wrench & _msg)
+  this->dataPtr->ft_cb_ = [this](const gz::msgs::Wrench & _msg)
     {
       // low prio data access
       std::unique_lock low(this->dataPtr->low_prio_mutex_);
@@ -561,10 +561,10 @@ void SpringController::Configure(
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 void SpringController::PreUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("SpringController::PreUpdate");
+  GZ_PROFILE("SpringController::PreUpdate");
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
@@ -598,10 +598,10 @@ void SpringController::PreUpdate(
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 void SpringController::PostUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  const ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  const gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("SpringController::PostUpdate");
+  GZ_PROFILE("SpringController::PostUpdate");
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
@@ -628,7 +628,7 @@ void SpringController::PostUpdate(
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
 
-  auto sec_nsec = ignition::math::durationToSecNsec(this->dataPtr->current_time_);
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
 
   this->dataPtr->ros_->sc_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->ros_->sc_record_.header.stamp.nanosec = sec_nsec.second;
@@ -649,9 +649,9 @@ void SpringController::PostUpdate(
 }
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::SpringController,
-  ignition::gazebo::System,
+  gz::sim::System,
   buoy_gazebo::SpringController::ISystemConfigure,
   buoy_gazebo::SpringController::ISystemPreUpdate,
   buoy_gazebo::SpringController::ISystemPostUpdate)

@@ -15,8 +15,8 @@
 #ifndef POLYTROPICPNEUMATICSPRING__POLYTROPICPNEUMATICSPRING_HPP_
 #define POLYTROPICPNEUMATICSPRING__POLYTROPICPNEUMATICSPRING_HPP_
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/transport.hh>
+#include <gz/sim/System.hh>
+#include <gz/transport.hh>
 
 #include <memory>
 
@@ -59,9 +59,10 @@ struct PolytropicPneumaticSpringPrivate;
 /// * `<P2>`: initial Pressure (Pa) for decreasing volume (if hysteresis)
 /// * `<debug_prescribed_velocity>`: will force joint to move sinusoidally for debugging
 
-class PolytropicPneumaticSpring : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPreUpdate
+class PolytropicPneumaticSpring :
+  public gz::sim::System,
+  public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPreUpdate
 {
 public:
   /// \brief Constructor
@@ -72,15 +73,15 @@ public:
 
   // Documentation inherited
   void Configure(
-    const ignition::gazebo::Entity & _entity,
+    const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager & _eventMgr) override;
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager & _eventMgr) override;
 
   // Documentation inherited
   void PreUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    gz::sim::EntityComponentManager & _ecm) override;
 
 private:
   /// \brief open valve to vent gas from lower to upper chamber
@@ -103,8 +104,8 @@ private:
     double & P2, const double & V2);
   void computeForce(const double & x, const double & v);
 
-  ignition::transport::Node node;
-  ignition::transport::Node::Publisher force_pub, pressure_pub, volume_pub,
+  gz::transport::Node node;
+  gz::transport::Node::Publisher force_pub, pressure_pub, volume_pub,
     temperature_pub, heat_rate_pub, piston_velocity_pub;
 
   /// \brief Private data pointer

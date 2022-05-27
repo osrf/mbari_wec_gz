@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 @{
-from ignition.math import Cylinderd
-from ignition.math import MassMatrix3d
-from ignition.math import Material
+from gz.math import Cylinderd
+from gz.math import MassMatrix3d
+from gz.math import Material
 import math
 
 ##############

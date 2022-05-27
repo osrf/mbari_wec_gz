@@ -13,21 +13,21 @@
 // limitations under the License.
 
 #include "ElectroHydraulicPTO.hpp"
-#include <ignition/common/Profiler.hh>
-#include <ignition/common/Console.hh>
-#include <ignition/gazebo/Types.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
-#include <ignition/gazebo/components/JointForceCmd.hh>
-#include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/math/PID.hh>
-#include <ignition/msgs.hh>
-#include <ignition/msgs/double.pb.h>
-#include <ignition/plugin/Register.hh>
-#include <ignition/transport/Node.hh>
+#include <gz/common/Profiler.hh>
+#include <gz/common/Console.hh>
+#include <gz/sim/Types.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
+#include <gz/sim/components/JointForceCmd.hh>
+#include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointVelocity.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/math/PID.hh>
+#include <gz/msgs.hh>
+#include <gz/msgs/double.pb.h>
+#include <gz/plugin/Register.hh>
+#include <gz/transport/Node.hh>
 
 #include <stdio.h>
 
@@ -51,7 +51,7 @@ class ElectroHydraulicPTOPrivate
 {
 public:
   /// \brief Piston joint entity
-  ignition::gazebo::Entity PrismaticJointEntity{ignition::gazebo::kNullEntity};
+  gz::sim::Entity PrismaticJointEntity{gz::sim::kNullEntity};
 
   /// \brief Piston area
   double PistonArea{1.0};
@@ -60,7 +60,7 @@ public:
   double RotorInertia{1.0};
 
   /// \brief Model interface
-  ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
+  gz::sim::Model model {gz::sim::kNullEntity};
 
   ElectroHydraulicSoln functor{};
 
@@ -74,8 +74,8 @@ public:
 
   bool VelMode{false};
 
-  /// \brief Ignition communication node.
-  ignition::transport::Node node;
+  /// \brief Gazebo communication node.
+  gz::transport::Node node;
 };
 
 //////////////////////////////////////////////////
@@ -97,12 +97,12 @@ double SdfParamDouble(
 
 //////////////////////////////////////////////////
 void ElectroHydraulicPTO::Configure(
-  const ignition::gazebo::Entity & _entity,
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  ignition::gazebo::EntityComponentManager & _ecm,
-  ignition::gazebo::EventManager & /*_eventMgr*/)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager & /*_eventMgr*/)
 {
-  this->dataPtr->model = ignition::gazebo::Model(_entity);
+  this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
     ignerr << "ElectroHydraulicPTO plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
@@ -122,7 +122,7 @@ void ElectroHydraulicPTO::Configure(
   this->dataPtr->PrismaticJointEntity = this->dataPtr->model.JointByName(
     _ecm,
     PrismaticJointName);
-  if (this->dataPtr->PrismaticJointEntity == ignition::gazebo::kNullEntity) {
+  if (this->dataPtr->PrismaticJointEntity == gz::sim::kNullEntity) {
     ignerr << "Joint with name [" << PrismaticJointName << "] not found. " <<
       "The ElectroHydraulicPTO may not influence this joint.\n";
     return;
@@ -143,63 +143,63 @@ void ElectroHydraulicPTO::Configure(
 
 
   std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
-  pistonvel_pub = node.Advertise<ignition::msgs::Double>(pistonvel_topic);
+  pistonvel_pub = node.Advertise<gz::msgs::Double>(pistonvel_topic);
   if (!pistonvel_pub) {
     ignerr << "Error advertising topic [" << pistonvel_topic << "]" << std::endl;
     return;
   }
 
   std::string rpm_topic = std::string("/rpm_") + PrismaticJointName;
-  rpm_pub = node.Advertise<ignition::msgs::Double>(rpm_topic);
+  rpm_pub = node.Advertise<gz::msgs::Double>(rpm_topic);
   if (!rpm_pub) {
     ignerr << "Error advertising topic [" << rpm_topic << "]" << std::endl;
     return;
   }
 
   std::string deltaP_topic = std::string("/deltaP_") + PrismaticJointName;
-  deltaP_pub = node.Advertise<ignition::msgs::Double>(deltaP_topic);
+  deltaP_pub = node.Advertise<gz::msgs::Double>(deltaP_topic);
   if (!deltaP_pub) {
     ignerr << "Error advertising topic [" << deltaP_topic << "]" << std::endl;
     return;
   }
 
   std::string targwindcurr_topic = std::string("/targwindcurr_") + PrismaticJointName;
-  targwindcurr_pub = node.Advertise<ignition::msgs::Double>(targwindcurr_topic);
+  targwindcurr_pub = node.Advertise<gz::msgs::Double>(targwindcurr_topic);
   if (!targwindcurr_pub) {
     ignerr << "Error advertising topic [" << targwindcurr_topic << "]" << std::endl;
     return;
   }
 
   std::string windcurr_topic = std::string("/windcurr_") + PrismaticJointName;
-  windcurr_pub = node.Advertise<ignition::msgs::Double>(windcurr_topic);
+  windcurr_pub = node.Advertise<gz::msgs::Double>(windcurr_topic);
   if (!windcurr_pub) {
     ignerr << "Error advertising topic [" << windcurr_topic << "]" << std::endl;
     return;
   }
 
   std::string battcurr_topic = std::string("/battcurr_") + PrismaticJointName;
-  battcurr_pub = node.Advertise<ignition::msgs::Double>(battcurr_topic);
+  battcurr_pub = node.Advertise<gz::msgs::Double>(battcurr_topic);
   if (!battcurr_pub) {
     ignerr << "Error advertising topic [" << battcurr_topic << "]" << std::endl;
     return;
   }
 
   std::string loadcurr_topic = std::string("/loadcurr_") + PrismaticJointName;
-  loadcurr_pub = node.Advertise<ignition::msgs::Double>(loadcurr_topic);
+  loadcurr_pub = node.Advertise<gz::msgs::Double>(loadcurr_topic);
   if (!loadcurr_pub) {
     ignerr << "Error advertising topic [" << loadcurr_topic << "]" << std::endl;
     return;
   }
 
   std::string scalefactor_topic = std::string("/scalefactor_") + PrismaticJointName;
-  scalefactor_pub = node.Advertise<ignition::msgs::Double>(scalefactor_topic);
+  scalefactor_pub = node.Advertise<gz::msgs::Double>(scalefactor_topic);
   if (!scalefactor_pub) {
     ignerr << "Error advertising topic [" << scalefactor_topic << "]" << std::endl;
     return;
   }
 
   std::string retractfactor_topic = std::string("/retractfactor_") + PrismaticJointName;
-  retractfactor_pub = node.Advertise<ignition::msgs::Double>(retractfactor_topic);
+  retractfactor_pub = node.Advertise<gz::msgs::Double>(retractfactor_topic);
   if (!retractfactor_pub) {
     ignerr << "Error advertising topic [" << retractfactor_topic << "]" << std::endl;
     return;
@@ -208,10 +208,10 @@ void ElectroHydraulicPTO::Configure(
 
 //////////////////////////////////////////////////
 void ElectroHydraulicPTO::PreUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("#ElectroHydraulicPTO::PreUpdate");
+  GZ_PROFILE("#ElectroHydraulicPTO::PreUpdate");
   // Nothing left to do if paused.
   if (_info.paused) {
     return;
@@ -219,8 +219,10 @@ void ElectroHydraulicPTO::PreUpdate(
 
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
 
+  GZ_PROFILE("#ElectroHydraulicPTO::PreUpdate");
+
   // If the joints haven't been identified yet, the plugin is disabled
-  if (this->dataPtr->PrismaticJointEntity == ignition::gazebo::kNullEntity) {
+  if (this->dataPtr->PrismaticJointEntity == gz::sim::kNullEntity) {
     return;
   }
 
@@ -233,11 +235,11 @@ void ElectroHydraulicPTO::PreUpdate(
 
 
   // Create joint velocity component for piston if one doesn't exist
-  auto prismaticJointVelComp = _ecm.Component<ignition::gazebo::components::JointVelocity>(
+  auto prismaticJointVelComp = _ecm.Component<gz::sim::components::JointVelocity>(
     this->dataPtr->PrismaticJointEntity);
   if (prismaticJointVelComp == nullptr) {
     _ecm.CreateComponent(
-      this->dataPtr->PrismaticJointEntity, ignition::gazebo::components::JointVelocity());
+      this->dataPtr->PrismaticJointEntity, gz::sim::components::JointVelocity());
   }
   // We just created the joint velocity component, give one iteration for the
   // physics system to update its size
@@ -370,41 +372,41 @@ void ElectroHydraulicPTO::PreUpdate(
     pto_state);
 
 
-  auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
+  auto stampMsg = gz::sim::convert<gz::msgs::Time>(_info.simTime);
 
-  ignition::msgs::Double pistonvel;
+  gz::msgs::Double pistonvel;
   pistonvel.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   pistonvel.set_data(xdot);
 
-  ignition::msgs::Double rpm;
+  gz::msgs::Double rpm;
   rpm.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   rpm.set_data(N);
 
-  ignition::msgs::Double deltap;
+  gz::msgs::Double deltap;
   deltap.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   deltap.set_data(deltaP);
 
-  ignition::msgs::Double targwindcurr;
+  gz::msgs::Double targwindcurr;
   targwindcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   targwindcurr.set_data(this->dataPtr->TargetWindingCurrent);
 
-  ignition::msgs::Double windcurr;
+  gz::msgs::Double windcurr;
   windcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   windcurr.set_data(this->dataPtr->WindingCurrent);
 
-  ignition::msgs::Double battcurr;
+  gz::msgs::Double battcurr;
   battcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   battcurr.set_data(I_Batt);
 
-  ignition::msgs::Double loadcurr;
+  gz::msgs::Double loadcurr;
   loadcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   loadcurr.set_data(I_Load);
 
-  ignition::msgs::Double scalefactor;
+  gz::msgs::Double scalefactor;
   scalefactor.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   scalefactor.set_data(this->dataPtr->functor.I_Wind.ScaleFactor);
 
-  ignition::msgs::Double retractfactor;
+  gz::msgs::Double retractfactor;
   retractfactor.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   retractfactor.set_data(this->dataPtr->functor.I_Wind.RetractFactor);
 
@@ -450,12 +452,12 @@ void ElectroHydraulicPTO::PreUpdate(
   if (!this->dataPtr->VelMode) {
     double piston_force = deltaP * this->dataPtr->PistonArea;
     // Create new component for this entitiy in ECM (if it doesn't already exist)
-    auto forceComp = _ecm.Component<ignition::gazebo::components::JointForceCmd>(
+    auto forceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->PrismaticJointEntity);
     if (forceComp == nullptr) {
       _ecm.CreateComponent(
         this->dataPtr->PrismaticJointEntity,
-        ignition::gazebo::components::JointForceCmd({piston_force}));  // Create this iteration
+        gz::sim::components::JointForceCmd({piston_force}));  // Create this iteration
     } else {
       forceComp->Data()[0] += piston_force;  // Add force to existing forces.
     }
@@ -463,8 +465,8 @@ void ElectroHydraulicPTO::PreUpdate(
 }
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::ElectroHydraulicPTO,
-  ignition::gazebo::System,
+  gz::sim::System,
   buoy_gazebo::ElectroHydraulicPTO::ISystemConfigure,
   buoy_gazebo::ElectroHydraulicPTO::ISystemPreUpdate);

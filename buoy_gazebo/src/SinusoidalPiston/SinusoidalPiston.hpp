@@ -15,7 +15,7 @@
 #ifndef SINUSOIDALPISTON__SINUSOIDALPISTON_HPP_
 #define SINUSOIDALPISTON__SINUSOIDALPISTON_HPP_
 
-#include <ignition/gazebo/System.hh>
+#include <gz/sim/System.hh>
 
 #include <memory>
 
@@ -24,9 +24,9 @@ namespace buoy_gazebo
 {
 struct SinusoidalPistonPrivate;
 
-class SinusoidalPiston : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPreUpdate
+class SinusoidalPiston : public gz::sim::System,
+  public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPreUpdate
 {
 public:
   /// \brief Constructor
@@ -37,15 +37,15 @@ public:
 
   // Documentation inherited
   void Configure(
-    const ignition::gazebo::Entity & _entity,
+    const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager & _eventMgr) override;
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager & _eventMgr) override;
 
   // Documentation inherited
   void PreUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    gz::sim::EntityComponentManager & _ecm) override;
 
 private:
   /// \brief Private data pointer

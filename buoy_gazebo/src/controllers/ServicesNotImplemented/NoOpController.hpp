@@ -15,7 +15,7 @@
 #ifndef CONTROLLERS__SERVICESNOTIMPLEMENTED__NOOPCONTROLLER_HPP_
 #define CONTROLLERS__SERVICESNOTIMPLEMENTED__NOOPCONTROLLER_HPP_
 
-#include <ignition/gazebo/System.hh>
+#include <gz/sim/System.hh>
 #include <memory>
 
 namespace buoy_gazebo
@@ -29,8 +29,8 @@ struct NoOpControllerPrivate;
 /// * `<namespace>`: Namespace for ROS node, defaults to scoped name
 /// * `<node_name>`: ROS2 node name, defaults to "noop_controller"
 class NoOpController
-  : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure
+  : public gz::sim::System,
+  public gz::sim::ISystemConfigure
 {
 public:
   /// \brief Constructor
@@ -41,10 +41,10 @@ public:
 
   // Documentation inherited
   void Configure(
-    const ignition::gazebo::Entity & _entity,
+    const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager & _eventMgr) override;
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager & _eventMgr) override;
 
 private:
   /// \brief Private data pointer.
