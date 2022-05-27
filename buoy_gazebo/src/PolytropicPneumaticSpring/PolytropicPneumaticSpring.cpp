@@ -130,16 +130,14 @@ double SdfParamDouble(
 
 void PolytropicPneumaticSpring::openValve(
   const int dt_nano,
-  const double & x, const double & v,
   double & P0, double & V0)
 {
-  double _P{0.0}, _V{1.0};
-  openValve(dt_nano, x, v, P0, V0, _P, _V);
+  double _P{0.0}, _V{1.0};  // dummy vars
+  openValve(dt_nano, P0, V0, _P, _V);
 }
 
 void PolytropicPneumaticSpring::openValve(
   const int dt_nano,
-  const double & x, const double & v,
   double & P1, double & V1,
   double & P2, double & V2)
 {
@@ -371,6 +369,9 @@ void PolytropicPneumaticSpring::PreUpdate(
     auto spring_state_comp = \
       _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity);
 
+    // =====================
+    // TODO(andermi) remove after adding spring controller command
+    // =====================
     static size_t count{0U};
     static bool once = true;
     if (once && (count++ > static_cast<int>(20U / 0.001F)))
@@ -379,6 +380,7 @@ void PolytropicPneumaticSpring::PreUpdate(
       spring_state_comp->Data().valve_command = true;
       spring_state_comp->Data().command_duration = 5s;
     }
+    // =====================
 
     if (spring_state_comp->Data().valve_command || spring_state_comp->Data().pump_command)
     {
@@ -407,7 +409,6 @@ void PolytropicPneumaticSpring::PreUpdate(
     spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
   }
 
-
   // TODO(anyone): Figure out if (0) for the index is always correct,
   // some OR code has a process of finding the index for this argument.
   double x = jointPosComp->Data().at(0);
@@ -426,7 +427,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     {
       openValve(
         static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count()),
-        x, v, this->dataPtr->P1, this->dataPtr->V1,
+        this->dataPtr->P1, this->dataPtr->V1,
         this->dataPtr->P2, this->dataPtr->V2);
     }
 
@@ -448,7 +449,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     {
       openValve(
         static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count()),
-        x, v, this->dataPtr->P0, this->dataPtr->V0);
+        this->dataPtr->P0, this->dataPtr->V0);
     }
   }
 
