@@ -129,75 +129,39 @@ double SdfParamDouble(
 }
 
 void PolytropicPneumaticSpring::openValve(
+  const int dt_nano,
   const double & x, const double & v,
-  double & P, double & V)
+  double & P0, double & V0)
 {
-  double _P{0.0}, _V{0.0};
-  openValve(x, v, P, V, _P, _V);
+  double _P{0.0}, _V{1.0};
+  openValve(dt_nano, x, v, P0, V0, _P, _V);
 }
 
 void PolytropicPneumaticSpring::openValve(
+  const int dt_nano,
   const double & x, const double & v,
   double & P1, double & V1,
   double & P2, double & V2)
 {
-  static const double desired_v = 1.0 * 0.0254;  // desired v = 1 inch/sec
-  ignerr << "Piston Velocity desired : " << desired_v << std::endl;
-  ignerr << "Piston Velocity actual : " << v << std::endl;
-  ignerr << "Piston Velocity error : " << desired_v - v << std::endl;
-/*
-  static double err1 = 0.0;
-  double err0 = err1;
-  err1 = desired_v - v;
-  ignerr << "is upper : " << std::boolalpha << this->dataPtr->is_upper << std::noboolalpha << std::endl;
-  // This is not right per units...
-  // double delta_mass = this->dataPtr->P*desired_v;
-  // Should be Pressure * Absement (Pascal = kg/(m*s^2)) * (m*s) = kg/s
-  // This might also work? -- unstable...
-  // double dV = this->dataPtr->deadVolume + v * this->dataPtr->pistonArea;
-  // double delta_mass = (this->dataPtr->P * dV) / (this->dataPtr->R * this->dataPtr->T);
-
-  // try this
-  const double Kp = 10.0, Ki = 1.0, Kd = 100.0;
-  const double dd = 0.5;
-  const double di = 0.5;
-  static double ud = 0.0;
-  ud *= dd;
-  ud += (1.0 - dd)*(err1 - err0);
-  static double ui = 0.0;
-  ui += err1;
-  ui = std::min(std::max(ui, -di), di);
-  this->dataPtr->delta_mass *= Kp;
-  this->dataPtr->delta_mass += Ki*ui + Kd*ud;
-  
-  ignerr << "delta_mass : " << this->dataPtr->delta_mass << std::endl;
-
-  // increase mass to increase pressure to extend piston mean position
+  // want piston to drop 1 inch per second
+  // so let mass flow from lower chamber to upper
+  // results in initial pressure change (P0 -- or P1, P2 with hysteresis) via ideal gas law
+  double dt_sec = dt_nano * 1e-9;
+  static const double absement{5e-6};  // measure of valve opening cross-section and duration
+                                       // units of meter-seconds
+  double mass_flow = absement*this->dataPtr->P;  // P in Pascals (kg/(m*s^2) so, mass_flow in kg/s
+  double delta_mass = dt_sec*mass_flow;  // kg of gas per step
   if (this->dataPtr->is_upper)
   {
-    this->dataPtr->mass += this->dataPtr->delta_mass;
-  } else {
-    // decrease mass to decrease pressure to extend piston mean position
-    this->dataPtr->mass -= this->dataPtr->delta_mass;
-  }
-
-  ignerr << "mass : " << this->dataPtr->mass << std::endl;
-*/
-
-  //V1 = this->dataPtr->deadVolume + x * this->dataPtr->pistonArea;
-  //P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T / V1;
-  //V2 = this->dataPtr->deadVolume + x * this->dataPtr->pistonArea;
-  //P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T / V2;
-  
-  if (this->dataPtr->is_upper)
-  {
-    P1 -= 10.0;
-    P2 -= 10.0;
+    this->dataPtr->mass += delta_mass;
+    P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V1;
+    P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V2;
   }
   else
   {
-    P1 += 10.0;
-    P2 += 10.0;
+    this->dataPtr->mass -= delta_mass;
+    P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V1;
+    P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V2;
   }
 }
 
@@ -337,6 +301,16 @@ void PolytropicPneumaticSpring::Configure(
     ignerr << "Error advertising topic [" << heat_rate_topic << "]" << std::endl;
     return;
   }
+  
+  if (this->dataPtr->is_upper)
+  {
+    std::string piston_velocity_topic = std::string("/piston_velocity_") + this->dataPtr->name;
+    piston_velocity_pub = node.Advertise<ignition::msgs::Double>(piston_velocity_topic);
+    if (!piston_velocity_pub) {
+      ignerr << "Error advertising topic [" << piston_velocity_topic << "]" << std::endl;
+      return;
+    }
+  }
 }
 
 //////////////////////////////////////////////////
@@ -450,7 +424,9 @@ void PolytropicPneumaticSpring::PreUpdate(
       this->dataPtr->hysteresis << std::endl;
     if (spring_state.valve_command)
     {
-      openValve(x, v, this->dataPtr->P1, this->dataPtr->V1,
+      openValve(
+        static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count()),
+        x, v, this->dataPtr->P1, this->dataPtr->V1,
         this->dataPtr->P2, this->dataPtr->V2);
     }
 
@@ -470,7 +446,9 @@ void PolytropicPneumaticSpring::PreUpdate(
   } else {
     if (spring_state.valve_command)
     {
-      openValve(x, v, this->dataPtr->P0, this->dataPtr->V0);
+      openValve(
+        static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count()),
+        x, v, this->dataPtr->P0, this->dataPtr->V0);
     }
   }
 
@@ -517,6 +495,10 @@ void PolytropicPneumaticSpring::PreUpdate(
   ignition::msgs::Double heat_rate;
   heat_rate.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   heat_rate.set_data(this->dataPtr->Q_rate);
+  
+  ignition::msgs::Double piston_velocity;
+  piston_velocity.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
+  piston_velocity.set_data(v);
 
   if (!force_pub.Publish(force)) {
     ignerr << "could not publish force" << std::endl;
@@ -536,6 +518,13 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   if (!heat_rate_pub.Publish(heat_rate)) {
     ignerr << "could not publish heat loss rate" << std::endl;
+  }
+
+  if (this->dataPtr->is_upper)
+  {
+    if (!piston_velocity_pub.Publish(piston_velocity)) {
+      ignerr << "could not publish piston velocity" << std::endl;
+    }
   }
 
   if (!this->dataPtr->debug_prescribed_velocity) {

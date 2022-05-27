@@ -98,14 +98,18 @@ public:
     ignition::gazebo::EntityComponentManager & _ecm) override;
 
 private:
-  void openValve(const double & x, const double & v, double & P, double & V);
-  void openValve(const double & x, const double & v,
-    double & P1, double & V1, double & P2, double & V2);
+  void openValve(const int dt_nano,
+    const double & x, const double & v,
+    double & P0, double & V0);
+  void openValve(const int dt_nano,
+    const double & x, const double & v,
+    double & P1, double & V1,
+    double & P2, double & V2);
   void computeForce(const double & x, const double & v, const double & n);
 
   ignition::transport::Node node;
   ignition::transport::Node::Publisher force_pub, pressure_pub, volume_pub,
-    temperature_pub, heat_rate_pub;
+    temperature_pub, heat_rate_pub, piston_velocity_pub;
 
   /// \brief Private data pointer
   std::unique_ptr<PolytropicPneumaticSpringPrivate> dataPtr;
