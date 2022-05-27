@@ -32,7 +32,7 @@ def generate_test_description():
         output='screen'
     )
 
-    bridge = Node(package='ros_ign_bridge',
+    bridge = Node(package='ros_gz_bridge',
                   executable='parameter_bridge',
                   arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                   output='screen')

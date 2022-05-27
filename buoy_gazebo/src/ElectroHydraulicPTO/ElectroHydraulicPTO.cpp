@@ -73,7 +73,7 @@ public:
 
   bool VelMode{false};
 
-  /// \brief Ignition communication node.
+  /// \brief Gazebo communication node.
   gz::transport::Node node;
 };
 
@@ -217,6 +217,8 @@ void ElectroHydraulicPTO::PreUpdate(
   }
 
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
+
+  GZ_PROFILE("#ElectroHydraulicPTO::PreUpdate");
 
   // If the joints haven't been identified yet, the plugin is disabled
   if (this->dataPtr->PrismaticJointEntity == gz::sim::kNullEntity) {

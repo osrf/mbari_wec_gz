@@ -23,13 +23,13 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
 
-    pkg_ros_ign_gazebo = get_package_share_directory('ros_ign_gazebo')
+    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_ign_gazebo, 'launch', 'ign_gazebo.launch.py'),
+            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'),
         ),
-        launch_arguments={'ign_args': '-r electrohydraulicPTO.sdf'}.items(),
+        launch_arguments={'gz_args': '-r electrohydraulicPTO.sdf'}.items(),
     )
 
     # For now, each field is published in its own topic as a double / float64
@@ -42,7 +42,7 @@ def generate_launch_description():
     ros_to_gz = ros_msg_type + ']' + gz_msg_type
 
     bridge = Node(
-        package='ros_ign_bridge',
+        package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
             ['/battcurr_' + joint_name + '@' + gz_to_ros],

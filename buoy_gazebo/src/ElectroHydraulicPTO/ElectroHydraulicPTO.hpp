@@ -33,7 +33,7 @@ class ElectroHydraulicPTOPrivate;
 ///
 /// ## System Parameters
 ///
-/// xml tags in Ignition Gazebo .sdf file define behavior as follows:
+/// xml tags in Gazebo .sdf file define behavior as follows:
 ///
 /// \brief <PrismaticJointName>
 ///

@@ -11,12 +11,13 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>buoy_description</depend>
+  <depend>buoy_examples</depend>
   <depend>buoy_interfaces</depend>
   <depend>gz-sim7</depend>
   <depend>rclcpp</depend>
   <depend>robot_state_publisher</depend>
-  <depend>ros_ign_bridge</depend>
-  <depend>ros_ign_gazebo</depend>
+  <depend>ros_gz_bridge</depend>
+  <depend>ros_gz_sim</depend>
   <depend>rviz2</depend>
   <depend>sdformat_urdf</depend>
   <depend>splinter_ros</depend>

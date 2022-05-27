@@ -27,7 +27,7 @@ struct SpringControllerPrivate;
 /// \brief ROS2 Spring Controller node for publishing SCRecord and accepting spring commands
 /// Currently accepts valve and pump command services.
 /// Uses parameter to set publish rate (SCPackRate).
-/// Uses ros_ign_bridge and use_sim_time to get /clock from gazebo for command timing.
+/// Uses ros_gz_bridge and use_sim_time to get /clock from gazebo for command timing.
 
 /// SDF parameters:
 /// * `<namespace>`: Namespace for ROS node, defaults to scoped name

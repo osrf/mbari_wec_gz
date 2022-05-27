@@ -138,7 +138,7 @@ if(BUILD_TESTING)
     )
     if(gz_add_test_GAZEBO)
       target_link_libraries(${TEST_NAME}
-        ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
+        gz-sim${GZ_SIM_VER}::gz-sim${GZ_SIM_VER}
       )
     endif()
     if(gz_add_test_ROS)

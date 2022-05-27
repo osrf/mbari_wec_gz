@@ -49,7 +49,7 @@ def default_generate_test_description(server='fixture_server'):
         output='screen'
     )
 
-    bridge = launchNode(package='ros_ign_bridge',
+    bridge = launchNode(package='ros_gz_bridge',
                         executable='parameter_bridge',
                         arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                         output='screen')

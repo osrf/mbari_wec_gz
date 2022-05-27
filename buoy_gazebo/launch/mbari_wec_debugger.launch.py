@@ -34,16 +34,16 @@ def generate_launch_description():
         ),
     )
 
-    bridge = Node(package='ros_ign_bridge',
+    bridge = Node(package='ros_gz_bridge',
                   executable='parameter_bridge',
                   arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                   output='screen')
 
     return LaunchDescription([
         DeclareLaunchArgument(
-          'ign_args',
+          'gz_args',
           default_value=[os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf'), ''],
-          description='Ignition Gazebo arguments'),
+          description='Gazebo arguments'),
         gazebo,
         bridge
     ])

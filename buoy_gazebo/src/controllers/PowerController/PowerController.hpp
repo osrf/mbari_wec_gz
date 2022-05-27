@@ -26,7 +26,7 @@ struct PowerControllerPrivate;
 
 /// \brief ROS2 Power Controller node for publishing PCRecord and accepting power commands
 /// Uses parameter to set publish rate (PCPackRate).
-/// Uses ros_ign_bridge and use_sim_time to get /clock from gazebo for command timing.
+/// Uses ros_gz_bridge and use_sim_time to get /clock from gazebo for command timing.
 
 /// SDF parameters:
 /// * `<namespace>`: Namespace for ROS node, defaults to scoped name
