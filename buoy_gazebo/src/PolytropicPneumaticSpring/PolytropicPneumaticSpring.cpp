@@ -24,9 +24,6 @@
 #include <memory>
 #include <string>
 
-#include "SpringState.hpp"
-
-
 #include "ignition/gazebo/components/JointForceCmd.hh"
 #include "ignition/gazebo/components/JointPosition.hh"
 #include "ignition/gazebo/components/JointVelocity.hh"
@@ -64,6 +61,9 @@ struct PolytropicPneumaticSpringPrivate
 
   /// \brief Piston-End Dead Volume (m^3)
   double deadVolume{0.0266};
+
+  /// \brief measure of valve opening cross-section and duration (meter-seconds)
+  double valve_absement{5e-6};
 
   /// \brief initial Pressure (Pa)
   double P0{410240}, P1{410240}, P2{410240};
@@ -127,6 +127,39 @@ double SdfParamDouble(
   return _sdf->Get<double>(_field, _default).first;
 }
 
+void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
+{
+  if (state.valve_command || state.pump_command) {
+    if (!state.command_watch.Running()) {
+      ignerr << "Valve opening (" << \
+        std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
+        "s)" << std::endl;
+      state.command_watch.Start(true);
+    } else {
+      if (state.command_watch.ElapsedRunTime() >= \
+        state.command_duration)
+      {
+        state.command_watch.Stop();
+
+        if (state.valve_command) {
+          state.valve_command = false;
+        }
+
+        if (state.pump_command) {
+          state.pump_command = false;
+        }
+        ignerr << "Valve closed" << std::endl;
+      }
+    }
+  } else if (!state.valve_command && !state.pump_command) {
+    if (state.command_watch.Running()) {
+      state.command_watch.Stop();
+      ignerr << "Valve closed" << std::endl;
+    }
+  }
+}
+
+////////////////////////////////////////////////
 void PolytropicPneumaticSpring::openValve(
   const int dt_nano,
   double & P0, double & V0)
@@ -140,13 +173,15 @@ void PolytropicPneumaticSpring::openValve(
   double & P1, double & V1,
   double & P2, double & V2)
 {
+  double dt_sec = dt_nano * 1e-9;
+
   // want piston to drop 1 inch per second
   // so let mass flow from lower chamber to upper
   // results in initial pressure change (P0 -- or P1, P2 with hysteresis) via ideal gas law
-  double dt_sec = dt_nano * 1e-9;
-  static const double absement{5e-6};  // measure of valve opening cross-section and duration
-                                       // units of meter-seconds
-  double mass_flow = absement * this->dataPtr->P;  // P in Pascals (kg/(m*s^2) so, mass_flow in kg/s
+
+  // P in Pascals (kg/(m*s^2)
+  // multiply by absement (meter-seconds) to get mass_flow in kg/s
+  double mass_flow = this->dataPtr->valve_absement * this->dataPtr->P;
   double delta_mass = dt_sec * mass_flow;  // kg of gas per step
   if (this->dataPtr->is_upper) {
     this->dataPtr->mass += delta_mass;
@@ -195,6 +230,7 @@ void PolytropicPneumaticSpring::Configure(
   ignwarn << "is upper? " << std::boolalpha << this->dataPtr->is_upper << std::noboolalpha <<
     std::endl;
 
+  this->dataPtr->valve_absement = SdfParamDouble(_sdf, "valve_absement", 5e-6);
   this->dataPtr->stroke = SdfParamDouble(_sdf, "stroke", 2.03);
   this->dataPtr->pistonArea = SdfParamDouble(_sdf, "piston_area", 0.0127);
   this->dataPtr->deadVolume = SdfParamDouble(_sdf, "dead_volume", 0.0266);
@@ -312,8 +348,6 @@ void PolytropicPneumaticSpring::PreUpdate(
   const ignition::gazebo::UpdateInfo & _info,
   ignition::gazebo::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("PolytropicPneumaticSpring::PreUpdate");
-
   // If the joint hasn't been identified yet, the plugin is disabled
   if (this->dataPtr->jointEntity == ignition::gazebo::kNullEntity) {
     return;
@@ -365,37 +399,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     auto spring_state_comp = \
       _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity);
 
-    // =====================
-    // TODO(andermi) remove after adding spring controller command
-    // =====================
-    static size_t count{0U};
-    static bool once = true;
-    if (once && (count++ > static_cast<int>(20U / 0.001F))) {
-      once = false;
-      spring_state_comp->Data().valve_command = true;
-      spring_state_comp->Data().command_duration = 5s;
-    }
-    // =====================
-
-    if (spring_state_comp->Data().valve_command || spring_state_comp->Data().pump_command) {
-      if (!spring_state_comp->Data().command_watch.Running()) {
-        spring_state_comp->Data().command_watch.Start(true);
-      } else {
-        if (spring_state_comp->Data().command_watch.ElapsedRunTime() >= \
-          spring_state_comp->Data().command_duration)
-        {
-          spring_state_comp->Data().command_watch.Stop();
-
-          if (spring_state_comp->Data().valve_command) {
-            spring_state_comp->Data().valve_command = false;
-          }
-
-          if (spring_state_comp->Data().pump_command) {
-            spring_state_comp->Data().pump_command = false;
-          }
-        }
-      }
-    }
+    manageCommandTimer(spring_state_comp->Data());
 
     spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
   }

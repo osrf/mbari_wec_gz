@@ -20,6 +20,9 @@
 
 #include <memory>
 
+#include "SpringState.hpp"
+
+
 namespace buoy_gazebo
 {
 // enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
@@ -98,6 +101,8 @@ public:
     ignition::gazebo::EntityComponentManager & _ecm) override;
 
 private:
+  void manageCommandTimer(SpringState & state);
+
   void openValve(
     const int dt_nano,
     double & P0, double & V0);
