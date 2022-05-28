@@ -159,12 +159,14 @@ struct SpringControllerPrivate
           "[ROS 2 Spring Control] ValveCommand Received (" << request->duration_sec << "s)");
         std::unique_lock lock(services_->command_mutex_);
         if (pump_command_ || valve_command_) {
-          response->result.value = response->result.BUSY;
-          RCLCPP_ERROR_STREAM(
-            ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] ValveCommand cannot process" << \
-              " while another command is running...");
-          return;
+          if (request->duration_sec != request->OFF) {
+            response->result.value = response->result.BUSY;
+            RCLCPP_ERROR_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] ValveCommand cannot process" << \
+                " while another command is running...");
+            return;
+          }
         }
 
         if (request->duration_sec == request->OFF) {

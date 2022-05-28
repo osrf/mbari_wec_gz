@@ -131,9 +131,16 @@ void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
 {
   if (state.valve_command || state.pump_command) {
     if (!state.command_watch.Running()) {
-      ignerr << "Valve opening (" << \
-        std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
-        "s)" << std::endl;
+      if (state.valve_command) {
+        ignmsg << "Valve opening (" << \
+          std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
+          "s)" << std::endl;
+      }
+      if (state.pump_command) {
+        ignmsg << "Pump on (" << \
+          std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
+          "s)" << std::endl;
+      }
       state.command_watch.Start(true);
     } else {
       if (state.command_watch.ElapsedRunTime() >= \
@@ -143,18 +150,19 @@ void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
 
         if (state.valve_command) {
           state.valve_command = false;
+          ignmsg << "Valve closed" << std::endl;
         }
 
         if (state.pump_command) {
           state.pump_command = false;
+          ignmsg << "Pump off" << std::endl;
         }
-        ignerr << "Valve closed" << std::endl;
       }
     }
   } else if (!state.valve_command && !state.pump_command) {
     if (state.command_watch.Running()) {
       state.command_watch.Stop();
-      ignerr << "Valve closed" << std::endl;
+      ignmsg << "Valve closed / Pump off" << std::endl;
     }
   }
 }
