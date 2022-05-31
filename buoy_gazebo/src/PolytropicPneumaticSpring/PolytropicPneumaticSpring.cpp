@@ -14,21 +14,24 @@
 
 #include "PolytropicPneumaticSpring.hpp"
 
-#include <ignition/msgs/double.pb.h>
 #include <ignition/common/Profiler.hh>
 #include <ignition/math/PID.hh>
 #include <ignition/msgs.hh>
 #include <ignition/plugin/Register.hh>
 #include <ignition/transport/Node.hh>
+#include <ignition/transport/TopicUtils.hh>
+
+#include <ignition/gazebo/components/JointForceCmd.hh>
+#include <ignition/gazebo/components/JointPosition.hh>
+#include <ignition/gazebo/components/JointVelocity.hh>
+#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <ignition/gazebo/Model.hh>
+
+#include <ignition/msgs/double.pb.h>
 
 #include <memory>
 #include <string>
 
-#include "ignition/gazebo/components/JointForceCmd.hh"
-#include "ignition/gazebo/components/JointPosition.hh"
-#include "ignition/gazebo/components/JointVelocity.hh"
-#include "ignition/gazebo/components/JointVelocityCmd.hh"
-#include "ignition/gazebo/Model.hh"
 
 using namespace std::chrono_literals;
 
@@ -57,10 +60,10 @@ struct PolytropicPneumaticSpringPrivate
   double x0{0.9921}, x1{0.9921}, x2{0.9921};
 
   /// \brief piston area (m^3)
-  double pistonArea{0.0127};
+  double piston_area{0.0127};
 
   /// \brief Piston-End Dead Volume (m^3)
-  double deadVolume{0.0266};
+  double dead_volume{0.0266};
 
   /// \brief measure of valve opening cross-section and duration (meter-seconds)
   double valve_absement{5e-6};
@@ -78,7 +81,7 @@ struct PolytropicPneumaticSpringPrivate
   double c_p{1.04};
 
   /// \brief initial Volume (m^3)
-  double V0{0.0}, V1{0.0}, V2{0.0};
+  double V0{dead_volume}, V1{dead_volume}, V2{dead_volume};
 
   /// \brief mass of gas (kg)
   double mass{0.0};
@@ -172,7 +175,7 @@ void PolytropicPneumaticSpring::openValve(
   const int dt_nano,
   double & P0, double & V0)
 {
-  double _P{0.0}, _V{1.0};  // dummy vars
+  double _P{0.0}, _V{this->dataPtr->dead_volume};  // dummy vars
   openValve(dt_nano, P0, V0, _P, _V);
 }
 
@@ -191,6 +194,10 @@ void PolytropicPneumaticSpring::openValve(
   // multiply by absement (meter-seconds) to get mass_flow in kg/s
   double mass_flow = this->dataPtr->valve_absement * this->dataPtr->P;
   double delta_mass = dt_sec * mass_flow;  // kg of gas per step
+
+  IGN_ASSERT(V1 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
+  IGN_ASSERT(V2 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
+
   if (this->dataPtr->is_upper) {
     this->dataPtr->mass += delta_mass;
     P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V1;
@@ -205,7 +212,7 @@ void PolytropicPneumaticSpring::openValve(
 //////////////////////////////////////////////////
 void PolytropicPneumaticSpring::computeForce(const double & x, const double & v, const double & n)
 {
-  this->dataPtr->V = this->dataPtr->deadVolume + x * this->dataPtr->pistonArea;
+  this->dataPtr->V = this->dataPtr->dead_volume + x * this->dataPtr->piston_area;
   this->dataPtr->P = this->dataPtr->P0 *
     pow(this->dataPtr->V0 / this->dataPtr->V, this->dataPtr->n);
   this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->c;
@@ -214,14 +221,14 @@ void PolytropicPneumaticSpring::computeForce(const double & x, const double & v,
     this->dataPtr->Q_rate = 0.0;
   } else {
     this->dataPtr->Q_rate = (1.0 - n / 1.4) * (this->dataPtr->c_p / this->dataPtr->R) *
-      this->dataPtr->P * this->dataPtr->pistonArea * v;
+      this->dataPtr->P * this->dataPtr->piston_area * v;
   }
 
-  this->dataPtr->F = this->dataPtr->P * this->dataPtr->pistonArea;
+  this->dataPtr->F = this->dataPtr->P * this->dataPtr->piston_area;
 
-  ignwarn << "V (" << this->dataPtr->name << "):" << this->dataPtr->V << std::endl;
-  ignwarn << "P (" << this->dataPtr->name << "):" << this->dataPtr->P << std::endl;
-  ignwarn << "T (" << this->dataPtr->name << "):" << this->dataPtr->T << std::endl;
+  igndbg << "V (" << this->dataPtr->name << "):" << this->dataPtr->V << std::endl;
+  igndbg << "P (" << this->dataPtr->name << "):" << this->dataPtr->P << std::endl;
+  igndbg << "T (" << this->dataPtr->name << "):" << this->dataPtr->T << std::endl;
 }
 
 //////////////////////////////////////////////////
@@ -232,16 +239,16 @@ void PolytropicPneumaticSpring::Configure(
   ignition::gazebo::EventManager & /*_eventMgr*/)
 {
   this->dataPtr->name = _sdf->Get<std::string>("chamber", "upper_adiabatic").first;
-  ignwarn << "name: " << this->dataPtr->name << std::endl;
+  igndbg << "name: " << this->dataPtr->name << std::endl;
 
   this->dataPtr->is_upper = _sdf->Get<bool>("is_upper");
-  ignwarn << "is upper? " << std::boolalpha << this->dataPtr->is_upper << std::noboolalpha <<
+  igndbg << "is upper? " << std::boolalpha << this->dataPtr->is_upper << std::noboolalpha <<
     std::endl;
 
   this->dataPtr->valve_absement = SdfParamDouble(_sdf, "valve_absement", 5e-6);
   this->dataPtr->stroke = SdfParamDouble(_sdf, "stroke", 2.03);
-  this->dataPtr->pistonArea = SdfParamDouble(_sdf, "piston_area", 0.0127);
-  this->dataPtr->deadVolume = SdfParamDouble(_sdf, "dead_volume", 0.0266);
+  this->dataPtr->piston_area = SdfParamDouble(_sdf, "piston_area", 0.0127);
+  this->dataPtr->dead_volume = SdfParamDouble(_sdf, "dead_volume", 0.0266);
   this->dataPtr->T0 = SdfParamDouble(_sdf, "T0", 283.15);
   this->dataPtr->R = SdfParamDouble(_sdf, "R_specific", 0.2968);
   this->dataPtr->c_p = SdfParamDouble(_sdf, "c_p", 1.04);
@@ -257,29 +264,29 @@ void PolytropicPneumaticSpring::Configure(
     this->dataPtr->x1 = SdfParamDouble(_sdf, "x1", 0.9921);
     this->dataPtr->x2 = SdfParamDouble(_sdf, "x2", 0.9921);
 
-    this->dataPtr->V1 = this->dataPtr->deadVolume + \
-      this->dataPtr->x1 * this->dataPtr->pistonArea;
-    ignwarn << "V1: " << this->dataPtr->V1 << std::endl;
-    this->dataPtr->V2 = this->dataPtr->deadVolume + \
-      this->dataPtr->x2 * this->dataPtr->pistonArea;
-    ignwarn << "V2: " << this->dataPtr->V2 << std::endl;
+    this->dataPtr->V1 = this->dataPtr->dead_volume + \
+      this->dataPtr->x1 * this->dataPtr->piston_area;
+    igndbg << "V1: " << this->dataPtr->V1 << std::endl;
+    this->dataPtr->V2 = this->dataPtr->dead_volume + \
+      this->dataPtr->x2 * this->dataPtr->piston_area;
+    igndbg << "V2: " << this->dataPtr->V2 << std::endl;
 
     this->dataPtr->c = this->dataPtr->P1 * this->dataPtr->V1 / this->dataPtr->T0;
-    ignwarn << "c: " << this->dataPtr->c << std::endl;
+    igndbg << "c: " << this->dataPtr->c << std::endl;
     this->dataPtr->mass = this->dataPtr->c / this->dataPtr->R;
-    ignwarn << "mass: " << this->dataPtr->mass << std::endl;
+    igndbg << "mass: " << this->dataPtr->mass << std::endl;
   } else {
     this->dataPtr->n = SdfParamDouble(_sdf, "n", 1.4);
     this->dataPtr->P0 = SdfParamDouble(_sdf, "P0", 410240);
     this->dataPtr->x0 = SdfParamDouble(_sdf, "x0", 0.9921);
-    this->dataPtr->V0 = this->dataPtr->deadVolume + \
-      this->dataPtr->x0 * this->dataPtr->pistonArea;
+    this->dataPtr->V0 = this->dataPtr->dead_volume + \
+      this->dataPtr->x0 * this->dataPtr->piston_area;
 
-    ignwarn << "V0: " << this->dataPtr->V0 << std::endl;
+    igndbg << "V0: " << this->dataPtr->V0 << std::endl;
     this->dataPtr->c = this->dataPtr->P0 * this->dataPtr->V0 / this->dataPtr->T0;
-    ignwarn << "c: " << this->dataPtr->c << std::endl;
+    igndbg << "c: " << this->dataPtr->c << std::endl;
     this->dataPtr->mass = this->dataPtr->c / this->dataPtr->R;
-    ignwarn << "mass: " << this->dataPtr->mass << std::endl;
+    igndbg << "mass: " << this->dataPtr->mass << std::endl;
   }
 
   this->dataPtr->model = ignition::gazebo::Model(_entity);
@@ -307,35 +314,50 @@ void PolytropicPneumaticSpring::Configure(
   }
 
   std::string force_topic = std::string("/force_") + this->dataPtr->name;
-  force_pub = node.Advertise<ignition::msgs::Double>(force_topic);
+  force_pub = \
+    node.Advertise<ignition::msgs::Double>(
+    ignition::transport::TopicUtils::AsValidTopic(
+      force_topic));
   if (!force_pub) {
     ignerr << "Error advertising topic [" << force_topic << "]" << std::endl;
     return;
   }
 
   std::string pressure_topic = std::string("/pressure_") + this->dataPtr->name;
-  pressure_pub = node.Advertise<ignition::msgs::Double>(pressure_topic);
+  pressure_pub = \
+    node.Advertise<ignition::msgs::Double>(
+    ignition::transport::TopicUtils::AsValidTopic(
+      pressure_topic));
   if (!pressure_pub) {
     ignerr << "Error advertising topic [" << pressure_topic << "]" << std::endl;
     return;
   }
 
   std::string volume_topic = std::string("/volume_") + this->dataPtr->name;
-  volume_pub = node.Advertise<ignition::msgs::Double>(volume_topic);
+  volume_pub = \
+    node.Advertise<ignition::msgs::Double>(
+    ignition::transport::TopicUtils::AsValidTopic(
+      volume_topic));
   if (!volume_pub) {
     ignerr << "Error advertising topic [" << volume_topic << "]" << std::endl;
     return;
   }
 
   std::string temperature_topic = std::string("/temperature_") + this->dataPtr->name;
-  temperature_pub = node.Advertise<ignition::msgs::Double>(temperature_topic);
+  temperature_pub = \
+    node.Advertise<ignition::msgs::Double>(
+    ignition::transport::TopicUtils::AsValidTopic(
+      temperature_topic));
   if (!temperature_pub) {
     ignerr << "Error advertising topic [" << temperature_topic << "]" << std::endl;
     return;
   }
 
   std::string heat_rate_topic = std::string("/heat_rate_") + this->dataPtr->name;
-  heat_rate_pub = node.Advertise<ignition::msgs::Double>(heat_rate_topic);
+  heat_rate_pub = \
+    node.Advertise<ignition::msgs::Double>(
+    ignition::transport::TopicUtils::AsValidTopic(
+      heat_rate_topic));
   if (!heat_rate_pub) {
     ignerr << "Error advertising topic [" << heat_rate_topic << "]" << std::endl;
     return;
@@ -343,7 +365,9 @@ void PolytropicPneumaticSpring::Configure(
 
   if (this->dataPtr->is_upper) {
     std::string piston_velocity_topic = std::string("/piston_velocity_") + this->dataPtr->name;
-    piston_velocity_pub = node.Advertise<ignition::msgs::Double>(piston_velocity_topic);
+    piston_velocity_pub = \
+      node.Advertise<ignition::msgs::Double>(
+      ignition::transport::TopicUtils::AsValidTopic(piston_velocity_topic));
     if (!piston_velocity_pub) {
       ignerr << "Error advertising topic [" << piston_velocity_topic << "]" << std::endl;
       return;
@@ -356,6 +380,8 @@ void PolytropicPneumaticSpring::PreUpdate(
   const ignition::gazebo::UpdateInfo & _info,
   ignition::gazebo::EntityComponentManager & _ecm)
 {
+  IGN_PROFILE("PolytropicPneumaticSpring::PreUpdate");
+
   // If the joint hasn't been identified yet, the plugin is disabled
   if (this->dataPtr->jointEntity == ignition::gazebo::kNullEntity) {
     return;
@@ -417,18 +443,18 @@ void PolytropicPneumaticSpring::PreUpdate(
   // some OR code has a process of finding the index for this argument.
   double x = jointPosComp->Data().at(0);
   double v = jointVelComp->Data().at(0);
-  ignwarn << "velocity: " << v << std::endl;
+  igndbg << "velocity: " << v << std::endl;
   if (this->dataPtr->is_upper) {
     x = this->dataPtr->stroke - x;
     v *= -1.0;
-    ignwarn << "swap direction (" << this->dataPtr->name << ")" << std::endl;
+    igndbg << "swap direction (" << this->dataPtr->name << ")" << std::endl;
   }
 
   int dt_nano = \
     static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count());
 
   if (this->dataPtr->hysteresis) {
-    ignwarn << "hysteresis (" << this->dataPtr->name << "): " <<
+    igndbg << "hysteresis (" << this->dataPtr->name << "): " <<
       this->dataPtr->hysteresis << std::endl;
     if (spring_state.valve_command) {
       openValve(
@@ -439,13 +465,13 @@ void PolytropicPneumaticSpring::PreUpdate(
 
     if (v >= 0.0) {
       this->dataPtr->n = this->dataPtr->n1;
-      ignwarn << "polytropic index for increasing volume (" << this->dataPtr->name << "): " <<
+      igndbg << "polytropic index for increasing volume (" << this->dataPtr->name << "): " <<
         this->dataPtr->n << std::endl;
       this->dataPtr->V0 = this->dataPtr->V1;
       this->dataPtr->P0 = this->dataPtr->P1;
     } else {
       this->dataPtr->n = this->dataPtr->n2;
-      ignwarn << "polytropic index for decreasing volume (" << this->dataPtr->name << "): " <<
+      igndbg << "polytropic index for decreasing volume (" << this->dataPtr->name << "): " <<
         this->dataPtr->n << std::endl;
       this->dataPtr->V0 = this->dataPtr->V2;
       this->dataPtr->P0 = this->dataPtr->P2;
@@ -462,10 +488,10 @@ void PolytropicPneumaticSpring::PreUpdate(
   computeForce(x, v, this->dataPtr->n);
   if (this->dataPtr->is_upper) {
     this->dataPtr->F *= -1.0;
-    ignwarn << "swap F for direction of piston (" << this->dataPtr->name << "): " <<
+    igndbg << "swap F for direction of piston (" << this->dataPtr->name << "): " <<
       this->dataPtr->F << std::endl;
   } else {
-    ignwarn << "F (" << this->dataPtr->name << "):" << this->dataPtr->F << std::endl;
+    igndbg << "F (" << this->dataPtr->name << "):" << this->dataPtr->F << std::endl;
   }
 
   auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);

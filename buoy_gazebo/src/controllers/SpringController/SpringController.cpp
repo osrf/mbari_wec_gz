@@ -17,6 +17,7 @@
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Name.hh>
+#include <ignition/common/Profiler.hh>
 #include <ignition/plugin/Register.hh>
 #include <ignition/msgs/wrench.pb.h>
 #include <ignition/transport/Node.hh>
@@ -146,7 +147,7 @@ struct SpringControllerPrivate
       };
     thread_executor_spin_ = std::thread(spin);
   }
-///*
+
   void setup_services()
   {
     // ValveCommand
@@ -196,7 +197,6 @@ struct SpringControllerPrivate
       "valve_command",
       services_->valve_command_handler_);
   }
-//*/
 };
 
 //////////////////////////////////////////////////
@@ -335,6 +335,8 @@ void SpringController::PreUpdate(
   const ignition::gazebo::UpdateInfo & _info,
   ignition::gazebo::EntityComponentManager & _ecm)
 {
+  IGN_PROFILE("SpringController::PreUpdate");
+
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
 
@@ -406,6 +408,8 @@ void SpringController::PostUpdate(
   const ignition::gazebo::UpdateInfo & _info,
   const ignition::gazebo::EntityComponentManager & _ecm)
 {
+  IGN_PROFILE("SpringController::PostUpdate");
+
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
 
