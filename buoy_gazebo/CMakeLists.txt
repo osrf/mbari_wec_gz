@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.5)
 project(buoy_gazebo)
 
+# Option to enable profiler
+option(ENABLE_PROFILER "Enable Ignition Profiler" FALSE)
+
+if(ENABLE_PROFILER)
+  add_definitions("-DIGN_PROFILER_ENABLE=1")
+else()
+  add_definitions("-DIGN_PROFILER_ENABLE=0")
+endif()
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(buoy_msgs REQUIRED)
@@ -8,6 +17,8 @@ find_package(buoy_msgs REQUIRED)
 find_package(ignition-cmake2 REQUIRED)
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
 set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
+find_package(ignition-common4 REQUIRED COMPONENTS profiler)
+set(IGN_COMMON_VER ${ignition-common4_VERSION_MAJOR})
 find_package(ignition-gazebo6 REQUIRED)
 set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 
@@ -52,6 +63,7 @@ function(gz_add_plugin plugin_name)
     PUBLIC
       ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
       ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
+      ignition-common${IGN_COMMON_VER}::profiler
       ${gz_add_plugin_PUBLIC_LINK_LIBS}
     PRIVATE
       ${gz_add_plugin_PRIVATE_LINK_LIBS}
