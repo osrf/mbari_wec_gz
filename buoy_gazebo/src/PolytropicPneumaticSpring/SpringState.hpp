@@ -24,6 +24,51 @@
 namespace buoy_gazebo
 {
 
+struct CommandTriState
+{
+  bool left{false};
+  bool right{false};
+
+  bool isRunning() const  // rising edge
+  {
+    return !left && right;
+  }
+
+  bool isFinished() const  // falling edge
+  {
+    return left && !right;
+  }
+
+  bool active() const  // running or finished
+  {
+    return left || right;
+  }
+
+  operator bool() const
+  {
+    return isRunning();
+  }
+
+  void reset()
+  {
+    left = right = false;  // no command activity
+  }
+
+  void operator=(const bool state)
+  {
+    if (state) {
+      if (!active()) {
+        right = true;
+      }
+    } else {
+      if (isRunning()) {
+        left = true;
+        right = false;
+      }
+    }
+  }
+};
+
 struct SpringState
 {
   // SCRecord
@@ -35,8 +80,8 @@ struct SpringState
   // Commands
   ignition::math::Stopwatch command_watch;
   ignition::math::clock::duration command_duration;
-  bool valve_command{false};
-  bool pump_command{false};
+  CommandTriState valve_command;
+  CommandTriState pump_command;
 
   bool operator==(const SpringState & that) const
   {

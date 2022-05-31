@@ -129,40 +129,40 @@ double SdfParamDouble(
 
 void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
 {
-  if (state.valve_command || state.pump_command) {
-    if (!state.command_watch.Running()) {
-      if (state.valve_command) {
-        ignmsg << "Valve opening (" << \
-          std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
-          "s)" << std::endl;
-      }
-      if (state.pump_command) {
-        ignmsg << "Pump on (" << \
-          std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
-          "s)" << std::endl;
-      }
-      state.command_watch.Start(true);
-    } else {
-      if (state.command_watch.ElapsedRunTime() >= \
-        state.command_duration)
-      {
-        state.command_watch.Stop();
-
-        if (state.valve_command) {
-          state.valve_command = false;
-          ignmsg << "Valve closed" << std::endl;
-        }
-
-        if (state.pump_command) {
-          state.pump_command = false;
-          ignmsg << "Pump off" << std::endl;
-        }
-      }
-    }
-  } else if (!state.valve_command && !state.pump_command) {
-    if (state.command_watch.Running()) {
+  // open valve
+  if (state.valve_command && !state.command_watch.Running()) {
+    ignmsg << "Valve open (" << \
+      std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
+      "s)" << std::endl;
+    state.command_watch.Start(true);
+    // turn pump on
+  } else if (state.pump_command.isRunning() && !state.command_watch.Running()) {
+    ignmsg << "Pump on (" << \
+      std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
+      "s)" << std::endl;
+    state.command_watch.Start(true);
+  } else {
+    // close valve
+    if (state.valve_command && \
+      state.command_watch.ElapsedRunTime() >= state.command_duration)
+    {
       state.command_watch.Stop();
-      ignmsg << "Valve closed / Pump off" << std::endl;
+      state.valve_command = false;
+      ignmsg << "Valve closed after (" << \
+        std::chrono::duration_cast<std::chrono::seconds>(
+        state.command_watch.ElapsedRunTime()).count() << \
+        "s)" << std::endl;
+    }
+    // turn pump off
+    if (state.pump_command && \
+      state.command_watch.ElapsedRunTime() >= state.command_duration)
+    {
+      state.command_watch.Stop();
+      state.pump_command = false;
+      ignmsg << "Pump off after (" << \
+        std::chrono::duration_cast<std::chrono::seconds>(
+        state.command_watch.ElapsedRunTime()).count() << \
+        "s)" << std::endl;
     }
   }
 }
@@ -407,6 +407,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     auto spring_state_comp = \
       _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity);
 
+    // check for valve/pump command state changes
     manageCommandTimer(spring_state_comp->Data());
 
     spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
@@ -423,12 +424,15 @@ void PolytropicPneumaticSpring::PreUpdate(
     ignwarn << "swap direction (" << this->dataPtr->name << ")" << std::endl;
   }
 
+  int dt_nano = \
+    static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count());
+
   if (this->dataPtr->hysteresis) {
     ignwarn << "hysteresis (" << this->dataPtr->name << "): " <<
       this->dataPtr->hysteresis << std::endl;
     if (spring_state.valve_command) {
       openValve(
-        static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count()),
+        dt_nano,
         this->dataPtr->P1, this->dataPtr->V1,
         this->dataPtr->P2, this->dataPtr->V2);
     }
@@ -449,7 +453,7 @@ void PolytropicPneumaticSpring::PreUpdate(
   } else {
     if (spring_state.valve_command) {
       openValve(
-        static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count()),
+        dt_nano,
         this->dataPtr->P0, this->dataPtr->V0);
     }
   }
