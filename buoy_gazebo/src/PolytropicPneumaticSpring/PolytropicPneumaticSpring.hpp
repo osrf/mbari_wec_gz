@@ -104,10 +104,10 @@ private:
   void manageCommandTimer(SpringState & state);
 
   void openValve(
-    const int dt_nano,
+    const int dt_nano, const double & pressure_diff,
     double & P0, double & V0);
   void openValve(
-    const int dt_nano,
+    const int dt_nano, const double & pressure_diff,
     double & P1, double & V1,
     double & P2, double & V2);
   void computeForce(const double & x, const double & v, const double & n);

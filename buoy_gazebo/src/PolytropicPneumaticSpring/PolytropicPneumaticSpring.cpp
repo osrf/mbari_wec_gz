@@ -30,6 +30,7 @@
 #include <ignition/msgs/double.pb.h>
 
 #include <memory>
+#include <mutex>
 #include <string>
 
 
@@ -66,7 +67,7 @@ struct PolytropicPneumaticSpringPrivate
   double dead_volume{0.0266};
 
   /// \brief measure of valve opening cross-section and duration (meter-seconds)
-  double valve_absement{5e-6};
+  double valve_absement{49e-7};
 
   /// \brief initial Pressure (Pa)
   double P0{410240}, P1{410240}, P2{410240};
@@ -132,18 +133,21 @@ double SdfParamDouble(
 
 void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
 {
+  static double init_x = 0.0;
   // open valve
   if (state.valve_command && !state.command_watch.Running()) {
     ignmsg << "Valve open (" << \
       std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
       "s)" << std::endl;
     state.command_watch.Start(true);
+    init_x = state.range_finder;
     // turn pump on
   } else if (state.pump_command.isRunning() && !state.command_watch.Running()) {
     ignmsg << "Pump on (" << \
       std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
       "s)" << std::endl;
     state.command_watch.Start(true);
+    init_x = state.range_finder;
   } else {
     // close valve
     if (state.valve_command && \
@@ -155,6 +159,9 @@ void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
         std::chrono::duration_cast<std::chrono::seconds>(
         state.command_watch.ElapsedRunTime()).count() << \
         "s)" << std::endl;
+      ignerr << "piston moved: " << \
+      (state.range_finder - init_x) / (std::chrono::duration_cast<std::chrono::milliseconds>(
+        state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s^2" << std::endl;
     }
     // turn pump off
     if (state.pump_command && \
@@ -166,21 +173,24 @@ void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
         std::chrono::duration_cast<std::chrono::seconds>(
         state.command_watch.ElapsedRunTime()).count() << \
         "s)" << std::endl;
+      ignerr << "piston moved: " << \
+      (state.range_finder - init_x) / (std::chrono::duration_cast<std::chrono::milliseconds>(
+        state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s^2" << std::endl;
     }
   }
 }
 
 ////////////////////////////////////////////////
 void PolytropicPneumaticSpring::openValve(
-  const int dt_nano,
+  const int dt_nano, const double & pressure_diff,
   double & P0, double & V0)
 {
   double _P{0.0}, _V{this->dataPtr->dead_volume};  // dummy vars
-  openValve(dt_nano, P0, V0, _P, _V);
+  openValve(dt_nano, pressure_diff, P0, V0, _P, _V);
 }
 
 void PolytropicPneumaticSpring::openValve(
-  const int dt_nano,
+  const int dt_nano, const double & pressure_diff,
   double & P1, double & V1,
   double & P2, double & V2)
 {
@@ -192,8 +202,11 @@ void PolytropicPneumaticSpring::openValve(
 
   // P in Pascals (kg/(m*s^2)
   // multiply by absement (meter-seconds) to get mass_flow in kg/s
-  double mass_flow = this->dataPtr->valve_absement * this->dataPtr->P;
+  double mass_flow = this->dataPtr->valve_absement * pressure_diff;
   double delta_mass = dt_sec * mass_flow;  // kg of gas per step
+
+  igndbg << "pressure differential: " << pressure_diff << " Pascal" << std::endl;
+  igndbg << "delta mass from/to this chamber to/from other: " << delta_mass << " kg" << std::endl;
 
   IGN_ASSERT(V1 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
   IGN_ASSERT(V2 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
@@ -453,12 +466,15 @@ void PolytropicPneumaticSpring::PreUpdate(
   int dt_nano = \
     static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count());
 
+  const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
+  const double pressure_diff = (spring_state.lower_psi - spring_state.upper_psi) / PASCAL_TO_PSI;
+
   if (this->dataPtr->hysteresis) {
     igndbg << "hysteresis (" << this->dataPtr->name << "): " <<
       this->dataPtr->hysteresis << std::endl;
     if (spring_state.valve_command) {
       openValve(
-        dt_nano,
+        dt_nano, pressure_diff,
         this->dataPtr->P1, this->dataPtr->V1,
         this->dataPtr->P2, this->dataPtr->V2);
     }
@@ -479,7 +495,7 @@ void PolytropicPneumaticSpring::PreUpdate(
   } else {
     if (spring_state.valve_command) {
       openValve(
-        dt_nano,
+        dt_nano, pressure_diff,
         this->dataPtr->P0, this->dataPtr->V0);
     }
   }
@@ -496,7 +512,6 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
-  const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
   if (this->dataPtr->is_upper) {
     spring_state.range_finder = x;
     spring_state.upper_psi = PASCAL_TO_PSI * this->dataPtr->P;
