@@ -159,7 +159,7 @@ void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
         std::chrono::duration_cast<std::chrono::seconds>(
         state.command_watch.ElapsedRunTime()).count() << \
         "s)" << std::endl;
-      ignerr << "piston moved: " << \
+      igndbg << "piston moved: " << \
       (state.range_finder - init_x) / (std::chrono::duration_cast<std::chrono::milliseconds>(
         state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s^2" << std::endl;
     }
@@ -173,7 +173,7 @@ void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
         std::chrono::duration_cast<std::chrono::seconds>(
         state.command_watch.ElapsedRunTime()).count() << \
         "s)" << std::endl;
-      ignerr << "piston moved: " << \
+      igndbg << "piston moved: " << \
       (state.range_finder - init_x) / (std::chrono::duration_cast<std::chrono::milliseconds>(
         state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s^2" << std::endl;
     }
