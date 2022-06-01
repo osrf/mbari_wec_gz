@@ -69,6 +69,12 @@ struct PolytropicPneumaticSpringPrivate
   /// \brief measure of valve opening cross-section and duration (meter-seconds)
   double valve_absement{49e-7};
 
+  /// \brief measure of pump opening cross-section and duration (meter-seconds)
+  double pump_absement{11e-7};
+
+  /// \brief pump differential pressure (Pa)
+  double pump_pressure{49e-7};
+
   /// \brief initial Pressure (Pa)
   double P0{410240}, P1{410240}, P2{410240};
 
@@ -161,7 +167,7 @@ void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
         "s)" << std::endl;
       igndbg << "piston moved: " << \
       (state.range_finder - init_x) / (std::chrono::duration_cast<std::chrono::milliseconds>(
-        state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s^2" << std::endl;
+        state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s" << std::endl;
     }
     // turn pump off
     if (state.pump_command && \
@@ -173,9 +179,9 @@ void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
         std::chrono::duration_cast<std::chrono::seconds>(
         state.command_watch.ElapsedRunTime()).count() << \
         "s)" << std::endl;
-      igndbg << "piston moved: " << \
+      ignerr << "piston moved: " << \
       (state.range_finder - init_x) / (std::chrono::duration_cast<std::chrono::milliseconds>(
-        state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s^2" << std::endl;
+        state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s" << std::endl;
     }
   }
 }
@@ -205,8 +211,8 @@ void PolytropicPneumaticSpring::openValve(
   double mass_flow = this->dataPtr->valve_absement * pressure_diff;
   double delta_mass = dt_sec * mass_flow;  // kg of gas per step
 
-  igndbg << "pressure differential: " << pressure_diff << " Pascal" << std::endl;
-  igndbg << "delta mass from/to this chamber to/from other: " << delta_mass << " kg" << std::endl;
+  igndbg << "valve -- pressure differential: " << pressure_diff << " Pascal" << std::endl;
+  igndbg << "valve -- delta mass from/to this chamber to/from other: " << delta_mass << " kg" << std::endl;
 
   IGN_ASSERT(V1 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
   IGN_ASSERT(V2 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
@@ -217,6 +223,47 @@ void PolytropicPneumaticSpring::openValve(
     P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V2;
   } else {
     this->dataPtr->mass -= delta_mass;
+    P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V1;
+    P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V2;
+  }
+}
+
+////////////////////////////////////////////////
+void PolytropicPneumaticSpring::pumpOn(
+  const int dt_nano,
+  double & P0, double & V0)
+{
+  double _P{0.0}, _V{this->dataPtr->dead_volume};  // dummy vars
+  pumpOn(dt_nano, P0, V0, _P, _V);
+}
+
+void PolytropicPneumaticSpring::pumpOn(
+  const int dt_nano,
+  double & P1, double & V1,
+  double & P2, double & V2)
+{
+  double dt_sec = dt_nano * 1e-9;
+
+  // want piston to raise 2 inches per minute
+  // so pump mass flow from upper chamber to lower
+  // results in initial pressure change (P0 -- or P1, P2 with hysteresis) via ideal gas law
+
+  // pump pressure in Pascals (kg/(m*s^2)
+  // multiply by absement (meter-seconds) to get mass_flow in kg/s
+  double mass_flow = this->dataPtr->pump_absement * this->dataPtr->pump_pressure;
+  double delta_mass = dt_sec * mass_flow;  // kg of gas per step
+
+  ignerr << "pump -- delta mass from/to this chamber to/from other: " << delta_mass << " kg" << std::endl;
+
+  IGN_ASSERT(V1 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
+  IGN_ASSERT(V2 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
+
+  if (this->dataPtr->is_upper) {
+    this->dataPtr->mass -= delta_mass;
+    P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V1;
+    P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V2;
+  } else {
+    this->dataPtr->mass += delta_mass;
     P1 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V1;
     P2 = this->dataPtr->mass * this->dataPtr->R * this->dataPtr->T0 / V2;
   }
@@ -258,7 +305,9 @@ void PolytropicPneumaticSpring::Configure(
   igndbg << "is upper? " << std::boolalpha << this->dataPtr->is_upper << std::noboolalpha <<
     std::endl;
 
-  this->dataPtr->valve_absement = SdfParamDouble(_sdf, "valve_absement", 5e-6);
+  this->dataPtr->valve_absement = SdfParamDouble(_sdf, "valve_absement", 49e-7);
+  this->dataPtr->pump_absement = SdfParamDouble(_sdf, "pump_absement", 11e-7);
+  this->dataPtr->pump_pressure = SdfParamDouble(_sdf, "pump_pressure", 1.7e+6);
   this->dataPtr->stroke = SdfParamDouble(_sdf, "stroke", 2.03);
   this->dataPtr->piston_area = SdfParamDouble(_sdf, "piston_area", 0.0127);
   this->dataPtr->dead_volume = SdfParamDouble(_sdf, "dead_volume", 0.0266);
@@ -477,6 +526,11 @@ void PolytropicPneumaticSpring::PreUpdate(
         dt_nano, pressure_diff,
         this->dataPtr->P1, this->dataPtr->V1,
         this->dataPtr->P2, this->dataPtr->V2);
+    } else if (spring_state.pump_command) {
+      pumpOn(
+        dt_nano,
+        this->dataPtr->P1, this->dataPtr->V1,
+        this->dataPtr->P2, this->dataPtr->V2);
     }
 
     if (v >= 0.0) {
@@ -496,6 +550,10 @@ void PolytropicPneumaticSpring::PreUpdate(
     if (spring_state.valve_command) {
       openValve(
         dt_nano, pressure_diff,
+        this->dataPtr->P0, this->dataPtr->V0);
+    } else if (spring_state.pump_command) {
+      pumpOn(
+        dt_nano,
         this->dataPtr->P0, this->dataPtr->V0);
     }
   }

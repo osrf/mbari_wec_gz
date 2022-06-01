@@ -26,8 +26,8 @@
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 
 #include <buoy_msgs/msg/sc_record.hpp>
-#include <buoy_msgs/srv/sc_pack_rate_command.hpp>
 #include <buoy_msgs/srv/valve_command.hpp>
+#include <buoy_msgs/srv/pump_command.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -57,6 +57,9 @@ struct SpringControllerServices
   rclcpp::Service<buoy_msgs::srv::ValveCommand>::SharedPtr valve_command_service_;
   std::function<void(std::shared_ptr<buoy_msgs::srv::ValveCommand::Request>,
     std::shared_ptr<buoy_msgs::srv::ValveCommand::Response>)> valve_command_handler_;
+  rclcpp::Service<buoy_msgs::srv::PumpCommand>::SharedPtr pump_command_service_;
+  std::function<void(std::shared_ptr<buoy_msgs::srv::PumpCommand::Request>,
+    std::shared_ptr<buoy_msgs::srv::PumpCommand::Response>)> pump_command_handler_;
   std::mutex command_mutex_;
 };
 
@@ -196,6 +199,53 @@ struct SpringControllerPrivate
       ros_->node_->create_service<buoy_msgs::srv::ValveCommand>(
       "valve_command",
       services_->valve_command_handler_);
+
+    // PumpCommand
+    services_->pump_command_handler_ = \
+      [this](const std::shared_ptr<buoy_msgs::srv::PumpCommand::Request> request,
+        std::shared_ptr<buoy_msgs::srv::PumpCommand::Response> response)
+      {
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "[ROS 2 Spring Control] PumpCommand Received (" << request->duration_sec << "s)");
+        std::unique_lock lock(services_->command_mutex_);
+        // if already running valve, don't allow pump
+        // unless for some reason we need to turn pump off (shouldn't get in that state)
+        if (valve_command_) {
+          if (request->duration_sec != request->OFF) {
+            response->result.value = response->result.BUSY;
+            RCLCPP_ERROR_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] PumpCommand cannot process" << \
+                " while valve command is running...");
+            return;
+          }
+        }
+
+        if (request->duration_sec == request->OFF) {
+          command_duration_ = 0s;
+          pump_command_ = false;
+          has_new_command_ = true;
+        } else {
+          uint16_t duration_sec{request->duration_sec};
+          if (duration_sec > 20U) {
+            duration_sec = std::min(
+              std::max(duration_sec, static_cast<uint16_t>(1U)),
+              static_cast<uint16_t>(20U));
+            response->result.value = response->result.BAD_INPUT;
+            RCLCPP_WARN_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] PumpCommand out of bounds -- clipped to 20s");
+          }
+          command_duration_ = ignition::math::clock::duration(std::chrono::seconds(duration_sec));
+          pump_command_ = true;
+          has_new_command_ = true;
+        }
+      };
+    services_->pump_command_service_ = \
+      ros_->node_->create_service<buoy_msgs::srv::PumpCommand>(
+      "pump_command",
+      services_->pump_command_handler_);
   }
 };
 
