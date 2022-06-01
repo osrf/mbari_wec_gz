@@ -450,9 +450,6 @@ void PolytropicPneumaticSpring::PreUpdate(
     auto spring_state_comp = \
       _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity);
 
-    // check for valve/pump command state changes
-    //manageCommandTimer(spring_state_comp->Data());
-
     spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
   }
 

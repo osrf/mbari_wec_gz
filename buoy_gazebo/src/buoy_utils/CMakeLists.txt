@@ -1,6 +1,6 @@
 add_library(StopwatchSimTime
   SHARED
-    StopwatchSimTime.cc
+    StopwatchSimTime.cpp
 )
 
 ament_target_dependencies(StopwatchSimTime PUBLIC rclcpp)

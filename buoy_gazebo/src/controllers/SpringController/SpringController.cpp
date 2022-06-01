@@ -21,7 +21,6 @@
 #include <ignition/plugin/Register.hh>
 #include <ignition/msgs/wrench.pb.h>
 #include <ignition/transport/Node.hh>
-#include "buoy_utils/StopwatchSimTime.hh"
 
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
@@ -37,6 +36,7 @@
 #include <string>
 #include <vector>
 
+#include "buoy_utils/StopwatchSimTime.hpp"
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 
 
@@ -101,9 +101,9 @@ struct SpringControllerPrivate
     ros_->node_ = rclcpp::Node::make_shared(node_name, ns);
 
     ros_->node_->set_parameter(
-    rclcpp::Parameter(
-      "use_sim_time",
-      ros_->use_sim_time_));
+      rclcpp::Parameter(
+        "use_sim_time",
+        ros_->use_sim_time_));
 
     rcl_interfaces::msg::ParameterDescriptor descriptor;
     rcl_interfaces::msg::FloatingPointRange range;
@@ -197,7 +197,8 @@ struct SpringControllerPrivate
               ros_->node_->get_logger(),
               "[ROS 2 Spring Control] ValveCommand out of bounds -- clipped to 20s");
           }
-          services_->command_duration_ = rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
+          services_->command_duration_ =
+            rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
           services_->valve_command_ = true;
           services_->has_new_command_ = true;
         }
@@ -207,7 +208,7 @@ struct SpringControllerPrivate
       "valve_command",
       services_->valve_command_handler_);
   }
-  
+
   void manageCommandTimer(SpringState & state)
   {
     static double init_x = 0.0;
@@ -239,8 +240,8 @@ struct SpringControllerPrivate
           "Valve closed after (" << \
             services_->command_watch_.ElapsedRunTime().seconds() << "s)");
         igndbg << "piston moved: " << \
-          (state.range_finder - init_x) / \
-            (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) << \
+        (state.range_finder - init_x) / \
+        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) << \
           " m/s" << std::endl;
       }
       // turn pump off
@@ -254,8 +255,8 @@ struct SpringControllerPrivate
           "Pump off after (" << \
             services_->command_watch_.ElapsedRunTime().seconds() << "s)");
         igndbg << "piston moved: " << \
-          (state.range_finder - init_x) / \
-            (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) << \
+        (state.range_finder - init_x) / \
+        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) << \
           " m/s" << std::endl;
       }
     }
