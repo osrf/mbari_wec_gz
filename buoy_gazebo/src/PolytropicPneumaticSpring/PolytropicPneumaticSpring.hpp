@@ -101,7 +101,7 @@ public:
     ignition::gazebo::EntityComponentManager & _ecm) override;
 
 private:
-  void manageCommandTimer(SpringState & state);
+  // void manageCommandTimer(SpringState & state);
 
   void openValve(
     const int dt_nano, const double & pressure_diff,
