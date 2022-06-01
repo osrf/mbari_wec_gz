@@ -19,7 +19,7 @@
         <visual name="visualBuoy">
             <geometry>
                 <mesh>
-                    <uri>model://mbari_wec/meshes/buoy_float.stl</uri>
+                    <uri>package://buoy_description/models/mbari_wec/meshes/buoy_float.stl</uri>
                 </mesh>
             </geometry>
             <!--color-->
@@ -56,7 +56,7 @@
         <visual name="visualPTO">
             <geometry>
                 <mesh>
-                    <uri>model://mbari_wec/meshes/pto.stl</uri>
+                    <uri>package://buoy_description/models/mbari_wec/meshes/pto.stl</uri>
                 </mesh>
             </geometry>
             <!--color-->
@@ -69,7 +69,7 @@
         <collision name="collision">
             <geometry>
                 <mesh>
-                    <uri>model://mbari_wec/meshes/pto_collision.stl</uri>
+                    <uri>package://buoy_description/models/mbari_wec/meshes/pto_collision.stl</uri>
                 </mesh>
            </geometry>
         </collision>
@@ -92,7 +92,7 @@
       <visual name="visualPiston">
         <geometry>
           <mesh>
-            <uri>model://mbari_wec/meshes/rod_and_piston.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec/meshes/rod_and_piston.stl</uri>
           </mesh>
         </geometry>
         <!--color-->

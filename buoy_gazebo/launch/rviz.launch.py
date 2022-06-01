@@ -53,7 +53,7 @@ def generate_launch_description():
             ],
             output='screen',
         ),
-        # TODO(quarkytale): Launch a bridge to forward tf and joint states to ros2
+        # Bridge to forward tf and joint states to ros2
         Node(
             package='ros_ign_bridge',
             executable='parameter_bridge',
@@ -82,6 +82,7 @@ def generate_launch_description():
         # Launch rviz
         Node(
             package='rviz2',
-            executable='rviz2'
+            executable='rviz2',
+            arguments=['-d', os.path.join(pkg_buoy_gazebo, 'rviz', 'mbari_wec.rviz')],
         )
     ])
