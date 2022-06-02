@@ -131,57 +131,6 @@ double SdfParamDouble(
   return _sdf->Get<double>(_field, _default).first;
 }
 
-/*
-/////////////////////////////////////////////////
-void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
-{
-  static double init_x = 0.0;
-  // open valve
-  if (state.valve_command && !state.command_watch.Running()) {
-    ignmsg << "Valve open (" << \
-      std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
-      "s)" << std::endl;
-    state.command_watch.Start(true);
-    init_x = state.range_finder;
-    // turn pump on
-  } else if (state.pump_command.isRunning() && !state.command_watch.Running()) {
-    ignmsg << "Pump on (" << \
-      std::chrono::duration_cast<std::chrono::seconds>(state.command_duration).count() << \
-      "s)" << std::endl;
-    state.command_watch.Start(true);
-    init_x = state.range_finder;
-  } else {
-    // close valve
-    if (state.valve_command && \
-      state.command_watch.ElapsedRunTime() >= state.command_duration)
-    {
-      state.command_watch.Stop();
-      state.valve_command = false;
-      ignmsg << "Valve closed after (" << \
-        std::chrono::duration_cast<std::chrono::seconds>(
-        state.command_watch.ElapsedRunTime()).count() << \
-        "s)" << std::endl;
-      igndbg << "piston moved: " << \
-      (state.range_finder - init_x) / (std::chrono::duration_cast<std::chrono::milliseconds>(
-        state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s" << std::endl;
-    }
-    // turn pump off
-    if (state.pump_command && \
-      state.command_watch.ElapsedRunTime() >= state.command_duration)
-    {
-      state.command_watch.Stop();
-      state.pump_command = false;
-      ignmsg << "Pump off after (" << \
-        std::chrono::duration_cast<std::chrono::seconds>(
-        state.command_watch.ElapsedRunTime()).count() << \
-        "s)" << std::endl;
-      igndbg << "piston moved: " << \
-      (state.range_finder - init_x) / (std::chrono::duration_cast<std::chrono::milliseconds>(
-        state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s" << std::endl;
-    }
-  }
-}*/
-
 ////////////////////////////////////////////////
 void PolytropicPneumaticSpring::openValve(
   const int dt_nano, const double & pressure_diff,
