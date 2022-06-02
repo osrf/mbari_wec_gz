@@ -290,10 +290,9 @@ struct SpringControllerPrivate
           ros_->node_->get_logger(),
           "Valve closed after (" << \
             services_->command_watch_.ElapsedRunTime().seconds() << "s)");
-        ignerr << "piston moved: " << \
-        (1.0/0.0254) * (state.range_finder - init_x) / \
+        igndbg << "piston moved: " << (state.range_finder - init_x) /
         (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) << \
-          " in/s" << std::endl;
+          " m/s" << std::endl;
       }
       // turn pump off
       if (state.pump_command && \
@@ -305,10 +304,9 @@ struct SpringControllerPrivate
           ros_->node_->get_logger(),
           "Pump off after (" << \
             services_->command_watch_.ElapsedRunTime().seconds() << "s)");
-        ignerr << "piston moved: " << \
-        (1.0/0.0254) * (state.range_finder - init_x) / \
-        ((services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) / 60.0) << \
-          " in/min" << std::endl;
+        igndbg << "piston moved: " << (state.range_finder - init_x) /
+        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) << \
+          " m/s" << std::endl;
       }
     }
   }
