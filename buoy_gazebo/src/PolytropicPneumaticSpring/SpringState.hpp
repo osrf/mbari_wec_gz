@@ -19,7 +19,7 @@
 #include <ignition/gazebo/components/Component.hh>
 #include <ignition/gazebo/config.hh>
 
-#include <ignition/math/Stopwatch.hh>
+// #include <ignition/math/Stopwatch.hh>
 
 namespace buoy_gazebo
 {
@@ -78,8 +78,8 @@ struct SpringState
   float lower_psi{0.0F};  // pressure in PSI
 
   // Commands
-  ignition::math::Stopwatch command_watch;
-  ignition::math::clock::duration command_duration;
+  // ignition::math::Stopwatch command_watch;
+  // ignition::math::clock::duration command_duration;
   CommandTriState valve_command;
   CommandTriState pump_command;
 

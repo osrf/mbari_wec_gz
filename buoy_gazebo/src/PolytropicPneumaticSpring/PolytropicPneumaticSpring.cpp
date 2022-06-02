@@ -49,10 +49,11 @@ struct PolytropicPneumaticSpringPrivate
   /// \brief is hysteresis present in piston travel direction
   bool hysteresis{false};
 
-  // SpringType type;
+  /// \brief adiabatic index (gamma) == 1.4 for diatomic gas (e.g. N2)
+  const double adiabatic_index{1.4};
 
-  /// \brief adiabatic index
-  double n{1.4}, n1{1.4}, n2{1.4};
+  /// \brief polytropic index
+  double n{adiabatic_index}, n1{adiabatic_index}, n2{adiabatic_index};
 
   /// \brief piston stroke (m)
   double stroke{2.03};
@@ -127,7 +128,6 @@ PolytropicPneumaticSpring::PolytropicPneumaticSpring()
 {
 }
 
-
 /////////////////////////////////////////////////
 double SdfParamDouble(
   const std::shared_ptr<const sdf::Element> & _sdf,
@@ -137,6 +137,8 @@ double SdfParamDouble(
   return _sdf->Get<double>(_field, _default).first;
 }
 
+/*
+/////////////////////////////////////////////////
 void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
 {
   static double init_x = 0.0;
@@ -184,7 +186,7 @@ void PolytropicPneumaticSpring::manageCommandTimer(SpringState & state)
         state.command_watch.ElapsedRunTime()).count() / 1000.0) << " m/s" << std::endl;
     }
   }
-}
+}*/
 
 ////////////////////////////////////////////////
 void PolytropicPneumaticSpring::openValve(
@@ -200,7 +202,7 @@ void PolytropicPneumaticSpring::openValve(
   double & P1, double & V1,
   double & P2, double & V2)
 {
-  double dt_sec = dt_nano * 1e-9;
+  double dt_sec = dt_nano * IGN_NANO_TO_SEC;
 
   // want piston to drop 1 inch per second
   // so let mass flow from lower chamber to upper
@@ -212,7 +214,8 @@ void PolytropicPneumaticSpring::openValve(
   double delta_mass = dt_sec * mass_flow;  // kg of gas per step
 
   igndbg << "valve -- pressure differential: " << pressure_diff << " Pascal" << std::endl;
-  igndbg << "valve -- delta mass from/to this chamber to/from other: " << delta_mass << " kg" << std::endl;
+  igndbg << "valve -- delta mass from/to this chamber to/from other: " << delta_mass << " kg" <<
+    std::endl;
 
   IGN_ASSERT(V1 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
   IGN_ASSERT(V2 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
@@ -253,7 +256,8 @@ void PolytropicPneumaticSpring::pumpOn(
   double mass_flow = this->dataPtr->pump_absement * this->dataPtr->pump_pressure;
   double delta_mass = dt_sec * mass_flow;  // kg of gas per step
 
-  ignerr << "pump -- delta mass from/to this chamber to/from other: " << delta_mass << " kg" << std::endl;
+  ignerr << "pump -- delta mass from/to this chamber to/from other: " << delta_mass << " kg" <<
+    std::endl;
 
   IGN_ASSERT(V1 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
   IGN_ASSERT(V2 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
@@ -277,10 +281,12 @@ void PolytropicPneumaticSpring::computeForce(const double & x, const double & v,
     pow(this->dataPtr->V0 / this->dataPtr->V, this->dataPtr->n);
   this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->c;
 
-  if (fabs(n - 1.4) < 1.0e-7) {
+  if (fabs(n - this->dataPtr->adiabatic_index) < 1.0e-7) {
     this->dataPtr->Q_rate = 0.0;
   } else {
-    this->dataPtr->Q_rate = (1.0 - n / 1.4) * (this->dataPtr->c_p / this->dataPtr->R) *
+    this->dataPtr->Q_rate = \
+      (1.0 - n / this->dataPtr->adiabatic_index) * \
+      (this->dataPtr->c_p / this->dataPtr->R) * \
       this->dataPtr->P * this->dataPtr->piston_area * v;
   }
 
@@ -319,8 +325,8 @@ void PolytropicPneumaticSpring::Configure(
 
   this->dataPtr->hysteresis = _sdf->Get<bool>("hysteresis", false).first;
   if (this->dataPtr->hysteresis) {
-    this->dataPtr->n1 = SdfParamDouble(_sdf, "n1", 1.4);
-    this->dataPtr->n2 = SdfParamDouble(_sdf, "n2", 1.4);
+    this->dataPtr->n1 = SdfParamDouble(_sdf, "n1", this->dataPtr->adiabatic_index);
+    this->dataPtr->n2 = SdfParamDouble(_sdf, "n2", this->dataPtr->adiabatic_index);
     this->dataPtr->P1 = SdfParamDouble(_sdf, "P1", 410240);
     this->dataPtr->P2 = SdfParamDouble(_sdf, "P2", 410240);
     this->dataPtr->x1 = SdfParamDouble(_sdf, "x1", 0.9921);
@@ -338,7 +344,7 @@ void PolytropicPneumaticSpring::Configure(
     this->dataPtr->mass = this->dataPtr->c / this->dataPtr->R;
     igndbg << "mass: " << this->dataPtr->mass << std::endl;
   } else {
-    this->dataPtr->n = SdfParamDouble(_sdf, "n", 1.4);
+    this->dataPtr->n = SdfParamDouble(_sdf, "n", this->dataPtr->adiabatic_index);
     this->dataPtr->P0 = SdfParamDouble(_sdf, "P0", 410240);
     this->dataPtr->x0 = SdfParamDouble(_sdf, "x0", 0.9921);
     this->dataPtr->V0 = this->dataPtr->dead_volume + \
@@ -494,9 +500,6 @@ void PolytropicPneumaticSpring::PreUpdate(
   {
     auto spring_state_comp = \
       _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity);
-
-    // check for valve/pump command state changes
-    manageCommandTimer(spring_state_comp->Data());
 
     spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
   }
