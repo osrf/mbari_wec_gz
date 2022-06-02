@@ -57,19 +57,19 @@ public:
 private:
   void openValve(
     const int dt_nano, const double & pressure_diff,
-    double & P0, double & V0);
+    double & P0, const double & V0);
   void openValve(
     const int dt_nano, const double & pressure_diff,
-    double & P1, double & V1,
-    double & P2, double & V2);
+    double & P1, const double & V1,
+    double & P2, const double & V2);
   void pumpOn(
     const int dt_nano,
-    double & P0, double & V0);
+    double & P0, const double & V0);
   void pumpOn(
     const int dt_nano,
-    double & P1, double & V1,
-    double & P2, double & V2);
-  void computeForce(const double & x, const double & v, const double & n);
+    double & P1, const double & V1,
+    double & P2, const double & V2);
+  void computeForce(const double & x, const double & v);
 
   ignition::transport::Node node;
   ignition::transport::Node::Publisher force_pub, pressure_pub, volume_pub,
