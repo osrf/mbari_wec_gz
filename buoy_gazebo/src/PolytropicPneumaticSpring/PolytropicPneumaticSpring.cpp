@@ -205,7 +205,7 @@ void PolytropicPneumaticSpring::pumpOn(
   double mass_flow = this->dataPtr->pump_absement * this->dataPtr->pump_pressure;
   double delta_mass = dt_sec * mass_flow;  // kg of gas per step
 
-  ignerr << "pump -- delta mass from/to this chamber to/from other: " << delta_mass << " kg" <<
+  igndbg << "pump -- delta mass from/to this chamber to/from other: " << delta_mass << " kg" <<
     std::endl;
 
   IGN_ASSERT(V1 >= this->dataPtr->dead_volume, "volume of chamber must be >= dead volume");
