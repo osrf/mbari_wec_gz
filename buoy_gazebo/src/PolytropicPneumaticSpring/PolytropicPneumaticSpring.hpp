@@ -30,7 +30,7 @@ struct PolytropicPneumaticSpringPrivate;
 
 /// TODO(andermi) documentation
 /// SDF parameters:
-/// * `<>`: 
+/// * `<>`:
 class PolytropicPneumaticSpring : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,
   public ignition::gazebo::ISystemPreUpdate
