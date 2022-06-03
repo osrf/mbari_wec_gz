@@ -46,7 +46,7 @@
       <pose relative_to="world">0 0 -2 0 0 0</pose>
 
       <include merge="true">
-        <uri>model://mbari_wec</uri>
+        <uri>package://buoy_description/models/mbari_wec</uri>
       </include>
 
       <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">

@@ -47,7 +47,7 @@ tether_bottom_link_cylinder.set_mat(Material(tether_density))
 tether_bottom_link_mm = MassMatrix3d()
 tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
 }@
-<sdf version="1.8">
+<sdf version="1.7">
   <model name="MBARI_WEC">
     <link name="Buoy">
       <pose relative_to="__model__">0 0 0 0 0 0</pose>
@@ -66,7 +66,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>meshes/buoy_float.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec/meshes/buoy_float.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -114,7 +114,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>meshes/pto.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec/meshes/pto.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -127,7 +127,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <collision name="collision">
         <geometry>
           <mesh>
-            <uri>meshes/pto_collision.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec/meshes/pto_collision.stl</uri>
           </mesh>
         </geometry>
       </collision>
@@ -151,7 +151,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>meshes/rod_and_piston.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec/meshes/rod_and_piston.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -201,7 +201,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       </collision>
     </link>
 
-    <joint name="tether_top_joint_@(link_index)" type="ball">
+    <joint name="tether_top_joint_@(link_index)" type="fixed">
       <pose>0 0 @(tether_top_link_length * 0.5) 0 0 0</pose>
 @[if link_index == 0]@
       <parent>Piston</parent>
@@ -248,7 +248,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       </collision>
     </link>
 
-    <joint name="tether_bottom_joint_@(link_index)" type="ball">
+    <joint name="tether_bottom_joint_@(link_index)" type="fixed">
       <pose>0 0 @(tether_bottom_link_length * 0.5) 0 0 0</pose>
 @[if link_index == 0]@
       <parent>tether_top_@(num_tether_top_links-1)</parent>
@@ -259,7 +259,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
     </joint>
 @[end for]@
 
-    <joint name="TetherToHeaveCone" type="ball">
+    <joint name="TetherToHeaveCone" type="fixed">
       <parent>tether_bottom_@(num_tether_bottom_links-1)</parent>
       <child>HeaveCone</child>
     </joint>
@@ -282,7 +282,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>meshes/heave_cone.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec/meshes/heave_cone.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -320,7 +320,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <visual name="visual">
         <geometry>
           <mesh>
-            <uri>meshes/trefoil.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec/meshes/trefoil.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -332,7 +332,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       </visual>
     </link>
 
-    <joint name="Universal" type="ball">
+    <joint name="Universal" type="fixed">
       <parent>Buoy</parent>
       <child>PTO</child>
       <provide_feedback>1</provide_feedback>
