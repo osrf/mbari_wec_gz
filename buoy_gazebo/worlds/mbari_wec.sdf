@@ -46,7 +46,7 @@
       <pose relative_to="world">0 0 -2 0 0 0</pose>
 
       <include merge="true">
-        <uri>model://mbari_wec</uri>
+        <uri>package://buoy_description/models/mbari_wec</uri>
       </include>
 
       <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
@@ -55,7 +55,7 @@
         <HydMotorDisp>0.30</HydMotorDisp>
         <RotorInertia>1</RotorInertia>
       </plugin>
-      
+
       <plugin filename="SpringController" name="buoy_gazebo::SpringController">
         <JointName>HydraulicRam</JointName>
         <namespace>/</namespace>
@@ -63,7 +63,7 @@
         <topic>sc_record</topic>
         <publish_rate>31</publish_rate>
       </plugin>
-      
+
       <plugin filename="XBowAHRS" name="buoy_gazebo::XBowAHRS">
         <namespace>/</namespace>
         <node_name>xbow_ahrs</node_name>

@@ -21,6 +21,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
@@ -34,10 +35,49 @@ def generate_launch_description():
         ),
     )
 
+    # Bridge to forward tf and joint states to ros2
+    bridge = Node(
+        package='ros_ign_bridge',
+        executable='parameter_bridge',
+        arguments=[
+            # Clock (IGN -> ROS2)
+            '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
+            # Joint states (IGN -> ROS2)
+            '/world/empty/model/test_mbari_wec_model/joint_state@sensor_msgs/msg/JointState[ignition.msgs.Model',
+        ],
+        remappings=[
+            ('/world/empty/model/test_mbari_wec_model/joint_state', 'joint_states'),
+        ],
+        output='screen'
+    )
+
+    sdf_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'test_mbari_wec_model.sdf')
+    with open(sdf_file, 'r') as infp:
+        robot_desc = infp.read()
+    robot_state_publiser = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='both',
+        parameters=[
+            {'use_sim_time': False},
+            {'robot_description': robot_desc},
+        ],
+    )
+
+    rviz = Node(
+        package='rviz2',
+        executable='rviz2',
+        arguments=['-d', os.path.join(pkg_buoy_gazebo, 'rviz', 'mbari_wec.rviz')],
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument(
           'ign_args',
           default_value=[os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf'), ''],
           description='Ignition Gazebo arguments'),
-        gazebo
+        gazebo,
+        bridge,
+        robot_state_publiser,
+        rviz
     ])
