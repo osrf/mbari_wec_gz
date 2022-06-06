@@ -20,60 +20,17 @@
 
 #include <memory>
 
+#include "SpringState.hpp"
+
+
 namespace buoy_gazebo
 {
-// enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
-
 // Forward declaration
 struct PolytropicPneumaticSpringPrivate;
 
-/// \brief This can be attached to a model with a reference
-/// to a single prismatic joint. A force proportional to the
-/// joint displacement will be applied along the axis of the joint.
-/// This is an added force that will sum to other forces that may be present.
-///
-/// ## System Parameters
-///
-/// xml tags in Ignition Gazebo .sdf file define behavior as follows:
-///
-/// \brief <JointName>  The name of the joint to control. Required parameter.
-///
-/// <SpringType> \brief Type of Spring, options are 'linear', 'pneumatic_adiabatic',
-///               'pneumatic_calibrated'  - Currently Unused
-///
-/// <SpringConst> \brief The spring constant.
-///                Required and used when 'SpringType' is 'trivial'.
-///                The default is 1.
-///
-/// <PistonDiam> \brief Piston Diam (inches)
-///               Required and used whenever 'SpringType' is not 'trivial'.
-///               The default is 5.  - Currently Unused
-///
-/// <RodDiam> \brief Rod Diamter (inches)
-///            Required and used whenever 'SpringType' is not 'trivial'.
-///            The default is 1.5.  - Currently Unused
-///
-/// <PistonEndVolume> \brief Piston End Dead Volume when position is 0 (inches^3).
-///                    Required and used whenever 'SpringType' is not 'trivial'.
-///                    The default is 1430.  - Currently Unused
-///
-/// <RodEndVolume> \brief Rod End Dead Volume when position is 0 (inches^3).
-///                 Required and used whenever 'SpringType' is not 'trivial'.
-///                 The default is 4700.  - Currently Unused
-///
-/// <PistonEndPressure> \brief Piston End pressure when position is 0 (psia).
-///                      Required and used whenever 'SpringType' is not 'trivial'.
-///                      The default is 65.  - Currently Unused
-///
-/// <RodEndPressure> \brief Rod End pressure when position is 0 (psia).
-///                   Required and used whenever 'SpringType' is not 'trivial'.
-///                   The default is 160.  - Currently Unused
-///
-/// <AmbientTemp> \brief Ambient Temperature (degrees C).
-///                Required and used whenever 'SpringType' is not 'trivial'.
-///                The default is 15.  - Currently Unused
-///
-
+/// TODO(andermi) documentation
+/// SDF parameters:
+/// * `<>`:
 class PolytropicPneumaticSpring : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,
   public ignition::gazebo::ISystemPreUpdate
@@ -98,11 +55,18 @@ public:
     ignition::gazebo::EntityComponentManager & _ecm) override;
 
 private:
+  void openValve(
+    const int dt_nano, const double & pressure_diff,
+    double & P0, double & V0);
+  void openValve(
+    const int dt_nano, const double & pressure_diff,
+    double & P1, double & V1,
+    double & P2, double & V2);
   void computeForce(const double & x, const double & v, const double & n);
 
   ignition::transport::Node node;
   ignition::transport::Node::Publisher force_pub, pressure_pub, volume_pub,
-    temperature_pub, heat_rate_pub;
+    temperature_pub, heat_rate_pub, piston_velocity_pub;
 
   /// \brief Private data pointer
   std::unique_ptr<PolytropicPneumaticSpringPrivate> dataPtr;

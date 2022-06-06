@@ -7,9 +7,9 @@ find_package(buoy_msgs REQUIRED)
 
 find_package(ignition-cmake2 REQUIRED)
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
-set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
+set(GZ_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
 find_package(ignition-gazebo6 REQUIRED)
-set(IGN_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
+set(GZ_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 
 
 # Plugins
@@ -50,8 +50,8 @@ function(gz_add_plugin plugin_name)
   )
   target_link_libraries(${plugin_name}
     PUBLIC
-      ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
-      ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
+      ignition-gazebo${GZ_GAZEBO_VER}::ignition-gazebo${GZ_GAZEBO_VER}
+      ignition-plugin${GZ_PLUGIN_VER}::ignition-plugin${GZ_PLUGIN_VER}
       ${gz_add_plugin_PUBLIC_LINK_LIBS}
     PRIVATE
       ${gz_add_plugin_PRIVATE_LINK_LIBS}

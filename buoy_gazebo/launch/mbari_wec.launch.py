@@ -21,6 +21,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
@@ -34,10 +35,16 @@ def generate_launch_description():
         ),
     )
 
+    bridge = Node(package='ros_ign_bridge',
+                  executable='parameter_bridge',
+                  arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+                  output='screen')
+
     return LaunchDescription([
         DeclareLaunchArgument(
           'ign_args',
           default_value=[os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf'), ''],
           description='Ignition Gazebo arguments'),
-        gazebo
+        gazebo,
+        bridge
     ])
