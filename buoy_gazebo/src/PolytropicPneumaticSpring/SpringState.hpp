@@ -19,15 +19,67 @@
 #include <ignition/gazebo/components/Component.hh>
 #include <ignition/gazebo/config.hh>
 
+// #include <ignition/math/Stopwatch.hh>
+
 namespace buoy_gazebo
 {
 
+struct CommandTriState
+{
+  bool left{false};
+  bool right{false};
+
+  bool isRunning() const  // rising edge
+  {
+    return !left && right;
+  }
+
+  bool isFinished() const  // falling edge
+  {
+    return left && !right;
+  }
+
+  bool active() const  // running or finished
+  {
+    return left || right;
+  }
+
+  operator bool() const
+  {
+    return isRunning();
+  }
+
+  void reset()
+  {
+    left = right = false;  // no command activity
+  }
+
+  void operator=(const bool state)
+  {
+    if (state) {
+      if (!active()) {
+        right = true;
+      }
+    } else {
+      if (isRunning()) {
+        left = true;
+        right = false;
+      }
+    }
+  }
+};
+
 struct SpringState
 {
+  // SCRecord
   int16_t load_cell{0};  // load on Buoy->PTO universal joint in Newtons (TODO(andermi) for now)
   float range_finder{0.0F};  // position in meters (TODO(andermi) for now)
   float upper_psi{0.0F};  // pressure in PSI
   float lower_psi{0.0F};  // pressure in PSI
+
+  // Commands
+  CommandTriState valve_command;
+  CommandTriState pump_command;
 
   bool operator==(const SpringState & that) const
   {
@@ -39,9 +91,13 @@ struct SpringState
   }
 };
 
-using SpringStateComponent = ignition::gazebo::components::Component<SpringState,
+namespace components
+{
+using SpringState = ignition::gazebo::components::Component<buoy_gazebo::SpringState,
     class SpringStateTag>;
-IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.SpringState", SpringStateComponent)
+IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.components.SpringState", SpringState)
+}  // namespace components
+
 }  // namespace buoy_gazebo
 
 #endif  // POLYTROPICPNEUMATICSPRING__SPRINGSTATE_HPP_

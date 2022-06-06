@@ -99,6 +99,11 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('rviz')),
     )
 
+    bridge = Node(package='ros_ign_bridge',
+                  executable='parameter_bridge',
+                  arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+                  output='screen')
+
     return LaunchDescription([
         gazebo_world_launch_arg,
         rviz_launch_arg,

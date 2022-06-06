@@ -3,24 +3,33 @@
 from ignition.math import Cylinderd
 from ignition.math import MassMatrix3d
 from ignition.math import Material
+import math
 
 ##############
 # Parameters #
 ##############
+
+# PTO
+pto_stl_inner_radius = 0.02
+pto_gap = 0.02
 
 # Piston
 piston_length = 5.08
 piston_z_offset = -3.50066
 
 # Tether
-tether_radius = 0.01905
+tether_radius = 0.025 #0.009525 # Nominal O.D. 0.75 in
 tether_density = 3350 # kg/m^3
 tether_length = 20.3
 
-num_tether_top_links = 10
-tether_top_length = 2.0
+num_tether_top_links = 15
+tether_top_length = 2.5
 
-num_tether_bottom_links = 10
+num_tether_bottom_links = 5
+
+# Heave cone
+heave_total_mass = 817
+trefoil_mass = 10
 
 # Heave cone
 heave_total_mass = 817
@@ -46,9 +55,29 @@ tether_bottom_link_cylinder = Cylinderd(tether_bottom_link_length, tether_radius
 tether_bottom_link_cylinder.set_mat(Material(tether_density))
 tether_bottom_link_mm = MassMatrix3d()
 tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
+
+def tether_joint_properties():
+    """ Prints the <dynamics> and <limit> blocks for tether joints. """
+    print("""
+        <dynamics>
+          <damping>1000.0</damping>
+          <friction>500</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>1000</spring_stiffness>
+        </dynamics>
+        <limit>
+          <lower>-0.05</lower>
+          <upper>0.05</upper>
+        </limit>
+    """)
+
+# PTO
+pto_inner_radius = tether_radius + pto_gap
+pto_scale = pto_inner_radius / pto_stl_inner_radius
 }@
 <sdf version="1.7">
   <model name="MBARI_WEC">
+    <self_collide>true</self_collide>
     <link name="Buoy">
       <pose relative_to="__model__">0 0 0 0 0 0</pose>
       <inertial>
@@ -117,19 +146,31 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
             <uri>package://buoy_description/models/mbari_wec/meshes/pto.stl</uri>
           </mesh>
         </geometry>
-        <!--color-->
         <material>
-          <ambient>.2 .2 0.2 0.5</ambient>
-          <diffuse>.2 .2 0.2 0.5</diffuse>
-          <specular>.2 .2 0.2 0.5</specular>
+          <ambient>1 1 1 0.9</ambient>
+          <diffuse>.2 .2 1 0.9</diffuse>
+          <specular>1 1 1 1</specular>
         </material>
       </visual>
       <collision name="collision">
         <geometry>
           <mesh>
             <uri>package://buoy_description/models/mbari_wec/meshes/pto_collision.stl</uri>
+            <scale>@(pto_scale) @(pto_scale) 1.0</scale>
           </mesh>
         </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>10</mu>
+              <mu2>10</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <!-- Collide with top tether -->
+            <!--collide_bitmask>0x01</collide_bitmask-->
+          </contact>
+        </surface>
       </collision>
     </link>
 
@@ -198,6 +239,18 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
             <length>@(tether_top_link_length)</length>
           </cylinder>
         </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>10</mu>
+              <mu2>10</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <!-- Collide with PTO -->
+            <!--collide_bitmask>0x01</collide_bitmask-->
+          </contact>
+        </surface>
       </collision>
     </link>
 
@@ -209,6 +262,14 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <parent>tether_top_@(link_index-1)</parent>
 @[end if]@
       <child>tether_top_@(link_index)</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        @(tether_joint_properties())
+      </axis>
+      <axis2>
+        <xyz>0 1 0</xyz>
+        @(tether_joint_properties())
+      </axis2>
     </joint>
 @[end for]@
     <!-- end tether top -->
@@ -233,9 +294,9 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
           </cylinder>
         </geometry>
         <material>
-          <ambient>0.1 0.1 .1 1</ambient>
-          <diffuse>0.1 0.1 .1 1</diffuse>
-          <specular>0.1 0.1 .1 1</specular>
+          <ambient>0.1 1 .1 1</ambient>
+          <diffuse>0.1 1 .1 1</diffuse>
+          <specular>0.1 1 .1 1</specular>
         </material>
       </visual>
       <collision name="collision">
@@ -256,12 +317,28 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <parent>tether_bottom_@(link_index-1)</parent>
 @[end if]@
       <child>tether_bottom_@(link_index)</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        @(tether_joint_properties())
+      </axis>
+      <axis2>
+        <xyz>0 1 0</xyz>
+        @(tether_joint_properties())
+      </axis2>
     </joint>
 @[end for]@
 
     <joint name="TetherToHeaveCone" type="fixed">
       <parent>tether_bottom_@(num_tether_bottom_links-1)</parent>
       <child>HeaveCone</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        @(tether_joint_properties())
+      </axis>
+      <axis2>
+        <xyz>0 1 0</xyz>
+        @(tether_joint_properties())
+      </axis2>
     </joint>
     <!-- end tether bottom -->
 
@@ -337,6 +414,14 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <child>PTO</child>
       <provide_feedback>1</provide_feedback>
       <pose>0.0 0.0 0.0 0 0 0</pose>
+      <axis>
+        <xyz>1 0 0</xyz>
+        @(tether_joint_properties())
+      </axis>
+      <axis2>
+        <xyz>0 1 0</xyz>
+        @(tether_joint_properties())
+      </axis2>
       <sensor name="force_torque_sensor" type="force_torque">
         <always_on>true</always_on>
         <update_rate>50</update_rate>
@@ -356,6 +441,7 @@ tether_bottom_link_cylinder.mass_matrix(tether_bottom_link_mm)
       <axis>
         <limit>
           <lower>0.0</lower>
+          <!-- TODO(chapulina) Check why it's only going up to ~1.16-->
           <upper>2.03</upper>
         </limit>
         <xyz>0.0 0.0 1.0</xyz>

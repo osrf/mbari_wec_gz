@@ -31,6 +31,7 @@ struct SpringControllerPrivate;
 class SpringController
   : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,
+  public ignition::gazebo::ISystemPreUpdate,
   public ignition::gazebo::ISystemPostUpdate
 {
 public:
@@ -46,6 +47,11 @@ public:
     const std::shared_ptr<const sdf::Element> & _sdf,
     ignition::gazebo::EntityComponentManager & _ecm,
     ignition::gazebo::EventManager & _eventMgr) override;
+
+  // Documentation inherited
+  void PreUpdate(
+    const ignition::gazebo::UpdateInfo & _info,
+    ignition::gazebo::EntityComponentManager & _ecm) override;
 
   // Documentation inherited
   void PostUpdate(
