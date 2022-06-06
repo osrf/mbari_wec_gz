@@ -73,6 +73,8 @@ public:
   virtual ~StopwatchSimTime();
 
 public:
+  /// \brief Take a clock instance (e.g. get_clock() from rclcpp::Node).
+  /// Can also follow sim time on /clock when node's use_sim_time param is set
   void SetClock(rclcpp::Clock::SharedPtr _clock);
 
   /// \brief Start the stopwatch.
@@ -89,7 +91,7 @@ public:
   /// has not been started.
 
 public:
-  rclcpp::Time StartTime() const;
+  const rclcpp::Time & StartTime() const;
 
   /// \brief Stop the stopwatch
   /// \return True if the stopwatch was stopped. This will return false
@@ -104,7 +106,7 @@ public:
   /// has never been stopped.
 
 public:
-  rclcpp::Time StopTime() const;
+  const rclcpp::Time & StopTime() const;
 
   /// \brief Get whether the stopwatch is running.
   /// \return True if the stopwatch is running.

@@ -119,7 +119,7 @@ bool StopwatchSimTime::Start(const bool _reset)
 }
 
 //////////////////////////////////////////////////
-rclcpp::Time StopwatchSimTime::StartTime() const
+const rclcpp::Time & StopwatchSimTime::StartTime() const
 {
   return this->dataPtr->startTime;
 }
@@ -143,7 +143,7 @@ bool StopwatchSimTime::Stop()
 }
 
 //////////////////////////////////////////////////
-rclcpp::Time StopwatchSimTime::StopTime() const
+const rclcpp::Time & StopwatchSimTime::StopTime() const
 {
   return this->dataPtr->stopTime;
 }
