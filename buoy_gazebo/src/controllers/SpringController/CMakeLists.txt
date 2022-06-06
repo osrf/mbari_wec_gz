@@ -3,5 +3,7 @@ gz_add_plugin(SpringController
     SpringController.cpp
   INCLUDE_DIRS
     ../..
+  PUBLIC_LINK_LIBS
+    StopwatchSimTime
   ROS
 )
