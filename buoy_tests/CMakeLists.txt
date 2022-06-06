@@ -16,7 +16,6 @@ ament_lint_auto_find_test_dependencies()
 
 # GTest
 find_package(ament_cmake_gtest REQUIRED)
-find_package(launch_testing_ament_cmake REQUIRED)
 ament_find_gtest()
 
 # Helper function to generate tests
