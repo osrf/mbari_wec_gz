@@ -186,6 +186,7 @@ void PolytropicPneumaticSpring::openValve(
     this->dataPtr->mass -= delta_mass;
   }
 
+  // Ideal Gas Law
   const double mRT0 = this->dataPtr->mass * this->dataPtr->config_->R * this->dataPtr->config_->T0;
   P1 = mRT0 / V1;
   P2 = mRT0 / V2;
@@ -222,6 +223,7 @@ void PolytropicPneumaticSpring::pumpOn(
     this->dataPtr->mass += delta_mass;
   }
 
+  // Ideal Gas Law
   const double mRT0 = this->dataPtr->mass * this->dataPtr->config_->R * this->dataPtr->config_->T0;
   P1 = mRT0 / V1;
   P2 = mRT0 / V2;
@@ -230,18 +232,28 @@ void PolytropicPneumaticSpring::pumpOn(
 //////////////////////////////////////////////////
 void PolytropicPneumaticSpring::computeForce(const double & x, const double & v)
 {
+  // geometry: V = V_dead + A*x
   this->dataPtr->V = this->dataPtr->config_->dead_volume + x * this->dataPtr->config_->piston_area;
+  // polytropic relationship: P = P0*(V0/V)^n
   this->dataPtr->P = this->dataPtr->P0 *
     pow(this->dataPtr->V0 / this->dataPtr->V, this->dataPtr->n);
+  // Ideal Gas Law: T = P*V/(m*R)
   this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->config_->c;
 
+  // no heat loss if adiabatic
   static const double cp_R = this->dataPtr->config_->c_p / this->dataPtr->config_->R;
   if (!this->dataPtr->config_->is_adiabatic) {
-    this->dataPtr->Q_rate = \
-      (1.0 - this->dataPtr->n / PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) * cp_R * \
+    // Rodrigues, M. J. (June 5, 2014). Heat Transfer During the Piston-Cylinder Expansion of a Gas
+    // (Master's thesis, Oregon State University).
+    // Retrieved from https://ir.library.oregonstate.edu/downloads/ww72bf399
+    // heat loss rate for polytropic idea gas:
+    // dQ/dt = (1 - n/gamma)*(c_p/R)*P*A*dx/dt
+    this->dataPtr->Q_rate =
+      (1.0 - this->dataPtr->n / PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) * cp_R *
       this->dataPtr->P * this->dataPtr->config_->piston_area * v;
   }
 
+  // F = P*A
   this->dataPtr->F = this->dataPtr->P * this->dataPtr->config_->piston_area;
 }
 
@@ -280,7 +292,7 @@ void PolytropicPneumaticSpring::Configure(
   if (config.hysteresis) {
     config.n1 = SdfParamDouble(_sdf, "n1", PolytropicPneumaticSpringConfig::ADIABATIC_INDEX);
     config.n2 = SdfParamDouble(_sdf, "n2", PolytropicPneumaticSpringConfig::ADIABATIC_INDEX);
-    if ((fabs(config.n1 - PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) < 1.0e-7) && \
+    if ((fabs(config.n1 - PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) < 1.0e-7) &&
       (fabs(config.n2 - PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) < 1.0e-7))
     {
       config.is_adiabatic = true;
@@ -293,10 +305,10 @@ void PolytropicPneumaticSpring::Configure(
     config.x1 = SdfParamDouble(_sdf, "x1", config.x1);
     config.x2 = SdfParamDouble(_sdf, "x2", config.x2);
 
-    config.V1 = config.dead_volume + \
+    config.V1 = config.dead_volume +
       config.x1 * config.piston_area;
     igndbg << "V1: " << config.V1 << std::endl;
-    config.V2 = config.dead_volume + \
+    config.V2 = config.dead_volume +
       config.x2 * config.piston_area;
     igndbg << "V2: " << config.V2 << std::endl;
     this->dataPtr->V0 = config.V1;
@@ -315,7 +327,7 @@ void PolytropicPneumaticSpring::Configure(
     this->dataPtr->n = config.n0;
     this->dataPtr->P0 = SdfParamDouble(_sdf, "P0", this->dataPtr->P0);
     config.x0 = SdfParamDouble(_sdf, "x0", config.x0);
-    config.V0 = config.dead_volume + \
+    config.V0 = config.dead_volume +
       config.x0 * config.piston_area;
     this->dataPtr->V0 = config.V0;
 
@@ -353,7 +365,7 @@ void PolytropicPneumaticSpring::Configure(
   this->dataPtr->config_ = std::make_unique<const PolytropicPneumaticSpringConfig>(config);
 
   std::string force_topic = std::string("/force_") + this->dataPtr->config_->name;
-  force_pub = \
+  force_pub =
     node.Advertise<ignition::msgs::Double>(
     ignition::transport::TopicUtils::AsValidTopic(
       force_topic));
@@ -363,7 +375,7 @@ void PolytropicPneumaticSpring::Configure(
   }
 
   std::string pressure_topic = std::string("/pressure_") + this->dataPtr->config_->name;
-  pressure_pub = \
+  pressure_pub =
     node.Advertise<ignition::msgs::Double>(
     ignition::transport::TopicUtils::AsValidTopic(
       pressure_topic));
@@ -373,7 +385,7 @@ void PolytropicPneumaticSpring::Configure(
   }
 
   std::string volume_topic = std::string("/volume_") + this->dataPtr->config_->name;
-  volume_pub = \
+  volume_pub =
     node.Advertise<ignition::msgs::Double>(
     ignition::transport::TopicUtils::AsValidTopic(
       volume_topic));
@@ -383,7 +395,7 @@ void PolytropicPneumaticSpring::Configure(
   }
 
   std::string temperature_topic = std::string("/temperature_") + this->dataPtr->config_->name;
-  temperature_pub = \
+  temperature_pub =
     node.Advertise<ignition::msgs::Double>(
     ignition::transport::TopicUtils::AsValidTopic(
       temperature_topic));
@@ -393,7 +405,7 @@ void PolytropicPneumaticSpring::Configure(
   }
 
   std::string heat_rate_topic = std::string("/heat_rate_") + this->dataPtr->config_->name;
-  heat_rate_pub = \
+  heat_rate_pub =
     node.Advertise<ignition::msgs::Double>(
     ignition::transport::TopicUtils::AsValidTopic(
       heat_rate_topic));
@@ -460,7 +472,7 @@ void PolytropicPneumaticSpring::PreUpdate(
       this->dataPtr->config_->jointEntity,
       buoy_gazebo::components::SpringState().TypeId()))
   {
-    auto spring_state_comp = \
+    auto spring_state_comp =
       _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->config_->jointEntity);
 
     spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
@@ -476,7 +488,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     v *= -1.0;
   }
 
-  const int dt_nano = \
+  const int dt_nano =
     static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count());
 
   static const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
