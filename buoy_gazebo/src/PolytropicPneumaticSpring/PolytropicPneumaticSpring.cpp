@@ -429,7 +429,8 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   // Create joint position component if one doesn't exist
   auto jointPosComp =
-    _ecm.Component<ignition::gazebo::components::JointPosition>(this->dataPtr->config_->jointEntity);
+    _ecm.Component<ignition::gazebo::components::JointPosition>(
+    this->dataPtr->config_->jointEntity);
   if (jointPosComp == nullptr) {
     _ecm.CreateComponent(
       this->dataPtr->config_->jointEntity, ignition::gazebo::components::JointPosition());
@@ -442,7 +443,8 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   // Create joint velocity component if one doesn't exist
   auto jointVelComp =
-    _ecm.Component<ignition::gazebo::components::JointVelocity>(this->dataPtr->config_->jointEntity);
+    _ecm.Component<ignition::gazebo::components::JointVelocity>(
+    this->dataPtr->config_->jointEntity);
   if (jointVelComp == nullptr) {
     _ecm.CreateComponent(
       this->dataPtr->config_->jointEntity, ignition::gazebo::components::JointVelocity());
