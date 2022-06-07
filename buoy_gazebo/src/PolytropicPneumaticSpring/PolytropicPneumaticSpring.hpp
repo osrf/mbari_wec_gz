@@ -62,6 +62,13 @@ private:
     const int dt_nano, const double & pressure_diff,
     double & P1, double & V1,
     double & P2, double & V2);
+  void pumpOn(
+    const int dt_nano,
+    double & P0, double & V0);
+  void pumpOn(
+    const int dt_nano,
+    double & P1, double & V1,
+    double & P2, double & V2);
   void computeForce(const double & x, const double & v, const double & n);
 
   ignition::transport::Node node;

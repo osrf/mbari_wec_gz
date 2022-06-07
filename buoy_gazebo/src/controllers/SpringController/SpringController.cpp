@@ -26,8 +26,8 @@
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 
 #include <buoy_msgs/msg/sc_record.hpp>
-#include <buoy_msgs/srv/sc_pack_rate_command.hpp>
 #include <buoy_msgs/srv/valve_command.hpp>
+#include <buoy_msgs/srv/pump_command.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -61,6 +61,9 @@ struct SpringControllerServices
   rclcpp::Service<buoy_msgs::srv::ValveCommand>::SharedPtr valve_command_service_;
   std::function<void(std::shared_ptr<buoy_msgs::srv::ValveCommand::Request>,
     std::shared_ptr<buoy_msgs::srv::ValveCommand::Response>)> valve_command_handler_;
+  rclcpp::Service<buoy_msgs::srv::PumpCommand>::SharedPtr pump_command_service_;
+  std::function<void(std::shared_ptr<buoy_msgs::srv::PumpCommand::Request>,
+    std::shared_ptr<buoy_msgs::srv::PumpCommand::Response>)> pump_command_handler_;
   buoy_utils::StopwatchSimTime command_watch_;
   rclcpp::Duration command_duration_{0, 0U};
   std::atomic<bool> valve_command_{false}, pump_command_{false};
@@ -110,7 +113,6 @@ struct SpringControllerPrivate
     range.set__from_value(10.0F).set__to_value(50.0F).set__step(1.0F);
     descriptor.floating_point_range = {range};
     ros_->node_->declare_parameter("publish_rate", ros_->pub_rate_hz_, descriptor);
-
 
     ros_->parameter_handler_ = ros_->node_->add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> & parameters)
@@ -207,6 +209,54 @@ struct SpringControllerPrivate
       ros_->node_->create_service<buoy_msgs::srv::ValveCommand>(
       "valve_command",
       services_->valve_command_handler_);
+
+    // PumpCommand
+    services_->pump_command_handler_ = \
+      [this](const std::shared_ptr<buoy_msgs::srv::PumpCommand::Request> request,
+        std::shared_ptr<buoy_msgs::srv::PumpCommand::Response> response)
+      {
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "[ROS 2 Spring Control] PumpCommand Received (" << request->duration_sec << "s)");
+        std::unique_lock lock(services_->command_mutex_);
+        // if already running valve, don't allow pump
+        // unless for some reason we need to turn pump off (shouldn't get in that state)
+        if (services_->valve_command_) {
+          if (request->duration_sec != request->OFF) {
+            response->result.value = response->result.BUSY;
+            RCLCPP_ERROR_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] PumpCommand cannot process" << \
+                " while valve command is running...");
+            return;
+          }
+        }
+
+        if (request->duration_sec == request->OFF) {
+          services_->command_duration_ = rclcpp::Duration(0, 0U);
+          services_->pump_command_ = false;
+          services_->has_new_command_ = true;
+        } else {
+          uint16_t duration_sec{request->duration_sec};
+          if (duration_sec > 20U) {
+            duration_sec = std::min(
+              std::max(duration_sec, static_cast<uint16_t>(1U)),
+              static_cast<uint16_t>(20U));
+            response->result.value = response->result.BAD_INPUT;
+            RCLCPP_WARN_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] PumpCommand out of bounds -- clipped to 20s");
+          }
+          services_->command_duration_ =
+            rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
+          services_->pump_command_ = true;
+          services_->has_new_command_ = true;
+        }
+      };
+    services_->pump_command_service_ = \
+      ros_->node_->create_service<buoy_msgs::srv::PumpCommand>(
+      "pump_command",
+      services_->pump_command_handler_);
   }
 
   void manageCommandTimer(SpringState & state)
@@ -239,8 +289,7 @@ struct SpringControllerPrivate
           ros_->node_->get_logger(),
           "Valve closed after (" << \
             services_->command_watch_.ElapsedRunTime().seconds() << "s)");
-        igndbg << "piston moved: " << \
-        (state.range_finder - init_x) / \
+        igndbg << "piston moved: " << (state.range_finder - init_x) /
         (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) << \
           " m/s" << std::endl;
       }
@@ -254,8 +303,7 @@ struct SpringControllerPrivate
           ros_->node_->get_logger(),
           "Pump off after (" << \
             services_->command_watch_.ElapsedRunTime().seconds() << "s)");
-        igndbg << "piston moved: " << \
-        (state.range_finder - init_x) / \
+        igndbg << "piston moved: " << (state.range_finder - init_x) /
         (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) << \
           " m/s" << std::endl;
       }
