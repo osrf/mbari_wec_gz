@@ -78,8 +78,6 @@ struct SpringState
   float lower_psi{0.0F};  // pressure in PSI
 
   // Commands
-  // ignition::math::Stopwatch command_watch;
-  // ignition::math::clock::duration command_duration;
   CommandTriState valve_command;
   CommandTriState pump_command;
 
