@@ -48,19 +48,7 @@ def generate_launch_description():
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_ign_gazebo, 'launch', 'ign_gazebo.launch.py'),
-        )  #,
-        # launch_arguments={'ign_args': '-r empty.sdf'}.items(),
-    )
-
-    # Spawn model
-    ros_ign_gazebo = Node(
-        package='ros_ign_gazebo',
-        executable='create',
-        arguments=[
-            '-name', 'mbari_wec',
-            '-topic', 'robot_description',
-        ],
-        output='screen'
+        )
     )
 
     # Bridge to forward tf and joint states to ros2
@@ -104,7 +92,6 @@ def generate_launch_description():
         gazebo_world_launch_arg,
         rviz_launch_arg,
         gazebo,
-        # ros_ign_gazebo,
         bridge,
         robot_state_publisher,
         rviz

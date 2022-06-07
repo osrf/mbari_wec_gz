@@ -75,7 +75,7 @@ def tether_joint_properties():
 pto_inner_radius = tether_radius + pto_gap
 pto_scale = pto_inner_radius / pto_stl_inner_radius
 }@
-<sdf version="1.7">
+<sdf version="1.8">
   <model name="MBARI_WEC">
     <self_collide>true</self_collide>
     <link name="Buoy">
