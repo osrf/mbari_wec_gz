@@ -208,7 +208,7 @@ void PolytropicPneumaticSpring::pumpOn(
   IGN_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
   IGN_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
 
-  const double dt_sec = dt_nano * 1e-9;
+  const double dt_sec = dt_nano * IGN_NANO_TO_SEC;
 
   // want piston to raise 2 inches per minute
   // so pump mass flow from upper chamber to lower
