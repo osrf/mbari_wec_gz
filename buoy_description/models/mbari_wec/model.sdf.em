@@ -92,7 +92,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>1476</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="visual_Buoy">
         <geometry>
           <mesh>
             <uri>package://buoy_description/models/mbari_wec/meshes/buoy_float.stl</uri>
@@ -140,7 +140,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>7.28</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="visual_PTO">
         <geometry>
           <mesh>
             <uri>package://buoy_description/models/mbari_wec/meshes/pto.stl</uri>
@@ -189,7 +189,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>0.0216</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="visual_Piston">
         <geometry>
           <mesh>
             <uri>package://buoy_description/models/mbari_wec/meshes/rod_and_piston.stl</uri>
@@ -219,7 +219,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>@(tether_top_link_mm.izz())</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="visual_tether_top_@(link_index)">
         <geometry>
           <cylinder>
             <radius>@(tether_radius)</radius>
@@ -254,7 +254,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       </collision>
     </link>
 
-    <joint name="tether_top_joint_@(link_index)" type="fixed">
+    <joint name="tether_top_joint_@(link_index)" type="universal">
       <pose>0 0 @(tether_top_link_length * 0.5) 0 0 0</pose>
 @[if link_index == 0]@
       <parent>Piston</parent>
@@ -286,7 +286,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>@(tether_bottom_link_mm.izz())</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="visual_tether_bottom_@(link_index)">
         <geometry>
           <cylinder>
             <radius>@(tether_radius)</radius>
@@ -309,7 +309,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       </collision>
     </link>
 
-    <joint name="tether_bottom_joint_@(link_index)" type="fixed">
+    <joint name="tether_bottom_joint_@(link_index)" type="universal">
       <pose>0 0 @(tether_bottom_link_length * 0.5) 0 0 0</pose>
 @[if link_index == 0]@
       <parent>tether_top_@(num_tether_top_links-1)</parent>
@@ -328,7 +328,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     </joint>
 @[end for]@
 
-    <joint name="TetherToHeaveCone" type="fixed">
+    <joint name="TetherToHeaveCone" type="universal">
       <parent>tether_bottom_@(num_tether_bottom_links-1)</parent>
       <child>HeaveCone</child>
       <axis>
@@ -356,7 +356,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>613.52</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="visual_HeaveCone">
         <geometry>
           <mesh>
             <uri>package://buoy_description/models/mbari_wec/meshes/heave_cone.stl</uri>
@@ -394,7 +394,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>19.9</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="visual_Trefoil">
         <geometry>
           <mesh>
             <uri>package://buoy_description/models/mbari_wec/meshes/trefoil.stl</uri>
@@ -409,7 +409,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       </visual>
     </link>
 
-    <joint name="Universal" type="fixed">
+    <joint name="Universal" type="universal">
       <parent>Buoy</parent>
       <child>PTO</child>
       <provide_feedback>1</provide_feedback>
@@ -461,5 +461,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <xyz>0.0 0.0 1.0</xyz>
       </axis>
     </joint>
+
+    <plugin
+        filename="ignition-gazebo-joint-state-publisher-system"
+        name="ignition::gazebo::systems::JointStatePublisher">
+    </plugin>
   </model>
 </sdf>
