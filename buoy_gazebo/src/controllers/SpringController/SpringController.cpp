@@ -114,7 +114,6 @@ struct SpringControllerPrivate
     descriptor.floating_point_range = {range};
     ros_->node_->declare_parameter("publish_rate", ros_->pub_rate_hz_, descriptor);
 
-
     ros_->parameter_handler_ = ros_->node_->add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> & parameters)
       {
