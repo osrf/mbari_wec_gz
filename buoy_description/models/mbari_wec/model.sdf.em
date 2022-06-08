@@ -461,10 +461,5 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <xyz>0.0 0.0 1.0</xyz>
       </axis>
     </joint>
-
-    <plugin
-        filename="ignition-gazebo-joint-state-publisher-system"
-        name="ignition::gazebo::systems::JointStatePublisher">
-    </plugin>
   </model>
 </sdf>

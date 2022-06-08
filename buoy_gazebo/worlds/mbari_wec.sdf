@@ -116,6 +116,11 @@
         <P2>1212140</P2>
       </plugin>
       <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
+
+      <plugin
+        filename="ignition-gazebo-joint-state-publisher-system"
+        name="ignition::gazebo::systems::JointStatePublisher">
+      </plugin>
     </model>
   </world>
 </sdf>

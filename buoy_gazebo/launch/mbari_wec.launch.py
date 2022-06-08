@@ -30,18 +30,21 @@ def generate_launch_description():
     pkg_ros_ign_gazebo = get_package_share_directory('ros_ign_gazebo')
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
-    sdf_file = os.path.join(pkg_buoy_description, 'models', 'mbari_wec', 'model.sdf')
+    model_name = 'mbari_wec'
+    gazebo_world = 'mbari_wec'
+    sdf_file = os.path.join(pkg_buoy_description, 'models', model_name, 'model.sdf')
 
     with open(sdf_file, 'r') as infp:
         robot_desc = infp.read()
 
-    gazebo_world_launch_arg = DeclareLaunchArgument('ign_args',
-        default_value=[os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf'), ''],
+    gazebo_world_launch_arg = DeclareLaunchArgument(
+        'ign_args', default_value=[
+            os.path.join(pkg_buoy_gazebo, 'worlds', gazebo_world + '.sdf'), ''],
         description='Ignition Gazebo arguments'
     )
 
-    rviz_launch_arg = DeclareLaunchArgument('rviz',
-        default_value='false',
+    rviz_launch_arg = DeclareLaunchArgument(
+        'rviz', default_value='false',
         description='Open RViz.'
     )
 
@@ -59,10 +62,11 @@ def generate_launch_description():
             # Clock (IGN -> ROS2)
             '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
             # Joint states (IGN -> ROS2)
-            '/world/mbari_wec/model/mbari_wec/joint_state@sensor_msgs/msg/JointState[ignition.msgs.Model',
+            '/world/' + gazebo_world + '/model/' + model_name +
+                '/joint_state@sensor_msgs/msg/JointState[ignition.msgs.Model',
         ],
         remappings=[
-            ('/world/mbari_wec/model/mbari_wec/joint_state', 'joint_states'),
+            ('/world/' + gazebo_world + '/model/' + model_name + '/joint_state', 'joint_states'),
         ],
         output='screen'
     )
@@ -75,7 +79,7 @@ def generate_launch_description():
         name='robot_state_publisher',
         output='both',
         parameters=[
-            {'use_sim_time': False},
+            {'use_sim_time': True},
             {'robot_description': robot_desc},
         ]
     )
