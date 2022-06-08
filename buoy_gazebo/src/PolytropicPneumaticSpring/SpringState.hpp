@@ -76,6 +76,7 @@ struct SpringState
   float range_finder{0.0F};  // position in meters (TODO(andermi) for now)
   float upper_psi{0.0F};  // pressure in PSI
   float lower_psi{0.0F};  // pressure in PSI
+  int16_t status{0};  // TODO(andermi) status bit field
 
   // Commands
   CommandTriState valve_command;

@@ -72,10 +72,10 @@ struct PolytropicPneumaticSpringConfig
   double valve_absement{49e-7};
 
   /// \brief measure of pump opening cross-section and duration (meter-seconds)
-  double pump_absement{11e-7};
+  double pump_absement{10e-8};
 
   /// \brief pump differential pressure (Pa)
-  double pump_pressure{49e-7};
+  double pump_pressure{1.7e+6};
 
   /// \brief mass flow of gas using pump (kg/s)
   double pump_mass_flow{pump_absement * pump_pressure};
