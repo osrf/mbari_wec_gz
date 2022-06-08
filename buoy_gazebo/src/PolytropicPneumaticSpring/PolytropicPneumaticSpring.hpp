@@ -28,8 +28,15 @@ namespace buoy_gazebo
 // Forward declaration
 struct PolytropicPneumaticSpringPrivate;
 
+/// \brief Models one chamber of air spring system in buoy.
+/// An upper and lower chamber should be attached to piston joint to form the spring.
+/// This system plugin uses a polytropic relationship between Pressure and Volume: PV^n = constant.
+/// `n` (polytropic index) may be equal to the adiabatic index in which case the system is
+/// adiabatic and no heat loss occurs from the gas to the environment due to compression.
+/// Hysteresis may also be represented in the system (different polytropic relationship depending)
+/// on piston direction of travel.
+
 /// SDF parameters:
-/// \brief
 /// * `<JointName>`: joint the plugin is attached to
 /// * `<chamber>`: name of chamber
 /// * `<is_upper>`: is this the upper chamber?
