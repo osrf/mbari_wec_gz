@@ -36,8 +36,8 @@ struct SpringState
   int16_t status{0};  // TODO(andermi) status bit field
 
   // Commands
-  buoy_utils::CommandTriState valve_command;
-  buoy_utils::CommandTriState pump_command;
+  buoy_utils::CommandTriState<> valve_command;
+  buoy_utils::CommandTriState<> pump_command;
 
   bool operator==(const SpringState & that) const
   {

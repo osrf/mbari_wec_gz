@@ -44,9 +44,9 @@ struct ElectroHydraulicState
   int16_t status{0};  // TODO(anyone) not set
   float charge_curr_limit{0.0};  // TODO(anyone) not set
 
-  buoy_utils::CommandTriState torque_command;
-  buoy_utils::CommandTriState scale_command;
-  buoy_utils::CommandTriState retract_command;
+  buoy_utils::CommandTriState<> torque_command;
+  buoy_utils::CommandTriState<> scale_command;
+  buoy_utils::CommandTriState<> retract_command;
 };
 
 namespace components

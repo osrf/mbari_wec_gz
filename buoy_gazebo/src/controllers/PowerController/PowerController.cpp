@@ -26,6 +26,7 @@
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 
 #include <buoy_msgs/msg/pc_record.hpp>
+#include <buoy_msgs/srv/pc_wind_curr_command.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -58,16 +59,25 @@ struct PowerControllerROS2
 
 struct PowerControllerServices
 {
+  rclcpp::Service<buoy_msgs::srv::PCWindCurrCommand>::SharedPtr torque_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Request>,
+    std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Response>)> torque_command_handler_;
+
   buoy_utils::StopwatchSimTime torque_command_watch_;
-  static const rclcpp::Duration torque_command_duration_;
-
-  std::atomic<bool> torque_command_{false};
+  rclcpp::Duration torque_command_duration_{0, 0U};
+  static const rclcpp::Duration TORQUE_COMMAND_TIMEOUT;
+  static const rcl_interfaces::msg::FloatingPointRange valid_wind_curr_range_;
   double wind_curr_{0.0};
-  std::atomic<bool> has_new_command_{false};
+  std::atomic<bool> torque_command_{false};
 
+  std::atomic<bool> has_new_command_{false};
   std::mutex command_mutex_;
 };
-const rclcpp::Duration PowerControllerServices::torque_command_duration_{2, 0U};
+const rclcpp::Duration PowerControllerServices::TORQUE_COMMAND_TIMEOUT{2, 0U};
+const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_wind_curr_range_ =
+  rcl_interfaces::msg::FloatingPointRange()
+    .set__from_value(-35.0F)
+    .set__to_value(35.0F);
 
 struct PowerControllerPrivate
 {
@@ -165,230 +175,108 @@ struct PowerControllerPrivate
     thread_executor_spin_ = std::thread(spin);
   }
 
-/*
   void setup_services()
   {
     services_->torque_command_watch_.SetClock(ros_->node_->get_clock());
 
-    // ValveCommand
-    services_->valve_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::ValveCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::ValveCommand::Response> response)
+    // PCWindCurrCommand
+    services_->torque_command_handler_ =
+      [this](const std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Request> request,
+        std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
-          "[ROS 2 Power Control] ValveCommand Received (" << request->duration_sec << "s)");
+          "[ROS 2 Power Control] PCWindCurrCommand Received [" << request->wind_curr << " Amps]");
 
         std::unique_lock lock(services_->command_mutex_);
-        // if already running pump, don't allow valve
-        // unless for some reason we need to turn valve off (shouldn't get in that state)
-        if (services_->pump_command_) {
-          if (request->duration_sec != request->OFF) {
-            response->result.value = response->result.BUSY;
+        double wind_curr{request->wind_curr};
+        if (services_->valid_wind_curr_range_.from_value > wind_curr || 
+          wind_curr > services_->valid_wind_curr_range_.to_value)
+        {
+          wind_curr = std::min(
+            std::max(
+              wind_curr,
+              services_->valid_wind_curr_range_.from_value),
+            services_->valid_wind_curr_range_.to_value);
 
-            RCLCPP_ERROR_STREAM(
-              ros_->node_->get_logger(),
-              "[ROS 2 Spring Control] ValveCommand cannot process" <<
-                " while pump command is running...");
+          response->result.value = response->result.BAD_INPUT;
 
-            return;
-          }
+          RCLCPP_WARN_STREAM(
+            ros_->node_->get_logger(),
+            "[ROS 2 Spring Control] PCWindCurrCommand out of bounds -- clipped between [" <<
+            services_->valid_wind_curr_range_.from_value << ", " <<
+            services_->valid_wind_curr_range_.to_value << "] Amps");
         }
 
-        if (request->duration_sec == request->OFF) {
-          services_->command_duration_ = rclcpp::Duration(0, 0U);
-          services_->valve_command_ = false;
-          services_->has_new_command_ = true;
-        } else {
-          uint16_t duration_sec{request->duration_sec};
-          if (duration_sec > 20U) {
-            duration_sec = std::min(
-              std::max(duration_sec, static_cast<uint16_t>(1U)),
-              static_cast<uint16_t>(20U));
+        services_->wind_curr_ = wind_curr;
 
-            response->result.value = response->result.BAD_INPUT;
-
-            RCLCPP_WARN_STREAM(
-              ros_->node_->get_logger(),
-              "[ROS 2 Spring Control] ValveCommand out of bounds -- clipped to 20s");
-          }
-
-          services_->command_duration_ =
-            rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
-
-          services_->valve_command_ = true;
-          services_->has_new_command_ = true;
-        }
+        services_->torque_command_ = true;
+        services_->has_new_command_ = true;
       };
-    services_->valve_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::ValveCommand>(
-      "valve_command",
-      services_->valve_command_handler_);
-
-    // PumpCommand
-    services_->pump_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::PumpCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::PumpCommand::Response> response)
-      {
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "[ROS 2 Spring Control] PumpCommand Received (" << request->duration_sec << "s)");
-
-        std::unique_lock lock(services_->command_mutex_);
-        // if already running valve, don't allow pump
-        // unless for some reason we need to turn pump off (shouldn't get in that state)
-        if (services_->valve_command_) {
-          if (request->duration_sec != request->OFF) {
-            response->result.value = response->result.BUSY;
-
-            RCLCPP_ERROR_STREAM(
-              ros_->node_->get_logger(),
-              "[ROS 2 Spring Control] PumpCommand cannot process" <<
-                " while valve command is running...");
-
-            return;
-          }
-        }
-
-        if (request->duration_sec == request->OFF) {
-          services_->command_duration_ = rclcpp::Duration(0, 0U);
-          services_->pump_command_ = false;
-          services_->has_new_command_ = true;
-        } else {
-          uint16_t duration_sec{request->duration_sec};
-          if (duration_sec > 20U) {
-            duration_sec = std::min(
-              std::max(duration_sec, static_cast<uint16_t>(1U)),
-              static_cast<uint16_t>(20U));
-
-            response->result.value = response->result.BAD_INPUT;
-
-            RCLCPP_WARN_STREAM(
-              ros_->node_->get_logger(),
-              "[ROS 2 Spring Control] PumpCommand out of bounds -- clipped to 20s");
-          }
-
-          services_->command_duration_ =
-            rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
-
-          services_->pump_command_ = true;
-          services_->has_new_command_ = true;
-        }
-      };
-    services_->pump_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::PumpCommand>(
-      "pump_command",
-      services_->pump_command_handler_);
+    services_->torque_command_service_ =
+      ros_->node_->create_service<buoy_msgs::srv::PCWindCurrCommand>(
+      "pc_wind_curr_command",
+      services_->torque_command_handler_);
   }
-*/
 
   void manageCommandTimer(ElectroHydraulicState & state)
   {
-    static double init_x = 0.0;
-
-    // open valve
-    if (state.valve_command && !services_->command_watch_.Running()) {
+    // override winding current (torque)
+    if (state.torque_command && !services_->torque_command_watch_.Running()) {
       RCLCPP_INFO_STREAM(
         ros_->node_->get_logger(),
-        "Valve open (" <<
-          services_->command_duration_.seconds() << "s)");
+        "Override Winding Current (Torque) (" <<
+          services_->torque_command_duration_.seconds() << "s)");
 
-      services_->command_watch_.Start(true);
-      init_x = state.range_finder;
-
-      // turn pump on
-    } else if (state.pump_command.isRunning() && !services_->command_watch_.Running()) {
-      RCLCPP_INFO_STREAM(
-        ros_->node_->get_logger(),
-        "Pump on (" <<
-          services_->command_duration_.seconds() << "s)");
-
-      services_->command_watch_.Start(true);
-      init_x = state.range_finder;
-
+      services_->torque_command_watch_.Start(true);
     } else {
-      // close valve
-      if (state.valve_command &&
-        services_->command_watch_.ElapsedRunTime() >= services_->command_duration_)
+      // stop overriding winding current (torque)
+      if (state.torque_command &&
+        services_->torque_command_watch_.ElapsedRunTime() >=
+        PowerControllerServices::TORQUE_COMMAND_TIMEOUT +
+        services_->torque_command_duration_)
       {
-        services_->command_watch_.Stop();
-        state.valve_command = false;
+        services_->torque_command_watch_.Stop();
+        state.torque_command = false;
 
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
-          "Valve closed after (" <<
-            services_->command_watch_.ElapsedRunTime().seconds() << "s)");
-
-        igndbg << "piston moved: " << (state.range_finder - init_x) /
-        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
-          " m/s" << std::endl;
-      }
-
-      // turn pump off
-      if (state.pump_command &&
-        services_->command_watch_.ElapsedRunTime() >= services_->command_duration_)
-      {
-        services_->command_watch_.Stop();
-        state.pump_command = false;
-
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "Pump off after (" <<
-            services_->command_watch_.ElapsedRunTime().seconds() << "s)");
-
-        igndbg << "piston moved: " << (state.range_finder - init_x) /
-        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
-          " m/s" << std::endl;
+          "Stopped overriding Winding Current (Torque) after (" <<
+            services_->torque_command_watch_.ElapsedRunTime().seconds() << "s)");
       }
     }
   }
 
   void manageCommandState(ElectroHydraulicState & state)
   {
-    if (state.valve_command.isFinished()) {
+    if (state.torque_command.isFinished()) {
       std::unique_lock lock(services_->command_mutex_);
-      services_->valve_command_ = false;
-      services_->command_duration_ = rclcpp::Duration(0, 0U);
-      services_->command_watch_.Reset();
-      state.valve_command.reset();
-    }
-
-    if (state.pump_command.isFinished()) {
-      std::unique_lock lock(services_->command_mutex_);
-      services_->pump_command_ = false;
-      services_->command_duration_ = rclcpp::Duration(0, 0U);
-      services_->command_watch_.Reset();
-      state.pump_command.reset();
+      services_->torque_command_ = false;
+      services_->torque_command_duration_ = rclcpp::Duration(0, 0U);
+      services_->torque_command_watch_.Reset();
+      state.torque_command.reset();
     }
 
     if (services_->has_new_command_) {
       std::unique_lock lock(services_->command_mutex_);
 
-      if (state.valve_command || state.pump_command) {
-        state.valve_command = services_->valve_command_;
-        state.pump_command = services_->pump_command_;
+      if (state.torque_command) {
+        state.torque_command = services_->torque_command_;
+        state.torque_command.value = services_->wind_curr_;
 
-        services_->command_duration_ =
-          services_->command_duration_ +
-          services_->command_watch_.ElapsedRunTime();
+        services_->torque_command_duration_ =
+          services_->torque_command_duration_ +
+          services_->torque_command_watch_.ElapsedRunTime();
 
-        if (state.valve_command) {
+        if (state.torque_command) {
           RCLCPP_INFO_STREAM(
             ros_->node_->get_logger(),
-            "Valve open (" <<
-              services_->command_duration_.seconds() << "s)");
-
-        } else if (state.pump_command) {
-          RCLCPP_INFO_STREAM(
-            ros_->node_->get_logger(),
-            "Pump on (" <<
-              services_->command_duration_.seconds() << "s)");
+            "Override Winding Current (Torque) (" <<
+              services_->torque_command_duration_.seconds() << "s)");
         }
       } else {
-        state.valve_command = services_->valve_command_;
-        state.pump_command = services_->pump_command_;
+        state.torque_command = services_->torque_command_;
       }
-
       services_->has_new_command_ = false;
     }
   }
@@ -461,34 +349,17 @@ void PowerController::Configure(
     this->dataPtr->ros_->node_->get_logger(),
     "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm) << "]");
 
-  // Force Torque Sensor
-  this->dataPtr->ft_cb_ = [this](const ignition::msgs::Wrench & _msg)
-    {
-      // low prio data access
-      std::unique_lock low(this->dataPtr->low_prio_mutex_);
-      std::unique_lock next(this->dataPtr->next_access_mutex_);
-      std::unique_lock data(this->dataPtr->data_mutex_);
-      next.unlock();
-      this->dataPtr->ros_->sc_record_.load_cell = _msg.force().z();
-      this->dataPtr->load_cell_data_valid_ = true;
-      data.unlock();
-    };
-  if (!this->dataPtr->node_.Subscribe("/Universal_joint/force_torque", this->dataPtr->ft_cb_)) {
-    ignerr << "Error subscribing to topic [" << "/Universal_joint/force_torque" << "]" << std::endl;
-    return;
-  }
-
   // Publisher
-  std::string topic = _sdf->Get<std::string>("topic", "sc_record").first;
-  this->dataPtr->ros_->sc_pub_ =
-    this->dataPtr->ros_->node_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
+  std::string topic = _sdf->Get<std::string>("topic", "pc_record").first;
+  this->dataPtr->ros_->pc_pub_ =
+    this->dataPtr->ros_->node_->create_publisher<buoy_msgs::msg::PCRecord>(topic, 10);
 
   this->dataPtr->ros_->pub_rate_hz_ =
     _sdf->Get<double>("publish_rate", this->dataPtr->ros_->pub_rate_hz_).first;
 
   RCLCPP_INFO_STREAM(
     this->dataPtr->ros_->node_->get_logger(),
-    "[ROS 2 Spring Control] Set publish_rate param from SDF: " <<
+    "[ROS 2 Power Control] Set publish_rate param from SDF: " <<
       this->dataPtr->ros_->pub_rate_hz_);
 
   this->dataPtr->ros_->node_->set_parameter(
@@ -499,24 +370,24 @@ void PowerController::Configure(
   auto publish = [this]()
     {
       while (rclcpp::ok() && !this->dataPtr->stop_) {
-        if (this->dataPtr->ros_->sc_pub_->get_subscription_count() <= 0) {continue;}
+        if (this->dataPtr->ros_->pc_pub_->get_subscription_count() <= 0) {continue;}
 
         // Only update and publish if not paused.
         if (this->dataPtr->paused_) {continue;}
 
-        buoy_msgs::msg::SCRecord sc_record;
+        buoy_msgs::msg::PCRecord pc_record;
         // high prio data access
         std::unique_lock next(this->dataPtr->next_access_mutex_);
         std::unique_lock data(this->dataPtr->data_mutex_);
         next.unlock();
 
         if (this->dataPtr->data_valid()) {
-          this->dataPtr->ros_->sc_record_.seq_num =
+          this->dataPtr->ros_->pc_record_.seq_num =
             this->dataPtr->seq_num++ % std::numeric_limits<int16_t>::max();
-          sc_record = this->dataPtr->ros_->sc_record_;
+          pc_record = this->dataPtr->ros_->pc_record_;
           data.unlock();
 
-          this->dataPtr->ros_->sc_pub_->publish(sc_record);
+          this->dataPtr->ros_->pc_pub_->publish(pc_record);
         } else {
           data.unlock();
         }
@@ -583,19 +454,29 @@ void PowerController::PostUpdate(
 
   auto sec_nsec = ignition::math::durationToSecNsec(this->dataPtr->current_time_);
 
-  this->dataPtr->ros_->sc_record_.header.stamp.sec = sec_nsec.first;
-  this->dataPtr->ros_->sc_record_.header.stamp.nanosec = sec_nsec.second;
-  this->dataPtr->ros_->sc_record_.range_finder = pto_state_comp->Data().range_finder;
-  this->dataPtr->ros_->sc_record_.upper_psi = pto_state_comp->Data().upper_psi;
-  this->dataPtr->ros_->sc_record_.lower_psi = pto_state_comp->Data().lower_psi;
+  this->dataPtr->ros_->pc_record_.header.stamp.sec = sec_nsec.first;
+  this->dataPtr->ros_->pc_record_.header.stamp.nanosec = sec_nsec.second;
+  this->dataPtr->ros_->pc_record_.rpm = pto_state_comp->Data().rpm;
+  this->dataPtr->ros_->pc_record_.voltage = pto_state_comp->Data().voltage;
+  this->dataPtr->ros_->pc_record_.bcurrent = pto_state_comp->Data().bcurrent;
+  this->dataPtr->ros_->pc_record_.wcurrent = pto_state_comp->Data().wcurrent;
+  this->dataPtr->ros_->pc_record_.diff_press = pto_state_comp->Data().diff_press;
+  this->dataPtr->ros_->pc_record_.loaddc = pto_state_comp->Data().loaddc;
+  this->dataPtr->ros_->pc_record_.scale = pto_state_comp->Data().scale;
+  this->dataPtr->ros_->pc_record_.retract = pto_state_comp->Data().retract;
+  this->dataPtr->ros_->pc_record_.target_a = pto_state_comp->Data().target_a;
+  this->dataPtr->ros_->pc_record_.target_a = pto_state_comp->Data().target_a;
 
-  // Currently existing but unused fields by physical buoy -- the CTD sensor is not in service
-  // this->dataPtr->sc_record_.epoch = pto_state_comp->Data().epoch_;
-  // this->dataPtr->sc_record_.salinity = pto_state_comp->Data().salinity_;
-  // this->dataPtr->sc_record_.temperature = pto_state_comp->Data().temperature_;
+  // TODO(anyone)
+  // this->dataPtr->ros_->pc_record_.sd_rpm = pto_state_comp->Data().sd_rpm;
+  // this->dataPtr->ros_->pc_record_.draw_curr_limit = pto_state_comp->Data().draw_curr_limit;
+  // this->dataPtr->ros_->pc_record_.torque = pto_state_comp->Data().torque;
+  // this->dataPtr->ros_->pc_record_.bias_current = pto_state_comp->Data().bias_current;
+  // this->dataPtr->ros_->pc_record_.target_v = pto_state_comp->Data().target_v;
+  // this->dataPtr->ros_->pc_record_.charge_curr_limit = pto_state_comp->Data().charge_curr_limit;
 
-  // TODO(andermi) set the bits for this
-  this->dataPtr->ros_->sc_record_.status = pto_state_comp->Data().status;
+  // TODO(anyone) set the bits for this
+  this->dataPtr->ros_->pc_record_.status = pto_state_comp->Data().status;
 
   this->dataPtr->pto_data_valid_ = true;
   data.unlock();

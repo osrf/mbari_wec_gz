@@ -19,10 +19,12 @@
 namespace buoy_utils
 {
 /// \brief Command state variable that tracks if command is running, finished, or was ever active
-struct CommandTriState
+template<typename T = double>
+class CommandTriState
 {
-  bool left{false};
-  bool right{false};
+public:
+  typedef T valuetype;
+  valuetype value;
 
   bool isRunning() const  // rising edge
   {
@@ -62,7 +64,23 @@ struct CommandTriState
       }
     }
   }
+
+  void operator=(const valuetype & command)
+  {
+    value = command;
+    *this = true;
+  }
+  
+  operator const valuetype & () const
+  {
+    return value;
+  }
+
+private:
+  bool left{false};
+  bool right{false};
 };
+
 }  // namespace buoy_utils
 
 #endif  // BUOY_UTILS__COMMANDTRISTATE_HPP_
