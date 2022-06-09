@@ -496,27 +496,28 @@ void ElectroHydraulicPTO::PreUpdate(
 
 
   // Assign Values
-  ElectroHydraulicState PTO_Values;
-  PTO_Values.xdot = xdot / 0.0254;
-  PTO_Values.N = N;
-  PTO_Values.deltaP = deltaP;
-  PTO_Values.VBus = VBus;
-  PTO_Values.TargetWindingCurrent = this->dataPtr->TargetWindingCurrent;
-  PTO_Values.WindingCurrent = this->dataPtr->WindingCurrent;
-  PTO_Values.I_Batt = I_Batt;
-  PTO_Values.I_Load = I_Load;
-  PTO_Values.ScaleFactor = this->dataPtr->functor.I_Wind.ScaleFactor;
-  PTO_Values.RetractFactor = this->dataPtr->functor.I_Wind.RetractFactor;
+  ElectroHydraulicState pto_state;
+  pto_state.rpm = N;
+  pto_state.voltage = VBus;
+  pto_state.bcurrent = I_Batt;
+  pto_state.wcurrent = this->dataPtr->WindingCurrent;
+  pto_state.diff_press = deltaP;
+  pto_state.loaddc = I_Load;
+  pto_state.scale = this->dataPtr->functor.I_Wind.ScaleFactor;
+  pto_state.retract = this->dataPtr->functor.I_Wind.RetractFactor;
+  pto_state.target_a = this->dataPtr->TargetWindingCurrent;
 
 
   // Create new component for this entitiy in ECM (if it doesn't already exist)
-  auto PTO_State_comp = _ecm.Component<buoy_gazebo::PTO_State>(this->dataPtr->PrismaticJointEntity);
-  if (PTO_State_comp == nullptr) {
+  auto pto_state_comp =
+    _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
+      this->dataPtr->PrismaticJointEntity);
+  if (pto_state_comp == nullptr) {
     _ecm.CreateComponent(
       this->dataPtr->PrismaticJointEntity,
-      buoy_gazebo::PTO_State({PTO_Values}));
+      buoy_gazebo::components::ElectroHydraulicState({pto_state}));
   } else {
-    PTO_State_comp->Data() = PTO_Values;
+    pto_state_comp->Data() = pto_state;
   }
 
 
@@ -536,35 +537,6 @@ void ElectroHydraulicPTO::PreUpdate(
     }
   }
 }
-
-//////////////////////////////////////////////////
-void ElectroHydraulicPTO::Update(
-  const ignition::gazebo::UpdateInfo & _info,
-  ignition::gazebo::EntityComponentManager & _ecm)
-{
-  IGN_PROFILE("#ElectroHydraulicPTO::Update");
-  // Nothing left to do if paused.
-  if (_info.paused) {
-    return;
-  }
-
-  // auto SimTime = std::chrono::duration < double > (_info.simTime).count();
-}
-
-//////////////////////////////////////////////////
-void ElectroHydraulicPTO::PostUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  const ignition::gazebo::EntityComponentManager & _ecm)
-{
-  IGN_PROFILE("#ElectroHydraulicPTO::PostUpdate");
-  // Nothing left to do if paused.
-  if (_info.paused) {
-    return;
-  }
-
-  // auto SimTime = std::chrono::duration < double > (_info.simTime).count();
-}
-
 
 //////////////////////////////////////////////////
 void ElectroHydraulicPTOPrivate::OnUserCmdCurr(const ignition::msgs::Double & _msg)
@@ -595,6 +567,4 @@ IGNITION_ADD_PLUGIN(
   buoy_gazebo::ElectroHydraulicPTO,
   ignition::gazebo::System,
   buoy_gazebo::ElectroHydraulicPTO::ISystemConfigure,
-  buoy_gazebo::ElectroHydraulicPTO::ISystemPreUpdate,
-  buoy_gazebo::ElectroHydraulicPTO::ISystemUpdate,
-  buoy_gazebo::ElectroHydraulicPTO::ISystemPostUpdate);
+  buoy_gazebo::ElectroHydraulicPTO::ISystemPreUpdate);

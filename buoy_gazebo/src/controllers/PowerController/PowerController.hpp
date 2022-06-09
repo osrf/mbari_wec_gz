@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CONTROLLERS__SPRINGCONTROLLER__SPRINGCONTROLLER_HPP_
-#define CONTROLLERS__SPRINGCONTROLLER__SPRINGCONTROLLER_HPP_
+#ifndef CONTROLLERS__POWERCONTROLLER__POWERCONTROLLER_HPP_
+#define CONTROLLERS__POWERCONTROLLER__POWERCONTROLLER_HPP_
 
 #include <ignition/gazebo/System.hh>
 #include <memory>
@@ -21,14 +21,18 @@
 namespace buoy_gazebo
 {
 // Forward declarations.
-struct SpringControllerPrivate;
+struct PowerControllerPrivate;
+
+/// \brief ROS2 Power Controller node for publishing PCRecord and accepting power commands
+/// Uses parameter to set publish rate (PCPackRate).
+/// Uses ros_ign_bridge and use_sim_time to get /clock from gazebo for command timing.
 
 /// SDF parameters:
 /// * `<namespace>`: Namespace for ROS node, defaults to scoped name
-/// * `<node_name>`: ROS2 node name, defaults to "spring_controller"
-/// * `<topic>`: ROS2 topic to publish to, defaults to "sc_record"
+/// * `<node_name>`: ROS2 node name, defaults to "power_controller"
+/// * `<topic>`: ROS2 topic to publish to, defaults to "pc_record"
 /// * `<publish_rate>`: ROS2 topic publish rate, defaults to 10Hz
-class SpringController
+class PowerController
   : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,
   public ignition::gazebo::ISystemPreUpdate,
@@ -36,10 +40,10 @@ class SpringController
 {
 public:
   /// \brief Constructor
-  SpringController();
+  PowerController();
 
   /// \brief Destructor
-  ~SpringController() override;
+  ~PowerController() override;
 
   // Documentation inherited
   void Configure(
@@ -60,8 +64,8 @@ public:
 
 private:
   /// \brief Private data pointer.
-  std::unique_ptr<SpringControllerPrivate> dataPtr;
+  std::unique_ptr<PowerControllerPrivate> dataPtr;
 };
 }  // namespace buoy_gazebo
 
-#endif  // CONTROLLERS__SPRINGCONTROLLER__SPRINGCONTROLLER_HPP_
+#endif  // CONTROLLERS__POWERCONTROLLER__POWERCONTROLLER_HPP_

@@ -19,54 +19,10 @@
 #include <ignition/gazebo/components/Component.hh>
 #include <ignition/gazebo/config.hh>
 
+#include <buoy_utils/CommandTriState.hpp>
+
 namespace buoy_gazebo
 {
-/// \brief Command state variable that tracks if command is running, finished, or ever was active
-struct CommandTriState
-{
-  bool left{false};
-  bool right{false};
-
-  bool isRunning() const  // rising edge
-  {
-    return !left && right;
-  }
-
-  bool isFinished() const  // falling edge
-  {
-    return left && !right;
-  }
-
-  bool active() const  // running or finished
-  {
-    return left || right;
-  }
-
-  operator bool() const
-  {
-    return isRunning();
-  }
-
-  void reset()
-  {
-    left = right = false;  // no command activity
-  }
-
-  void operator=(const bool state)
-  {
-    if (state) {
-      if (!active()) {
-        right = true;
-      }
-    } else {
-      if (isRunning()) {
-        left = true;
-        right = false;
-      }
-    }
-  }
-};
-
 /// \brief State data for spring commands and feedback from sensors for SCRecord message in ROS2
 struct SpringState
 {
@@ -80,8 +36,8 @@ struct SpringState
   int16_t status{0};  // TODO(andermi) status bit field
 
   // Commands
-  CommandTriState valve_command;
-  CommandTriState pump_command;
+  buoy_utils::CommandTriState valve_command;
+  buoy_utils::CommandTriState pump_command;
 
   bool operator==(const SpringState & that) const
   {
