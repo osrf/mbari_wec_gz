@@ -21,27 +21,85 @@
 
 namespace buoy_gazebo
 {
+/// \brief Command state variable that tracks if command is running, finished, or ever was active
+struct CommandTriState
+{
+  bool left{false};
+  bool right{false};
 
+  bool isRunning() const  // rising edge
+  {
+    return !left && right;
+  }
+
+  bool isFinished() const  // falling edge
+  {
+    return left && !right;
+  }
+
+  bool active() const  // running or finished
+  {
+    return left || right;
+  }
+
+  operator bool() const
+  {
+    return isRunning();
+  }
+
+  void reset()
+  {
+    left = right = false;  // no command activity
+  }
+
+  void operator=(const bool state)
+  {
+    if (state) {
+      if (!active()) {
+        right = true;
+      }
+    } else {
+      if (isRunning()) {
+        left = true;
+        right = false;
+      }
+    }
+  }
+};
+
+/// \brief State data for spring commands and feedback from sensors for SCRecord message in ROS2
 struct SpringState
 {
-  int16_t load_cell{0};  // load on Buoy->PTO universal joint in Newtons (TODO(andermi) for now)
-  float range_finder{0.0F};  // position in meters (TODO(andermi) for now)
-  float upper_psi{0.0F};  // pressure in PSI
-  float lower_psi{0.0F};  // pressure in PSI
+  // SCRecord
+  int16_t load_cell{0};  // load on Buoy->PTO universal joint in Newtons (TODO(andermi) units)
+  float range_finder{0.0F};  // piston position in meters measured from fully retracted as
+                             // reference. In buoy this is laser range finder at top of upper
+                             // chamber (TODO(andermi) units)
+  float upper_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
+  float lower_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
+  int16_t status{0};  // TODO(andermi) status bit field
+
+  // Commands
+  CommandTriState valve_command;
+  CommandTriState pump_command;
 
   bool operator==(const SpringState & that) const
   {
     bool equal = this->load_cell == that.load_cell;
-    equal &= fabs(this->range_finder - that.range_finder) < 1e-6;
-    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-6;
-    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-6;
+    equal &= fabs(this->range_finder - that.range_finder) < 1e-7;
+    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-7;
+    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-7;
     return equal;
   }
 };
 
-using SpringStateComponent = ignition::gazebo::components::Component<SpringState,
+namespace components
+{
+using SpringState = ignition::gazebo::components::Component<buoy_gazebo::SpringState,
     class SpringStateTag>;
-IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.SpringState", SpringStateComponent)
+IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.components.SpringState", SpringState)
+}  // namespace components
+
 }  // namespace buoy_gazebo
 
 #endif  // POLYTROPICPNEUMATICSPRING__SPRINGSTATE_HPP_

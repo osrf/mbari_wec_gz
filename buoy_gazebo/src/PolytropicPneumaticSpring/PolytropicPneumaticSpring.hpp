@@ -20,59 +20,46 @@
 
 #include <memory>
 
+#include "SpringState.hpp"
+
+
 namespace buoy_gazebo
 {
-// enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
-
 // Forward declaration
 struct PolytropicPneumaticSpringPrivate;
 
-/// \brief This can be attached to a model with a reference
-/// to a single prismatic joint. A force proportional to the
-/// joint displacement will be applied along the axis of the joint.
-/// This is an added force that will sum to other forces that may be present.
-///
-/// ## System Parameters
-///
-/// xml tags in Ignition Gazebo .sdf file define behavior as follows:
-///
-/// \brief <JointName>  The name of the joint to control. Required parameter.
-///
-/// <SpringType> \brief Type of Spring, options are 'linear', 'pneumatic_adiabatic',
-///               'pneumatic_calibrated'  - Currently Unused
-///
-/// <SpringConst> \brief The spring constant.
-///                Required and used when 'SpringType' is 'trivial'.
-///                The default is 1.
-///
-/// <PistonDiam> \brief Piston Diam (inches)
-///               Required and used whenever 'SpringType' is not 'trivial'.
-///               The default is 5.  - Currently Unused
-///
-/// <RodDiam> \brief Rod Diamter (inches)
-///            Required and used whenever 'SpringType' is not 'trivial'.
-///            The default is 1.5.  - Currently Unused
-///
-/// <PistonEndVolume> \brief Piston End Dead Volume when position is 0 (inches^3).
-///                    Required and used whenever 'SpringType' is not 'trivial'.
-///                    The default is 1430.  - Currently Unused
-///
-/// <RodEndVolume> \brief Rod End Dead Volume when position is 0 (inches^3).
-///                 Required and used whenever 'SpringType' is not 'trivial'.
-///                 The default is 4700.  - Currently Unused
-///
-/// <PistonEndPressure> \brief Piston End pressure when position is 0 (psia).
-///                      Required and used whenever 'SpringType' is not 'trivial'.
-///                      The default is 65.  - Currently Unused
-///
-/// <RodEndPressure> \brief Rod End pressure when position is 0 (psia).
-///                   Required and used whenever 'SpringType' is not 'trivial'.
-///                   The default is 160.  - Currently Unused
-///
-/// <AmbientTemp> \brief Ambient Temperature (degrees C).
-///                Required and used whenever 'SpringType' is not 'trivial'.
-///                The default is 15.  - Currently Unused
-///
+/// \brief Models one chamber of air spring system in buoy.
+/// An upper and lower chamber should be attached to piston joint to form the spring.
+/// This system plugin uses a polytropic relationship between Pressure and Volume: PV^n = constant.
+/// `n` (polytropic index) may be equal to the adiabatic index in which case the system is
+/// adiabatic and no heat loss occurs from the gas to the environment due to compression.
+/// Hysteresis may also be represented in the system (different polytropic relationship depending)
+/// on piston direction of travel.
+
+/// SDF parameters:
+/// * `<JointName>`: joint the plugin is attached to
+/// * `<chamber>`: name of chamber
+/// * `<is_upper>`: is this the upper chamber?
+/// * `<valve_absement>`: measure of valve opening cross-section and duration (meter-seconds)
+/// * `<pump_absement>`: measure of pump opening cross-section and duration (meter-seconds)
+/// * `<pump_pressure>`: pump differential pressure
+/// * `<stroke>`: piston stroke (m)
+/// * `<piston_area>`: piston area (m^3)
+/// * `<dead_volume>`: Piston-End Dead Volume (m^3)
+/// * `<T0>`: initial Temp (K)
+/// * `<R_specific>`: R (specific gas) constant
+/// * `<c_p>`: specific heat of gas under constant pressure (kJ/(kg K))
+/// * `<hysteresis>`: is hysteresis present in piston travel direction
+/// * `<n>`: polytropic index
+/// * `<n1>`: polytropic index for increasing volume (if hysteresis)
+/// * `<n2>`: polytropic index for decreasing volume (if hysteresis)
+/// * `<x0>`: initial piston position (m)
+/// * `<x1>`: initial piston position (m) for increasing volume (if hysteresis)
+/// * `<x2>`: initial piston position (m) for decreasing volume (if hysteresis)
+/// * `<P0>`: initial Pressure (Pa)
+/// * `<P1>`: initial Pressure (Pa) for increasing volume (if hysteresis)
+/// * `<P2>`: initial Pressure (Pa) for decreasing volume (if hysteresis)
+/// * `<debug_prescribed_velocity>`: will force joint to move sinusoidally for debugging
 
 class PolytropicPneumaticSpring : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,
@@ -98,11 +85,29 @@ public:
     ignition::gazebo::EntityComponentManager & _ecm) override;
 
 private:
-  void computeForce(const double & x, const double & v, const double & n);
+  /// \brief open valve to vent gas from lower to upper chamber
+  void openValve(
+    const int dt_nano, const double & pressure_diff,
+    double & P0, const double & V0);
+  /// \brief (with hysteresis) open valve to vent gas from lower to upper chamber
+  void openValve(
+    const int dt_nano, const double & pressure_diff,
+    double & P1, const double & V1,
+    double & P2, const double & V2);
+  /// \brief pump gas from upper to lower chamber
+  void pumpOn(
+    const int dt_nano,
+    double & P0, const double & V0);
+  /// \brief (with hysteresis) pump gas from upper to lower chamber
+  void pumpOn(
+    const int dt_nano,
+    double & P1, const double & V1,
+    double & P2, const double & V2);
+  void computeForce(const double & x, const double & v);
 
   ignition::transport::Node node;
   ignition::transport::Node::Publisher force_pub, pressure_pub, volume_pub,
-    temperature_pub, heat_rate_pub;
+    temperature_pub, heat_rate_pub, piston_velocity_pub;
 
   /// \brief Private data pointer
   std::unique_ptr<PolytropicPneumaticSpringPrivate> dataPtr;

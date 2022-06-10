@@ -23,6 +23,11 @@ namespace buoy_gazebo
 // Forward declarations.
 struct SpringControllerPrivate;
 
+/// \brief ROS2 Spring Controller node for publishing SCRecord and accepting spring commands
+/// Currently accepts valve and pump command services.
+/// Uses parameter to set publish rate (SCPackRate).
+/// Uses ros_ign_bridge and use_sim_time to get /clock from gazebo for command timing.
+
 /// SDF parameters:
 /// * `<namespace>`: Namespace for ROS node, defaults to scoped name
 /// * `<node_name>`: ROS2 node name, defaults to "spring_controller"
@@ -31,6 +36,7 @@ struct SpringControllerPrivate;
 class SpringController
   : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,
+  public ignition::gazebo::ISystemPreUpdate,
   public ignition::gazebo::ISystemPostUpdate
 {
 public:
@@ -46,6 +52,11 @@ public:
     const std::shared_ptr<const sdf::Element> & _sdf,
     ignition::gazebo::EntityComponentManager & _ecm,
     ignition::gazebo::EventManager & _eventMgr) override;
+
+  // Documentation inherited
+  void PreUpdate(
+    const ignition::gazebo::UpdateInfo & _info,
+    ignition::gazebo::EntityComponentManager & _ecm) override;
 
   // Documentation inherited
   void PostUpdate(

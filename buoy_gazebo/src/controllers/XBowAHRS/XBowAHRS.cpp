@@ -147,10 +147,9 @@ void XBowAHRS::Configure(
     };
   this->dataPtr->thread_executor_spin_ = std::thread(spin);
 
-
   RCLCPP_INFO_STREAM(
     this->dataPtr->rosnode_->get_logger(),
-    "[ROS 2 XBow AHRS] Setting up controller for [" << model.Name(_ecm));
+    "[ROS 2 XBow AHRS] Setting up controller for [" << model.Name(_ecm) << "]");
 
   // IMU Sensor
   this->dataPtr->imu_cb_ = [this](const ignition::msgs::IMU & _imu)
