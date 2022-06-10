@@ -1,0 +1,316 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <world name="test_world">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- rely on world plugins from server.config -->
+    <gui fullscreen="0">
+      <plugin filename="MinimalScene" name="3D View">
+        <ignition-gui>
+          <title>3D View</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="string" key="state">docked</property>
+        </ignition-gui>
+
+        <engine>ogre2</engine>
+        <scene>scene</scene>
+        <ambient_light>0.4 0.4 0.4</ambient_light>
+        <background_color>0.8 0.8 0.8</background_color>
+        <camera_pose>21.5 -0.5 -0.6 0 0.4 3.14</camera_pose>
+      </plugin>
+
+      <!-- Plugins that add functionality to the scene -->
+      <plugin filename="EntityContextMenuPlugin" name="Entity context menu">
+        <ignition-gui>
+          <property key="state" type="string">floating</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </ignition-gui>
+      </plugin>
+      <plugin filename="GzSceneManager" name="Scene Manager">
+        <ignition-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </ignition-gui>
+      </plugin>
+      <plugin filename="InteractiveViewControl" name="Interactive view control">
+        <ignition-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </ignition-gui>
+      </plugin>
+      <plugin filename="CameraTracking" name="Camera Tracking">
+        <ignition-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </ignition-gui>
+      </plugin>
+      <plugin filename="MarkerManager" name="Marker manager">
+        <ignition-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </ignition-gui>
+      </plugin>
+      <plugin filename="SelectEntities" name="Select Entities">
+        <ignition-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </ignition-gui>
+      </plugin>
+      <plugin filename="VisualizationCapabilities" name="Visualization Capabilities">
+        <ignition-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </ignition-gui>
+      </plugin>
+
+      <!-- Translate / rotate -->
+      <plugin filename="TransformControl" name="Transform control">
+        <ignition-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">250</property>
+          <property key="height" type="double">50</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="cardBackground" type="string">#777777</property>
+        </ignition-gui>
+
+        <!-- disable legacy features used to connect this plugin to GzScene3D -->
+        <legacy>false</legacy>
+      </plugin>
+
+      <!-- World control -->
+      <plugin filename="WorldControl" name="World control">
+        <ignition-gui>
+          <title>World control</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">72</property>
+          <property type="double" key="width">121</property>
+          <property type="double" key="z">1</property>
+
+          <property type="string" key="state">floating</property>
+          <anchors target="3D View">
+            <line own="left" target="left"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </ignition-gui>
+
+        <play_pause>true</play_pause>
+        <step>true</step>
+        <start_paused>true</start_paused>
+        <use_event>true</use_event>
+
+      </plugin>
+
+      <!-- World statistics -->
+      <plugin filename="WorldStats" name="World stats">
+        <ignition-gui>
+          <title>World stats</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">110</property>
+          <property type="double" key="width">290</property>
+          <property type="double" key="z">1</property>
+
+          <property type="string" key="state">floating</property>
+          <anchors target="3D View">
+            <line own="right" target="right"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </ignition-gui>
+
+        <sim_time>true</sim_time>
+        <real_time>true</real_time>
+        <real_time_factor>true</real_time_factor>
+        <iterations>true</iterations>
+      </plugin>
+
+      <plugin filename="TransportPlotting" name="Transport Plotting">
+        <ignition-gui>
+          <property key="state" type="string">docked</property>
+        </ignition-gui>
+      </plugin>
+
+      <plugin filename="TopicViewer" name="Topic Viewer">
+        <ignition-gui>
+          <property key="state" type="string">docked_collapsed</property>
+        </ignition-gui>
+      </plugin>
+
+      <plugin filename="EntityTree" name="Entity tree">
+        <ignition-gui>
+          <property type="string" key="state">docked_collapsed</property>
+        </ignition-gui>
+      </plugin>
+
+      <plugin filename="ComponentInspector" name="Component inspector">
+        <ignition-gui>
+          <property type="string" key="state">docked_collapsed</property>
+        </ignition-gui>
+      </plugin>
+    </gui>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="water_plane">
+      <static>true</static>
+      <link name="link">
+        <visual name="water_plane">
+          <geometry>
+            <plane>
+              <size>100 100</size>
+              <normal>0 0 1</normal>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0 0 1 0.5</ambient>
+            <diffuse>0 0 1 0.5</diffuse>
+            <specular>0 0 1 0.5</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="heave_cone_test">
+      <link name="HeaveCone">
+        <pose>0 0 0 0 0 0</pose>
+        <inertial>
+          <pose>0 0 -1.25 0 0 0</pose>
+          <mass>807</mass>
+          <inertia>
+            <ixx>339.8</ixx>
+            <ixy>0.16</ixy>
+            <ixz>-0.29</ixz>
+            <iyy>343.73</iyy>
+            <iyz>0.33</iyz>
+            <izz>613.52</izz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>package://buoy_description/models/mbari_wec/meshes/heave_cone.stl</uri>
+            </mesh>
+          </geometry>
+          <!--color-->
+          <material>
+            <ambient>0.1 0.1 .1 1</ambient>
+            <diffuse>0.1 0.1 .1 1</diffuse>
+            <specular>0.1 0.1 .1 1</specular>
+          </material>
+        </visual>
+        <collision name="collision">
+          <pose>0 0 -1.21 0 0 0 </pose>
+          <geometry>
+            <box>
+              <size>0.578 0.578 0.5771</size>
+            </box>
+          </geometry>
+        </collision>
+      </link>
+
+      <link name="Trefoil">
+        <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
+        <inertial>
+          <pose>0 0 -1.25 0 0 0</pose>
+          <mass>10</mass>
+          <inertia>
+            <ixx>10</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>10</iyy>
+            <iyz>0</iyz>
+            <izz>19.9</izz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>package://buoy_description/models/mbari_wec/meshes/trefoil.stl</uri>
+            </mesh>
+          </geometry>
+          <!--color-->
+          <material>
+            <ambient>0.1 0.1 .1 1</ambient>
+            <diffuse>0.1 0.1 .1 1</diffuse>
+            <specular>0.1 0.1 .1 1</specular>
+          </material>
+        </visual>
+      </link>
+
+      <joint name="TrefoilDoors" type="revolute">
+      <parent>HeaveCone</parent>
+      <child>Trefoil</child>
+      <provide_feedback>1</provide_feedback>
+      <pose>0.0 0.0 0.0 0 0 0</pose>
+      <axis>
+        <limit>
+          <lower>0.0</lower>
+          <upper>1.047</upper>
+        </limit>
+        <xyz>0.0 0.0 1.0</xyz>
+      </axis>
+      </joint>
+
+      <!-- Heave Cone Hydrodynamics -->
+      <!-- <plugin filename="ignition-gazebo-hydrodynamics-system"
+        name="ignition::gazebo::systems::Hydrodynamics">
+        <link_name>HeaveCone</link_name>
+        <xDotU>0</xDotU>
+        <yDotV>0</yDotV>
+        <zDotW>3000</zDotW>  3000 open, 10000 close
+        <kDotP>0</kDotP>
+        <mDotQ>0</mDotQ>
+        <nDotR>0</nDotR>
+        <xUU>0</xUU>
+        <xU>0</xU>
+        <yVV>0</yVV>
+        <yV>0</yV>
+        <zWW>2700.10625</zWW>  2700.10625 open, 3782.25 close
+        <zW>0</zW>
+        <kPP>0</kPP>
+        <kP>0</kP>
+        <mQQ>0</mQQ>
+        <mQ>0</mQ>
+        <nRR>0</nRR>
+        <nR>0</nR>
+      </plugin> -->
+    </model>
+  </world>
+</sdf>
