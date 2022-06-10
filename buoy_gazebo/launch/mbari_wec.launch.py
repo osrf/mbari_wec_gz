@@ -64,6 +64,7 @@ def generate_launch_description():
             # Joint states (IGN -> ROS2)
             '/world/' + gazebo_world + '/model/' + model_name +
                 '/joint_state@sensor_msgs/msg/JointState[ignition.msgs.Model',
+            '/model/' + model_name + '/pose_static@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
         ],
         remappings=[
             ('/world/' + gazebo_world + '/model/' + model_name + '/joint_state', 'joint_states'),
@@ -72,7 +73,6 @@ def generate_launch_description():
     )
 
     # Get the parser plugin convert sdf to urdf using robot_description topic
-    # Provides joint states and tf2
     robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',

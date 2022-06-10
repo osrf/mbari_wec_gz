@@ -121,6 +121,14 @@
         filename="ignition-gazebo-joint-state-publisher-system"
         name="ignition::gazebo::systems::JointStatePublisher">
       </plugin>
+
+      <plugin
+        filename="ignition-gazebo-pose-publisher-system"
+        name="ignition::gazebo::systems::PosePublisher">
+        <publish_link_pose>true</publish_link_pose>
+        <use_pose_vector_msg>false</use_pose_vector_msg>
+        <static_publisher>true</static_publisher>
+      </plugin>
     </model>
   </world>
 </sdf>
