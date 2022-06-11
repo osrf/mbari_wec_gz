@@ -337,17 +337,19 @@ struct PowerControllerPrivate
             services_->torque_command_duration_.seconds() << "s)");
 
         services_->torque_command_watch_.Start(true);
-      // stop overriding winding current (torque)
-      } else if (services_->torque_command_watch_.ElapsedRunTime() >=
-        services_->torque_command_duration_)
-      {
-        services_->torque_command_watch_.Stop();
-        state.torque_command = false;
+        // stop overriding winding current (torque)
+      } else {
+        if (services_->torque_command_watch_.ElapsedRunTime() >=
+          services_->torque_command_duration_)
+        {
+          services_->torque_command_watch_.Stop();
+          state.torque_command = false;
 
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "Stopped overriding Winding Current (Torque) after (" <<
-            services_->torque_command_watch_.ElapsedRunTime().seconds() << "s)");
+          RCLCPP_INFO_STREAM(
+            ros_->node_->get_logger(),
+            "Stopped overriding Winding Current (Torque) after (" <<
+              services_->torque_command_watch_.ElapsedRunTime().seconds() << "s)");
+        }
       }
     }
 
@@ -360,19 +362,21 @@ struct PowerControllerPrivate
             services_->scale_command_duration_.seconds() << "s)");
 
         services_->scale_command_watch_.Start(true);
-      // stop overriding scale factor
-      } else if (services_->scale_command_watch_.ElapsedRunTime() >=
-        services_->scale_command_duration_)
-      {
-        services_->scale_command_watch_.Stop();
-        state.scale_command = false;
+        // stop overriding scale factor
+      } else {
+        if (services_->scale_command_watch_.ElapsedRunTime() >=
+          services_->scale_command_duration_)
+        {
+          services_->scale_command_watch_.Stop();
+          state.scale_command = false;
 
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "Stopped overriding Scale Factor after (" <<
-            services_->scale_command_watch_.ElapsedRunTime().seconds() << "s)");
+          RCLCPP_INFO_STREAM(
+            ros_->node_->get_logger(),
+            "Stopped overriding Scale Factor after (" <<
+              services_->scale_command_watch_.ElapsedRunTime().seconds() << "s)");
+        }
       }
-    } 
+    }
   }
 
   void manageCommandState(ElectroHydraulicState & state)
@@ -404,7 +408,7 @@ struct PowerControllerPrivate
 
           RCLCPP_INFO_STREAM(
             ros_->node_->get_logger(),
-           "Continue Override Winding Current (Torque) (" <<
+            "Continue Override Winding Current (Torque) (" <<
               services_->torque_command_duration_.seconds() << "s)");
         } else {
           state.torque_command = services_->wind_curr_;
@@ -426,7 +430,7 @@ struct PowerControllerPrivate
 
           RCLCPP_INFO_STREAM(
             ros_->node_->get_logger(),
-           "Continue Override Scale Factor (" <<
+            "Continue Override Scale Factor (" <<
               services_->scale_command_duration_.seconds() << "s)");
         } else {
           state.scale_command = services_->scale_;
