@@ -48,6 +48,7 @@
 class WindingCurrentTarget
 {
 public:
+  // static constexpr double DEFAULT_SCALE_FACTOR;
   double TorqueConstantNMPerAmp;   // N-m/Amp
   double TorqueConstantInLbPerAmp;  // in-lb/Amp
   JustInterp::LinearInterpolator<double> DefaultDamping;
@@ -68,7 +69,7 @@ public:
   /// \brief mutex to protect jointVelCmd
   std::mutex UserCommandMutex;
 
-  WindingCurrentTarget(void)
+  WindingCurrentTarget()
   {
     std::vector<double> N {0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};       // RPM
     std::vector<double> Torque {0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};       // N-m

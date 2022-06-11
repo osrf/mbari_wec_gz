@@ -15,6 +15,7 @@
 #ifndef BUOY_UTILS__COMMANDTRISTATE_HPP_
 #define BUOY_UTILS__COMMANDTRISTATE_HPP_
 
+#include <iostream>
 
 namespace buoy_utils
 {
@@ -24,21 +25,20 @@ class CommandTriState
 {
 public:
   typedef T valuetype;
-  valuetype value;
 
   bool isRunning() const  // rising edge
   {
-    return !left && right;
+    return !left_ && right_;
   }
 
   bool isFinished() const  // falling edge
   {
-    return left && !right;
+    return left_ && !right_;
   }
 
   bool active() const  // running or finished
   {
-    return left || right;
+    return left_ || right_;
   }
 
   operator bool() const
@@ -48,37 +48,38 @@ public:
 
   void reset()
   {
-    left = right = false;  // no command activity
+    left_ = right_ = false;  // no command activity
   }
 
   void operator=(const bool state)
   {
     if (state) {
       if (!active()) {
-        right = true;
+        right_ = true;
       }
     } else {
       if (isRunning()) {
-        left = true;
-        right = false;
+        left_ = true;
+        right_ = false;
       }
     }
   }
 
   void operator=(const valuetype & command)
   {
-    value = command;
+    value_ = command;
     *this = true;
   }
-  
-  operator const valuetype & () const
+
+  const valuetype & value() const
   {
-    return value;
+    return value_;
   }
 
 private:
-  bool left{false};
-  bool right{false};
+  bool left_{false};
+  bool right_{false};
+  valuetype value_;
 };
 
 }  // namespace buoy_utils

@@ -42,9 +42,10 @@ struct SpringState
   bool operator==(const SpringState & that) const
   {
     bool equal = this->load_cell == that.load_cell;
-    equal &= fabs(this->range_finder - that.range_finder) < 1e-7;
-    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-7;
-    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-7;
+    equal &= fabs(this->range_finder - that.range_finder) < 1e-7F;
+    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-7F;
+    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-7F;
+    equal &= this->status == that.status;
     return equal;
   }
 };

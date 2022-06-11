@@ -33,6 +33,7 @@
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <memory>
@@ -303,9 +304,6 @@ void ElectroHydraulicPTO::PreUpdate(
   const ignition::gazebo::UpdateInfo & _info,
   ignition::gazebo::EntityComponentManager & _ecm)
 {
-  const int n = 2;
-  int info;
-
   IGN_PROFILE("#ElectroHydraulicPTO::PreUpdate");
   // Nothing left to do if paused.
   if (_info.paused) {
@@ -360,58 +358,100 @@ void ElectroHydraulicPTO::PreUpdate(
   // This is an implicit non-linear relation so iteration required,
   // performed by Eigen HybridNonLinearSolver
 
+  buoy_gazebo::ElectroHydraulicState pto_state;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->PrismaticJointEntity,
+      buoy_gazebo::components::ElectroHydraulicState().TypeId()))
+  {
+    auto pto_state_comp =
+      _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
+      this->dataPtr->PrismaticJointEntity);
+
+    pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
+  }
+
   // Preclude changing User Commanded Current while it may be being read.
   this->dataPtr->functor.I_Wind.UserCommandMutex.lock();
+
+  if (pto_state.scale_command) {
+    this->dataPtr->functor.I_Wind.ScaleFactor = pto_state.scale_command.value();
+  } else {
+    this->dataPtr->functor.I_Wind.ScaleFactor = DEFAULT_SCALE_FACTOR;
+  }
+
+  if (pto_state.retract_command) {
+    this->dataPtr->functor.I_Wind.RetractFactor = pto_state.retract_command.value();
+  } else {
+    this->dataPtr->functor.I_Wind.RetractFactor = DEFAULT_RETRACT_FACTOR;
+  }
+
+  if (pto_state.bias_current_command) {
+    this->dataPtr->functor.I_Wind.BiasCurrent = pto_state.bias_current_command.value();
+  } else {
+    this->dataPtr->functor.I_Wind.BiasCurrent = DEFAULT_BIASCURRENT;
+  }
+
   // Initial Guess based on perfect efficiency
   // this->dataPtr->x[0] = 60*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
   // this->dataPtr->x[1] = this->dataPtr->functor.T_applied/(this->dataPtr->functor.HydMotorDisp);
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
-  info = solver.solveNumericalDiff(this->dataPtr->x);
+  int info = solver.solveNumericalDiff(this->dataPtr->x);
   // info = solver.hybrd1(this->dataPtr->x);
   this->dataPtr->functor.I_Wind.UserCommandMutex.unlock();
 
 
   // Solve Electrical
-  double N = this->dataPtr->x[0];
-  double deltaP = this->dataPtr->x[1];
-  // Shame to have to re-compute this, but small effort...
-  unsigned int seed{1};
-  this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind(N);
+  double N = this->dataPtr->x[0U];
+  double deltaP = this->dataPtr->x[1U];
+  if (pto_state.torque_command) {
+    this->dataPtr->TargetWindingCurrent = pto_state.torque_command.value();
+  } else {
+    // Shame to have to re-compute this, but small effort...
+    this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind(N);
+  }
+  unsigned int seed{1U};
   this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent + 0.001 *
     (rand_r(&seed) % 200 - 100);
 
-  double eff_e = 0.85;
-  double ShaftPower = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
-    this->dataPtr->WindingCurrent * 2 * M_PI * N / 60;                      // Watts
-  double P = eff_e * ShaftPower;
-  double Ri = 8;      // Ohms
+  static const double eff_e = 0.85;
+  const double ShaftPower = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
+    this->dataPtr->WindingCurrent * 2.0 * M_PI * N / 60.0;  // Watts
+  const double P = eff_e * ShaftPower;
+  static const double Ri = 8.0;      // Ohms
 
-  double a = (1.0 / Ri);
-  double b = -this->dataPtr->Ve / Ri;
-  double c = -P;
+  const double a = (1.0 / Ri);
+  const double b = -this->dataPtr->Ve / Ri;
+  const double c = -P;
 
-  double VBus;
-  double VBus1 = (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
-  double VBus2 = (-b - sqrt(b * b - 4 * a * c)) / (2 * a);
+  const double VBus1 = (-b + sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
+  const double VBus2 = (-b - sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
 
-  if (VBus1 > VBus2) {
-    VBus = VBus1;
-  } else {
-    VBus = VBus2;
-  }
-
-  if (VBus > 325) {
-    VBus = 325;
-  }
+  double VBus = VBus1 > VBus2 ? std::min(VBus1, 325.0) : std::min(VBus2, 325.0);
 
   double I_Batt = (VBus - this->dataPtr->Ve) / Ri;
-  double I_BattMax = 7;
+  const double I_BattMax = 7.0;
 
   if (I_Batt > I_BattMax) {    // Need to limit charge current
     I_Batt = I_BattMax;
     VBus = this->dataPtr->Ve + Ri * I_BattMax;
   }
-  double I_Load = P / VBus - I_Batt;
+  const double I_Load = P / VBus - I_Batt;
+
+
+  // Assign Values
+  pto_state.rpm = N;
+  pto_state.voltage = VBus;
+  pto_state.bcurrent = I_Batt;
+  pto_state.wcurrent = this->dataPtr->WindingCurrent;
+  pto_state.diff_press = deltaP;
+  pto_state.loaddc = I_Load;
+  pto_state.scale = this->dataPtr->functor.I_Wind.ScaleFactor;
+  pto_state.retract = this->dataPtr->functor.I_Wind.RetractFactor;
+  pto_state.target_a = this->dataPtr->TargetWindingCurrent;
+
+  _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
+    this->dataPtr->PrismaticJointEntity,
+    pto_state);
 
 
   // Report results
@@ -492,32 +532,6 @@ void ElectroHydraulicPTO::PreUpdate(
 
   if (!retractfactor_pub.Publish(retractfactor)) {
     ignerr << "could not publish retractfactor" << std::endl;
-  }
-
-
-  // Assign Values
-  ElectroHydraulicState pto_state;
-  pto_state.rpm = N;
-  pto_state.voltage = VBus;
-  pto_state.bcurrent = I_Batt;
-  pto_state.wcurrent = this->dataPtr->WindingCurrent;
-  pto_state.diff_press = deltaP;
-  pto_state.loaddc = I_Load;
-  pto_state.scale = this->dataPtr->functor.I_Wind.ScaleFactor;
-  pto_state.retract = this->dataPtr->functor.I_Wind.RetractFactor;
-  pto_state.target_a = this->dataPtr->TargetWindingCurrent;
-
-
-  // Create new component for this entitiy in ECM (if it doesn't already exist)
-  auto pto_state_comp =
-    _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
-      this->dataPtr->PrismaticJointEntity);
-  if (pto_state_comp == nullptr) {
-    _ecm.CreateComponent(
-      this->dataPtr->PrismaticJointEntity,
-      buoy_gazebo::components::ElectroHydraulicState({pto_state}));
-  } else {
-    pto_state_comp->Data() = pto_state;
   }
 
 

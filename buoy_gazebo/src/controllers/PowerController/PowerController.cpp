@@ -52,10 +52,14 @@ struct PowerControllerROS2
 
   rclcpp::Publisher<buoy_msgs::msg::PCRecord>::SharedPtr pc_pub_{nullptr};
   std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  static const rcl_interfaces::msg::FloatingPointRange valid_pub_rate_range_;
   buoy_msgs::msg::PCRecord pc_record_;
   double pub_rate_hz_{10.0};
-  
 };
+const rcl_interfaces::msg::FloatingPointRange PowerControllerROS2::valid_pub_rate_range_ =
+  rcl_interfaces::msg::FloatingPointRange()
+  .set__from_value(10.0F)
+  .set__to_value(50.0F);
 
 struct PowerControllerServices
 {
@@ -76,8 +80,8 @@ struct PowerControllerServices
 const rclcpp::Duration PowerControllerServices::TORQUE_COMMAND_TIMEOUT{2, 0U};
 const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_wind_curr_range_ =
   rcl_interfaces::msg::FloatingPointRange()
-    .set__from_value(-35.0F)
-    .set__to_value(35.0F);
+  .set__from_value(-35.0F)
+  .set__to_value(35.0F);
 
 struct PowerControllerPrivate
 {
@@ -109,13 +113,21 @@ struct PowerControllerPrivate
       ros_->node_->get_logger(),
       "[ROS 2 Power Control] setting publish_rate: " << rate_hz);
 
-    if (rate_hz < 10.0 || rate_hz > 50.0) {
+    if (PowerControllerROS2::valid_pub_rate_range_.from_value > rate_hz ||
+      rate_hz > PowerControllerROS2::valid_pub_rate_range_.to_value)
+    {
       RCLCPP_WARN_STREAM(
         ros_->node_->get_logger(),
-        "[ROS 2 Power Control] publish_rate out of bounds -- clipped between [10,50]");
+        "[ROS 2 Power Control] publish_rate out of bounds -- clipped between [" <<
+          PowerControllerROS2::valid_pub_rate_range_.from_value << ", " <<
+          PowerControllerROS2::valid_pub_rate_range_.to_value << "] Hz");
     }
 
-    ros_->pub_rate_hz_ = std::min(std::max(rate_hz, 10.0), 50.0);
+    ros_->pub_rate_hz_ = std::min(
+      std::max(
+        rate_hz,
+        PowerControllerROS2::valid_pub_rate_range_.from_value),
+      PowerControllerROS2::valid_pub_rate_range_.to_value);
 
     // low prio data access
     std::unique_lock low(low_prio_mutex_);
@@ -140,10 +152,7 @@ struct PowerControllerPrivate
         ros_->use_sim_time_));
 
     rcl_interfaces::msg::ParameterDescriptor descriptor;
-    rcl_interfaces::msg::FloatingPointRange range;
-
-    range.set__from_value(10.0F).set__to_value(50.0F).set__step(1.0F);
-    descriptor.floating_point_range = {range};
+    descriptor.floating_point_range = {PowerControllerROS2::valid_pub_rate_range_};
     ros_->node_->declare_parameter("publish_rate", ros_->pub_rate_hz_, descriptor);
 
     ros_->parameter_handler_ = ros_->node_->add_on_set_parameters_callback(
@@ -190,7 +199,7 @@ struct PowerControllerPrivate
 
         std::unique_lock lock(services_->command_mutex_);
         double wind_curr{request->wind_curr};
-        if (services_->valid_wind_curr_range_.from_value > wind_curr || 
+        if (services_->valid_wind_curr_range_.from_value > wind_curr ||
           wind_curr > services_->valid_wind_curr_range_.to_value)
         {
           wind_curr = std::min(
@@ -204,11 +213,12 @@ struct PowerControllerPrivate
           RCLCPP_WARN_STREAM(
             ros_->node_->get_logger(),
             "[ROS 2 Spring Control] PCWindCurrCommand out of bounds -- clipped between [" <<
-            services_->valid_wind_curr_range_.from_value << ", " <<
-            services_->valid_wind_curr_range_.to_value << "] Amps");
+              services_->valid_wind_curr_range_.from_value << ", " <<
+              services_->valid_wind_curr_range_.to_value << "] Amps");
         }
 
         services_->wind_curr_ = wind_curr;
+        services_->torque_command_duration_ = PowerControllerServices::TORQUE_COMMAND_TIMEOUT;
 
         services_->torque_command_ = true;
         services_->has_new_command_ = true;
@@ -233,7 +243,6 @@ struct PowerControllerPrivate
       // stop overriding winding current (torque)
       if (state.torque_command &&
         services_->torque_command_watch_.ElapsedRunTime() >=
-        PowerControllerServices::TORQUE_COMMAND_TIMEOUT +
         services_->torque_command_duration_)
       {
         services_->torque_command_watch_.Stop();
@@ -261,21 +270,26 @@ struct PowerControllerPrivate
       std::unique_lock lock(services_->command_mutex_);
 
       if (state.torque_command) {
-        state.torque_command = services_->torque_command_;
-        state.torque_command.value = services_->wind_curr_;
-
+        if (services_->torque_command_) {
+          state.torque_command = services_->wind_curr_;
+          services_->torque_command_ = false;
+        } else {
+          state.torque_command = services_->torque_command_;
+        }
         services_->torque_command_duration_ =
-          services_->torque_command_duration_ +
+          PowerControllerServices::TORQUE_COMMAND_TIMEOUT +
           services_->torque_command_watch_.ElapsedRunTime();
 
-        if (state.torque_command) {
-          RCLCPP_INFO_STREAM(
-            ros_->node_->get_logger(),
-            "Override Winding Current (Torque) (" <<
-              services_->torque_command_duration_.seconds() << "s)");
-        }
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "Continue Override Winding Current (Torque) (" <<
+            services_->torque_command_duration_.seconds() << "s)");
+        // } else if other command {
       } else {
-        state.torque_command = services_->torque_command_;
+        if (services_->torque_command_) {
+          state.torque_command = services_->wind_curr_;
+          services_->torque_command_ = false;
+        }
       }
       services_->has_new_command_ = false;
     }
@@ -410,18 +424,30 @@ void PowerController::PreUpdate(
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
 
-  if (!_ecm.EntityHasComponentType(
-      this->dataPtr->jointEntity_,
-      buoy_gazebo::components::ElectroHydraulicState().TypeId()))
-  {
+  if (_info.paused) {
     return;
   }
 
-  auto pto_state_comp =
-    _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(this->dataPtr->jointEntity_);
+  buoy_gazebo::ElectroHydraulicState pto_state;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->jointEntity_,
+      buoy_gazebo::components::ElectroHydraulicState().TypeId()))
+  {
+    auto pto_state_comp =
+      _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
+      this->dataPtr->jointEntity_);
 
-  this->dataPtr->manageCommandTimer(pto_state_comp->Data());
-  this->dataPtr->manageCommandState(pto_state_comp->Data());
+    pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
+  } else {
+    return;
+  }
+
+  this->dataPtr->manageCommandTimer(pto_state);
+  this->dataPtr->manageCommandState(pto_state);
+
+  _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
+    this->dataPtr->jointEntity_,
+    pto_state);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -433,6 +459,10 @@ void PowerController::PostUpdate(
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
+
+  if (_info.paused) {
+    return;
+  }
 
   if (!_ecm.EntityHasComponentType(
       this->dataPtr->jointEntity_,
