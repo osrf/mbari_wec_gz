@@ -27,6 +27,9 @@
 
 #include <buoy_msgs/msg/pc_record.hpp>
 #include <buoy_msgs/srv/pc_wind_curr_command.hpp>
+#include <buoy_msgs/srv/pc_scale_command.hpp>
+#include <buoy_msgs/srv/pc_retract_command.hpp>
+#include <buoy_msgs/srv/pc_bias_curr_command.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -73,8 +76,44 @@ struct PowerControllerServices
   static const rcl_interfaces::msg::FloatingPointRange valid_wind_curr_range_;
   double wind_curr_{0.0};
   std::atomic<bool> torque_command_{false};
+  std::atomic<bool> new_torque_command_{false};
 
-  std::atomic<bool> has_new_command_{false};
+  rclcpp::Service<buoy_msgs::srv::PCScaleCommand>::SharedPtr scale_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Request>,
+    std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Response>)> scale_command_handler_;
+
+  buoy_utils::StopwatchSimTime scale_command_watch_;
+  rclcpp::Duration scale_command_duration_{0, 0U};
+  static const rclcpp::Duration SCALE_COMMAND_TIMEOUT;
+  static const rcl_interfaces::msg::FloatingPointRange valid_scale_range_;
+  double scale_{0.0};
+  std::atomic<bool> scale_command_{false};
+  std::atomic<bool> new_scale_command_{false};
+
+  rclcpp::Service<buoy_msgs::srv::PCRetractCommand>::SharedPtr retract_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_msgs::srv::PCRetractCommand::Request>,
+    std::shared_ptr<buoy_msgs::srv::PCRetractCommand::Response>)> retract_command_handler_;
+
+  buoy_utils::StopwatchSimTime retract_command_watch_;
+  rclcpp::Duration retract_command_duration_{0, 0U};
+  static const rclcpp::Duration RETRACT_COMMAND_TIMEOUT;
+  static const rcl_interfaces::msg::FloatingPointRange valid_retract_range_;
+  double retract{0.0};
+  std::atomic<bool> retract_command_{false};
+  std::atomic<bool> new_retract_command_{false};
+
+  rclcpp::Service<buoy_msgs::srv::PCBiasCurrCommand>::SharedPtr bias_curr_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_msgs::srv::PCBiasCurrCommand::Request>,
+    std::shared_ptr<buoy_msgs::srv::PCBiasCurrCommand::Response>)> bias_curr_command_handler_;
+
+  buoy_utils::StopwatchSimTime bias_curr_command_watch_;
+  rclcpp::Duration bias_curr_command_duration_{0, 0U};
+  static const rclcpp::Duration BIAS_CURR_COMMAND_TIMEOUT;
+  static const rcl_interfaces::msg::FloatingPointRange valid_bias_curr_range_;
+  double bias_curr_{0.0};
+  std::atomic<bool> bias_curr_command_{false};
+  std::atomic<bool> new_bias_curr_command_{false};
+
   std::mutex command_mutex_;
 };
 const rclcpp::Duration PowerControllerServices::TORQUE_COMMAND_TIMEOUT{2, 0U};
@@ -82,6 +121,24 @@ const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_win
   rcl_interfaces::msg::FloatingPointRange()
   .set__from_value(-35.0F)
   .set__to_value(35.0F);
+
+const rclcpp::Duration PowerControllerServices::SCALE_COMMAND_TIMEOUT{2, 0U};
+const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_scale_range_ =
+  rcl_interfaces::msg::FloatingPointRange()
+  .set__from_value(0.5F)
+  .set__to_value(1.4F);
+
+const rclcpp::Duration PowerControllerServices::RETRACT_COMMAND_TIMEOUT{600, 0U};
+const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_retract_range_ =
+  rcl_interfaces::msg::FloatingPointRange()
+  .set__from_value(0.4F)
+  .set__to_value(1.0F);
+
+const rclcpp::Duration PowerControllerServices::BIAS_CURR_COMMAND_TIMEOUT{10, 0U};
+const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_bias_curr_range_ =
+  rcl_interfaces::msg::FloatingPointRange()
+  .set__from_value(-20.0F)
+  .set__to_value(20.0F);
 
 struct PowerControllerPrivate
 {
@@ -186,9 +243,8 @@ struct PowerControllerPrivate
 
   void setup_services()
   {
-    services_->torque_command_watch_.SetClock(ros_->node_->get_clock());
-
     // PCWindCurrCommand
+    services_->torque_command_watch_.SetClock(ros_->node_->get_clock());
     services_->torque_command_handler_ =
       [this](const std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Request> request,
         std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Response> response)
@@ -221,28 +277,68 @@ struct PowerControllerPrivate
         services_->torque_command_duration_ = PowerControllerServices::TORQUE_COMMAND_TIMEOUT;
 
         services_->torque_command_ = true;
-        services_->has_new_command_ = true;
+        services_->new_torque_command_ = true;
       };
     services_->torque_command_service_ =
       ros_->node_->create_service<buoy_msgs::srv::PCWindCurrCommand>(
       "pc_wind_curr_command",
       services_->torque_command_handler_);
+
+    // PCScaleCommand
+    services_->scale_command_watch_.SetClock(ros_->node_->get_clock());
+    services_->scale_command_handler_ =
+      [this](const std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Request> request,
+        std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Response> response)
+      {
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "[ROS 2 Power Control] PCScaleCommand Received [" << request->scale << "]");
+
+        std::unique_lock lock(services_->command_mutex_);
+        double scale{request->scale};
+        if (services_->valid_scale_range_.from_value > scale ||
+          scale > services_->valid_scale_range_.to_value)
+        {
+          scale = std::min(
+            std::max(
+              scale,
+              services_->valid_scale_range_.from_value),
+            services_->valid_scale_range_.to_value);
+
+          response->result.value = response->result.BAD_INPUT;
+
+          RCLCPP_WARN_STREAM(
+            ros_->node_->get_logger(),
+            "[ROS 2 Spring Control] PCScaleCommand out of bounds -- clipped between [" <<
+              services_->valid_scale_range_.from_value << ", " <<
+              services_->valid_scale_range_.to_value << "]");
+        }
+
+        services_->scale_ = scale;
+        services_->scale_command_duration_ = PowerControllerServices::SCALE_COMMAND_TIMEOUT;
+
+        services_->scale_command_ = true;
+        services_->new_scale_command_ = true;
+      };
+    services_->scale_command_service_ =
+      ros_->node_->create_service<buoy_msgs::srv::PCScaleCommand>(
+      "pc_scale_command",
+      services_->scale_command_handler_);
   }
 
   void manageCommandTimer(ElectroHydraulicState & state)
   {
     // override winding current (torque)
-    if (state.torque_command && !services_->torque_command_watch_.Running()) {
-      RCLCPP_INFO_STREAM(
-        ros_->node_->get_logger(),
-        "Override Winding Current (Torque) (" <<
-          services_->torque_command_duration_.seconds() << "s)");
+    if (state.torque_command) {
+      if (!services_->torque_command_watch_.Running()) {
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "Override Winding Current (Torque) (" <<
+            services_->torque_command_duration_.seconds() << "s)");
 
-      services_->torque_command_watch_.Start(true);
-    } else {
+        services_->torque_command_watch_.Start(true);
       // stop overriding winding current (torque)
-      if (state.torque_command &&
-        services_->torque_command_watch_.ElapsedRunTime() >=
+      } else if (services_->torque_command_watch_.ElapsedRunTime() >=
         services_->torque_command_duration_)
       {
         services_->torque_command_watch_.Stop();
@@ -254,6 +350,29 @@ struct PowerControllerPrivate
             services_->torque_command_watch_.ElapsedRunTime().seconds() << "s)");
       }
     }
+
+    // override scale factor
+    if (state.scale_command) {
+      if (!services_->scale_command_watch_.Running()) {
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "Override Scale Factor (" <<
+            services_->scale_command_duration_.seconds() << "s)");
+
+        services_->scale_command_watch_.Start(true);
+      // stop overriding scale factor
+      } else if (services_->scale_command_watch_.ElapsedRunTime() >=
+        services_->scale_command_duration_)
+      {
+        services_->scale_command_watch_.Stop();
+        state.scale_command = false;
+
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "Stopped overriding Scale Factor after (" <<
+            services_->scale_command_watch_.ElapsedRunTime().seconds() << "s)");
+      }
+    } 
   }
 
   void manageCommandState(ElectroHydraulicState & state)
@@ -266,32 +385,56 @@ struct PowerControllerPrivate
       state.torque_command.reset();
     }
 
-    if (services_->has_new_command_) {
+    if (state.scale_command.isFinished()) {
       std::unique_lock lock(services_->command_mutex_);
+      services_->scale_command_ = false;
+      services_->scale_command_duration_ = rclcpp::Duration(0, 0U);
+      services_->scale_command_watch_.Reset();
+      state.scale_command.reset();
+    }
 
-      if (state.torque_command) {
-        if (services_->torque_command_) {
+    if (services_->new_torque_command_) {
+      std::unique_lock lock(services_->command_mutex_);
+      if (services_->torque_command_) {
+        if (state.torque_command) {
           state.torque_command = services_->wind_curr_;
-          services_->torque_command_ = false;
+          services_->torque_command_duration_ =
+            PowerControllerServices::TORQUE_COMMAND_TIMEOUT +
+            services_->torque_command_watch_.ElapsedRunTime();
+
+          RCLCPP_INFO_STREAM(
+            ros_->node_->get_logger(),
+           "Continue Override Winding Current (Torque) (" <<
+              services_->torque_command_duration_.seconds() << "s)");
         } else {
-          state.torque_command = services_->torque_command_;
-        }
-        services_->torque_command_duration_ =
-          PowerControllerServices::TORQUE_COMMAND_TIMEOUT +
-          services_->torque_command_watch_.ElapsedRunTime();
-
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "Continue Override Winding Current (Torque) (" <<
-            services_->torque_command_duration_.seconds() << "s)");
-        // } else if other command {
-      } else {
-        if (services_->torque_command_) {
           state.torque_command = services_->wind_curr_;
-          services_->torque_command_ = false;
         }
+      } else {
+        state.torque_command = services_->torque_command_;
       }
-      services_->has_new_command_ = false;
+      services_->new_torque_command_ = false;
+    }
+
+    if (services_->new_scale_command_) {
+      std::unique_lock lock(services_->command_mutex_);
+      if (services_->scale_command_) {
+        if (state.scale_command) {
+          state.scale_command = services_->scale_;
+          services_->scale_command_duration_ =
+            PowerControllerServices::SCALE_COMMAND_TIMEOUT +
+            services_->scale_command_watch_.ElapsedRunTime();
+
+          RCLCPP_INFO_STREAM(
+            ros_->node_->get_logger(),
+           "Continue Override Scale Factor (" <<
+              services_->scale_command_duration_.seconds() << "s)");
+        } else {
+          state.scale_command = services_->scale_;
+        }
+      } else {
+        state.scale_command = services_->scale_command_;
+      }
+      services_->new_scale_command_ = false;
     }
   }
 };
