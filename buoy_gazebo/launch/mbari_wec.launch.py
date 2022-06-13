@@ -30,16 +30,18 @@ def generate_launch_description():
     pkg_ros_ign_gazebo = get_package_share_directory('ros_ign_gazebo')
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
-    model_name = 'mbari_wec'
-    gazebo_world = 'mbari_wec'
-    sdf_file = os.path.join(pkg_buoy_description, 'models', model_name, 'model.sdf')
+    model_dir = 'mbari_wec'
+    model_name = 'MBARI_WEC'
+    world_file = 'mbari_wec'
+    world_name = 'world_demo'
+    sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     with open(sdf_file, 'r') as infp:
         robot_desc = infp.read()
 
     gazebo_world_launch_arg = DeclareLaunchArgument(
         'ign_args', default_value=[
-            os.path.join(pkg_buoy_gazebo, 'worlds', gazebo_world + '.sdf'), ''],
+            os.path.join(pkg_buoy_gazebo, 'worlds', world_file + '.sdf'), ''],
         description='Ignition Gazebo arguments'
     )
 
@@ -55,19 +57,22 @@ def generate_launch_description():
     )
 
     # Bridge to forward tf and joint states to ros2
+    joint_state_gz_topic = '/world/' + world_name + '/model/' + model_name + '/joint_state'
+    link_pose_gz_topic = '/model/' + model_name + '/pose'
     bridge = Node(
         package='ros_ign_bridge',
         executable='parameter_bridge',
         arguments=[
-            # Clock (IGN -> ROS2)
+            # Clock (Gazebo -> ROS2)
             '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
-            # Joint states (IGN -> ROS2)
-            '/world/' + gazebo_world + '/model/' + model_name +
-                '/joint_state@sensor_msgs/msg/JointState[ignition.msgs.Model',
-            '/model/' + model_name + '/pose_static@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
+            # Joint states (Gazebo -> ROS2)
+            joint_state_gz_topic + '@sensor_msgs/msg/JointState[ignition.msgs.Model',
+            # Link poses (Gazebo -> ROS2)
+            link_pose_gz_topic + '@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
         ],
         remappings=[
-            ('/world/' + gazebo_world + '/model/' + model_name + '/joint_state', 'joint_states'),
+            (joint_state_gz_topic, 'joint_states'),
+            (link_pose_gz_topic, '/tf'),
         ],
         output='screen'
     )
