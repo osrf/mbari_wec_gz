@@ -32,8 +32,8 @@ def generate_launch_description():
     pkg_buoy_description = get_package_share_directory('buoy_description')
     model_dir = 'mbari_wec'
     model_name = 'MBARI_WEC'
-    world_file = 'mbari_wec'
-    world_name = 'world_demo'
+    world_file = 'buoy_playground'
+    world_name = 'playground'
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     with open(sdf_file, 'r') as infp:
@@ -69,12 +69,21 @@ def generate_launch_description():
             joint_state_gz_topic + '@sensor_msgs/msg/JointState[ignition.msgs.Model',
             # Link poses (Gazebo -> ROS2)
             link_pose_gz_topic + '@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
+            link_pose_gz_topic + '_static@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
         ],
         remappings=[
             (joint_state_gz_topic, 'joint_states'),
             (link_pose_gz_topic, '/tf'),
+            (link_pose_gz_topic + '_static', '/tf_static'),
         ],
         output='screen'
+    )
+
+    # Mapping initial frame
+    tf_buoy = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        arguments = ['0', '0', '0', '0', '0', '0', 'MBARI_WEC/Buoy', 'MBARI_WEC']
     )
 
     # Get the parser plugin convert sdf to urdf using robot_description topic
@@ -95,6 +104,9 @@ def generate_launch_description():
         executable='rviz2',
         arguments=['-d', os.path.join(pkg_buoy_gazebo, 'rviz', 'mbari_wec.rviz')],
         condition=IfCondition(LaunchConfiguration('rviz')),
+        parameters=[
+            {'use_sim_time': True},
+        ]
     )
 
     return LaunchDescription([
@@ -102,6 +114,7 @@ def generate_launch_description():
         rviz_launch_arg,
         gazebo,
         bridge,
+        tf_buoy,
         robot_state_publisher,
         rviz
     ])
