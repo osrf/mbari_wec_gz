@@ -35,7 +35,7 @@ struct ElectroHydraulicState
   float wcurrent{0.0F};
   float torque{0.0F};  // TODO(anyone) not set
   float diff_press{0.0F};
-  float bias_current{0.0F};  // TODO(anyone) not set
+  float bias_current{0.0F};
   float loaddc{0.0F};
   float scale{0.0F};
   float retract{0.0F};

@@ -444,6 +444,7 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_state.bcurrent = I_Batt;
   pto_state.wcurrent = this->dataPtr->WindingCurrent;
   pto_state.diff_press = deltaP;
+  pto_state.bias_current = this->dataPtr->functor.I_Wind.BiasCurrent;
   pto_state.loaddc = I_Load;
   pto_state.scale = this->dataPtr->functor.I_Wind.ScaleFactor;
   pto_state.retract = this->dataPtr->functor.I_Wind.RetractFactor;
