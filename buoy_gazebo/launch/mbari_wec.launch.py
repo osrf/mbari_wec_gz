@@ -22,7 +22,7 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
 
 def generate_launch_description():
@@ -32,17 +32,19 @@ def generate_launch_description():
     pkg_buoy_description = get_package_share_directory('buoy_description')
     model_dir = 'mbari_wec'
     model_name = 'MBARI_WEC'
-    world_file = 'buoy_playground'
-    world_name = 'playground'
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     with open(sdf_file, 'r') as infp:
         robot_desc = infp.read()
 
-    gazebo_world_launch_arg = DeclareLaunchArgument(
-        'ign_args', default_value=[
-            os.path.join(pkg_buoy_gazebo, 'worlds', world_file + '.sdf'), ''],
-        description='Ignition Gazebo arguments'
+    gazebo_world_file_launch_arg = DeclareLaunchArgument(
+        'world_file', default_value=['mbari_wec.sdf'],
+        description='Gazebo world filename.sdf'
+    )
+
+    gazebo_world_name_launch_arg = DeclareLaunchArgument(
+        'world_name', default_value=['world_demo'],
+        description='Gazebo <world name>'
     )
 
     rviz_launch_arg = DeclareLaunchArgument(
@@ -53,11 +55,15 @@ def generate_launch_description():
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_ign_gazebo, 'launch', 'ign_gazebo.launch.py'),
-        )
+        ),
+        launch_arguments={'ign_args': PathJoinSubstitution([
+            pkg_buoy_gazebo,
+            'worlds',
+            LaunchConfiguration('world_file')
+        ])}.items(),
     )
 
     # Bridge to forward tf and joint states to ros2
-    joint_state_gz_topic = '/world/' + world_name + '/model/' + model_name + '/joint_state'
     link_pose_gz_topic = '/model/' + model_name + '/pose'
     bridge = Node(
         package='ros_ign_bridge',
@@ -66,13 +72,15 @@ def generate_launch_description():
             # Clock (Gazebo -> ROS2)
             '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
             # Joint states (Gazebo -> ROS2)
-            joint_state_gz_topic + '@sensor_msgs/msg/JointState[ignition.msgs.Model',
+            ['/world/', LaunchConfiguration('world_name'), '/model/', model_name, '/joint_state',
+             '@', 'sensor_msgs/msg/JointState', '[', 'ignition.msgs.Model'],
             # Link poses (Gazebo -> ROS2)
             link_pose_gz_topic + '@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
             link_pose_gz_topic + '_static@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
         ],
         remappings=[
-            (joint_state_gz_topic, 'joint_states'),
+            (['/world/', LaunchConfiguration('world_name'), '/model/', model_name, '/joint_state'],
+                'joint_states'),
             (link_pose_gz_topic, '/tf'),
             (link_pose_gz_topic + '_static', '/tf_static'),
         ],
@@ -110,7 +118,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        gazebo_world_launch_arg,
+        gazebo_world_file_launch_arg,
+        gazebo_world_name_launch_arg,
         rviz_launch_arg,
         gazebo,
         bridge,
