@@ -83,7 +83,7 @@ def generate_launch_description():
     tf_buoy = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments = ['0', '0', '0', '0', '0', '0', 'MBARI_WEC/Buoy', 'MBARI_WEC']
+        arguments=['0', '0', '0', '0', '0', '0', 'MBARI_WEC/Buoy', 'MBARI_WEC']
     )
 
     # Get the parser plugin convert sdf to urdf using robot_description topic
