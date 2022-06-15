@@ -129,6 +129,15 @@
         <use_pose_vector_msg>true</use_pose_vector_msg>
         <static_publisher>true</static_publisher>
       </plugin>
+
+      <plugin
+        filename="ignition-gazebo-odometry-publisher-system"
+        name="ignition::gazebo::systems::OdometryPublisher">
+        <dimensions>3</dimensions>
+        <odom_frame>MBARI_WEC/odom</odom_frame>
+        <robot_base_frame>MBARI_WEC/Buoy</robot_base_frame>
+      </plugin>
+
     </model>
   </world>
 </sdf>
