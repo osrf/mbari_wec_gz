@@ -24,33 +24,6 @@
 
 namespace buoy_gazebo
 {
-struct PowerControllerStatusBits {
-  uint8_t Mode : 2;  // controller mode. specified by defines in config.h
-                     // (GENERATOR_MODE, TORQUE_MODE)
-  uint8_t TorqueCmdLimited : 1;  // defines what is limited the Torque Command
-                                 // (0 = Not limited, 1 = Rate, 2 = Min, 3 = Max).
-  uint8_t BattSwitchRequest : 1;  // Indicates state of battery switch that the user desires.
-                                  // (0 = off, 1 = on)
-  uint8_t BattSwitchSetting : 1;  // Indicates instantaneous setting of Battery Switch
-  uint8_t SlowSwitchSetting : 1;  // Indicates instantaneous setting of Bettery Slow Switch
-  uint8_t EXT_Voltage_Detect : 1;  // Indicates if >170V is available on outside connector
-  uint8_t GainScheduleMode : 1;  // 0 = off. 1 = on.
-  uint8_t OverCurrentShutdown : 1;  // 1 indicates drive is in overcurrent shutdown.
-  uint8_t OverVoltageShutdown : 1;  // 1 indicates drive is in overvoltage shutdown.
-  uint8_t SpringRangeValid : 1;  // 1 indicates the current SC_Range value is valid
-                                 // (received within approximately SC_RANGE_VALID_TIMEOUT
-                                 // milliseconds)
-  uint8_t PermissiveMode : 1;  // 1 indicates user has selected "permissive mode" which allows
-                               // WindingCurrent commands to be set even if SpringController
-                               // Range packets aren't arriving
-};
-
-typedef union
-{
-  uint16_t status;
-  PowerControllerStatusBits bits;
-} PowerControllerStatus;
-
 /// \brief State data for power commands and feedback from sensors for PCRecord message in ROS2
 struct ElectroHydraulicState
 {
@@ -68,7 +41,7 @@ struct ElectroHydraulicState
   float retract{0.0F};
   float target_v{0.0F};  // TODO(anyone) not set
   float target_a{0.0F};
-  PowerControllerStatus status{0};  // TODO(anyone) not set
+  int16_t status{0};  // TODO(anyone) not set
   float charge_curr_limit{0.0F};  // TODO(anyone) not set
 
   buoy_utils::CommandTriState<> torque_command;
