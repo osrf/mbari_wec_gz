@@ -67,7 +67,8 @@ struct CommandTriState
   }
 };
 
-struct SpringStatusBits {
+struct SpringStatusBits
+{
   uint8_t ReliefValveRequest : 7;  // Request to open/close valve
   uint8_t ReliefValveStatus : 1;  // Status of Relief valve open/close
   uint8_t PumpRequest : 1;  // Request to turn pump on or off
@@ -80,11 +81,25 @@ struct SpringStatusBits {
   uint8_t AUX_Fault : 1;  // Status of AUX fault input
 };
 
-typedef union
-{
-  uint16_t status;
+typedef union {
+  uint16_t status{0U};
   SpringStatusBits bits;
-} SpringStatus;
+} SpringStatusUnion;
+
+struct SpringStatus
+{
+  SpringStatusUnion status;
+
+  operator const uint16_t &() const
+  {
+    return status.status;
+  }
+
+  SpringStatusBits & bits()
+  {
+    return status.bits;
+  }
+};
 
 /// \brief State data for spring commands and feedback from sensors for SCRecord message in ROS2
 struct SpringState
@@ -96,7 +111,7 @@ struct SpringState
                              // chamber (TODO(andermi) units)
   float upper_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
   float lower_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
-  SpringStatus status{0};  // status of SpringController
+  SpringStatus status;  // status of SpringController
 
   // Commands
   CommandTriState valve_command;
