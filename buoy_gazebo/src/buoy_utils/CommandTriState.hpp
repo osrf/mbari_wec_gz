@@ -15,7 +15,6 @@
 #ifndef BUOY_UTILS__COMMANDTRISTATE_HPP_
 #define BUOY_UTILS__COMMANDTRISTATE_HPP_
 
-#include <iostream>
 
 namespace buoy_utils
 {

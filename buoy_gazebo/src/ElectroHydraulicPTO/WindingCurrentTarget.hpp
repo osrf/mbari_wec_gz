@@ -48,7 +48,6 @@
 class WindingCurrentTarget
 {
 public:
-  // static constexpr double DEFAULT_SCALE_FACTOR;
   double TorqueConstantNMPerAmp;   // N-m/Amp
   double TorqueConstantInLbPerAmp;  // in-lb/Amp
   JustInterp::LinearInterpolator<double> DefaultDamping;
