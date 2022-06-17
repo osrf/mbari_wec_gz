@@ -306,15 +306,13 @@ void ElectroHydraulicPTO::PreUpdate(
   const int n = 2;
   int info;
 
-  IGN_PROFILE("ElectroHydraulicPTO::Update");
+  IGN_PROFILE("#ElectroHydraulicPTO::PreUpdate");
   // Nothing left to do if paused.
   if (_info.paused) {
     return;
   }
 
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
-
-  IGN_PROFILE("#ElectroHydraulicPTO::PreUpdate");
 
   // If the joints haven't been identified yet, the plugin is disabled
   if (this->dataPtr->PrismaticJointEntity == ignition::gazebo::kNullEntity) {

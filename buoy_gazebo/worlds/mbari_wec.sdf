@@ -79,6 +79,8 @@
         <is_upper>true</is_upper>
         <!-- measure of valve opening cross-section and duration (meter-seconds) -->
         <valve_absement>49e-7</valve_absement>
+        <pump_absement>10e-8</pump_absement>
+        <pump_pressure>1.7e+6</pump_pressure>
         <stroke>2.03</stroke>
         <piston_area>0.0127</piston_area>
         <dead_volume>0.0266</dead_volume>
@@ -101,6 +103,8 @@
         <is_upper>false</is_upper>
         <!-- measure of valve opening cross-section and duration (meter-seconds) -->
         <valve_absement>49e-7</valve_absement>
+        <pump_absement>10e-8</pump_absement>
+        <pump_pressure>1.7e+6</pump_pressure>
         <stroke>2.03</stroke>
         <piston_area>0.0115</piston_area>
         <dead_volume>0.0523</dead_volume>

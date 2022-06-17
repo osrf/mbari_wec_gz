@@ -19,11 +19,9 @@
 #include <ignition/gazebo/components/Component.hh>
 #include <ignition/gazebo/config.hh>
 
-// #include <ignition/math/Stopwatch.hh>
-
 namespace buoy_gazebo
 {
-
+/// \brief Command state variable that tracks if command is running, finished, or ever was active
 struct CommandTriState
 {
   bool left{false};
@@ -69,13 +67,17 @@ struct CommandTriState
   }
 };
 
+/// \brief State data for spring commands and feedback from sensors for SCRecord message in ROS2
 struct SpringState
 {
   // SCRecord
-  int16_t load_cell{0};  // load on Buoy->PTO universal joint in Newtons (TODO(andermi) for now)
-  float range_finder{0.0F};  // position in meters (TODO(andermi) for now)
-  float upper_psi{0.0F};  // pressure in PSI
-  float lower_psi{0.0F};  // pressure in PSI
+  int16_t load_cell{0};  // load on Buoy->PTO universal joint in Newtons (TODO(andermi) units)
+  float range_finder{0.0F};  // piston position in meters measured from fully retracted as
+                             // reference. In buoy this is laser range finder at top of upper
+                             // chamber (TODO(andermi) units)
+  float upper_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
+  float lower_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
+  int16_t status{0};  // TODO(andermi) status bit field
 
   // Commands
   CommandTriState valve_command;
@@ -84,9 +86,9 @@ struct SpringState
   bool operator==(const SpringState & that) const
   {
     bool equal = this->load_cell == that.load_cell;
-    equal &= fabs(this->range_finder - that.range_finder) < 1e-6;
-    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-6;
-    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-6;
+    equal &= fabs(this->range_finder - that.range_finder) < 1e-7;
+    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-7;
+    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-7;
     return equal;
   }
 };

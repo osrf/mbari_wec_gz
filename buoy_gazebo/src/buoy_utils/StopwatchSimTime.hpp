@@ -26,14 +26,12 @@ namespace buoy_utils
 // Forward declarations.
 class StopwatchSimTimePrivate;
 
-//
-/// \class StopwatchSimTime StopwatchSimTime.hh buoy_utils/StopwatchSimTime.hh
-/// \brief The stopwatch keeps track of time spent in the run state,
-/// accessed through ElapsedRunTime(), and time spent in the stop state,
-/// accessed through ElapsedStopTime(). Elapsed run time starts accumulating
-/// after the first call to Start(). Elapsed stop time starts
-/// accumulation after Start() has been called followed by Stop(). The
-/// stopwatch can be reset with the Reset() function.
+/// \brief The stopwatch accepts an rclcpp::Clock instance from a rclcpp::Node (allowing use of
+/// sim time if use_sim_time set in node). Keeps track of time spent in the run state, accessed
+/// through ElapsedRunTime(), and time spent in the stop state, accessed through ElapsedStopTime().
+/// Elapsed run time starts accumulating after the first call to Start(). Elapsed stop time starts
+/// accumulation after Start() has been called followed by Stop(). The stopwatch can be reset with
+/// the Reset() function.
 ///
 /// # Example usage
 ///
