@@ -285,6 +285,7 @@ struct SpringControllerPrivate
   void manageCommandTimer(SpringState & state)
   {
     static double init_x = 0.0;
+    static rclcpp::Duration pump_prev{0, 0U};
 
     // open valve
     if (state.valve_command && !services_->command_watch_.Running()) {
@@ -307,6 +308,8 @@ struct SpringControllerPrivate
 
       services_->command_watch_.Start(true);
       state.status.bits().PumpStatus = 1U;
+      state.status.bits().PumpToggle = 1U;
+      pump_prev = services_->command_watch_.ElapsedRunTime();
 
       init_x = state.range_finder;
 
@@ -329,22 +332,32 @@ struct SpringControllerPrivate
           " m/s" << std::endl;
       }
 
-      // turn pump off
-      if (state.pump_command &&
-        services_->command_watch_.ElapsedRunTime() >= services_->command_duration_)
-      {
-        services_->command_watch_.Stop();
-        state.status.bits().PumpStatus = 0U;
-        state.pump_command = false;
+      if (state.pump_command) {
+        // turn pump off
+        if (services_->command_watch_.ElapsedRunTime() >= services_->command_duration_) {
+          services_->command_watch_.Stop();
+          state.status.bits().PumpStatus = 0U;
+          state.status.bits().PumpToggle = 0U;
+          state.pump_command = false;
 
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "Pump off after (" <<
-            services_->command_watch_.ElapsedRunTime().seconds() << "s)");
+          RCLCPP_INFO_STREAM(
+            ros_->node_->get_logger(),
+            "Pump off after (" <<
+              services_->command_watch_.ElapsedRunTime().seconds() << "s)");
 
-        igndbg << "piston moved: " << (state.range_finder - init_x) /
-        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
-          " m/s" << std::endl;
+          igndbg << "piston moved: " << (state.range_finder - init_x) /
+          (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
+            " m/s" << std::endl;
+        } else {
+          // set pump toggle -- linear pump servo drives back and forth
+          if (floor(services_->command_watch_.ElapsedRunTime().seconds()) != 
+            floor(pump_prev.seconds()))
+          {
+            state.status.bits().PumpToggle += 1U;
+            state.status.bits().PumpToggle %= 2U;
+          }
+        }
+        pump_prev = services_->command_watch_.ElapsedRunTime();
       }
     }
   }
