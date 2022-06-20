@@ -350,7 +350,7 @@ struct SpringControllerPrivate
             " m/s" << std::endl;
         } else {
           // set pump toggle -- linear pump servo drives back and forth
-          if (floor(services_->command_watch_.ElapsedRunTime().seconds()) != 
+          if (floor(services_->command_watch_.ElapsedRunTime().seconds()) !=
             floor(pump_prev.seconds()))
           {
             state.status.bits().PumpToggle += 1U;
