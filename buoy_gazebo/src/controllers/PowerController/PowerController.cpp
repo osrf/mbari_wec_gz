@@ -478,7 +478,8 @@ struct PowerControllerPrivate
     std::atomic<bool> & new_command,
     const double & command_value,
     buoy_utils::StopwatchSimTime & watch,
-    rclcpp::Duration & duration)
+    rclcpp::Duration & duration,
+    const rclcpp::Duration & timeout)
   {
     if (command.isFinished()) {
       std::unique_lock lock(services_->command_mutex_);
@@ -493,7 +494,7 @@ struct PowerControllerPrivate
       if (services_command) {
         if (command) {
           command = command_value;
-          duration = PowerControllerServices::TORQUE_COMMAND_TIMEOUT + watch.ElapsedRunTime();
+          duration = timeout + watch.ElapsedRunTime();
 
           RCLCPP_INFO_STREAM(
             ros_->node_->get_logger(),
@@ -518,7 +519,8 @@ struct PowerControllerPrivate
       services_->new_torque_command_,
       services_->wind_curr_,
       services_->torque_command_watch_,
-      services_->torque_command_duration_);
+      services_->torque_command_duration_,
+      PowerControllerServices::TORQUE_COMMAND_TIMEOUT);
 
     manageCommandState(
       "Scale Factor",
@@ -527,7 +529,8 @@ struct PowerControllerPrivate
       services_->new_scale_command_,
       services_->scale_,
       services_->scale_command_watch_,
-      services_->scale_command_duration_);
+      services_->scale_command_duration_,
+      PowerControllerServices::SCALE_COMMAND_TIMEOUT);
 
     manageCommandState(
       "Retract Factor",
@@ -536,7 +539,8 @@ struct PowerControllerPrivate
       services_->new_retract_command_,
       services_->retract_,
       services_->retract_command_watch_,
-      services_->retract_command_duration_);
+      services_->retract_command_duration_,
+      PowerControllerServices::RETRACT_COMMAND_TIMEOUT);
 
     manageCommandState(
       "Bias Current",
@@ -545,7 +549,8 @@ struct PowerControllerPrivate
       services_->new_bias_curr_command_,
       services_->bias_curr_,
       services_->bias_curr_command_watch_,
-      services_->bias_curr_command_duration_);
+      services_->bias_curr_command_duration_,
+      PowerControllerServices::BIAS_CURR_COMMAND_TIMEOUT);
   }
 };
 
