@@ -132,6 +132,7 @@
         <publish_link_pose>true</publish_link_pose>
         <use_pose_vector_msg>true</use_pose_vector_msg>
         <static_publisher>true</static_publisher>
+        <static_update_frequency>1</static_update_frequency>
       </plugin>
 
       <plugin
@@ -139,7 +140,7 @@
         name="ignition::gazebo::systems::OdometryPublisher">
         <dimensions>3</dimensions>
         <odom_frame>MBARI_WEC/odom</odom_frame>
-        <robot_base_frame>MBARI_WEC/Buoy</robot_base_frame>
+        <robot_base_frame>MBARI_WEC</robot_base_frame>
       </plugin>
 
     </model>
