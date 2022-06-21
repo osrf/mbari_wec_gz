@@ -84,7 +84,7 @@ def generate_launch_description():
             (link_pose_gz_topic, '/tf'),
             (link_pose_gz_topic + '_static', '/tf_static'),
         ],
-        parameters=[{'qos_overrides./tf_static.publisher.durability' : 'transient_local'}],
+        parameters=[{'qos_overrides./tf_static.publisher.durability': 'transient_local'}],
         output='screen'
     )
 
