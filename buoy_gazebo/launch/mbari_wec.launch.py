@@ -84,15 +84,8 @@ def generate_launch_description():
             (link_pose_gz_topic, '/tf'),
             (link_pose_gz_topic + '_static', '/tf_static'),
         ],
+        parameters=[{'qos_overrides./tf_static.publisher.durability' : 'transient_local'}],
         output='screen'
-    )
-
-    # Mapping initial frame
-    tf_buoy = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        arguments=['0', '0', '0', '0', '0', '0', 'MBARI_WEC/Buoy', 'MBARI_WEC'],
-        condition=IfCondition(LaunchConfiguration('rviz')),
     )
 
     # Get the parser plugin convert sdf to urdf using robot_description topic
@@ -124,7 +117,6 @@ def generate_launch_description():
         rviz_launch_arg,
         gazebo,
         bridge,
-        tf_buoy,
         robot_state_publisher,
         rviz
     ])
