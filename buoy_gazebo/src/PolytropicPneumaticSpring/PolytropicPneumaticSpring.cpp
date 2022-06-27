@@ -33,6 +33,8 @@
 #include <mutex>
 #include <string>
 
+#include "SpringState.hpp"
+
 
 using namespace std::chrono_literals;
 
