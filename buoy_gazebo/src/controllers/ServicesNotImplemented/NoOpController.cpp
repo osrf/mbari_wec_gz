@@ -24,6 +24,9 @@
 
 #include <buoy_msgs/msg/pb_command_response.hpp>
 
+#include <memory>
+#include <string>
+
 #include "buoy_msgs/srv/bc_reset_command.hpp"
 #include "buoy_msgs/srv/bender_command.hpp"
 #include "buoy_msgs/srv/bus_command.hpp"
@@ -44,48 +47,45 @@
 #include "buoy_msgs/srv/tf_set_state_machine_command.hpp"
 #include "buoy_msgs/srv/tf_watch_dog_command.hpp"
 
-#include <memory>
-#include <string>
-
 
 #define CREATE_SERVICE(type, prefix, cmd_var, service, \
-  cmd_type, range_type) \
-    services_->prefix##_command_handler_ = \
-      [this](const std::shared_ptr<buoy_msgs::srv::type::Request> request, \
-        std::shared_ptr<buoy_msgs::srv::type::Response> response) \
-      { \
+    cmd_type, range_type) \
+  services_->prefix ## _command_handler_ = \
+    [this](const std::shared_ptr<buoy_msgs::srv::type::Request> request, \
+      std::shared_ptr<buoy_msgs::srv::type::Response> response) \
+    { \
+      RCLCPP_WARN_STREAM( \
+        ros_->node_->get_logger(), \
+        "[ROS 2 No-Op Control] " #type " Received [" << \
+          request->cmd_var << "] -- Not Implemented"); \
+ \
+      response->result.value = \
+        handle_command_service<cmd_type, rcl_interfaces::msg::range_type>( \
+        request->cmd_var, \
+        services_->valid_ ## prefix ## _range_); \
+ \
+      if (response->result.value == response->result.BAD_INPUT) { \
         RCLCPP_WARN_STREAM( \
           ros_->node_->get_logger(), \
-          "[ROS 2 No-Op Control] " #type " Received [" << \
-          request->cmd_var << "] -- Not Implemented"); \
-\
-        response->result.value = \
-          handle_command_service<cmd_type, rcl_interfaces::msg::range_type>( \
-            request->cmd_var, \
-            services_->valid_##prefix##_range_); \
-\
-        if (response->result.value == response->result.BAD_INPUT) { \
-          RCLCPP_WARN_STREAM( \
-            ros_->node_->get_logger(), \
-            "[ROS 2 No-Op Control] " #type " out of bounds -- [" << \
-              services_->valid_##prefix##_range_.from_value << ", " << \
-              services_->valid_##prefix##_range_.to_value << "]"); \
-        } \
-      }; \
-    services_->prefix##_command_service_ = \
-      ros_->node_->create_service<buoy_msgs::srv::type>( \
-      #service, \
-      services_->prefix##_command_handler_)
+          "[ROS 2 No-Op Control] " #type " out of bounds -- [" << \
+            services_->valid_ ## prefix ## _range_.from_value << ", " << \
+            services_->valid_ ## prefix ## _range_.to_value << "]"); \
+      } \
+    }; \
+  services_->prefix ## _command_service_ = \
+    ros_->node_->create_service<buoy_msgs::srv::type>( \
+    #service, \
+    services_->prefix ## _command_handler_)
 
 
 #define DECLARE_SERVICE(type, prefix, range_type) \
-  rclcpp::Service<buoy_msgs::srv::type>::SharedPtr prefix##_command_service_{nullptr}; \
+  rclcpp::Service<buoy_msgs::srv::type>::SharedPtr prefix ## _command_service_{nullptr}; \
   std::function<void(std::shared_ptr<buoy_msgs::srv::type::Request>, \
-    std::shared_ptr<buoy_msgs::srv::type::Response>)> prefix##_command_handler_; \
-  static const rcl_interfaces::msg::range_type valid_##prefix##_range_
+    std::shared_ptr<buoy_msgs::srv::type::Response>)> prefix ## _command_handler_; \
+  static const rcl_interfaces::msg::range_type valid_ ## prefix ## _range_
 
 #define INIT_VALID_RANGE(prefix, range_type, low, high) \
-  const rcl_interfaces::msg::range_type NoOpServices::valid_##prefix##_range_ = \
+  const rcl_interfaces::msg::range_type NoOpServices::valid_ ## prefix ## _range_ = \
     rcl_interfaces::msg::range_type() \
     .set__from_value(low) \
     .set__to_value(high)
@@ -136,8 +136,8 @@ struct NoOpServices
 
   // TFWatchDogCommand
   rclcpp::Service<
-      buoy_msgs::srv::TFWatchDogCommand
-    >::SharedPtr tfwatchdog_command_service_{nullptr};
+    buoy_msgs::srv::TFWatchDogCommand
+  >::SharedPtr tfwatchdog_command_service_{nullptr};
   std::function<void(std::shared_ptr<buoy_msgs::srv::TFWatchDogCommand::Request>,
     std::shared_ptr<buoy_msgs::srv::TFWatchDogCommand::Response>)> tfwatchdog_command_handler_;
 };
@@ -160,7 +160,7 @@ INIT_VALID_RANGE(tfsetstatemachine, IntegerRange, 0, 1);
 
 struct NoOpControllerPrivate
 {
-  std::thread thread_executor_spin_, thread_publish_;
+  std::thread thread_executor_spin_;
   std::atomic<bool> stop_{false};
 
   std::unique_ptr<NoOpROS2> ros_;
@@ -209,35 +209,50 @@ struct NoOpControllerPrivate
 
   void setupServices()
   {
-    CREATE_SERVICE(BenderCommand, bender, state, bender_command,
+    CREATE_SERVICE(
+      BenderCommand, bender, state, bender_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(BusCommand, bus, state, bus_command,
+    CREATE_SERVICE(
+      BusCommand, bus, state, bus_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(GainCommand, gain, gain, gain_command,
+    CREATE_SERVICE(
+      GainCommand, gain, gain, gain_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(PCBattSwitchCommand, pcbattswitch, state, pc_batt_switch_command,
+    CREATE_SERVICE(
+      PCBattSwitchCommand, pcbattswitch, state, pc_batt_switch_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(PCChargeCurrLimCommand, pcchargecurrlim, charge_curr_lim, pc_charge_curr_lim_command,
+    CREATE_SERVICE(
+      PCChargeCurrLimCommand, pcchargecurrlim, charge_curr_lim, pc_charge_curr_lim_command,
       float, FloatingPointRange);
-    CREATE_SERVICE(PCDrawCurrLimCommand, pcdrawcurrlim, max_batt_draw_current, pc_draw_curr_lim_command,
+    CREATE_SERVICE(
+      PCDrawCurrLimCommand, pcdrawcurrlim, max_batt_draw_current, pc_draw_curr_lim_command,
       float, FloatingPointRange);
-    CREATE_SERVICE(PCStdDevTargCommand, pcstddevtarg, rpm_std_dev, pc_std_dev_targ_command,
+    CREATE_SERVICE(
+      PCStdDevTargCommand, pcstddevtarg, rpm_std_dev, pc_std_dev_targ_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(PCVTargMaxCommand, pcvtargmax, v_targ_max, pc_v_targ_max_command,
+    CREATE_SERVICE(
+      PCVTargMaxCommand, pcvtargmax, v_targ_max, pc_v_targ_max_command,
       float, FloatingPointRange);
-    CREATE_SERVICE(TetherCommand, tether, state, tether_command,
+    CREATE_SERVICE(
+      TetherCommand, tether, state, tether_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(TFSetActualPosCommand, tfsetactualpos, position, tf_set_actual_pos_command,
+    CREATE_SERVICE(
+      TFSetActualPosCommand, tfsetactualpos, position, tf_set_actual_pos_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(TFSetChargeModeCommand, tfsetchargemode, mode, tf_set_charge_mode_command,
+    CREATE_SERVICE(
+      TFSetChargeModeCommand, tfsetchargemode, mode, tf_set_charge_mode_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(TFSetCurrLimCommand, tfsetcurrlim, curr_lim, tf_set_curr_lim_command,
+    CREATE_SERVICE(
+      TFSetCurrLimCommand, tfsetcurrlim, curr_lim, tf_set_curr_lim_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(TFSetModeCommand, tfsetmode, mode, tf_set_mode_command,
+    CREATE_SERVICE(
+      TFSetModeCommand, tfsetmode, mode, tf_set_mode_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(TFSetPosCommand, tfsetpos, position, tf_set_pos_command,
+    CREATE_SERVICE(
+      TFSetPosCommand, tfsetpos, position, tf_set_pos_command,
       uint16_t, IntegerRange);
-    CREATE_SERVICE(TFSetStateMachineCommand, tfsetstatemachine, state,
+    CREATE_SERVICE(
+      TFSetStateMachineCommand, tfsetstatemachine, state,
       tf_set_state_machine_command, uint16_t, IntegerRange);
 
     // BCResetCommand
@@ -322,7 +337,6 @@ NoOpController::~NoOpController()
     this->dataPtr->ros_->executor_->cancel();
   }
   this->dataPtr->thread_executor_spin_.join();
-  this->dataPtr->thread_publish_.join();
 }
 
 void NoOpController::Configure(
