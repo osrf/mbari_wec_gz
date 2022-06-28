@@ -622,7 +622,7 @@ void PowerController::Configure(
     "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm) << "]");
 
   // Publisher
-  std::string topic = _sdf->Get<std::string>("topic", "pc_record").first;
+  std::string topic = _sdf->Get<std::string>("topic", "power_data").first;
   this->dataPtr->ros_->pc_pub_ =
     this->dataPtr->ros_->node_->create_publisher<buoy_msgs::msg::PCRecord>(topic, 10);
 
