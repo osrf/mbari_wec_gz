@@ -14,16 +14,18 @@
 
 import os
 import unittest
-import launch_testing
+
+from ament_index_python.packages import get_package_share_directory
 
 import launch
 import launch.actions
-import launch_testing.actions
-import launch_testing.markers
-
-from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node
 from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+
+from launch_ros.actions import Node
+
+import launch_testing
+import launch_testing.actions
 
 
 def generate_test_description():
@@ -67,4 +69,3 @@ class NoInputsROSTestAfterShutdown(unittest.TestCase):
             [launch_testing.asserts.EXIT_OK],
             gazebo_test_fixture
         )
-

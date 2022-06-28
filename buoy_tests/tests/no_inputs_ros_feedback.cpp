@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <buoy_msgs/interface.hpp>
+
 #include <gtest/gtest.h>
 
 #include <ignition/common/Console.hh>
@@ -22,8 +24,7 @@
 #include <ignition/transport/Node.hh>
 
 #include <memory>
-
-#include <buoy_msgs/interface.hpp>
+#include <string>
 
 
 class NoInputsROSNode final : public buoy_msgs::Interface<NoInputsROSNode>
