@@ -20,8 +20,6 @@
 
 #include <memory>
 
-#include "SpringState.hpp"
-
 
 namespace buoy_gazebo
 {

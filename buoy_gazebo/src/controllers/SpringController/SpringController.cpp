@@ -479,7 +479,7 @@ void SpringController::Configure(
   }
 
   // Publisher
-  std::string topic = _sdf->Get<std::string>("topic", "sc_record").first;
+  std::string topic = _sdf->Get<std::string>("topic", "spring_data").first;
   this->dataPtr->ros_->sc_pub_ =
     this->dataPtr->ros_->node_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
 
@@ -539,18 +539,29 @@ void SpringController::PreUpdate(
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
 
-  if (!_ecm.EntityHasComponentType(
-      this->dataPtr->jointEntity_,
-      buoy_gazebo::components::SpringState().TypeId()))
-  {
+  if (_info.paused) {
     return;
   }
 
-  auto spring_state_comp =
-    _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity_);
+  buoy_gazebo::SpringState spring_state;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->jointEntity_,
+      buoy_gazebo::components::SpringState().TypeId()))
+  {
+    auto spring_state_comp =
+      _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity_);
 
-  this->dataPtr->manageCommandTimer(spring_state_comp->Data());
-  this->dataPtr->manageCommandState(spring_state_comp->Data());
+    spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
+  } else {
+    return;
+  }
+
+  this->dataPtr->manageCommandTimer(spring_state);
+  this->dataPtr->manageCommandState(spring_state);
+
+  _ecm.SetComponentData<buoy_gazebo::components::SpringState>(
+    this->dataPtr->jointEntity_,
+    spring_state);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -562,6 +573,10 @@ void SpringController::PostUpdate(
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
+
+  if (_info.paused) {
+    return;
+  }
 
   if (!_ecm.EntityHasComponentType(
       this->dataPtr->jointEntity_,
