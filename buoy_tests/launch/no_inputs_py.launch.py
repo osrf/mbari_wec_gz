@@ -79,7 +79,7 @@ class NoInputsGazeboPyTest(unittest.TestCase):
             t, _ = clock.now().seconds_nanoseconds()
         rclpy.shutdown()
         self.assertEqual(t, 5)
-        self.assertLess(self.node.rpm, 100.0)
+        self.assertLess(self.node.rpm, 1000.0)
         self.assertLess(self.node.wcurrent, 0.1)
         self.assertFalse(rclpy.ok())
         proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=20)
