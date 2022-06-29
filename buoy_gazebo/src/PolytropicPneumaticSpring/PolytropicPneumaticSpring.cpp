@@ -469,7 +469,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     return;
   }
 
-  buoy_gazebo::SpringState spring_state;
+  buoy_gazebo::SpringState spring_state{};
   if (_ecm.EntityHasComponentType(
       this->dataPtr->config_->jointEntity,
       buoy_gazebo::components::SpringState().TypeId()))

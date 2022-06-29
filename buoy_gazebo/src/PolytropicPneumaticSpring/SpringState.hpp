@@ -23,6 +23,40 @@
 
 namespace buoy_gazebo
 {
+struct SpringStatusBits
+{
+  uint8_t ReliefValveRequest : 7;  // Request to open/close valve
+  uint8_t ReliefValveStatus : 1;  // Status of Relief valve open/close
+  uint8_t PumpRequest : 1;  // Request to turn pump on or off
+  uint8_t PumpStatus : 1;  // Status of pump switch
+  uint8_t PumpOverTemp : 1;  // Status of pump OverTemp signal
+  uint8_t PumpToggle : 1;  // Status of pump Toggle.
+  uint8_t TetherPowerRequest : 1;  // Request to turn tether power on or off
+  uint8_t TetherPowerStatus : 1;  // Status of tether power relay
+  uint8_t LR_Fault : 1;  // Status of LRF fault input
+  uint8_t AUX_Fault : 1;  // Status of AUX fault input
+};
+
+typedef union {
+  uint16_t status{0U};
+  SpringStatusBits bits;
+} SpringStatusUnion;
+
+struct SpringStatus
+{
+  SpringStatusUnion status;
+
+  operator const uint16_t &() const
+  {
+    return status.status;
+  }
+
+  SpringStatusBits & bits()
+  {
+    return status.bits;
+  }
+};
+
 /// \brief State data for spring commands and feedback from sensors for SCRecord message in ROS2
 struct SpringState
 {
@@ -33,7 +67,7 @@ struct SpringState
                              // chamber (TODO(andermi) units)
   float upper_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
   float lower_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
-  int16_t status{0};  // TODO(andermi) status bit field
+  SpringStatus status;  // status of SpringController
 
   // Commands
   buoy_utils::CommandTriState<> valve_command;
