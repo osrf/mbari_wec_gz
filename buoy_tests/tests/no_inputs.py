@@ -46,6 +46,10 @@ class NoInputsPyNode(Interface):
         self._run_thread.daemon = True
         self._run_thread.start()
 
+    def stop(self):
+        self.stop = True
+        self._run_thread.join()
+
 
 class TestNoInputsPyNode(unittest.TestCase):
 
@@ -53,14 +57,14 @@ class TestNoInputsPyNode(unittest.TestCase):
 
     def test_final_state(self):
         rate = self.node.create_rate(10.0)
-        clock = self.get_clock()
+        clock = self.node.get_clock()
         t, _ = clock.now().seconds_nanoseconds()
-        while rclpy.ok() and t < 5000:
+        while rclpy.ok() and t < 5:
+            self.node.get_logger().info(f't = {t}')
             rate.sleep()
             t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, 5000)
+        self.assertEqual(t, 5)
         self.assertLess(self.node.rpm_, 100.0)
         self.assertLess(self.node.wcurrent_, 0.1)
-        self.node.stop = True
-        rate.sleep()
+        self.node.stop()
         self.assertFalse(rclpy.ok())

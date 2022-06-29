@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import unittest
-
-from ament_index_python.packages import get_package_share_directory
 
 import launch
 import launch.actions
-from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, TextSubstitution
 
 from launch_ros.actions import Node
 
@@ -32,33 +25,21 @@ import launch_testing.actions
 
 def generate_test_description():
 
-    use_sim_time_arg = DeclareLaunchArgument(
-      'use_sim_time', default_value=TextSubstitution(text='True')
-    )
-
     # Test fixture
     gazebo_test_fixture = Node(
         package='buoy_tests',
         executable='no_inputs_ros_feedback',
-        output='screen',
-        parameters=[{
-            'use_sim_time': LaunchConfiguration('use_sim_time'),
-        }]
+        output='screen'
     )
 
-    pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
-
-    # Lauch Gazebo with MBARI WEC Buoy
-    mbari_wec = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
-        ),
-    )
+    bridge = Node(package='ros_ign_bridge',
+                  executable='parameter_bridge',
+                  arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+                  output='screen')
 
     return launch.LaunchDescription([
-        use_sim_time_arg,
         gazebo_test_fixture,
-        mbari_wec,
+        bridge,
         launch_testing.util.KeepAliveProc(),
         launch_testing.actions.ReadyToTest()
     ]), locals()

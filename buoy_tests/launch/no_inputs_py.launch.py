@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+import time
 import unittest
 
-from ament_index_python.packages import get_package_share_directory
+from buoy_msgs.interface import Interface
 
 import launch
 import launch.actions
-from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, TextSubstitution
 
 from launch_ros.actions import Node
 
 import launch_testing
 import launch_testing.actions
+
+import rclpy
+from rclpy.parameter import Parameter
 
 
 def generate_test_description():
@@ -39,62 +38,59 @@ def generate_test_description():
         output='screen'
     )
 
-    use_sim_time_arg = DeclareLaunchArgument(
-      'use_sim_time', default_value=TextSubstitution(text='True')
-    )
-
-    # pytest
-    pytest_interface_node = Node(
-        package='buoy_tests',
-        executable='no_inputs.py',
-        output='screen',
-        parameters=[{
-            'use_sim_time': LaunchConfiguration('use_sim_time'),
-        }]
-    )
-
-    pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
-
-    # Lauch Gazebo with MBARI WEC Buoy
-    mbari_wec = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
-        ),
-    )
+    bridge = Node(package='ros_ign_bridge',
+                  executable='parameter_bridge',
+                  arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+                  output='screen')
 
     return launch.LaunchDescription([
-        use_sim_time_arg,
         gazebo_test_fixture,
-        mbari_wec,
-        pytest_interface_node,
+        bridge,
         launch_testing.util.KeepAliveProc(),
         launch_testing.actions.ReadyToTest()
     ]), locals()
 
 
-class NoInputsGazeboTest(unittest.TestCase):
+class NoInputsPyNode(Interface):
 
-    def test_termination(self, gazebo_test_fixture, proc_info):
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=200)
+    def __init__(self):
+        rclpy.init()
+        super().__init__('test_no_inputs_py')
+        self.set_parameters([Parameter('use_sim_time', Parameter.Type.BOOL, True)])
+        self.rpm = 10000.0
+        self.wcurrent = 10000.0
+
+    def power_callback(self, data):
+        self.rpm = data.rpm
+        self.wcurrent = data.wcurrent
+
+
+class NoInputsGazeboPyTest(unittest.TestCase):
+
+    node = NoInputsPyNode()
+
+    def test_final_state(self, gazebo_test_fixture, proc_info):
+        rclpy.spin_once(self.node)
+        clock = self.node.get_clock()
+        t, _ = clock.now().seconds_nanoseconds()
+        t_ = time.time()
+        while rclpy.ok() and t < 5 and time.time() - t_ < 10.0:
+            rclpy.spin_once(self.node)
+            t, _ = clock.now().seconds_nanoseconds()
+        rclpy.shutdown()
+        self.assertEqual(t, 5)
+        self.assertLess(self.node.rpm, 100.0)
+        self.assertLess(self.node.wcurrent, 0.1)
+        self.assertFalse(rclpy.ok())
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=20)
 
 
 @launch_testing.post_shutdown_test()
-class NoInputsGazeboAfterShutdown(unittest.TestCase):
+class NoInputsGazeboPyTestAfterShutdown(unittest.TestCase):
 
     def test_exit_code(self, gazebo_test_fixture, proc_info):
         launch_testing.asserts.assertExitCodes(
             proc_info,
             [launch_testing.asserts.EXIT_OK],
             gazebo_test_fixture
-        )
-
-
-@launch_testing.post_shutdown_test()
-class NoInputsPyNodeAfterShutdown(unittest.TestCase):
-
-    def test_exit_code(self, pytest_interface_node, proc_info):
-        launch_testing.asserts.assertExitCodes(
-            proc_info,
-            [launch_testing.asserts.EXIT_OK],
-            pytest_interface_node
         )

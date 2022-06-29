@@ -49,7 +49,7 @@ if(BUILD_TESTING)
     )
     if(buoy_add_test_LAUNCH_TEST)
       add_launch_test(launch/${TEST_NAME}.launch.py
-        TIMEOUT 200
+        TIMEOUT 30
       )
     else()
       ament_add_gtest_test(${TEST_NAME})
@@ -78,13 +78,13 @@ if(BUILD_TESTING)
       )
     endif()
 
-    install(
-      PROGRAMS tests/${PYTEST_NAME}.py
-      DESTINATION lib/${PROJECT_NAME}
-    )
+    # install(
+    #   PROGRAMS tests/${PYTEST_NAME}.py
+    #   DESTINATION lib/${PROJECT_NAME}
+    # )
 
     add_launch_test(launch/${PYTEST_NAME}_py.launch.py
-      TIMEOUT 200
+      TIMEOUT 30
     )
   endfunction()
 
