@@ -32,14 +32,21 @@ import launch_testing.actions
 
 def generate_test_description():
 
+    # GTest fixture
+    gazebo_test_fixture = Node(
+        package='buoy_tests',
+        executable='no_inputs',
+        output='screen'
+    )
+
     use_sim_time_arg = DeclareLaunchArgument(
       'use_sim_time', default_value=TextSubstitution(text='True')
     )
 
-    # Test fixture
-    gazebo_test_fixture = Node(
+    # pytest
+    pytest_interface_node = Node(
         package='buoy_tests',
-        executable='no_inputs_ros_feedback',
+        executable='no_inputs.py',
         output='screen',
         parameters=[{
             'use_sim_time': LaunchConfiguration('use_sim_time'),
@@ -59,23 +66,35 @@ def generate_test_description():
         use_sim_time_arg,
         gazebo_test_fixture,
         mbari_wec,
+        pytest_interface_node,
         launch_testing.util.KeepAliveProc(),
         launch_testing.actions.ReadyToTest()
     ]), locals()
 
 
-class NoInputsROSTest(unittest.TestCase):
+class NoInputsGazeboTest(unittest.TestCase):
 
     def test_termination(self, gazebo_test_fixture, proc_info):
         proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=200)
 
 
 @launch_testing.post_shutdown_test()
-class NoInputsROSTestAfterShutdown(unittest.TestCase):
+class NoInputsGazeboAfterShutdown(unittest.TestCase):
 
     def test_exit_code(self, gazebo_test_fixture, proc_info):
         launch_testing.asserts.assertExitCodes(
             proc_info,
             [launch_testing.asserts.EXIT_OK],
             gazebo_test_fixture
+        )
+
+
+@launch_testing.post_shutdown_test()
+class NoInputsPyNodeAfterShutdown(unittest.TestCase):
+
+    def test_exit_code(self, pytest_interface_node, proc_info):
+        launch_testing.asserts.assertExitCodes(
+            proc_info,
+            [launch_testing.asserts.EXIT_OK],
+            pytest_interface_node
         )
