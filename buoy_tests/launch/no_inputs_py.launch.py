@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 import unittest
+
+from buoy_msgs.interface import Interface
 
 import launch
 import launch.actions
@@ -22,13 +25,16 @@ from launch_ros.actions import Node
 import launch_testing
 import launch_testing.actions
 
+import rclpy
+from rclpy.parameter import Parameter
+
 
 def generate_test_description():
 
-    # Test fixture
+    # GTest fixture
     gazebo_test_fixture = Node(
         package='buoy_tests',
-        executable='no_inputs_ros_feedback',
+        executable='no_inputs',
         output='screen'
     )
 
@@ -45,14 +51,42 @@ def generate_test_description():
     ]), locals()
 
 
-class NoInputsROSTest(unittest.TestCase):
+class NoInputsPyNode(Interface):
 
-    def test_termination(self, gazebo_test_fixture, proc_info):
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=200)
+    def __init__(self):
+        rclpy.init()
+        super().__init__('test_no_inputs_py')
+        self.set_parameters([Parameter('use_sim_time', Parameter.Type.BOOL, True)])
+        self.rpm = 10000.0
+        self.wcurrent = 10000.0
+
+    def power_callback(self, data):
+        self.rpm = data.rpm
+        self.wcurrent = data.wcurrent
+
+
+class NoInputsGazeboPyTest(unittest.TestCase):
+
+    node = NoInputsPyNode()
+
+    def test_final_state(self, gazebo_test_fixture, proc_info):
+        rclpy.spin_once(self.node)
+        clock = self.node.get_clock()
+        t, _ = clock.now().seconds_nanoseconds()
+        t_ = time.time()
+        while rclpy.ok() and t < 5 and time.time() - t_ < 10.0:
+            rclpy.spin_once(self.node)
+            t, _ = clock.now().seconds_nanoseconds()
+        rclpy.shutdown()
+        self.assertEqual(t, 5)
+        self.assertLess(self.node.rpm, 1000.0)
+        self.assertLess(self.node.wcurrent, 0.1)
+        self.assertFalse(rclpy.ok())
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=20)
 
 
 @launch_testing.post_shutdown_test()
-class NoInputsROSTestAfterShutdown(unittest.TestCase):
+class NoInputsGazeboPyTestAfterShutdown(unittest.TestCase):
 
     def test_exit_code(self, gazebo_test_fixture, proc_info):
         launch_testing.asserts.assertExitCodes(

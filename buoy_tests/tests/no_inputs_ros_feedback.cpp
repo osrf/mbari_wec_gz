@@ -30,12 +30,42 @@
 class NoInputsROSNode final : public buoy_msgs::Interface<NoInputsROSNode>
 {
 public:
-  float rpm_{0.0F}, wcurrent_{0.0F};
+  float rpm_{10000.0F}, wcurrent_{10000.0F};
   explicit NoInputsROSNode(const std::string & node_name)
   : buoy_msgs::Interface<NoInputsROSNode>(node_name)
   {
+    set_parameter(
+      rclcpp::Parameter(
+        "use_sim_time",
+        true));
+
+    node_ = std::shared_ptr<NoInputsROSNode>(this, [](NoInputsROSNode *) {});  // null deleter
+    executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+    executor_->add_node(node_);
+    stop_ = false;
+
+    auto spin = [this]()
+      {
+        while (rclcpp::ok() && !stop_) {
+          executor_->spin_once();
+        }
+      };
+    thread_executor_spin_ = std::thread(spin);
   }
-  ~NoInputsROSNode() = default;
+
+  ~NoInputsROSNode()
+  {
+    stop_ = true;
+    if (executor_) {
+      executor_->cancel();
+    }
+    thread_executor_spin_.join();
+  }
+
+  void stop()
+  {
+    stop_ = true;
+  }
 
 private:
   friend CRTP;  // syntactic sugar (see https://stackoverflow.com/a/58435857/9686600)
@@ -45,6 +75,11 @@ private:
     rpm_ = data.rpm;
     wcurrent_ = data.wcurrent;
   }
+
+  std::thread thread_executor_spin_;
+  bool stop_{false};
+  rclcpp::Node::SharedPtr node_{nullptr};
+  rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_{nullptr};
 };
 
 //////////////////////////////////////////////////
@@ -105,8 +140,11 @@ TEST(BuoyTests, NoInputsROS)
   int targetIterations{5000};
   fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
-  EXPECT_LT(node.rpm_, 100.0F);
+  EXPECT_LT(node.rpm_, 1000.0F);
   EXPECT_LT(node.wcurrent_, 0.1F);
+  rclcpp::Clock::SharedPtr clock = node.get_clock();
+  EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
+  node.stop();
 
   // Sanity check that the test ran
   EXPECT_EQ(targetIterations, iterations);
