@@ -86,6 +86,7 @@ install(DIRECTORY
   worlds
   launch
   gazebo
+  rviz
   DESTINATION share/${PROJECT_NAME}/
 )
 
