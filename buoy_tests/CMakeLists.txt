@@ -49,7 +49,7 @@ if(BUILD_TESTING)
     )
     if(buoy_add_test_LAUNCH_TEST)
       add_launch_test(launch/${TEST_NAME}.launch.py
-        TIMEOUT 30
+        TIMEOUT 200
       )
     else()
       ament_add_gtest_test(${TEST_NAME})
@@ -84,13 +84,14 @@ if(BUILD_TESTING)
     # )
 
     add_launch_test(launch/${PYTEST_NAME}_py.launch.py
-      TIMEOUT 30
+      TIMEOUT 200
     )
   endfunction()
 
   # Add gtests
   buoy_add_gtest(no_inputs)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
+  buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)
