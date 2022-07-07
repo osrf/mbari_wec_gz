@@ -23,9 +23,12 @@
 #include <ignition/gazebo/TestFixture.hh>
 #include <ignition/transport/Node.hh>
 
+#include <buoy_msgs/msg/sc_record.hpp>
+
 #include <chrono>
 #include <memory>
 #include <string>
+
 
 // NOLINTNEXTLINE
 using namespace std::chrono;
@@ -35,13 +38,10 @@ constexpr double INCHES_TO_METERS{0.0254};
 class SCROSNode final : public buoy_msgs::Interface<SCROSNode>
 {
 public:
+  rclcpp::Clock::SharedPtr clock_{nullptr};
+
   float range_finder_{0.0F};
   uint16_t status_{0U};
-
-  float pre_valve_range_finder_{0.0F}, post_valve_range_finder_{0.0F};
-
-  float pre_pump_range_finder_{0.0F}, post_pump_range_finder_{0.0F};
-  size_t pump_toggle_counter_{0U};
 
   ValveServiceResponseFuture valve_response_future_;
   PumpServiceResponseFuture pump_response_future_;
@@ -55,6 +55,8 @@ public:
         true));
 
     node_ = std::shared_ptr<SCROSNode>(this, [](SCROSNode *) {});  // null deleter
+    clock_ = this->get_clock();
+
     executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
     executor_->add_node(node_);
     stop_ = false;
@@ -179,14 +181,39 @@ protected:
 TEST_F(BuoySCTests, SCValveROS)
 {
   // Run simulation server
-  int targetIterations{15000};
-  fixture->Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
+  int preCmdIterations{15000}, statusCheckIterations{1000}, postCmdIterations{5000};
 
-  EXPECT_EQ(targetIterations, iterations);
-  rclcpp::Clock::SharedPtr clock = node->get_clock();
-  EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
+  fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
+  EXPECT_EQ(preCmdIterations, iterations);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
 
-  node->pre_valve_range_finder_ = node->range_finder_;
+  float pre_valve_range_finder = node->range_finder_;
+
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
+    "SC Valve Request should be FALSE";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
+    "SC Valve should be CLOSED";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_REQUEST)) <<
+    "SC Pump Request should be FALSE";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_STATUS)) <<
+    "SC Pump should be OFF";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+    "SC Pump Toggle should be OFF";
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_OVER_TEMP));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_TRUE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_STATUS)) <<
+    "SC Tether Power should be ON";
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+
   node->send_valve_command();
   ASSERT_TRUE(node->valve_response_future_.valid());
   node->valve_response_future_.wait();
@@ -194,21 +221,74 @@ TEST_F(BuoySCTests, SCValveROS)
     node->valve_response_future_.get()->result.value,
     node->valve_response_future_.get()->result.OK);
 
-  fixture->Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
+  fixture->Server()->Run(true /*blocking*/, statusCheckIterations, false /*paused*/);
+  EXPECT_EQ(preCmdIterations + statusCheckIterations, iterations);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
 
-  EXPECT_EQ(2.0F * targetIterations, iterations);
-  EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
+  EXPECT_TRUE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
+    "SC Valve Request should be TRUE";
+  EXPECT_TRUE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
+    "SC Valve should be OPEN";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_REQUEST)) <<
+    "SC Pump Request should be FALSE";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_STATUS)) <<
+    "SC Pump should be OFF";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+    "SC Pump Toggle should be OFF";
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_OVER_TEMP));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_TRUE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_STATUS)) <<
+    "SC Tether Power should be ON";
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
 
-  node->post_valve_range_finder_ = node->range_finder_;
+  fixture->Server()->Run(true /*blocking*/, postCmdIterations, false /*paused*/);
+  EXPECT_EQ(preCmdIterations + statusCheckIterations + postCmdIterations, iterations);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
+
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
+    "SC Valve Request should be FALSE";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
+    "SC Valve should be CLOSED";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_REQUEST)) <<
+    "SC Pump Request should be FALSE";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_STATUS)) <<
+    "SC Pump should be OFF";
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+    "SC Pump Toggle should be OFF";
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_OVER_TEMP));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_TRUE(
+    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_STATUS)) <<
+    "SC Tether Power should be ON";
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+
+  float post_valve_range_finder = node->range_finder_;
 
   EXPECT_GT(
-    node->post_valve_range_finder_,
-    node->pre_valve_range_finder_ + 0.8F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
+    post_valve_range_finder,
+    pre_valve_range_finder + 0.8F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
     "Piston should extend 1 inch/sec for 5 seconds";
 
   EXPECT_LT(
-    node->post_valve_range_finder_,
-    node->pre_valve_range_finder_ + 1.2F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
+    post_valve_range_finder,
+    pre_valve_range_finder + 1.2F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
     "Piston should extend 1 inch/sec for 5 seconds";
 
   node->stop();
@@ -221,14 +301,17 @@ TEST_F(BuoySCTests, SCValveROS)
 TEST_F(BuoySCTests, SCPumpROS)
 {
   // Run simulation server
-  int targetIterations{15000};
-  fixture->Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
+  int preCmdIterations{15000}, statusCheckIterations{1000}, postCmdIterations{20000};
 
-  EXPECT_EQ(targetIterations, iterations);
-  rclcpp::Clock::SharedPtr clock = node->get_clock();
-  EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
+  fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
+  EXPECT_EQ(preCmdIterations, iterations);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
 
-  node->pre_pump_range_finder_ = node->range_finder_;
+  float pre_pump_range_finder = node->range_finder_;
+  size_t pump_toggle_counter{0U};
+
   node->send_pump_command();
   ASSERT_TRUE(node->pump_response_future_.valid());
   node->pump_response_future_.wait();
@@ -236,22 +319,30 @@ TEST_F(BuoySCTests, SCPumpROS)
     node->pump_response_future_.get()->result.value,
     node->pump_response_future_.get()->result.OK);
 
-  fixture->Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
+  fixture->Server()->Run(true /*blocking*/, statusCheckIterations, false /*paused*/);
+  EXPECT_EQ(preCmdIterations + statusCheckIterations, iterations);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
 
-  EXPECT_EQ(2.0F * targetIterations, iterations);
-  EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
 
-  node->post_pump_range_finder_ = node->range_finder_;
+  fixture->Server()->Run(true /*blocking*/, postCmdIterations, false /*paused*/);
+  EXPECT_EQ(preCmdIterations + statusCheckIterations + postCmdIterations, iterations);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
+
+  float post_pump_range_finder = node->range_finder_;
 
   EXPECT_GT(
-    node->post_pump_range_finder_,
-    node->pre_pump_range_finder_ - 2.2F /*inches per minute*/ * INCHES_TO_METERS *
+    post_pump_range_finder,
+    pre_pump_range_finder - 2.2F /*inches per minute*/ * INCHES_TO_METERS *
     20.0F /*seconds*/ * 1.0F /*minute*/ / 60.0F /*seconds*/) << \
     "Piston should retract 2 inches/min for 20 seconds";
 
   EXPECT_LT(
-    node->post_pump_range_finder_,
-    node->pre_pump_range_finder_ - 1.8F /*inches per minute*/ * INCHES_TO_METERS *
+    post_pump_range_finder,
+    pre_pump_range_finder - 1.8F /*inches per minute*/ * INCHES_TO_METERS *
     20.0F /*seconds*/ * 1.0F /*minute*/ / 60.0F /*seconds*/) << \
     "Piston should retract 2 inches/min for 20 seconds";
 
