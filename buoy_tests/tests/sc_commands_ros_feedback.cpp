@@ -36,8 +36,12 @@ class SCROSNode final : public buoy_msgs::Interface<SCROSNode>
 {
 public:
   float range_finder_{0.0F};
+  uint16_t status_{0U};
+
   float pre_valve_range_finder_{0.0F}, post_valve_range_finder_{0.0F};
+
   float pre_pump_range_finder_{0.0F}, post_pump_range_finder_{0.0F};
+  size_t pump_toggle_counter_{0U};
 
   ValveServiceResponseFuture valve_response_future_;
   PumpServiceResponseFuture pump_response_future_;
@@ -100,6 +104,7 @@ private:
   void spring_callback(const buoy_msgs::msg::SCRecord & data)
   {
     range_finder_ = data.range_finder;
+    status_ = data.status;
   }
 
   std::thread thread_executor_spin_;
@@ -108,191 +113,149 @@ private:
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_{nullptr};
 };
 
-//////////////////////////////////////////////////
-TEST(BuoyTests, SCValveROS)
+
+class BuoySCTests : public ::testing::Test
 {
-  // Skip debug messages to run faster
-  ignition::common::Console::SetVerbosity(3);
-
-  // Setup fixture
-  ignition::gazebo::ServerConfig config;
-  config.SetSdfFile("mbari_wec.sdf");
-  config.SetUpdateRate(0.0);
-
-  ignition::gazebo::TestFixture fixture(config);
-  SCROSNode node("test_sc_valve_ros");
-
+protected:
   int iterations{0};
+  std::unique_ptr<ignition::gazebo::TestFixture> fixture{nullptr};
+  std::unique_ptr<SCROSNode> node{nullptr};
   ignition::gazebo::Entity buoyEntity{ignition::gazebo::kNullEntity};
 
-  fixture.
-  OnConfigure(
-    [&](
-      const ignition::gazebo::Entity & _worldEntity,
-      const std::shared_ptr<const sdf::Element> &,
-      ignition::gazebo::EntityComponentManager & _ecm,
-      ignition::gazebo::EventManager &)
-    {
-      auto world = ignition::gazebo::World(_worldEntity);
+  virtual void SetUp()
+  {
+    // Skip debug messages to run faster
+    ignition::common::Console::SetVerbosity(3);
 
-      buoyEntity = world.ModelByName(_ecm, "MBARI_WEC");
-      EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
-    }).
-  OnPostUpdate(
-    [&](
-      const ignition::gazebo::UpdateInfo &,
-      const ignition::gazebo::EntityComponentManager & _ecm)
-    {
-      iterations++;
+    // Setup fixture
+    ignition::gazebo::ServerConfig config;
+    config.SetSdfFile("mbari_wec.sdf");
+    config.SetUpdateRate(0.0);
 
-      auto pose = ignition::gazebo::worldPose(buoyEntity, _ecm);
+    fixture = std::make_unique<ignition::gazebo::TestFixture>(config);
+    node = std::make_unique<SCROSNode>("test_sc_ros");
 
-      // Expect buoy to stay more or less in the same place horizontally.
-      EXPECT_LT(-0.001, pose.Pos().X());
-      EXPECT_GT(0.001, pose.Pos().X());
+    fixture->
+    OnConfigure(
+      [&](
+        const ignition::gazebo::Entity & _worldEntity,
+        const std::shared_ptr<const sdf::Element> &,
+        ignition::gazebo::EntityComponentManager & _ecm,
+        ignition::gazebo::EventManager &)
+      {
+        auto world = ignition::gazebo::World(_worldEntity);
 
-      EXPECT_LT(-0.001, pose.Pos().Y());
-      EXPECT_GT(0.001, pose.Pos().Y());
+        buoyEntity = world.ModelByName(_ecm, "MBARI_WEC");
+        EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
+      }).
+    OnPostUpdate(
+      [&](
+        const ignition::gazebo::UpdateInfo &,
+        const ignition::gazebo::EntityComponentManager & _ecm)
+      {
+        iterations++;
 
-      // Buoy starts at Z == -2.0
-      // It's slightly out of the water, so it falls ~1m
-      EXPECT_LT(-3.020, pose.Pos().Z());
+        auto pose = ignition::gazebo::worldPose(buoyEntity, _ecm);
 
-      // And it bounces back up beyond its starting point
-      EXPECT_GT(-1.89, pose.Pos().Z());
-    }).
-  Finalize();
+        // Expect buoy to stay more or less in the same place horizontally.
+        EXPECT_LT(-0.001, pose.Pos().X());
+        EXPECT_GT(0.001, pose.Pos().X());
 
+        EXPECT_LT(-0.001, pose.Pos().Y());
+        EXPECT_GT(0.001, pose.Pos().Y());
+
+        // Buoy starts at Z == -2.0
+        // It's slightly out of the water, so it falls ~1m
+        EXPECT_LT(-3.020, pose.Pos().Z());
+
+        // And it bounces back up beyond its starting point
+        EXPECT_GT(-1.89, pose.Pos().Z());
+      }).
+    Finalize();
+  }
+};
+
+//////////////////////////////////////////////////
+TEST_F(BuoySCTests, SCValveROS)
+{
   // Run simulation server
   int targetIterations{15000};
-  fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
+  fixture->Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
   EXPECT_EQ(targetIterations, iterations);
-  rclcpp::Clock::SharedPtr clock = node.get_clock();
+  rclcpp::Clock::SharedPtr clock = node->get_clock();
   EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
 
-  node.pre_valve_range_finder_ = node.range_finder_;
-  node.send_valve_command();
-  ASSERT_TRUE(node.valve_response_future_.valid());
-  node.valve_response_future_.wait();
+  node->pre_valve_range_finder_ = node->range_finder_;
+  node->send_valve_command();
+  ASSERT_TRUE(node->valve_response_future_.valid());
+  node->valve_response_future_.wait();
   EXPECT_EQ(
-    node.valve_response_future_.get()->result.value,
-    node.valve_response_future_.get()->result.OK);
+    node->valve_response_future_.get()->result.value,
+    node->valve_response_future_.get()->result.OK);
 
-  fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
+  fixture->Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
   EXPECT_EQ(2.0F * targetIterations, iterations);
   EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
 
-  node.post_valve_range_finder_ = node.range_finder_;
+  node->post_valve_range_finder_ = node->range_finder_;
 
   EXPECT_GT(
-    node.post_valve_range_finder_,
-    node.pre_valve_range_finder_ + 0.8F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
+    node->post_valve_range_finder_,
+    node->pre_valve_range_finder_ + 0.8F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
     "Piston should extend 1 inch/sec for 5 seconds";
 
   EXPECT_LT(
-    node.post_valve_range_finder_,
-    node.pre_valve_range_finder_ + 1.2F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
+    node->post_valve_range_finder_,
+    node->pre_valve_range_finder_ + 1.2F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
     "Piston should extend 1 inch/sec for 5 seconds";
 
-  node.stop();
+  node->stop();
 
   // Sanity check that the test ran
   EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
 }
 
 //////////////////////////////////////////////////
-TEST(BuoyTests, SCPumpROS)
+TEST_F(BuoySCTests, SCPumpROS)
 {
-  // Skip debug messages to run faster
-  ignition::common::Console::SetVerbosity(3);
-
-  // Setup fixture
-  ignition::gazebo::ServerConfig config;
-  config.SetSdfFile("mbari_wec.sdf");
-  config.SetUpdateRate(0.0);
-
-  ignition::gazebo::TestFixture fixture(config);
-  SCROSNode node("test_sc_pump_ros");
-
-  int iterations{0};
-  ignition::gazebo::Entity buoyEntity{ignition::gazebo::kNullEntity};
-
-  fixture.
-  OnConfigure(
-    [&](
-      const ignition::gazebo::Entity & _worldEntity,
-      const std::shared_ptr<const sdf::Element> &,
-      ignition::gazebo::EntityComponentManager & _ecm,
-      ignition::gazebo::EventManager &)
-    {
-      auto world = ignition::gazebo::World(_worldEntity);
-
-      buoyEntity = world.ModelByName(_ecm, "MBARI_WEC");
-      EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
-    }).
-  OnPostUpdate(
-    [&](
-      const ignition::gazebo::UpdateInfo &,
-      const ignition::gazebo::EntityComponentManager & _ecm)
-    {
-      iterations++;
-
-      auto pose = ignition::gazebo::worldPose(buoyEntity, _ecm);
-
-      // Expect buoy to stay more or less in the same place horizontally.
-      EXPECT_LT(-0.001, pose.Pos().X());
-      EXPECT_GT(0.001, pose.Pos().X());
-
-      EXPECT_LT(-0.001, pose.Pos().Y());
-      EXPECT_GT(0.001, pose.Pos().Y());
-
-      // Buoy starts at Z == -2.0
-      // It's slightly out of the water, so it falls ~1m
-      EXPECT_LT(-3.020, pose.Pos().Z());
-
-      // And it bounces back up beyond its starting point
-      EXPECT_GT(-1.89, pose.Pos().Z());
-    }).
-  Finalize();
-
   // Run simulation server
   int targetIterations{15000};
-  fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
+  fixture->Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
   EXPECT_EQ(targetIterations, iterations);
-  rclcpp::Clock::SharedPtr clock = node.get_clock();
+  rclcpp::Clock::SharedPtr clock = node->get_clock();
   EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
 
-  node.pre_pump_range_finder_ = node.range_finder_;
-  node.send_pump_command();
-  ASSERT_TRUE(node.pump_response_future_.valid());
-  node.pump_response_future_.wait();
+  node->pre_pump_range_finder_ = node->range_finder_;
+  node->send_pump_command();
+  ASSERT_TRUE(node->pump_response_future_.valid());
+  node->pump_response_future_.wait();
   EXPECT_EQ(
-    node.pump_response_future_.get()->result.value,
-    node.pump_response_future_.get()->result.OK);
+    node->pump_response_future_.get()->result.value,
+    node->pump_response_future_.get()->result.OK);
 
-  fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
+  fixture->Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
   EXPECT_EQ(2.0F * targetIterations, iterations);
   EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
 
-  node.post_pump_range_finder_ = node.range_finder_;
+  node->post_pump_range_finder_ = node->range_finder_;
 
   EXPECT_GT(
-    node.post_pump_range_finder_,
-    node.pre_pump_range_finder_ - 2.2F /*inches per minute*/ * INCHES_TO_METERS *
+    node->post_pump_range_finder_,
+    node->pre_pump_range_finder_ - 2.2F /*inches per minute*/ * INCHES_TO_METERS *
     20.0F /*seconds*/ * 1.0F /*minute*/ / 60.0F /*seconds*/) << \
     "Piston should retract 2 inches/min for 20 seconds";
 
   EXPECT_LT(
-    node.post_pump_range_finder_,
-    node.pre_pump_range_finder_ - 1.8F /*inches per minute*/ * INCHES_TO_METERS *
+    node->post_pump_range_finder_,
+    node->pre_pump_range_finder_ - 1.8F /*inches per minute*/ * INCHES_TO_METERS *
     20.0F /*seconds*/ * 1.0F /*minute*/ / 60.0F /*seconds*/) << \
     "Piston should retract 2 inches/min for 20 seconds";
 
-  node.stop();
+  node->stop();
 
   // Sanity check that the test ran
   EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
