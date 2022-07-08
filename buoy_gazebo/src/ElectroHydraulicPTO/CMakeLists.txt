@@ -3,4 +3,5 @@ gz_add_plugin(ElectroHydraulicPTO
     ElectroHydraulicPTO.cpp
   INCLUDE_DIRS
     include/
+    ..
 )

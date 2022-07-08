@@ -2,9 +2,9 @@ add_library(StopwatchSimTime
   SHARED
     StopwatchSimTime.cpp
 )
-
 ament_target_dependencies(StopwatchSimTime PUBLIC rclcpp)
 
 install(
-  TARGETS StopwatchSimTime
+  TARGETS
+    StopwatchSimTime
   DESTINATION lib)

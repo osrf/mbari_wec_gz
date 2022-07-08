@@ -569,20 +569,31 @@ void SpringController::PreUpdate(
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
 
-  if (!_ecm.EntityHasComponentType(
-      this->dataPtr->jointEntity_,
-      buoy_gazebo::components::SpringState().TypeId()))
-  {
+  if (_info.paused) {
     return;
   }
 
-  auto spring_state_comp =
-    _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity_);
+  buoy_gazebo::SpringState spring_state;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->jointEntity_,
+      buoy_gazebo::components::SpringState().TypeId()))
+  {
+    auto spring_state_comp =
+      _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity_);
 
-  this->dataPtr->manageCommandTimer(spring_state_comp->Data());
-  this->dataPtr->manageCommandState(spring_state_comp->Data());
+    spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
+  } else {
+    return;
+  }
 
-  spring_state_comp->Data().status.bits().TetherPowerStatus = 1U;
+  this->dataPtr->manageCommandTimer(spring_state);
+  this->dataPtr->manageCommandState(spring_state);
+
+  spring_state.status.bits().TetherPowerStatus = 1U;
+
+  _ecm.SetComponentData<buoy_gazebo::components::SpringState>(
+    this->dataPtr->jointEntity_,
+    spring_state);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -594,6 +605,10 @@ void SpringController::PostUpdate(
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
+
+  if (_info.paused) {
+    return;
+  }
 
   if (!_ecm.EntityHasComponentType(
       this->dataPtr->jointEntity_,
