@@ -211,7 +211,7 @@
       <self_collide>true</self_collide>
       <pose>0 0 -2 0.01 0 0</pose>
       <include merge="true">
-        <uri>model://mbari_wec</uri>
+        <uri>package://buoy_description/models/mbari_wec</uri>
       </include>
 
       <plugin
@@ -226,6 +226,29 @@
         <cmd_max>100000</cmd_max>
         <cmd_min>-100000</cmd_min>
       </plugin>
+
+      <plugin
+        filename="ignition-gazebo-joint-state-publisher-system"
+        name="ignition::gazebo::systems::JointStatePublisher">
+      </plugin>
+
+      <plugin
+        filename="ignition-gazebo-pose-publisher-system"
+        name="ignition::gazebo::systems::PosePublisher">
+        <publish_link_pose>true</publish_link_pose>
+        <use_pose_vector_msg>true</use_pose_vector_msg>
+        <static_publisher>true</static_publisher>
+        <static_update_frequency>1</static_update_frequency>
+      </plugin>
+
+      <plugin
+        filename="ignition-gazebo-odometry-publisher-system"
+        name="ignition::gazebo::systems::OdometryPublisher">
+        <dimensions>3</dimensions>
+        <odom_frame>MBARI_WEC/odom</odom_frame>
+        <robot_base_frame>MBARI_WEC</robot_base_frame>
+      </plugin>
+
     </model>
   </world>
 </sdf>
