@@ -71,7 +71,7 @@ struct SpringControllerServices
   rclcpp::Duration command_duration_{0, 0U};
 
   std::atomic<bool> valve_command_{false}, pump_command_{false};
-  std::atomic<bool> has_new_command_{false};
+  std::atomic<bool> new_pump_command_{false}, new_valve_command_{false};
 
   std::mutex command_mutex_;
 };
@@ -199,7 +199,7 @@ struct SpringControllerPrivate
         if (request->duration_sec == request->OFF) {
           services_->command_duration_ = rclcpp::Duration(0, 0U);
           services_->valve_command_ = false;
-          services_->has_new_command_ = true;
+          services_->new_valve_command_ = true;
         } else {
           uint16_t duration_sec{request->duration_sec};
           if (duration_sec > 20U) {
@@ -218,7 +218,7 @@ struct SpringControllerPrivate
             rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
 
           services_->valve_command_ = true;
-          services_->has_new_command_ = true;
+          services_->new_valve_command_ = true;
         }
       };
     services_->valve_command_service_ =
@@ -254,7 +254,7 @@ struct SpringControllerPrivate
         if (request->duration_sec == request->OFF) {
           services_->command_duration_ = rclcpp::Duration(0, 0U);
           services_->pump_command_ = false;
-          services_->has_new_command_ = true;
+          services_->new_pump_command_ = true;
         } else {
           uint16_t duration_sec{request->duration_sec};
           if (duration_sec > 20U) {
@@ -273,7 +273,7 @@ struct SpringControllerPrivate
             rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
 
           services_->pump_command_ = true;
-          services_->has_new_command_ = true;
+          services_->new_pump_command_ = true;
         }
       };
     services_->pump_command_service_ =
@@ -285,6 +285,7 @@ struct SpringControllerPrivate
   void manageCommandTimer(SpringState & state)
   {
     static double init_x = 0.0;
+    static rclcpp::Duration pump_prev{0, 0U};
 
     // open valve
     if (state.valve_command && !services_->command_watch_.Running()) {
@@ -294,6 +295,8 @@ struct SpringControllerPrivate
           services_->command_duration_.seconds() << "s)");
 
       services_->command_watch_.Start(true);
+      state.status.bits().ReliefValveStatus = 1U;
+
       init_x = state.range_finder;
 
       // turn pump on
@@ -304,6 +307,10 @@ struct SpringControllerPrivate
           services_->command_duration_.seconds() << "s)");
 
       services_->command_watch_.Start(true);
+      state.status.bits().PumpStatus = 1U;
+      state.status.bits().PumpToggle = 1U;
+      pump_prev = services_->command_watch_.ElapsedRunTime();
+
       init_x = state.range_finder;
 
     } else {
@@ -312,6 +319,7 @@ struct SpringControllerPrivate
         services_->command_watch_.ElapsedRunTime() >= services_->command_duration_)
       {
         services_->command_watch_.Stop();
+        state.status.bits().ReliefValveStatus = 0U;
         state.valve_command = false;
 
         RCLCPP_INFO_STREAM(
@@ -324,21 +332,32 @@ struct SpringControllerPrivate
           " m/s" << std::endl;
       }
 
-      // turn pump off
-      if (state.pump_command &&
-        services_->command_watch_.ElapsedRunTime() >= services_->command_duration_)
-      {
-        services_->command_watch_.Stop();
-        state.pump_command = false;
+      if (state.pump_command) {
+        // turn pump off
+        if (services_->command_watch_.ElapsedRunTime() >= services_->command_duration_) {
+          services_->command_watch_.Stop();
+          state.status.bits().PumpStatus = 0U;
+          state.status.bits().PumpToggle = 0U;
+          state.pump_command = false;
 
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "Pump off after (" <<
-            services_->command_watch_.ElapsedRunTime().seconds() << "s)");
+          RCLCPP_INFO_STREAM(
+            ros_->node_->get_logger(),
+            "Pump off after (" <<
+              services_->command_watch_.ElapsedRunTime().seconds() << "s)");
 
-        igndbg << "piston moved: " << (state.range_finder - init_x) /
-        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
-          " m/s" << std::endl;
+          igndbg << "piston moved: " << (state.range_finder - init_x) /
+          (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
+            " m/s" << std::endl;
+        } else {
+          // set pump toggle -- linear pump servo drives back and forth
+          if (floor(services_->command_watch_.ElapsedRunTime().seconds()) !=
+            floor(pump_prev.seconds()))
+          {
+            state.status.bits().PumpToggle += 1U;
+            state.status.bits().PumpToggle %= 2U;
+          }
+        }
+        pump_prev = services_->command_watch_.ElapsedRunTime();
       }
     }
   }
@@ -348,6 +367,7 @@ struct SpringControllerPrivate
     if (state.valve_command.isFinished()) {
       std::unique_lock lock(services_->command_mutex_);
       services_->valve_command_ = false;
+      state.status.bits().ReliefValveRequest = 0U;
       services_->command_duration_ = rclcpp::Duration(0, 0U);
       services_->command_watch_.Reset();
       state.valve_command.reset();
@@ -356,17 +376,23 @@ struct SpringControllerPrivate
     if (state.pump_command.isFinished()) {
       std::unique_lock lock(services_->command_mutex_);
       services_->pump_command_ = false;
+      state.status.bits().PumpRequest = 0U;
       services_->command_duration_ = rclcpp::Duration(0, 0U);
       services_->command_watch_.Reset();
       state.pump_command.reset();
     }
 
-    if (services_->has_new_command_) {
+
+    if (services_->new_pump_command_ || services_->new_valve_command_) {
       std::unique_lock lock(services_->command_mutex_);
 
       if (state.valve_command || state.pump_command) {
         state.valve_command = services_->valve_command_;
+        state.status.bits().ReliefValveRequest =
+          static_cast<uint8_t>(services_->new_valve_command_);
+
         state.pump_command = services_->pump_command_;
+        state.status.bits().PumpRequest = static_cast<uint8_t>(services_->new_pump_command_);
 
         services_->command_duration_ =
           services_->command_duration_ +
@@ -386,10 +412,14 @@ struct SpringControllerPrivate
         }
       } else {
         state.valve_command = services_->valve_command_;
+        state.status.bits().ReliefValveRequest =
+          static_cast<uint8_t>(services_->new_valve_command_);
+
         state.pump_command = services_->pump_command_;
+        state.status.bits().PumpRequest = static_cast<uint8_t>(services_->new_pump_command_);
       }
 
-      services_->has_new_command_ = false;
+      services_->new_pump_command_ = services_->new_valve_command_ = false;
     }
   }
 };
@@ -539,18 +569,31 @@ void SpringController::PreUpdate(
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
 
-  if (!_ecm.EntityHasComponentType(
-      this->dataPtr->jointEntity_,
-      buoy_gazebo::components::SpringState().TypeId()))
-  {
+  if (_info.paused) {
     return;
   }
 
-  auto spring_state_comp =
-    _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity_);
+  buoy_gazebo::SpringState spring_state;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->jointEntity_,
+      buoy_gazebo::components::SpringState().TypeId()))
+  {
+    auto spring_state_comp =
+      _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity_);
 
-  this->dataPtr->manageCommandTimer(spring_state_comp->Data());
-  this->dataPtr->manageCommandState(spring_state_comp->Data());
+    spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
+  } else {
+    return;
+  }
+
+  this->dataPtr->manageCommandTimer(spring_state);
+  this->dataPtr->manageCommandState(spring_state);
+
+  spring_state.status.bits().TetherPowerStatus = 1U;
+
+  _ecm.SetComponentData<buoy_gazebo::components::SpringState>(
+    this->dataPtr->jointEntity_,
+    spring_state);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -562,6 +605,10 @@ void SpringController::PostUpdate(
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
+
+  if (_info.paused) {
+    return;
+  }
 
   if (!_ecm.EntityHasComponentType(
       this->dataPtr->jointEntity_,

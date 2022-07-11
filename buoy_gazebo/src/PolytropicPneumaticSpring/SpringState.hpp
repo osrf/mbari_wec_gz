@@ -19,51 +19,41 @@
 #include <ignition/gazebo/components/Component.hh>
 #include <ignition/gazebo/config.hh>
 
+#include <buoy_utils/CommandTriState.hpp>
+
 namespace buoy_gazebo
 {
-/// \brief Command state variable that tracks if command is running, finished, or ever was active
-struct CommandTriState
+struct SpringStatusBits
 {
-  bool left{false};
-  bool right{false};
+  uint8_t ReliefValveRequest : 7;  // Request to open/close valve
+  uint8_t ReliefValveStatus : 1;  // Status of Relief valve open/close
+  uint8_t PumpRequest : 1;  // Request to turn pump on or off
+  uint8_t PumpStatus : 1;  // Status of pump switch
+  uint8_t PumpOverTemp : 1;  // Status of pump OverTemp signal
+  uint8_t PumpToggle : 1;  // Status of pump Toggle.
+  uint8_t TetherPowerRequest : 1;  // Request to turn tether power on or off
+  uint8_t TetherPowerStatus : 1;  // Status of tether power relay
+  uint8_t LR_Fault : 1;  // Status of LRF fault input
+  uint8_t AUX_Fault : 1;  // Status of AUX fault input
+};
 
-  bool isRunning() const  // rising edge
+typedef union {
+  uint16_t status{0U};
+  SpringStatusBits bits;
+} SpringStatusUnion;
+
+struct SpringStatus
+{
+  SpringStatusUnion status;
+
+  operator const uint16_t &() const
   {
-    return !left && right;
+    return status.status;
   }
 
-  bool isFinished() const  // falling edge
+  SpringStatusBits & bits()
   {
-    return left && !right;
-  }
-
-  bool active() const  // running or finished
-  {
-    return left || right;
-  }
-
-  operator bool() const
-  {
-    return isRunning();
-  }
-
-  void reset()
-  {
-    left = right = false;  // no command activity
-  }
-
-  void operator=(const bool state)
-  {
-    if (state) {
-      if (!active()) {
-        right = true;
-      }
-    } else {
-      if (isRunning()) {
-        left = true;
-        right = false;
-      }
-    }
+    return status.bits;
   }
 };
 
@@ -77,18 +67,19 @@ struct SpringState
                              // chamber (TODO(andermi) units)
   float upper_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
   float lower_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
-  int16_t status{0};  // TODO(andermi) status bit field
+  SpringStatus status;  // status of SpringController
 
   // Commands
-  CommandTriState valve_command;
-  CommandTriState pump_command;
+  buoy_utils::CommandTriState<> valve_command;
+  buoy_utils::CommandTriState<> pump_command;
 
   bool operator==(const SpringState & that) const
   {
     bool equal = this->load_cell == that.load_cell;
-    equal &= fabs(this->range_finder - that.range_finder) < 1e-7;
-    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-7;
-    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-7;
+    equal &= fabs(this->range_finder - that.range_finder) < 1e-7F;
+    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-7F;
+    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-7F;
+    equal &= this->status == that.status;
     return equal;
   }
 };
