@@ -140,7 +140,7 @@ TEST(BuoyTests, NoInputsROS)
   int targetIterations{5000};
   fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
-  EXPECT_LT(node.rpm_, 100.0F);
+  EXPECT_LT(node.rpm_, 1000.0F);
   EXPECT_LT(node.wcurrent_, 0.1F);
   rclcpp::Clock::SharedPtr clock = node.get_clock();
   EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));

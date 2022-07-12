@@ -509,7 +509,7 @@ void SpringController::Configure(
   }
 
   // Publisher
-  std::string topic = _sdf->Get<std::string>("topic", "sc_record").first;
+  std::string topic = _sdf->Get<std::string>("topic", "spring_data").first;
   this->dataPtr->ros_->sc_pub_ =
     this->dataPtr->ros_->node_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
 
