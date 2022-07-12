@@ -348,9 +348,9 @@ void NoOpController::Configure(
   // Make sure the controller is attached to a valid model
   auto model = ignition::gazebo::Model(_entity);
   if (!model.Valid(_ecm)) {
-    ignerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
+    ignerr << "[ROS 2 NoOp Controller] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
-      "Please make sure that ROS 2 Spring Control is attached to a valid model." << std::endl;
+      "Please make sure that ROS 2 NoOp Controller is attached to a valid model." << std::endl;
     return;
   }
 
@@ -368,7 +368,7 @@ void NoOpController::Configure(
 
   RCLCPP_INFO_STREAM(
     this->dataPtr->ros_->node_->get_logger(),
-    "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm) << "]");
+    "[ROS 2 NoOp Controller] Setting up controller for [" << model.Name(_ecm) << "]");
 
   this->dataPtr->setupServices();
 }

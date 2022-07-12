@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
 import unittest
 
 from buoy_msgs.interface import Interface
@@ -55,7 +54,7 @@ class NoInputsPyNode(Interface):
 
     def __init__(self):
         rclpy.init()
-        super().__init__('test_no_inputs_py')
+        super().__init__('test_no_inputs_py', wait_for_services=True)
         self.set_parameters([Parameter('use_sim_time', Parameter.Type.BOOL, True)])
         self.rpm = 10000.0
         self.wcurrent = 10000.0
@@ -67,21 +66,25 @@ class NoInputsPyNode(Interface):
 
 class NoInputsGazeboPyTest(unittest.TestCase):
 
-    node = NoInputsPyNode()
+    node = None
+
+    def setUp(self):
+        self.node = NoInputsPyNode()
+
+    def tearDown(self):
+        rclpy.shutdown()
+        self.assertFalse(rclpy.ok())
 
     def test_final_state(self, gazebo_test_fixture, proc_info):
         rclpy.spin_once(self.node)
         clock = self.node.get_clock()
         t, _ = clock.now().seconds_nanoseconds()
-        t_ = time.time()
-        while rclpy.ok() and t < 5 and time.time() - t_ < 10.0:
+        while rclpy.ok() and t < 5:
             rclpy.spin_once(self.node)
             t, _ = clock.now().seconds_nanoseconds()
-        rclpy.shutdown()
         self.assertEqual(t, 5)
         self.assertLess(self.node.rpm, 1000.0)
         self.assertLess(self.node.wcurrent, 0.1)
-        self.assertFalse(rclpy.ok())
         proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=20)
 
 
