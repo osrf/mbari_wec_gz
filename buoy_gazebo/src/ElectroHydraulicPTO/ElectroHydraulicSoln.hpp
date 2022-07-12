@@ -19,6 +19,7 @@
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -87,9 +88,9 @@ private:
   // psi
   static const std::vector<double> Peff;
 
-  static const std::vector<std::vector<double> > Neff;
-  static const std::vector<std::vector<double> > eff_v;
-  static const std::vector<std::vector<double> > eff_m;
+  static const std::vector<std::vector<double>> Neff;
+  static const std::vector<std::vector<double>> eff_v;
+  static const std::vector<std::vector<double>> eff_m;
 
 public:
   ElectroHydraulicSoln()
@@ -135,13 +136,15 @@ public:
   }
 };
 
-const std::vector<double> ElectroHydraulicSoln::Prelief{0.0, 2800.0, 3000.0};  // {0, Pset, Pset + 600.0};
-const std::vector<double> ElectroHydraulicSoln::Qrelief{1.0, 1.0, 0.0};  // {0, 0, QPerP*6000.0};
+// {0, Pset, Pset + 600.0};
+const std::vector<double> ElectroHydraulicSoln::Prelief{0.0, 2800.0, 3000.0};
+// {0, 0, QPerP*6000.0};
+const std::vector<double> ElectroHydraulicSoln::Qrelief{1.0, 1.0, 0.0};
 
 const std::vector<double> ElectroHydraulicSoln::Peff
 {0, 145, 290, 435, 580, 725, 870, 1015, 1160, 1305, 1450, 2176, 2901};
 
-const std::vector<std::vector<double> > ElectroHydraulicSoln::Neff
+const std::vector<std::vector<double>> ElectroHydraulicSoln::Neff
 {
   {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500,
     4000, 4500, 5000, 5500, 6000, 15000},  // 0Mpa/0psi
@@ -163,7 +166,7 @@ const std::vector<std::vector<double> > ElectroHydraulicSoln::Neff
   {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500,
     4000, 4500, 5000, 5500, 6000, 15000}  // 20Mpa/2901psi
 };
-const std::vector<std::vector<double> > ElectroHydraulicSoln::eff_v
+const std::vector<std::vector<double>> ElectroHydraulicSoln::eff_v
 {
   // {0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10,
   //  0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10},  // 0Mpa/0psi
@@ -187,7 +190,7 @@ const std::vector<std::vector<double> > ElectroHydraulicSoln::eff_v
   {0.72, 0.72, 0.83, 0.88, 0.90, 0.92, 0.93, 0.94, 0.94, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95,
     0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95}  // 20Mpa/2901psi
 };
-const std::vector<std::vector<double> > ElectroHydraulicSoln::eff_m
+const std::vector<std::vector<double>> ElectroHydraulicSoln::eff_m
 {
   // {0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10,
   //  0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10},  // 0Mpa/0psi

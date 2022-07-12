@@ -32,7 +32,7 @@ def generate_launch_description():
                               description='Arguments to be passed to Ignition Gazebo'),
         # Ignition Gazebo's major version
         DeclareLaunchArgument('ign_version', default_value='6',
-                              description='Ignition Gazebo\'s major version'),
+                              description="Ignition Gazebo's major version"),
         ExecuteProcess(
             cmd=['ruby $(which ign) gazebo -rs',
                  LaunchConfiguration('ign_args'),
