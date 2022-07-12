@@ -56,11 +56,17 @@
         <RotorInertia>1</RotorInertia>
       </plugin>
 
+      <!-- Handle Unimplemented Services -->
+      <plugin filename="NoOpController" name="buoy_gazebo::NoOpController">
+        <namespace>/</namespace>
+        <node_name>noop_controller</node_name>
+      </plugin>
+
       <plugin filename="SpringController" name="buoy_gazebo::SpringController">
         <JointName>HydraulicRam</JointName>
         <namespace>/</namespace>
         <node_name>spring_controller</node_name>
-        <topic>sc_record</topic>
+        <topic>spring_data</topic>
         <publish_rate>31</publish_rate>
       </plugin>
 
@@ -68,14 +74,14 @@
         <JointName>HydraulicRam</JointName>
         <namespace>/</namespace>
         <node_name>power_controller</node_name>
-        <topic>pc_record</topic>
+        <topic>power_data</topic>
         <publish_rate>23</publish_rate>
       </plugin>
-      
+
       <plugin filename="XBowAHRS" name="buoy_gazebo::XBowAHRS">
         <namespace>/</namespace>
         <node_name>xbow_ahrs</node_name>
-        <xb_topic>xb_record</xb_topic>
+        <xb_topic>ahrs_data</xb_topic>
         <imu_topic>xb_imu</imu_topic>
         <publish_rate>17</publish_rate>
       </plugin>
