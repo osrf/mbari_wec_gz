@@ -25,10 +25,10 @@
 #include <vector>
 
 #include "ElectroHydraulicState.hpp"
+#include "WindingCurrentTarget.hpp"
 
 // Interpolation library for efficiency maps
 #include "JustInterp/JustInterp.hpp"
-#include "WindingCurrentTarget.hpp"
 
 
 /////////////////////////////////////////////////////
@@ -78,9 +78,9 @@ public:
   double HydMotorDisp;
 
 private:
-  static constexpr double Pset{2000.0};  // 750;  // psi
+  // static constexpr double Pset{2000.0};  // 750;  // psi
   // ~50GPM/600psi ~= .33472 in^3/psi -> From SUN RPECLAN data sheet
-  static constexpr double QPerP{(50.0*241.0 / 60.0) / 600.0};
+  // static constexpr double QPerP{(50.0*241.0 / 60.0) / 600.0};
   static const std::vector<double> Prelief;  // {0, Pset, Pset + 600.0};
   static const std::vector<double> Qrelief;  // {0, 0, QPerP*6000.0};
 
@@ -95,7 +95,7 @@ public:
   ElectroHydraulicSoln()
   : Functor<double>(2, 2),
     // Set Pressure versus flow relationship for relief valve
-    reliefValve{Prelief.size(), Prelief.data(), Qrelief.data()},
+    reliefValve{Prelief, Qrelief},
     // Set HydrualicMotor Volumetric Efficiency
     hyd_eff_v{Peff, Neff, eff_v},
     hyd_eff_m{Peff, Neff, eff_m}
@@ -108,12 +108,15 @@ public:
   {
     const int n = x.size();
     assert(fvec.size() == n);
-    // assert(this->hyd_eff_m.GetX()[0U] && "eff_m xData_ is bad");
-    // assert(this->hyd_eff_m.GetY(0U)[0U] && "eff_m y is bad");
-    // assert(this->hyd_eff_v.GetX()[0U] && "eff_v xData_ is bad");
-    // assert(this->hyd_eff_v.GetY(0U)[0U] && "eff_v y is bad");
-    const double eff_m = this->hyd_eff_m(fabs(x[1]), fabs(x[0]));
-    const double eff_v = this->hyd_eff_v(fabs(x[1]), fabs(x[0]));
+
+    // TODO(hamilton) temporary fix for NaN situation. Should make this more robust
+    // or at least parameterized.
+    // Problem: If I smash the PC with a -30 Amp winding current command, this solution
+    // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
+    // to the max absolute rpm from the winding current interpolation (default torque controller).
+    const double rpm = std::min(std::max(x[0U], -6790.0), 6790.0);
+    const double eff_m = this->hyd_eff_m(fabs(x[1]), fabs(rpm));
+    const double eff_v = this->hyd_eff_v(fabs(x[1]), fabs(rpm));
 
     // 1.375 fudge factor required to match experiments, not yet sure why.
     const double T_applied = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(x[0]);
@@ -121,7 +124,7 @@ public:
     static constexpr double Pset = 2925;
     double QQ = this->Q;
     if (x[1] > Pset) {   // Extending
-      QQ += (x[1] - Pset) * (50 * 241 / 60) / 600;
+      QQ += (x[1] - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
     }
     // QQ += this->reliefValve(x[1]);
 
@@ -132,8 +135,8 @@ public:
   }
 };
 
-const std::vector<double> ElectroHydraulicSoln::Prelief{0, Pset, Pset + 600.0};
-const std::vector<double> ElectroHydraulicSoln::Qrelief{0, 0, QPerP*6000.0};
+const std::vector<double> ElectroHydraulicSoln::Prelief{0.0, 2800.0, 3000.0};  // {0, Pset, Pset + 600.0};
+const std::vector<double> ElectroHydraulicSoln::Qrelief{1.0, 1.0, 0.0};  // {0, 0, QPerP*6000.0};
 
 const std::vector<double> ElectroHydraulicSoln::Peff
 {0, 145, 290, 435, 580, 725, 870, 1015, 1160, 1305, 1450, 2176, 2901};

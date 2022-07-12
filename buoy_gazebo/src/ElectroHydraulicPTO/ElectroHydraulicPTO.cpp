@@ -51,28 +51,28 @@ class ElectroHydraulicPTOPrivate
 {
 public:
   /// \brief Piston joint entity
-  ignition::gazebo::Entity PrismaticJointEntity;
+  ignition::gazebo::Entity PrismaticJointEntity{ignition::gazebo::kNullEntity};
 
   /// \brief Piston area
-  double PistonArea;
+  double PistonArea{0.0};
 
   /// \brief Rotor Inertia
-  double RotorInertia;
+  double RotorInertia{0.0};
 
   /// \brief Model interface
   ignition::gazebo::Model model {ignition::gazebo::kNullEntity};
 
-  ElectroHydraulicSoln functor;
+  ElectroHydraulicSoln functor{};
 
-  Eigen::VectorXd x;
+  Eigen::VectorXd x{};
 
-  double TargetWindingCurrent;
+  double TargetWindingCurrent{0.0};
 
-  double WindingCurrent;
+  double WindingCurrent{0.0};
 
-  double Ve;
+  double Ve{315.0};
 
-  bool VelMode;
+  bool VelMode{false};
 
   /// \brief Ignition communication node.
   ignition::transport::Node node;
@@ -142,15 +142,16 @@ void ElectroHydraulicPTO::Configure(
 
   this->dataPtr->Ve = 315;
 
-
+  /*
   // Set Default Damping Relation
   {
     std::vector<double> P {0, 2800, 3000};
     std::vector<double> hyd_eff_v {1, 1, 0};
     this->dataPtr->functor.reliefValve.SetData(P.size(), P.data(), hyd_eff_v.data());
   }
+  */
 
-  this->dataPtr->x.setConstant(2, 0.);
+  this->dataPtr->x.setConstant(2.0, 0.0);
 
 
   std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
