@@ -83,7 +83,6 @@ public:
     double I;
     if (current_override_) {
       I = UserCommandedCurrent;
-      std::cerr << "using override current" << std::endl;
     } else {
       // TODO(anyone):  1.375 makes this match experiment, not sure what is wrong...
       I = this->DefaultDamping(fabs(N)) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
