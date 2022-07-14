@@ -89,9 +89,9 @@ public:
     auto request = std::make_shared<buoy_msgs::srv::ValveCommand::Request>();
     request->duration_sec = 5U;
 
-   ValveServiceCallback valve_callback =
-     default_service_response_callback<ValveServiceCallback,
-       ValveServiceResponseFuture>();
+    ValveServiceCallback valve_callback =
+      default_service_response_callback<ValveServiceCallback,
+        ValveServiceResponseFuture>();
 
     valve_response_future_ = valve_client_->async_send_request(request, valve_callback);
   }
@@ -101,9 +101,9 @@ public:
     auto request = std::make_shared<buoy_msgs::srv::PumpCommand::Request>();
     request->duration_sec = 20U;
 
-   PumpServiceCallback pump_callback =
-     default_service_response_callback<PumpServiceCallback,
-       PumpServiceResponseFuture>();
+    PumpServiceCallback pump_callback =
+      default_service_response_callback<PumpServiceCallback,
+        PumpServiceResponseFuture>();
 
     pump_response_future_ = pump_client_->async_send_request(request, pump_callback);
   }
