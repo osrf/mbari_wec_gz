@@ -57,31 +57,30 @@ if(BUILD_TESTING)
   endfunction()
 
   # Helper function to generate pytest
-  function(buoy_add_pytest PYTEST_NAME GTEST_NAME)
+  function(buoy_add_pytest PYTEST_NAME #[[optional: GTEST_NAME]])
     find_package(rclpy REQUIRED)
     find_package(buoy_msgs REQUIRED)
 
-    if(TARGET ${GTEST_NAME})
-    else()
-      ament_add_gtest_executable(${GTEST_NAME}
-        tests/${GTEST_NAME}.cpp
-      )
+    if(DEFINED ARGV1)
+      set(GTEST_NAME ${ARGV1})
+      if(TARGET ${GTEST_NAME})
+        # pass
+      else()
+        ament_add_gtest_executable(${GTEST_NAME}
+          tests/${GTEST_NAME}.cpp
+        )
 
-      target_link_libraries(${GTEST_NAME}
-        ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
-      )
+        target_link_libraries(${GTEST_NAME}
+          ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
+        )
 
-      include_directories(${CMAKE_CURRENT_BINARY_DIR})
-      install(
-        TARGETS ${GTEST_NAME}
-        DESTINATION lib/${PROJECT_NAME}
-      )
+        include_directories(${CMAKE_CURRENT_BINARY_DIR})
+        install(
+          TARGETS ${GTEST_NAME}
+          DESTINATION lib/${PROJECT_NAME}
+        )
+      endif()
     endif()
-
-    # install(
-    #   PROGRAMS tests/${PYTEST_NAME}.py
-    #   DESTINATION lib/${PROJECT_NAME}
-    # )
 
     add_launch_test(launch/${PYTEST_NAME}_py.launch.py
       TIMEOUT 200
@@ -95,6 +94,7 @@ if(BUILD_TESTING)
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)
+  buoy_add_pytest(sc_commands_ros_feedback)
 endif()
 
 ament_package()
