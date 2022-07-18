@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 import unittest
 
 from buoy_msgs.interface import Interface
@@ -82,6 +83,7 @@ class NoInputsGazeboPyTest(unittest.TestCase):
         while rclpy.ok() and t < 5:
             rclpy.spin_once(self.node)
             t, _ = clock.now().seconds_nanoseconds()
+        time.sleep(0.5)
         self.assertEqual(t, 5)
         self.assertLess(self.node.rpm, 1000.0)
         self.assertLess(self.node.wcurrent, 0.1)
