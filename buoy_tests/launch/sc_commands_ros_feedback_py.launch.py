@@ -131,7 +131,7 @@ class BuoySCPyTest(unittest.TestCase):
         # Run simulation server and allow piston to settle
         self.test_helper.run(preCmdIterations)
         self.assertEqual(self.test_helper.iterations, preCmdIterations)
-        time.sleep(0.5)
+        time.sleep(15)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
@@ -191,7 +191,7 @@ class BuoySCPyTest(unittest.TestCase):
             self.test_helper.run(statusCheckIterations)
             self.assertEqual(preCmdIterations + 500 + n * statusCheckIterations,
                              self.test_helper.iterations)
-            time.sleep(0.5)
+            time.sleep(1)
             t, _ = clock.now().seconds_nanoseconds()
             self.assertEqual(t, self.test_helper.iterations // 1000)
 
@@ -206,7 +206,7 @@ class BuoySCPyTest(unittest.TestCase):
         self.test_helper.run(postCmdIterations)
         self.assertEqual(preCmdIterations + 500 + 4 * statusCheckIterations + postCmdIterations,
                          self.test_helper.iterations)
-        time.sleep(0.5)
+        time.sleep(20)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
