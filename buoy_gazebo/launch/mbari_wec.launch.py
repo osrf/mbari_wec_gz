@@ -84,6 +84,7 @@ def generate_launch_description():
             (link_pose_gz_topic, '/tf'),
             (link_pose_gz_topic + '_static', '/tf_static'),
         ],
+        condition=IfCondition(LaunchConfiguration('rviz')),
         parameters=[{'qos_overrides./tf_static.publisher.durability': 'transient_local'}],
         output='screen'
     )
@@ -94,6 +95,7 @@ def generate_launch_description():
         executable='robot_state_publisher',
         name='robot_state_publisher',
         output='both',
+        condition=IfCondition(LaunchConfiguration('rviz')),
         parameters=[
             {'use_sim_time': True},
             {'robot_description': robot_desc},
