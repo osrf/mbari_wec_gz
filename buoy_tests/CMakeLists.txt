@@ -49,7 +49,7 @@ if(BUILD_TESTING)
     )
     if(buoy_add_test_LAUNCH_TEST)
       add_launch_test(launch/${TEST_NAME}.launch.py
-        TIMEOUT 1000
+        TIMEOUT 10000
       )
     else()
       ament_add_gtest_test(${TEST_NAME})
@@ -83,7 +83,7 @@ if(BUILD_TESTING)
     endif()
 
     add_launch_test(launch/${PYTEST_NAME}_py.launch.py
-      TIMEOUT 1000
+      TIMEOUT 10000
     )
   endfunction()
 
