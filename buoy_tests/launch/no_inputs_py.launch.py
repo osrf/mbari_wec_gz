@@ -87,7 +87,7 @@ class NoInputsGazeboPyTest(unittest.TestCase):
         self.assertEqual(t, 5)
         self.assertLess(self.node.rpm, 1000.0)
         self.assertLess(self.node.wcurrent, 0.1)
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=20)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=200)
 
 
 @launch_testing.post_shutdown_test()
