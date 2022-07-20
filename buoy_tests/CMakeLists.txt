@@ -95,6 +95,8 @@ if(BUILD_TESTING)
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)
   buoy_add_pytest(sc_commands_ros_feedback)
+
+  ament_add_pytest_test(test_fixture tests/test_fixture.py)
 endif()
 
 ament_package()
