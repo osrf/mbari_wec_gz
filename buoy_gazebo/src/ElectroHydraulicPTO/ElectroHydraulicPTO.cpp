@@ -54,13 +54,13 @@ public:
   ignition::gazebo::Entity PrismaticJointEntity{ignition::gazebo::kNullEntity};
 
   /// \brief Piston area
-  double PistonArea{0.0};
+  double PistonArea{1.0};
 
   /// \brief Rotor Inertia
-  double RotorInertia{0.0};
+  double RotorInertia{1.0};
 
   /// \brief Model interface
-  ignition::gazebo::Model model {ignition::gazebo::kNullEntity};
+  ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
 
   ElectroHydraulicSoln functor{};
 
@@ -127,29 +127,17 @@ void ElectroHydraulicPTO::Configure(
       "The ElectroHydraulicPTO may not influence this joint.\n";
     return;
   } else {
-    this->dataPtr->PistonArea = SdfParamDouble(_sdf, "PistonArea", 1.);
+    this->dataPtr->PistonArea = SdfParamDouble(_sdf, "PistonArea", this->dataPtr->PistonArea);
   }
 
   // Default to Parker F11-5  0.30in^3/rev
-  this->dataPtr->functor.HydMotorDisp = SdfParamDouble(_sdf, "HydMotorDisp", 0.30);
-  this->dataPtr->RotorInertia = SdfParamDouble(_sdf, "RotorInertia", 1);
+  static constexpr double PARKER_F11_5 = 0.30;  // in^3/rev
+  this->dataPtr->functor.HydMotorDisp = SdfParamDouble(_sdf, "HydMotorDisp", PARKER_F11_5);
+  this->dataPtr->RotorInertia = SdfParamDouble(_sdf, "RotorInertia", this->dataPtr->RotorInertia);
 
   if (_sdf->HasElement("VelMode")) {
     this->dataPtr->VelMode = true;
-  } else {
-    this->dataPtr->VelMode = false;
   }
-
-  this->dataPtr->Ve = 315;
-
-  /*
-  // Set Default Damping Relation
-  {
-    std::vector<double> P {0, 2800, 3000};
-    std::vector<double> hyd_eff_v {1, 1, 0};
-    this->dataPtr->functor.reliefValve.SetData(P.size(), P.data(), hyd_eff_v.data());
-  }
-  */
 
   this->dataPtr->x.setConstant(2.0, 0.0);
 
@@ -261,7 +249,7 @@ void ElectroHydraulicPTO::PreUpdate(
   // TODO(anyone): Figure out if (0) for the index is always correct,
   // some OR code has a process of finding the index for this argument.
   double xdot = prismaticJointVelComp->Data().at(0);
-  this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;    // inch^3/second
+  this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
@@ -312,12 +300,18 @@ void ElectroHydraulicPTO::PreUpdate(
 
   // Initial Guess based on perfect efficiency
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
-  int info = solver.solveNumericalDiff(this->dataPtr->x);
+  const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
   this->dataPtr->functor.I_Wind.UserCommandMutex.unlock();
 
 
   // Solve Electrical
-  double N = this->dataPtr->x[0U];
+  // TODO(hamilton) temporary fix for NaN situation. Should make this more robust
+  // or at least parameterized.
+  // Problem: If I repeatedly smash the PC with a -30 Amp winding current command, this solution
+  // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
+  // to the max absolute rpm from the winding current interpolation
+  // (no extrapolation, default torque controller).
+  const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
   double deltaP = this->dataPtr->x[1U];
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;
   unsigned int seed{1U};
@@ -365,12 +359,6 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->PrismaticJointEntity,
     pto_state);
 
-
-  // Report results
-  // std::cout << SimTime << "  " << "  " << xdot / .0254 << "    " << N << "   "
-  //           << deltaP << "   " << VBus << "   " << this->dataPtr->TargetWindingCurrent
-  //           << "  " << this->dataPtr->WindingCurrent << "  "  << I_Batt << "   "
-  //           << I_Load << std::endl;
 
   auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 

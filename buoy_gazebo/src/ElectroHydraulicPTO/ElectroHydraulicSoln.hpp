@@ -112,9 +112,10 @@ public:
 
     // TODO(hamilton) temporary fix for NaN situation. Should make this more robust
     // or at least parameterized.
-    // Problem: If I smash the PC with a -30 Amp winding current command, this solution
+    // Problem: If I repeatedly smash the PC with a -30 Amp winding current command, this solution
     // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
-    // to the max absolute rpm from the winding current interpolation (default torque controller).
+    // to the max absolute rpm from the winding current interpolation
+    // (no extrapolation, default torque controller).
     const double rpm = std::min(std::max(x[0U], -6790.0), 6790.0);
     const double eff_m = this->hyd_eff_m(fabs(x[1]), fabs(rpm));
     const double eff_v = this->hyd_eff_v(fabs(x[1]), fabs(rpm));
