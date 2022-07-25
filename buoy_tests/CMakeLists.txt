@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.5)
 project(buoy_tests)
 
 find_package(ament_cmake REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/RunServer.srv"
+  ADD_LINTER_TESTS
+)
 
 if(BUILD_TESTING)
   find_package(ignition-gazebo6 REQUIRED)
@@ -49,7 +55,7 @@ if(BUILD_TESTING)
     )
     if(buoy_add_test_LAUNCH_TEST)
       add_launch_test(launch/${TEST_NAME}.launch.py
-        TIMEOUT 200
+        TIMEOUT 120
       )
     else()
       ament_add_gtest_test(${TEST_NAME})
@@ -58,8 +64,9 @@ if(BUILD_TESTING)
 
   # Helper function to generate pytest
   function(buoy_add_pytest PYTEST_NAME #[[optional: GTEST_NAME]])
-    find_package(rclpy REQUIRED)
     find_package(buoy_msgs REQUIRED)
+    find_package(rclcpp REQUIRED)
+    find_package(rclpy REQUIRED)
 
     if(DEFINED ARGV1)
       set(GTEST_NAME ${ARGV1})
@@ -73,6 +80,8 @@ if(BUILD_TESTING)
         target_link_libraries(${GTEST_NAME}
           ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
         )
+        rosidl_target_interfaces(${GTEST_NAME} ${PROJECT_NAME} "rosidl_typesupport_cpp")
+        ament_target_dependencies(${GTEST_NAME} rclcpp)
 
         include_directories(${CMAKE_CURRENT_BINARY_DIR})
         install(
@@ -83,7 +92,7 @@ if(BUILD_TESTING)
     endif()
 
     add_launch_test(launch/${PYTEST_NAME}_py.launch.py
-      TIMEOUT 200
+      TIMEOUT 120
     )
   endfunction()
 
@@ -94,9 +103,19 @@ if(BUILD_TESTING)
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)
-  buoy_add_pytest(sc_commands_ros_feedback)
+  buoy_add_pytest(sc_commands_ros_feedback fixture_server)
 
   ament_add_pytest_test(test_fixture tests/test_fixture.py)
+
+  install(PROGRAMS
+    tests/test_fixture.py
+    DESTINATION lib/${PROJECT_NAME}
+  )
+
+  install(DIRECTORY
+    launch
+    DESTINATION share/${PROJECT_NAME}
+  )
 endif()
 
 ament_package()
