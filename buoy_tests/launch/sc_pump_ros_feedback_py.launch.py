@@ -13,13 +13,10 @@
 # limitations under the License.
 
 import time
-import unittest
 
 from buoy_msgs.msg import SCRecord
 
-import launch_testing
-
-from testing_utils import BuoySCPyTestAfterShutdown
+from testing_utils import BuoySCPyTestAfterShutdown  # noqa F401
 from testing_utils import BuoySCPyTests
 from testing_utils import default_generate_test_description
 

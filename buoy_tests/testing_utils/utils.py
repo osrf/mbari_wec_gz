@@ -14,7 +14,6 @@
 
 import asyncio
 from threading import Thread
-import time
 import unittest
 
 from buoy_msgs.interface import Interface

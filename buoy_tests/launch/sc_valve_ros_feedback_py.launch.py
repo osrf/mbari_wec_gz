@@ -13,13 +13,10 @@
 # limitations under the License.
 
 import time
-import unittest
 
 from buoy_msgs.msg import SCRecord
 
-import launch_testing
-
-from testing_utils import BuoySCPyTestAfterShutdown
+from testing_utils import BuoySCPyTestAfterShutdown  # noqa F401
 from testing_utils import BuoySCPyTests
 from testing_utils import default_generate_test_description
 
@@ -57,11 +54,11 @@ class BuoySCValvePyTest(BuoySCPyTests):
         self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_STATUS,
                          'SC Valve should be CLOSED')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_REQUEST,
-                        'SC Pump Request should be TRUE')
+                         'SC Pump Request should be TRUE')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_STATUS,
-                        'SC Pump should be ON')
+                         'SC Pump should be ON')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_TOGGLE,
-                        'SC Pump Toggle should be ON')
+                         'SC Pump Toggle should be ON')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_OVER_TEMP)
         self.assertFalse(self.node.status_ & SCRecord.TETHER_POWER_REQUEST)
         self.assertTrue(self.node.status_ & SCRecord.TETHER_POWER_STATUS,
@@ -84,15 +81,15 @@ class BuoySCValvePyTest(BuoySCPyTests):
 
         # Check status field
         self.assertTrue(self.node.status_ & SCRecord.RELIEF_VALVE_REQUEST,
-                         'SC Valve Request should be FALSE')
+                        'SC Valve Request should be FALSE')
         self.assertTrue(self.node.status_ & SCRecord.RELIEF_VALVE_STATUS,
-                         'SC Valve should be CLOSED')
+                        'SC Valve should be CLOSED')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_REQUEST,
-                        'SC Pump Request should be TRUE')
+                         'SC Pump Request should be TRUE')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_STATUS,
-                        'SC Pump should be ON')
+                         'SC Pump should be ON')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_TOGGLE,
-                        'SC Pump Toggle should be ON')
+                         'SC Pump Toggle should be ON')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_OVER_TEMP)
         self.assertFalse(self.node.status_ & SCRecord.TETHER_POWER_REQUEST)
         self.assertTrue(self.node.status_ & SCRecord.TETHER_POWER_STATUS,
@@ -115,11 +112,11 @@ class BuoySCValvePyTest(BuoySCPyTests):
         self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_STATUS,
                          'SC Valve should be CLOSED')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_REQUEST,
-                        'SC Pump Request should be TRUE')
+                         'SC Pump Request should be TRUE')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_STATUS,
-                        'SC Pump should be ON')
+                         'SC Pump should be ON')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_TOGGLE,
-                        'SC Pump Toggle should be ON')
+                         'SC Pump Toggle should be ON')
         self.assertFalse(self.node.status_ & SCRecord.PUMP_OVER_TEMP)
         self.assertFalse(self.node.status_ & SCRecord.TETHER_POWER_REQUEST)
         self.assertTrue(self.node.status_ & SCRecord.TETHER_POWER_STATUS,
@@ -131,7 +128,7 @@ class BuoySCValvePyTest(BuoySCPyTests):
         post_valve_range_finder = self.node.range_finder_
 
         self.assertGreater(post_valve_range_finder,
-                           pre_valve_range_finder + 0.8  * 0.0254 * 5.0,
+                           pre_valve_range_finder + 0.8 * 0.0254 * 5.0,
                            'Piston should extend 1 inch/sec for 5 seconds')
 
         self.assertLess(post_valve_range_finder,

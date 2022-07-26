@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .utils import BuoySCPyTestAfterShutdown
-from .utils import BuoySCPyTests
-from .utils import default_generate_test_description
+from .utils import BuoySCPyTestAfterShutdown  # noqa F401
+from .utils import BuoySCPyTests  # noqa F401
+from .utils import default_generate_test_description  # noqa F401
