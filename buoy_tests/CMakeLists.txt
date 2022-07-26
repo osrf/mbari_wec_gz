@@ -33,7 +33,8 @@ if(BUILD_TESTING)
         LAUNCH_TEST
     )
     set(oneValueArgs)
-    set(multiValueArgs)
+    set(multiValueArgs
+      EXTRA_ROS_PKGS)
 
     cmake_parse_arguments(buoy_add_test "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -44,9 +45,11 @@ if(BUILD_TESTING)
       ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
     )
     if(buoy_add_test_ROS)
-      find_package(rclcpp REQUIRED)
-      find_package(buoy_msgs REQUIRED)
-      ament_target_dependencies(${TEST_NAME} rclcpp buoy_msgs)
+      set(ROS_PKGS rclcpp buoy_msgs ${buoy_add_test_EXTRA_ROS_PKGS})
+      foreach(PKG ${ROS_PKGS})
+        find_package(${PKG} REQUIRED)
+      endforeach()
+      ament_target_dependencies(${TEST_NAME} ${ROS_PKGS})
     endif()
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
     install(
@@ -102,6 +105,10 @@ if(BUILD_TESTING)
   buoy_add_gtest(no_inputs)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
+  buoy_add_gtest(pc_commands_ros_feedback
+    ROS LAUNCH_TEST
+    EXTRA_ROS_PKGS
+      buoy_examples)
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)

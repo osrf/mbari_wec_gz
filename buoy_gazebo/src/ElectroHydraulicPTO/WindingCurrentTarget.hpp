@@ -91,7 +91,6 @@ public:
       }
 
       if (bias_override_) {
-        std::cerr << "using override current" << std::endl;
         I += BiasCurrent;
       }
     }

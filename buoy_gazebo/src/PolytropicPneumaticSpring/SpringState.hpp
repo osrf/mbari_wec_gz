@@ -20,6 +20,8 @@
 #include <ignition/gazebo/config.hh>
 
 #include <buoy_utils/CommandTriState.hpp>
+#include <buoy_utils/Status.hpp>
+
 
 namespace buoy_gazebo
 {
@@ -37,26 +39,6 @@ struct SpringStatusBits
   uint8_t AUX_Fault : 1;  // Status of AUX fault input
 };
 
-typedef union {
-  uint16_t status{0U};
-  SpringStatusBits bits;
-} SpringStatusUnion;
-
-struct SpringStatus
-{
-  SpringStatusUnion status;
-
-  operator const uint16_t &() const
-  {
-    return status.status;
-  }
-
-  SpringStatusBits & bits()
-  {
-    return status.bits;
-  }
-};
-
 /// \brief State data for spring commands and feedback from sensors for SCRecord message in ROS2
 struct SpringState
 {
@@ -67,7 +49,7 @@ struct SpringState
                              // chamber (TODO(andermi) units)
   float upper_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
   float lower_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
-  SpringStatus status;  // status of SpringController
+  buoy_utils::Status<SpringStatusBits> status;  // status of SpringController
 
   // Commands
   buoy_utils::CommandTriState<> valve_command;
