@@ -96,6 +96,8 @@ if(BUILD_TESTING)
     )
   endfunction()
 
+  ament_python_install_package(testing_utils)
+
   # Add gtests
   buoy_add_gtest(no_inputs)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
@@ -103,7 +105,8 @@ if(BUILD_TESTING)
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)
-  buoy_add_pytest(sc_commands_ros_feedback fixture_server)
+  buoy_add_pytest(sc_valve_ros_feedback fixture_server)
+  buoy_add_pytest(sc_pump_ros_feedback fixture_server)
 
   ament_add_pytest_test(test_fixture tests/test_fixture.py)
 

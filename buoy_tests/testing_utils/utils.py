@@ -18,7 +18,6 @@ import time
 import unittest
 
 from buoy_msgs.interface import Interface
-from buoy_msgs.msg import SCRecord
 from buoy_msgs.srv import PumpCommand, ValveCommand
 
 from buoy_tests.srv import RunServer
@@ -41,7 +40,7 @@ from rclpy.node import Node as ros2Node
 from rclpy.parameter import Parameter
 
 
-def generate_test_description():
+def default_generate_test_description():
 
     # Test fixture
     gazebo_test_fixture = launchNode(
@@ -63,7 +62,7 @@ def generate_test_description():
     ]), locals()
 
 
-class BuoySCPyTests(Interface):
+class BuoySCInterface(Interface):
 
     def __init__(self):
         super().__init__('test_sc_inputs_py', wait_for_services=True)
@@ -87,11 +86,15 @@ class BuoySCPyTests(Interface):
         await self.pump_future_
 
     def send_valve_command(self):
+        return asyncio.run(self._send_valve_command())
+
+    async def _send_valve_command(self):
         request = ValveCommand.Request()
         request.duration_sec = 5
 
         self.valve_future_ = self.valve_client_.call_async(request)
         self.valve_future_.add_done_callback(self.service_response_callback)
+        await self.valve_future_
 
     """  TODO(anyone) put back when TestFixture fixed upstream
     def start(self):
@@ -151,12 +154,12 @@ class TestHelper(ros2Node):
         self.run(0)
 
 
-class BuoySCPyTest(unittest.TestCase):
+class BuoySCPyTests(unittest.TestCase):
 
     def setUp(self):
         rclpy.init()
         self.test_helper = TestHelper()
-        self.node = BuoySCPyTests()
+        self.node = BuoySCInterface()
         self.executor = MultiThreadedExecutor()
         self.executor.add_node(self.node)
         self.executor.add_node(self.test_helper)
@@ -175,122 +178,6 @@ class BuoySCPyTest(unittest.TestCase):
         # TODO(anyone) put back when TestFixture fixed upstream
         # self.node.stop()
 
-    def test_sc_pump_ros(self, gazebo_test_fixture, proc_info):
-        clock = self.node.get_clock()
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, 0)
-        self.assertEqual(self.test_helper.iterations, 0)
-
-        preCmdIterations = 15000
-        statusCheckIterations = 1000
-        postCmdIterations = 20000
-
-        # Run simulation server and allow piston to settle
-        self.test_helper.run(preCmdIterations)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(self.test_helper.iterations, preCmdIterations)
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        # Before Pump command
-        pre_pump_range_finder = self.node.range_finder_
-
-        # Check status field
-        self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_REQUEST,
-                         'SC Valve Request should be FALSE')
-        self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_STATUS,
-                         'SC Valve should be CLOSED')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_REQUEST,
-                         'SC Pump Request should be FALSE')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_STATUS,
-                         'SC Pump should be OFF')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_TOGGLE,
-                         'SC Pump Toggle should be OFF')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_OVER_TEMP)
-        self.assertFalse(self.node.status_ & SCRecord.TETHER_POWER_REQUEST)
-        self.assertTrue(self.node.status_ & SCRecord.TETHER_POWER_STATUS,
-                        'SC Tether Power should be ON')
-        self.assertFalse(self.node.status_ & SCRecord.LR_FAULT)
-        self.assertFalse(self.node.status_ & SCRecord.LR_FAULT)
-
-        # Now send Pump command to run for 20 seconds
-        self.node.send_pump_command()
-        self.assertEqual(self.node.pump_future_.result().result.value,
-                         self.node.pump_future_.result().result.OK)
-
-        # Run to let Pump start
-        self.test_helper.run(500)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(preCmdIterations + 500, self.test_helper.iterations)
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        # Check status field
-        self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_REQUEST,
-                         'SC Valve Request should be FALSE')
-        self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_STATUS,
-                         'SC Valve should be CLOSED')
-        self.assertTrue(self.node.status_ & SCRecord.PUMP_REQUEST,
-                        'SC Pump Request should be TRUE')
-        self.assertTrue(self.node.status_ & SCRecord.PUMP_STATUS,
-                        'SC Pump should be ON')
-        self.assertTrue(self.node.status_ & SCRecord.PUMP_TOGGLE,
-                        'SC Pump Toggle should be ON')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_OVER_TEMP)
-        self.assertFalse(self.node.status_ & SCRecord.TETHER_POWER_REQUEST)
-        self.assertTrue(self.node.status_ & SCRecord.TETHER_POWER_STATUS,
-                        'SC Tether Power should be ON')
-        self.assertFalse(self.node.status_ & SCRecord.LR_FAULT)
-        self.assertFalse(self.node.status_ & SCRecord.LR_FAULT)
-
-        # Check pump toggle
-        for n in range(1, 5):
-            self.test_helper.run(statusCheckIterations)
-            self.assertTrue(self.test_helper.run_status)
-            self.assertEqual(preCmdIterations + 500 + n * statusCheckIterations,
-                             self.test_helper.iterations)
-            time.sleep(0.5)
-            t, _ = clock.now().seconds_nanoseconds()
-            self.assertEqual(t, self.test_helper.iterations // 1000)
-
-            if n % 2 == 1:
-                self.assertFalse(self.node.status_ & SCRecord.PUMP_TOGGLE,
-                                 'SC Pump Toggle should be OFF')
-            else:
-                self.assertTrue(self.node.status_ & SCRecord.PUMP_TOGGLE,
-                                'SC Pump Toggle should be ON')
-
-        # Run to allow Pump command to finish
-        self.test_helper.run(postCmdIterations)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(preCmdIterations + 500 + 4 * statusCheckIterations + postCmdIterations,
-                         self.test_helper.iterations)
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        # Check piston motion
-        post_pump_range_finder = self.node.range_finder_
-
-        self.assertGreater(
-          post_pump_range_finder,
-          pre_pump_range_finder - 2.2 * 0.0254 *
-          20.0 * 1.0 / 60.0,
-          'Piston should retract 2 inches/min for 20 seconds')
-
-        self.assertLess(
-          post_pump_range_finder,
-          pre_pump_range_finder - 1.8 * 0.0254 *
-          20.0 * 1.0 / 60.0,
-          'Piston should retract 2 inches/min for 20 seconds')
-
-        # TODO(anyone) remove once TestFixture is fixed upstream
-        self.test_helper.stop()
-
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=30)
-
 
 @launch_testing.post_shutdown_test()
 class BuoySCPyTestAfterShutdown(unittest.TestCase):
@@ -302,9 +189,12 @@ class BuoySCPyTestAfterShutdown(unittest.TestCase):
             gazebo_test_fixture
         )
 
+    """  TODO(anyone) error when trying this:
+                      AttributeError: 'ProcessStarted' object has no attribute 'returncode'
     def test_exit_code_bridge(self, bridge, proc_info):
         launch_testing.asserts.assertExitCodes(
             proc_info,
             [launch_testing.asserts.EXIT_OK],
             bridge
         )
+    """
