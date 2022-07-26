@@ -51,47 +51,31 @@ class ElectroHydraulicPTOPrivate
 {
 public:
   /// \brief Piston joint entity
-  ignition::gazebo::Entity PrismaticJointEntity;
+  ignition::gazebo::Entity PrismaticJointEntity{ignition::gazebo::kNullEntity};
 
   /// \brief Piston area
-  double PistonArea;
+  double PistonArea{1.0};
 
   /// \brief Rotor Inertia
-  double RotorInertia;
+  double RotorInertia{1.0};
 
   /// \brief Model interface
-  ignition::gazebo::Model model {ignition::gazebo::kNullEntity};
+  ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
 
-  ElectroHydraulicSoln functor;
+  ElectroHydraulicSoln functor{};
 
-  Eigen::VectorXd x;
+  Eigen::VectorXd x{};
 
-  double TargetWindingCurrent;
+  double TargetWindingCurrent{0.0};
 
-  double WindingCurrent;
+  double WindingCurrent{0.0};
 
-  double Ve;
+  double Ve{315.0};
 
-  bool VelMode;
+  bool VelMode{false};
 
   /// \brief Ignition communication node.
   ignition::transport::Node node;
-
-  /// \brief Callback for User Commanded Current subscription
-  /// \param[in] _msg Current
-  void OnUserCmdCurr(const ignition::msgs::Double & _msg);
-
-  /// \brief Callback for BiasCurrent subscription
-  /// \param[in] _msg Current
-  void OnUserBiasCurr(const ignition::msgs::Double & _msg);
-
-  /// \brief Callback for ScaleFactor subscription
-  /// \param[in] _msg Current
-  void OnScale(const ignition::msgs::Double & _msg);
-
-  /// \brief Callback for RetractFactor subscription
-  /// \param[in] _msg Current
-  void OnRetract(const ignition::msgs::Double & _msg);
 };
 
 //////////////////////////////////////////////////
@@ -143,95 +127,19 @@ void ElectroHydraulicPTO::Configure(
       "The ElectroHydraulicPTO may not influence this joint.\n";
     return;
   } else {
-    this->dataPtr->PistonArea = SdfParamDouble(_sdf, "PistonArea", 1.);
+    this->dataPtr->PistonArea = SdfParamDouble(_sdf, "PistonArea", this->dataPtr->PistonArea);
   }
 
   // Default to Parker F11-5  0.30in^3/rev
-  this->dataPtr->functor.HydMotorDisp = SdfParamDouble(_sdf, "HydMotorDisp", 0.30);
-  this->dataPtr->RotorInertia = SdfParamDouble(_sdf, "RotorInertia", 1);
+  static constexpr double PARKER_F11_5 = 0.30;  // in^3/rev
+  this->dataPtr->functor.HydMotorDisp = SdfParamDouble(_sdf, "HydMotorDisp", PARKER_F11_5);
+  this->dataPtr->RotorInertia = SdfParamDouble(_sdf, "RotorInertia", this->dataPtr->RotorInertia);
 
   if (_sdf->HasElement("VelMode")) {
     this->dataPtr->VelMode = true;
-  } else {
-    this->dataPtr->VelMode = false;
   }
 
-  this->dataPtr->Ve = 315;
-
-
-  // Set Default Damping Relation
-  {
-    std::vector<double> P {0, 2800, 3000};
-    std::vector<double> hyd_eff_v {1, 1, 0};
-    this->dataPtr->functor.reliefValve.SetData(P.size(), P.data(), hyd_eff_v.data());
-  }
-
-
-  this->dataPtr->x.setConstant(2, 0.);
-
-  // Subscribe to commands
-  std::string topic = ignition::transport::TopicUtils::AsValidTopic(
-    "/model/" +
-    this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
-    "/UserCommandedCurr");
-  if (topic.empty()) {
-    std::cout << "###Failed to create topic for joint [" << PrismaticJointName <<
-      "]" << std::endl;
-    return;
-  }
-  this->dataPtr->node.Subscribe(
-    topic, &ElectroHydraulicPTOPrivate::OnUserCmdCurr,
-    this->dataPtr.get());
-  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic <<
-    "]" << std::endl;
-
-
-  topic = ignition::transport::TopicUtils::AsValidTopic(
-    "/model/" +
-    this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
-    "/BiasCurrent");
-  if (topic.empty()) {
-    std::cout << "###Failed to create topic for joint [" << PrismaticJointName <<
-      "]" << std::endl;
-    return;
-  }
-  this->dataPtr->node.Subscribe(
-    topic, &ElectroHydraulicPTOPrivate::OnUserBiasCurr,
-    this->dataPtr.get());
-  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic <<
-    "]" << std::endl;
-
-
-  topic = ignition::transport::TopicUtils::AsValidTopic(
-    "/model/" +
-    this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
-    "/ScaleFactor");
-  if (topic.empty()) {
-    std::cout << "###Failed to create topic for joint [" << PrismaticJointName <<
-      "]" << std::endl;
-    return;
-  }
-  this->dataPtr->node.Subscribe(
-    topic, &ElectroHydraulicPTOPrivate::OnScale,
-    this->dataPtr.get());
-  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic <<
-    "]" << std::endl;
-
-
-  topic = ignition::transport::TopicUtils::AsValidTopic(
-    "/model/" +
-    this->dataPtr->model.Name(_ecm) + "/joint/" + PrismaticJointName +
-    "/RetractFactor");
-  if (topic.empty()) {
-    std::cout << "###Failed to create topic for joint [" << PrismaticJointName <<
-      "]" << std::endl;
-    return;
-  }
-  this->dataPtr->node.Subscribe(
-    topic, &ElectroHydraulicPTOPrivate::OnRetract,
-    this->dataPtr.get());
-  std::cout << "###ElectroHydraulicPTO subscribing to Double messages on [" << topic <<
-    "]" << std::endl;
+  this->dataPtr->x.setConstant(2.0, 0.0);
 
 
   std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
@@ -298,7 +206,6 @@ void ElectroHydraulicPTO::Configure(
   }
 }
 
-
 //////////////////////////////////////////////////
 void ElectroHydraulicPTO::PreUpdate(
   const ignition::gazebo::UpdateInfo & _info,
@@ -342,15 +249,7 @@ void ElectroHydraulicPTO::PreUpdate(
   // TODO(anyone): Figure out if (0) for the index is always correct,
   // some OR code has a process of finding the index for this argument.
   double xdot = prismaticJointVelComp->Data().at(0);
-  this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;    // inch^3/second
-
-  // Retrieve Piston position and simulation time, and provide as input to hydraulic solver.
-  // double x = prismaticJointVelComp->Data().at(0);
-  // TODO(anyone): Figure out if (0) for the index is always correct,
-  // some OR code has a process of finding the index for this argument.
-  this->dataPtr->functor.I_Wind.PistonPos = 12.12;    // x*39.4;  // inch^3/second
-  // Set Sim time in IWind so it knows when to timeout user and bias current commands.
-  this->dataPtr->functor.I_Wind.SimTime = SimTime;
+  this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
@@ -385,6 +284,14 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->functor.I_Wind.RetractFactor = DEFAULT_RETRACT_FACTOR;
   }
 
+  this->dataPtr->functor.I_Wind.current_override_ = pto_state.torque_command;
+  if (pto_state.torque_command) {
+    this->dataPtr->functor.I_Wind.UserCommandedCurrent = pto_state.torque_command.value();
+  } else {
+    this->dataPtr->functor.I_Wind.UserCommandedCurrent = 0.0;
+  }
+
+  this->dataPtr->functor.I_Wind.bias_override_ = pto_state.bias_current_command;
   if (pto_state.bias_current_command) {
     this->dataPtr->functor.I_Wind.BiasCurrent = pto_state.bias_current_command.value();
   } else {
@@ -392,23 +299,21 @@ void ElectroHydraulicPTO::PreUpdate(
   }
 
   // Initial Guess based on perfect efficiency
-  // this->dataPtr->x[0] = 60*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
-  // this->dataPtr->x[1] = this->dataPtr->functor.T_applied/(this->dataPtr->functor.HydMotorDisp);
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
-  int info = solver.solveNumericalDiff(this->dataPtr->x);
-  // info = solver.hybrd1(this->dataPtr->x);
+  const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
   this->dataPtr->functor.I_Wind.UserCommandMutex.unlock();
 
 
   // Solve Electrical
-  double N = this->dataPtr->x[0U];
+  // TODO(hamilton) temporary fix for NaN situation. Should make this more robust
+  // or at least parameterized.
+  // Problem: If I repeatedly smash the PC with a -30 Amp winding current command, this solution
+  // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
+  // to the max absolute rpm from the winding current interpolation
+  // (no extrapolation, default torque controller).
+  const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
   double deltaP = this->dataPtr->x[1U];
-  if (pto_state.torque_command) {
-    this->dataPtr->TargetWindingCurrent = pto_state.torque_command.value();
-  } else {
-    // Shame to have to re-compute this, but small effort...
-    this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind(N);
-  }
+  this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;
   unsigned int seed{1U};
   this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent + 0.001 *
     (rand_r(&seed) % 200 - 100);
@@ -417,7 +322,7 @@ void ElectroHydraulicPTO::PreUpdate(
   const double ShaftPower = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
     this->dataPtr->WindingCurrent * 2.0 * M_PI * N / 60.0;  // Watts
   const double P = eff_e * ShaftPower;
-  static const double Ri = 8.0;      // Ohms
+  static const double Ri = 8.0;  // Ohms
 
   const double a = (1.0 / Ri);
   const double b = -this->dataPtr->Ve / Ri;
@@ -431,7 +336,7 @@ void ElectroHydraulicPTO::PreUpdate(
   double I_Batt = (VBus - this->dataPtr->Ve) / Ri;
   const double I_BattMax = 7.0;
 
-  if (I_Batt > I_BattMax) {    // Need to limit charge current
+  if (I_Batt > I_BattMax) {  // Need to limit charge current
     I_Batt = I_BattMax;
     VBus = this->dataPtr->Ve + Ri * I_BattMax;
   }
@@ -454,12 +359,6 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->PrismaticJointEntity,
     pto_state);
 
-
-  // Report results
-  // std::cout << SimTime << "  " << "  " << xdot / .0254 << "    " << N << "   "
-  //           << deltaP << "   " << VBus << "   " << this->dataPtr->TargetWindingCurrent
-  //           << "  " << this->dataPtr->WindingCurrent << "  "  << I_Batt << "   "
-  //           << I_Load << std::endl;
 
   auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
@@ -546,35 +445,11 @@ void ElectroHydraulicPTO::PreUpdate(
     if (forceComp == nullptr) {
       _ecm.CreateComponent(
         this->dataPtr->PrismaticJointEntity,
-        ignition::gazebo::components::JointForceCmd({piston_force}));    // Create this iteration
+        ignition::gazebo::components::JointForceCmd({piston_force}));  // Create this iteration
     } else {
-      forceComp->Data()[0] += piston_force;    // Add force to existing forces.
+      forceComp->Data()[0] += piston_force;  // Add force to existing forces.
     }
   }
-}
-
-//////////////////////////////////////////////////
-void ElectroHydraulicPTOPrivate::OnUserCmdCurr(const ignition::msgs::Double & _msg)
-{
-  this->functor.I_Wind.SetUserCommandedCurrent(_msg.data());
-}
-
-//////////////////////////////////////////////////
-void ElectroHydraulicPTOPrivate::OnUserBiasCurr(const ignition::msgs::Double & _msg)
-{
-  this->functor.I_Wind.SetBiasCurrent(_msg.data());
-}
-
-//////////////////////////////////////////////////
-void ElectroHydraulicPTOPrivate::OnScale(const ignition::msgs::Double & _msg)
-{
-  this->functor.I_Wind.SetScaleFactor(_msg.data());
-}
-
-//////////////////////////////////////////////////
-void ElectroHydraulicPTOPrivate::OnRetract(const ignition::msgs::Double & _msg)
-{
-  this->functor.I_Wind.SetRetractFactor(_msg.data());
 }
 }  // namespace buoy_gazebo
 
