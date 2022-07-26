@@ -23,8 +23,10 @@
 #include <ignition/gazebo/TestFixture.hh>
 #include <ignition/transport/Node.hh>
 
+#include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 
 
 class NoInputsROSNode final : public buoy_msgs::Interface<NoInputsROSNode>
@@ -143,6 +145,7 @@ TEST(BuoyTests, NoInputsROS)
   EXPECT_LT(node.rpm_, 1000.0F);
   EXPECT_LT(node.wcurrent_, 0.1F);
   rclcpp::Clock::SharedPtr clock = node.get_clock();
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
   node.stop();
 
