@@ -94,62 +94,6 @@ public:
     stop_ = true;
   }
 
-  void send_pc_wind_curr_command(const float & wind_curr)
-  {
-    auto request = std::make_shared<buoy_msgs::srv::PCWindCurrCommand::Request>();
-    request->wind_curr = wind_curr;
-
-    PCWindCurrServiceCallback pc_wind_curr_callback =
-      default_service_response_callback<PCWindCurrServiceCallback,
-        PCWindCurrServiceResponseFuture>();
-
-    pc_wind_curr_response_future_ = pc_wind_curr_client_->async_send_request(
-      request,
-      pc_wind_curr_callback);
-  }
-
-  void send_pc_bias_curr_command(const float & bias_curr)
-  {
-    auto request = std::make_shared<buoy_msgs::srv::PCBiasCurrCommand::Request>();
-    request->bias_curr = bias_curr;
-
-    PCBiasCurrServiceCallback pc_bias_curr_callback =
-      default_service_response_callback<PCBiasCurrServiceCallback,
-        PCBiasCurrServiceResponseFuture>();
-
-    pc_bias_curr_response_future_ = pc_bias_curr_client_->async_send_request(
-      request,
-      pc_bias_curr_callback);
-  }
-
-  void send_pc_scale_command(const float & scale)
-  {
-    auto request = std::make_shared<buoy_msgs::srv::PCScaleCommand::Request>();
-    request->scale = scale;
-
-    PCScaleServiceCallback pc_scale_callback =
-      default_service_response_callback<PCScaleServiceCallback,
-        PCScaleServiceResponseFuture>();
-
-    pc_scale_response_future_ = pc_scale_client_->async_send_request(
-      request,
-      pc_scale_callback);
-  }
-
-  void send_pc_retract_command(const float & retract)
-  {
-    auto request = std::make_shared<buoy_msgs::srv::PCRetractCommand::Request>();
-    request->retract = retract;
-
-    PCRetractServiceCallback pc_retract_callback =
-      default_service_response_callback<PCRetractServiceCallback,
-        PCRetractServiceResponseFuture>();
-
-    pc_retract_response_future_ = pc_retract_client_->async_send_request(
-      request,
-      pc_retract_callback);
-  }
-
 private:
   friend CRTP;  // syntactic sugar (see https://stackoverflow.com/a/58435857/9686600)
 
@@ -280,7 +224,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_NE(node->wind_curr_, wc);
 
   // Now send wind curr command
-  node->send_pc_wind_curr_command(wc);
+  node->pc_wind_curr_response_future_ = node->send_pc_wind_curr_command(wc);
   ASSERT_TRUE(node->pc_wind_curr_response_future_.valid());
   node->pc_wind_curr_response_future_.wait();
   EXPECT_EQ(
@@ -305,7 +249,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_NE(node->scale_, scale);
 
   // Now send scale command
-  node->send_pc_scale_command(scale);
+  node->pc_scale_response_future_ = node->send_pc_scale_command(scale);
   ASSERT_TRUE(node->pc_scale_response_future_.valid());
   node->pc_scale_response_future_.wait();
   EXPECT_EQ(
@@ -330,7 +274,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_NE(node->retract_, retract);
 
   // Now send retract command
-  node->send_pc_retract_command(retract);
+  node->pc_retract_response_future_ = node->send_pc_retract_command(retract);
   ASSERT_TRUE(node->pc_retract_response_future_.valid());
   node->pc_retract_response_future_.wait();
   EXPECT_EQ(
@@ -378,7 +322,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_NE(node->bias_curr_, bc);
 
   // Now send bias curr command
-  node->send_pc_bias_curr_command(bc);
+  node->pc_bias_curr_response_future_ = node->send_pc_bias_curr_command(bc);
   ASSERT_TRUE(node->pc_bias_curr_response_future_.valid());
   node->pc_bias_curr_response_future_.wait();
   EXPECT_EQ(
