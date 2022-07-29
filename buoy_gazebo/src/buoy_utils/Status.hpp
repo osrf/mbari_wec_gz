@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef BUOY_UTILS__STATUSBITS_HPP_
-#define BUOY_UTILS__STATUSBITS_HPP_
+#ifndef BUOY_UTILS__STATUS_HPP_
+#define BUOY_UTILS__STATUS_HPP_
 
 
 namespace buoy_utils
 {
-template <typename T>
+template<typename T>
 union StatusUnion {
   uint16_t status{0U};
   T bits;
 };
 
-template <typename T>
+template<typename T>
 struct Status
 {
   StatusUnion<T> status;
@@ -40,6 +40,6 @@ struct Status
   }
 };
 
-}  // buoy_utils
+}  // namespace buoy_utils
 
-#endif  // BUOY_UTILS__STATUSBITS_HPP_
+#endif  // BUOY_UTILS__STATUS_HPP_
