@@ -73,7 +73,7 @@ public:
   JustInterp::TableInterpolator<double> hyd_eff_m;
   JustInterp::LinearInterpolator<double> reliefValve;
   // Class that computes Target Winding Current based on RPM, Scale Factor, limits, etc..
-  WindingCurrentTarget I_Wind;
+  mutable WindingCurrentTarget I_Wind;
   double Q;
   /// \brief Pump/Motor Displacement per Revolution
   double HydMotorDisp;
@@ -121,7 +121,7 @@ public:
     const double eff_v = this->hyd_eff_v(fabs(x[1]), fabs(rpm));
 
     // 1.375 fudge factor required to match experiments, not yet sure why.
-    const double T_applied = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(x[0]);
+    const double T_applied = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(rpm);
 
     static constexpr double Pset = 2925;
     double QQ = this->Q;

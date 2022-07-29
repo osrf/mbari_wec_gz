@@ -29,6 +29,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 
 
 // NOLINTNEXTLINE
@@ -41,9 +42,19 @@ class PCROSNode final : public buoy_msgs::Interface<PCROSNode>
 public:
   rclcpp::Clock::SharedPtr clock_{nullptr};
 
+  float rpm_{0.0};
   float wind_curr_{0.0F};
+  float bias_curr_{0.0F};
+  float scale_{1.0};
+  float retract_{0.6};
+  float range_finder_{0.0F};
+
+  PBTorqueControlPolicy torque_policy_;
 
   PCWindCurrServiceResponseFuture pc_wind_curr_response_future_;
+  PCBiasCurrServiceResponseFuture pc_bias_curr_response_future_;
+  PCScaleServiceResponseFuture pc_scale_response_future_;
+  PCRetractServiceResponseFuture pc_retract_response_future_;
 
   explicit PCROSNode(const std::string & node_name)
   : buoy_msgs::Interface<PCROSNode>(node_name)
@@ -88,9 +99,55 @@ public:
     auto request = std::make_shared<buoy_msgs::srv::PCWindCurrCommand::Request>();
     request->wind_curr = wind_curr;
 
+    PCWindCurrServiceCallback pc_wind_curr_callback =
+      default_service_response_callback<PCWindCurrServiceCallback,
+        PCWindCurrServiceResponseFuture>();
+
     pc_wind_curr_response_future_ = pc_wind_curr_client_->async_send_request(
       request,
       pc_wind_curr_callback);
+  }
+
+  void send_pc_bias_curr_command(const float & bias_curr)
+  {
+    auto request = std::make_shared<buoy_msgs::srv::PCBiasCurrCommand::Request>();
+    request->bias_curr = bias_curr;
+
+    PCBiasCurrServiceCallback pc_bias_curr_callback =
+      default_service_response_callback<PCBiasCurrServiceCallback,
+        PCBiasCurrServiceResponseFuture>();
+
+    pc_bias_curr_response_future_ = pc_bias_curr_client_->async_send_request(
+      request,
+      pc_bias_curr_callback);
+  }
+
+  void send_pc_scale_command(const float & scale)
+  {
+    auto request = std::make_shared<buoy_msgs::srv::PCScaleCommand::Request>();
+    request->scale = scale;
+
+    PCScaleServiceCallback pc_scale_callback =
+      default_service_response_callback<PCScaleServiceCallback,
+        PCScaleServiceResponseFuture>();
+
+    pc_scale_response_future_ = pc_scale_client_->async_send_request(
+      request,
+      pc_scale_callback);
+  }
+
+  void send_pc_retract_command(const float & retract)
+  {
+    auto request = std::make_shared<buoy_msgs::srv::PCRetractCommand::Request>();
+    request->retract = retract;
+
+    PCRetractServiceCallback pc_retract_callback =
+      default_service_response_callback<PCRetractServiceCallback,
+        PCRetractServiceResponseFuture>();
+
+    pc_retract_response_future_ = pc_retract_client_->async_send_request(
+      request,
+      pc_retract_callback);
   }
 
 private:
@@ -98,7 +155,16 @@ private:
 
   void power_callback(const buoy_msgs::msg::PCRecord & data)
   {
+    rpm_ = data.rpm;
     wind_curr_ = data.wcurrent;
+    bias_curr_ = data.bias_current;
+    scale_ = data.scale;
+    retract_ = data.retract;
+  }
+
+  void spring_callback(const buoy_msgs::msg::SCRecord & data)
+  {
+    range_finder_ = data.range_finder;
   }
 
   std::thread thread_executor_spin_;
@@ -170,17 +236,46 @@ protected:
 };
 
 //////////////////////////////////////////////////
-TEST_F(BuoyPCTests, PCWindCurrROS)
+TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 {
-  int preCmdIterations{15000}, feedbackCheckIterations{1000};
+  int preCmdIterations{15000}, feedbackCheckIterations{100};
 
-  // Run simulation server and wait for piston to settle
-  fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
-  EXPECT_EQ(preCmdIterations, iterations);
+  EXPECT_EQ(0U, iterations);
+
+  std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
 
+  ///////////////////////////////////////////
+  // Check Default Winding Current Damping
+  fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
+  EXPECT_EQ(feedbackCheckIterations, iterations);
+
+  std::this_thread::sleep_for(500ms);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
+
+  double expected_wind_curr =
+    node->torque_policy_.WindingCurrentTarget(
+      node->rpm_,
+      node->scale_,
+      node->retract_) + node->bias_curr_;
+  EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1);
+  EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1);
+
+  // Run simulation server and wait for piston to settle
+  fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
+  EXPECT_EQ(preCmdIterations + feedbackCheckIterations, iterations);
+
+  std::this_thread::sleep_for(500ms);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
+
+  ///////////////////////////////////////////
+  // Winding Current
   const float wc{12.345F};
   EXPECT_NE(node->wind_curr_, wc);
 
@@ -194,7 +289,9 @@ TEST_F(BuoyPCTests, PCWindCurrROS)
 
   // Run a bit for wind curr command to process
   fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
-  EXPECT_EQ(preCmdIterations + feedbackCheckIterations, iterations);
+  EXPECT_EQ(preCmdIterations + 2 * feedbackCheckIterations, iterations);
+
+  std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
@@ -202,13 +299,130 @@ TEST_F(BuoyPCTests, PCWindCurrROS)
   EXPECT_GT(node->wind_curr_, wc - 0.1F);
   EXPECT_LT(node->wind_curr_, wc + 0.1F);
 
-  // Run to allow ___ command to finish
+  ///////////////////////////////////////////
+  // Scale
+  const float scale{1.23F};
+  EXPECT_NE(node->scale_, scale);
+
+  // Now send scale command
+  node->send_pc_scale_command(scale);
+  ASSERT_TRUE(node->pc_scale_response_future_.valid());
+  node->pc_scale_response_future_.wait();
+  EXPECT_EQ(
+    node->pc_scale_response_future_.get()->result.value,
+    node->pc_scale_response_future_.get()->result.OK);
+
+  // Run a bit for scale command to process
   fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
-  EXPECT_EQ(preCmdIterations + 2 * feedbackCheckIterations, iterations);
+  EXPECT_EQ(preCmdIterations + 3 * feedbackCheckIterations, iterations);
+
+  std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
 
+  EXPECT_GT(node->scale_, scale - 0.01F);
+  EXPECT_LT(node->scale_, scale + 0.01F);
+
+  ///////////////////////////////////////////
+  // Retract
+  const float retract{0.75F};
+  EXPECT_NE(node->retract_, retract);
+
+  // Now send retract command
+  node->send_pc_retract_command(retract);
+  ASSERT_TRUE(node->pc_retract_response_future_.valid());
+  node->pc_retract_response_future_.wait();
+  EXPECT_EQ(
+    node->pc_retract_response_future_.get()->result.value,
+    node->pc_retract_response_future_.get()->result.OK);
+
+  // Run a bit for retract command to process
+  fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
+  EXPECT_EQ(preCmdIterations + 4 * feedbackCheckIterations, iterations);
+
+  std::this_thread::sleep_for(500ms);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
+
+  EXPECT_GT(node->retract_, retract - 0.01F);
+  EXPECT_LT(node->retract_, retract + 0.01F);
+
+  ///////////////////////////////////////////////////////
+  // Check Return to Default Winding Current Damping
+  int torque_timeout_iterations{2000};
+  fixture->Server()->Run(
+    true /*blocking*/,
+    torque_timeout_iterations - 2 * feedbackCheckIterations, false /*paused*/);
+  EXPECT_EQ(
+    preCmdIterations + 2 * feedbackCheckIterations + torque_timeout_iterations,
+    iterations);
+
+  std::this_thread::sleep_for(500ms);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
+
+  expected_wind_curr =
+    node->torque_policy_.WindingCurrentTarget(
+      node->rpm_,
+      node->scale_,
+      node->retract_) + node->bias_curr_;
+  EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1);
+  EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1);
+
+  ///////////////////////////////////////////
+  // Bias Current
+  const float bc{7.89F};
+  EXPECT_NE(node->bias_curr_, bc);
+
+  // Now send bias curr command
+  node->send_pc_bias_curr_command(bc);
+  ASSERT_TRUE(node->pc_bias_curr_response_future_.valid());
+  node->pc_bias_curr_response_future_.wait();
+  EXPECT_EQ(
+    node->pc_bias_curr_response_future_.get()->result.value,
+    node->pc_bias_curr_response_future_.get()->result.OK);
+
+  // Run a bit for bias curr command to move piston
+  int bias_curr_iterations{9000}, bias_curr_timeout_iterations{10000};
+  fixture->Server()->Run(true /*blocking*/, bias_curr_iterations, false /*paused*/);
+  EXPECT_EQ(
+    preCmdIterations + 2 * feedbackCheckIterations +
+      torque_timeout_iterations + bias_curr_iterations,
+    iterations);
+
+  std::this_thread::sleep_for(500ms);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
+
+  EXPECT_GT(node->bias_curr_, bc - 0.1F);
+  EXPECT_LT(node->bias_curr_, bc + 0.1F);
+
+  EXPECT_LT(node->range_finder_, 0.5);  // meters
+
+  // Let bias curr command timeout
+  fixture->Server()->Run(
+    true /*blocking*/,
+    bias_curr_timeout_iterations - bias_curr_iterations + feedbackCheckIterations,
+    false /*paused*/);
+  EXPECT_EQ(
+    preCmdIterations + 3 * feedbackCheckIterations +
+      torque_timeout_iterations + bias_curr_timeout_iterations,
+    iterations);
+
+  std::this_thread::sleep_for(500ms);
+  EXPECT_EQ(
+    static_cast<int>(node->clock_->now().seconds()),
+    static_cast<int>(iterations / 1000.0F));
+
+  // check default bias curr
+  EXPECT_GT(node->bias_curr_, -0.1F);
+  EXPECT_LT(node->bias_curr_, 0.1F);
+
+  ///////////////////////////////////////////
   // Stop spinning node
   node->stop();
 

@@ -55,7 +55,7 @@ public:
   double RetractFactor;
   double UserCommandedCurrent{0.0};
   double BiasCurrent;
-  double I{0.0};
+  mutable double I{0.0};
   bool current_override_{false};
   bool bias_override_{false};
 
@@ -80,7 +80,6 @@ public:
 
   double operator()(const double & N) const
   {
-    double I;
     if (current_override_) {
       I = UserCommandedCurrent;
     } else {
