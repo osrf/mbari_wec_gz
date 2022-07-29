@@ -139,7 +139,7 @@ TEST(BuoyTests, NoInputsROS)
   Finalize();
 
   // Run simulation server
-  int targetIterations{5000};
+  int targetIterations{15000};
   fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
   EXPECT_LT(node.rpm_, 1000.0F);

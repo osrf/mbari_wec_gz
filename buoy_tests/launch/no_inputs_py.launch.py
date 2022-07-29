@@ -80,11 +80,11 @@ class NoInputsGazeboPyTest(unittest.TestCase):
         rclpy.spin_once(self.node)
         clock = self.node.get_clock()
         t, _ = clock.now().seconds_nanoseconds()
-        while rclpy.ok() and t < 5:
+        while rclpy.ok() and t < 15:
             rclpy.spin_once(self.node)
             t, _ = clock.now().seconds_nanoseconds()
         time.sleep(0.5)
-        self.assertEqual(t, 5)
+        self.assertEqual(t, 15)
         self.assertLess(self.node.rpm, 1000.0)
         self.assertLess(self.node.wcurrent, 0.1)
         proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=200)

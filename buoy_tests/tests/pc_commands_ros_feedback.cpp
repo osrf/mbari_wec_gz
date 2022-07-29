@@ -259,9 +259,9 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   double expected_wind_curr =
     node->torque_policy_.WindingCurrentTarget(
-      node->rpm_,
-      node->scale_,
-      node->retract_) + node->bias_curr_;
+    node->rpm_,
+    node->scale_,
+    node->retract_) + node->bias_curr_;
   EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1);
   EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1);
 
@@ -366,9 +366,9 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   expected_wind_curr =
     node->torque_policy_.WindingCurrentTarget(
-      node->rpm_,
-      node->scale_,
-      node->retract_) + node->bias_curr_;
+    node->rpm_,
+    node->scale_,
+    node->retract_) + node->bias_curr_;
   EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1);
   EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1);
 
@@ -390,7 +390,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   fixture->Server()->Run(true /*blocking*/, bias_curr_iterations, false /*paused*/);
   EXPECT_EQ(
     preCmdIterations + 2 * feedbackCheckIterations +
-      torque_timeout_iterations + bias_curr_iterations,
+    torque_timeout_iterations + bias_curr_iterations,
     iterations);
 
   std::this_thread::sleep_for(500ms);
@@ -410,7 +410,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     false /*paused*/);
   EXPECT_EQ(
     preCmdIterations + 3 * feedbackCheckIterations +
-      torque_timeout_iterations + bias_curr_timeout_iterations,
+    torque_timeout_iterations + bias_curr_timeout_iterations,
     iterations);
 
   std::this_thread::sleep_for(500ms);

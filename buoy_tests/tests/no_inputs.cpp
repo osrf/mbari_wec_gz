@@ -77,7 +77,7 @@ TEST(BuoyTests, NoInputs)
   Finalize();
 
   // Run simulation server
-  int targetIterations{5000};
+  int targetIterations{15000};
   fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
   // Sanity check that the test ran
