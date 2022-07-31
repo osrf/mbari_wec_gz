@@ -18,12 +18,14 @@
 #include <vector>
 
 #include "FS_Hydrodynamics.hpp"
-#include "gnuplot-iostream.h"
 #include "mlinterp.hpp"
 #include <Eigen/Dense>
 
 #include "IncidentWave.hpp"
 
+#include <cmath>
+//#include <boost/tuple/tuple.hpp>
+#include "gnuplot-iostream.h"
 
 using namespace Eigen;
 using namespace mlinterp;
@@ -35,7 +37,7 @@ int CountLines(std::string filenm)
   std::ifstream ifile(filenm);
 
   if (ifile.is_open())
-  {
+{  
     while (ifile.peek() != EOF)
     {
       std::getline(ifile, line);
@@ -84,12 +86,27 @@ void FS_HydroDynamics::ReadWAMITData_FD(std::string filenm)
     }
     int coeffPerFreqs = n_lines1 / n_freqs;
 
-    this->fd_am_dmp_tps = VectorXd(n_freqs);
-    this->fd_am_dmp_omega = VectorXd(n_freqs);
+    this->fd_am_dmp_tps = VectorXd(n_freqs-1);  //Infinite Frequency coefficents stored independelty, assumpting here is all .1 files have an infinite frequency field, may or may not be true...
+    this->fd_am_dmp_omega = VectorXd(n_freqs-1);
+    int nn = 0;
     for (n = 0; n < n_freqs; n++)
     {
-      this->fd_am_dmp_tps(n) = s1(n * coeffPerFreqs, 0);
-      this->fd_am_dmp_omega(n) = M_PI * 2 / this->fd_am_dmp_tps(n);
+      if(s1(n*coeffPerFreqs, 0) == 0.0) //Infinite frequency case
+      {
+      for (int k = 0; k < coeffPerFreqs; k++)
+        {
+        int i = n * coeffPerFreqs + k;
+        this->fd_X_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
+        this->fd_Y_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) = 0; //m_rho * fd_am_dmp_omega(n) * s1(i, 4);
+        }
+      }
+      else
+      {
+      this->fd_am_dmp_tps(nn) = s1(n * coeffPerFreqs, 0);
+      if(this->fd_am_dmp_tps(nn) < 0) //Negative period indicates zero frequency
+        this->fd_am_dmp_omega(nn) = 0.0;
+      else
+        this->fd_am_dmp_omega(nn) = M_PI * 2 / this->fd_am_dmp_tps(nn);
       Eigen::Matrix<double, 6, 6> X;
       Eigen::Matrix<double, 6, 6> Y;
       X.Constant(0.0);
@@ -98,10 +115,12 @@ void FS_HydroDynamics::ReadWAMITData_FD(std::string filenm)
       {
         int i = n * coeffPerFreqs + k;
         X(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
-        Y(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * fd_am_dmp_omega(n) * s1(i, 4);
+        Y(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * fd_am_dmp_omega(nn) * s1(i, 4);
       }
       this->fd_X.push_back(X);
       this->fd_Y.push_back(Y);
+       nn++;
+      }
     }
   }
   else
@@ -247,20 +266,110 @@ void FS_HydroDynamics::ReadWAMITData_TD(std::string filenm)
 
 void FS_HydroDynamics::Plot_FD_Coeffs()
 {
-  std::vector<double> pts_x;
-  std::vector<double> pts_y;
-  // for(int i = 0;i<fd_am_dmp_omega.size();i++)
-  // if(fd_am_dmp_omega(i) > 0)
-  //  {
-  //  pts_x.push_back(fd_am_dmp_omega(i)/(2*M_PI));
-  //  auto foo = fd_X[i];
-  //  pts_y.push_back(foo(i,i));
-  //  }
-  // Gnuplot gp; //gp << "plot '-' with vectors title 'pts_x''\n";
-  // //gp.send1d(pts_x); } //This member function sets up the data structures
-  // that later allow efficient numerical integration of the convolution
-  // integrals. To do this the impulse response
-  // functions read in are interpolated to a specified time-base
+  std::vector<double> pts_omega;
+  for(int k = 0;k<fd_am_dmp_omega.size();k++){ //k = 0 is zero freq, k = 1 is inf freq
+      pts_omega.push_back(fd_am_dmp_omega(k));
+  }
+ 
+ for(int i = 0; i<6; i++) 
+   for(int j = i; j<6; j++) 
+   {
+  std::vector<double> pts_am,pts_am_sym;
+  std::vector<double> pts_dmp,pts_dmp_sym;
+  double am_norm = 0;
+  double dmp_norm = 0;
+  for(int k = 0;k<fd_am_dmp_tps.size();k++)
+  {
+    pts_am.push_back(fd_X[k](i,j));
+    pts_am_sym.push_back(fd_X[k](j,i));
+    am_norm += fabs(fd_X[k](i,j))+fabs(fd_X[k](j,i));
+    pts_dmp.push_back(fd_Y[k](i,j));
+    pts_dmp_sym.push_back(fd_Y[k](j,i));
+    dmp_norm += fabs(fd_Y[k](i,j))+fabs(fd_Y[k](j,i));
+     }
+   if((am_norm > 1e-6) || (dmp_norm > 1e-6))
+   {
+   Gnuplot am_gp;
+   Gnuplot dmp_gp; 
+   Gnuplot gp;
+
+   if(i==j) 
+   {
+     gp << "set term X11 title 'Added Mass and Damping (" << i+1 << "," << j+1 << ")\n";
+     gp << "set multiplot layout 2,1 rowsfirst \n";
+     gp << "set grid\n";
+     gp << "plot '-' u 1:2 with lines title 'am(" << i+1 << "," << j+1 << ") inf\\_freq\\_am = " << std::fixed << std::setprecision(2) << this->fd_X_inf_freq(i,j)  <<  "'\n";
+     gp.send1d(boost::make_tuple(pts_omega, pts_am));
+     gp << "set xlabel 'rad/sec'\n";
+     gp << "set ylabel 'kg'\n";
+
+     gp << "plot '-' u 1:2 with lines title 'dmp(" << i+1 << "," << j+1 << ") inf\\_freq\\_dmp = " << std::fixed << std::setprecision(2) << this->fd_Y_inf_freq(i,j)  <<  "'\n";
+     gp.send1d(boost::make_tuple(pts_omega, pts_dmp));
+     gp << "set xlabel 'rad/sec'\n";
+     gp << "set ylabel 'kg'\n";
+   }
+else{
+     gp << "set term X11 title 'Added Mass and Damping (" << i+1 << "," << j+1 << ") and (" << j+1 << "," << i+1 <<")\n";
+     gp << "set multiplot layout 2,1 rowsfirst \n";
+     gp << "set grid\n";
+     gp << "plot '-' w l title 'am(" << i+1 << "," << j+1 << ") inf\\_freq\\_am = " << std::fixed << std::setprecision(2) << this->fd_X_inf_freq(i,j)  <<
+     "','-' w l title 'am(" << j+1 << "," << i+1 << ") inf\\_freq\\_am = " << std::fixed << std::setprecision(2) << this->fd_X_inf_freq(j,i)  <<  "'\n";
+     gp.send1d(boost::make_tuple(pts_omega, pts_am));
+     gp.send1d(boost::make_tuple(pts_omega, pts_am_sym));
+     gp << "set xlabel 'rad/sec'\n";
+     gp << "set ylabel 'kg'\n";
+
+     gp << "plot '-' w l title 'dmp(" << i+1 << "," << j+1 << ") inf\\_freq\\_dmp = " << std::fixed << std::setprecision(2) << this->fd_Y_inf_freq(i,j)  <<
+     "','-' w l title 'dmp(" << j+1 << "," << i+1 << ") inf\\_freq\\_dmp = " << std::fixed << std::setprecision(2) << this->fd_Y_inf_freq(j,i)  <<  "'\n";
+     gp.send1d(boost::make_tuple(pts_omega, pts_dmp));
+     gp.send1d(boost::make_tuple(pts_omega, pts_dmp_sym));
+     gp << "set xlabel 'rad/sec'\n";
+     gp << "set ylabel 'kg'\n";
+}
+   }
+}
+}
+
+
+
+void FS_HydroDynamics::Plot_TD_Coeffs()
+{
+ for(int i = 0; i<6; i++) 
+   for(int j = i; j<6; j++) 
+   {
+  std::vector<double> pts_L,pts_L_sym;
+  std::vector<double> pts_tau;
+  if (m_L_rad(i, j).size() > 0)  //Check to see if impulse response functoin is nonzero.
+  {
+  for(int k = 0;k<m_L_rad(i,j).size();k++)
+  {
+    pts_tau.push_back(m_dt*k);
+    pts_L.push_back(m_L_rad(i,j)[k]);
+    if(i !=j )
+      pts_L_sym.push_back(m_L_rad(j,i)[k]);
+   }
+   
+   Gnuplot gp;
+   if(i==j) 
+   {
+     gp << "set term X11 title 'Radiation IRF (" << i+1 << "," << j+1 << ")\n";
+     gp << "set grid\n";
+     gp << "plot '-' u 1:2 with lines title 'IRF(" << i+1 << "," << j+1 << ")'\n";
+     gp.send1d(boost::make_tuple(pts_tau, pts_L));
+     gp << "set xlabel 'sec'\n";
+     gp << "set ylabel '-'\n";
+   }
+else{
+     gp << "set term X11 title 'Radiation IRF (" << i+1 << "," << j+1 << ") and (" << j+1 << "," << i+1 <<")\n";
+     gp << "set grid\n";
+     gp << "plot '-' w l title 'IRF(" << i+1 << "," << j+1 << ")"   << "','-' w l title 'IRF(" << j+1 << "," << i+1 << ")'\n";
+     gp.send1d(boost::make_tuple(pts_tau, pts_L));
+     gp.send1d(boost::make_tuple(pts_tau, pts_L_sym));
+     gp << "set xlabel 'sec'\n";
+     gp << "set ylabel '-'\n";
+}
+   }
+}
 }
 
 void FS_HydroDynamics::SetTimestepSize(double dt)

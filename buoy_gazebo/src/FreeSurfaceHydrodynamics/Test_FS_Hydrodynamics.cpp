@@ -39,12 +39,13 @@ int main()
     BuoyA5.ReadWAMITData_TD("HydrodynamicCoeffs/BuoyA5");
 
  
-    //BuoyA5.Plot_FD_Coeffs();
+    BuoyA5.Plot_FD_Coeffs();
 
 
 
     BuoyA5.SetTimestepSize(.01);
 
+    BuoyA5.Plot_TD_Coeffs();
 /*
 std::cout << "m_tau_exc " << BuoyA5.m_tau_exc.transpose() << std::endl;
 

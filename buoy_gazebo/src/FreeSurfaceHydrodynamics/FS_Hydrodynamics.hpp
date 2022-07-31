@@ -30,6 +30,7 @@ public:
     void ReadWAMITData_FD(std::string filenm);
     void ReadWAMITData_TD(std::string filenm);
     void Plot_FD_Coeffs();
+    void Plot_TD_Coeffs();
 
     void SetTimestepSize(double dt);
 
@@ -50,6 +51,8 @@ public:
     VectorXd fd_am_dmp_omega;
     std::vector<Eigen::Matrix<double, 6, 6>> fd_X;
     std::vector<Eigen::Matrix<double, 6, 6>> fd_Y;
+    Eigen::Matrix<double, 6, 6> fd_X_inf_freq;
+    Eigen::Matrix<double, 6, 6> fd_Y_inf_freq;
     Eigen::VectorXd fd_ext_tps;
     Eigen::VectorXd fd_ext_omega;
     Eigen::VectorXd fd_ext_beta;
