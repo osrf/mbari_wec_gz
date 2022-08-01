@@ -63,7 +63,7 @@ struct ElectroHydraulicState
   float retract{0.0F};
   float target_v{0.0F};  // TODO(anyone) not set
   float target_a{0.0F};
-  buoy_utils::Status<PowerStatusBits> status;  // TODO(anyone) not set
+  buoy_utils::Status<PowerStatusBits> status;  // NOT CURRENTLY IMPLEMENTED
   float charge_curr_limit{0.0F};  // TODO(anyone) not set
 
   buoy_utils::CommandTriState<> torque_command;
