@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <cstdlib>
+#include <ctime>
 
 #include <Eigen/Dense>
 #include "gnuplot-iostream.h"
@@ -24,72 +24,94 @@
 
 //#include "EtaFunctor.hpp"
 #include "LinearIncidentWave.hpp"
+//#include <boost/tuple/tuple.hpp>
+#include "gnuplot-iostream.h"
 
 int main()
 {
-    LinearIncidentWave Inc;
-    Inc.SetToPiersonMoskowitzSpectrum(1, 0);
-    //Inc.SetToMonoChromatic(1,5,0);
+  const char *modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
+  LinearIncidentWave Inc;
+  Inc.SetToPiersonMoskowitzSpectrum(1, 0);
+  // Inc.SetToMonoChromatic(1,5,0);
+  LinearIncidentWave &IncRef = Inc;
+  FS_HydroDynamics BuoyA5(IncRef, 1.0, 9.81, 1025);
+  BuoyA5.ReadWAMITData_FD("HydrodynamicCoeffs/BuoyA5");
+  BuoyA5.ReadWAMITData_TD("HydrodynamicCoeffs/BuoyA5");
+  BuoyA5.Plot_FD_Coeffs();
+  BuoyA5.SetTimestepSize(.01);
+  BuoyA5.Plot_TD_Coeffs();
 
-    LinearIncidentWave& IncRef = Inc;
-  
-    FS_HydroDynamics BuoyA5(IncRef,1.0,9.81,1025);
+#if 0 // Test Radiation Forces
+  srand((unsigned)time(0));
+  double A = .5 + ((float)(rand() % 20) / 10);
+  double T = 3.0 + (rand() % 9);
+  double tf = 5 * T;
+  double omega = 2 * M_PI / T;
 
-    BuoyA5.ReadWAMITData_FD("HydrodynamicCoeffs/BuoyA5");
-    BuoyA5.ReadWAMITData_TD("HydrodynamicCoeffs/BuoyA5");
+  for (int i = 0; i < 6; i++)   // i determines mode of motion.
+    for (int j = 0; j < 6; j++) // j denotes direction of resulting force
+    {
+      double am = BuoyA5.AddedMass(omega, i + 1, j + 1);
+      double dmp = BuoyA5.Damping(omega, i + 1, j + 1);
+      double am_inf = BuoyA5.fd_X_inf_freq(i, j);
 
- 
-    BuoyA5.Plot_FD_Coeffs();
+      std::vector<double> pts_t,pts_F_TD,pts_F_FD;
+      double last_accel = 0;
+      double F_max = -std::numeric_limits<double>::max();
+      double F_min = std::numeric_limits<double>::max();
+      for (int k = 0; k < tf / BuoyA5.m_dt; k++)
+      {
+        double tt = BuoyA5.m_dt * k;
+        pts_t.push_back(tt);
+        //double pos = A * cos(omega * tt);  //Not needed, but handy to see...
+        double vel = -A * omega * sin(omega * tt);
+        double accel = -A * pow(omega, 2) * cos(omega * tt);
+        Eigen::VectorXd xddot(6);
+        for (int n = 0; n < 6; n++)
+          xddot(n) = 0;
+        xddot(i) = last_accel;
 
-
-
-    BuoyA5.SetTimestepSize(.01);
-
-    BuoyA5.Plot_TD_Coeffs();
-/*
-std::cout << "m_tau_exc " << BuoyA5.m_tau_exc.transpose() << std::endl;
-
-std::cout << "$$" << BuoyA5.m_IR_sinint(0,0).transpose() << std::endl << std::endl;
-std::cout << "$$" << BuoyA5.m_L_rad(0,0).transpose() << std::endl << std::endl;
-
-std::cout << "##" << BuoyA5.m_IR_exc(0).transpose() << std::endl << std::endl;
-std::cout << "##" << BuoyA5.m_L_exc(0).transpose() << std::endl << std::endl;
-
-std::cout << BuoyA5.m_IR_exc(0).size() << std::endl;
-std::cout << BuoyA5.m_IR_sinint(0,0).size() << std::endl;
-std::cout << BuoyA5.m_IR_sinint(1,1).size() << std::endl;
-std::cout << BuoyA5.m_IR_exc(0).size() << std::endl << std::endl; 
-
-std::cout << "m_tau_rad " << BuoyA5.m_tau_rad.transpose() << std::endl << std::endl;
-std::cout << "m_tau_exc " << BuoyA5.m_tau_exc.transpose() << std::endl << std::endl;
-*/
-double tf = 50;
+        Eigen::VectorXd MemForce(6);
+        MemForce = BuoyA5.RadiationForce(xddot);
+        pts_F_TD.push_back(am_inf * accel + MemForce(j));
+        last_accel = accel;
+        double FD_Force = am * accel + dmp * vel;
+        pts_F_FD.push_back(am * accel + dmp * vel); // FD_Force);
+        if (FD_Force > F_max)
+          F_max = FD_Force;
+        if (FD_Force < F_min)
+          F_min = FD_Force;
+      }
+      if ((F_min < -1) && (F_max > 1)) // Don't plot near-zero forces
+      {
+        Gnuplot gp;
+        char Amp[10];
+        sprintf(Amp, "%.1f", A);
+        char Per[10];
+        sprintf(Per, "%.1f", T);
+        gp << "set term X11 title 'Radiation Forces: " << modes[i] << " Motions, " << modes[j] << " Forces:  A = " << Amp << "m  T = " << Per << "s  \n";
+        gp << "set grid\n";
+        gp << "set xlabel 'time (s)'\n";
+        if (j < 3)
+          gp << "set ylabel 'F (N)'\n";
+        else
+          gp << "set  ylabel 'M (N-m)'\n";
+        gp << "plot '-' w l title 'Time-Domain'"
+           << ",'-' w l title 'Freq-Domain'\n";
+        gp.send1d(boost::make_tuple(pts_t, pts_F_TD));
+        gp.send1d(boost::make_tuple(pts_t, pts_F_FD));
+        gp << "set xlabel 'time (s)'\n";
+        if (j < 3)
+          gp << "set ylabel 'F (N)'\n";
+        else
+          gp << "set  ylabel 'M (N-m)'\n";
+        gp << "set title '" << modes[i] << "(t) = " << std::fixed << std::setprecision(1) << Amp << "cos(2 pi t/" << Per << ")'  \n";
+        gp << "replot\n";
+      }
+    }
+#endif
 
 #if 0
-Eigen::VectorXd xddot(6);
-for(int k = 0;k<tf/BuoyA5.m_dt;k++)
-{
-double tt = BuoyA5.m_dt*k;
-double T = 5;
-double A = 1;
-double pos = A*cos(2*M_PI*tt/T);
-double vel = -A*(2*M_PI/T)*sin(2*M_PI*tt/T);
-double accel = -A*pow(2*M_PI/T,2)*cos(2*M_PI*tt/T);
-double last_accel = -A*pow(2*M_PI/T,2)*cos(2*M_PI*(tt-BuoyA5.m_dt)/T);
-xddot(0) = last_accel;
-xddot(1) = last_accel;
-xddot(2) = last_accel;
-xddot(3) = last_accel;
-xddot(4) = last_accel;
-xddot(5) = last_accel;
-std::cout << BuoyA5.m_dt*k << "  "  << pos << "  " << vel << "  " << accel << "  ";
-std::cout << BuoyA5.RadiationForce(xddot).transpose() << std::endl;
-}
-
-
-#endif
- 
-#if 1
 for(int k = 0;k<tf/BuoyA5.m_dt;k++)
 {
   double t = k*BuoyA5.m_dt;
@@ -97,5 +119,5 @@ std::cout << BuoyA5.m_dt*k << "  "  << Inc.eta(0,0,t) << "  " << -5*9.81*1025*In
 std::cout << BuoyA5.ExcitingForce()(2) << std::endl;
 }
 #endif
-    return 0;
+  return 0;
 }

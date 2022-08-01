@@ -37,7 +37,7 @@ int CountLines(std::string filenm)
   std::ifstream ifile(filenm);
 
   if (ifile.is_open())
-{  
+  {
     while (ifile.peek() != EOF)
     {
       std::getline(ifile, line);
@@ -51,10 +51,9 @@ int CountLines(std::string filenm)
   return count;
 }
 
-FS_HydroDynamics::FS_HydroDynamics(IncidentWave& IncWave): _IncWave(IncWave), m_L{1.0}, m_grav{9.81}, m_rho{1025} { }
+FS_HydroDynamics::FS_HydroDynamics(IncidentWave &IncWave) : _IncWave(IncWave), m_L{1.0}, m_grav{9.81}, m_rho{1025} {}
 
-FS_HydroDynamics::FS_HydroDynamics(IncidentWave& IncWave, double L, double g, double rho) :
-                                                       _IncWave(IncWave), m_L{L}, m_grav{g}, m_rho{rho} { }
+FS_HydroDynamics::FS_HydroDynamics(IncidentWave &IncWave, double L, double g, double rho) : _IncWave(IncWave), m_L{L}, m_grav{g}, m_rho{rho} {}
 
 /// \brief  Read frequency domain coefficients from WAMIT.
 ///
@@ -86,40 +85,40 @@ void FS_HydroDynamics::ReadWAMITData_FD(std::string filenm)
     }
     int coeffPerFreqs = n_lines1 / n_freqs;
 
-    this->fd_am_dmp_tps = VectorXd(n_freqs-1);  //Infinite Frequency coefficents stored independelty, assumpting here is all .1 files have an infinite frequency field, may or may not be true...
-    this->fd_am_dmp_omega = VectorXd(n_freqs-1);
+    this->fd_am_dmp_tps = VectorXd(n_freqs - 1); // Infinite Frequency coefficents stored independelty, assumpting here is all .1 files have an infinite frequency field, may or may not be true...
+    this->fd_am_dmp_omega = VectorXd(n_freqs - 1);
     int nn = 0;
     for (n = 0; n < n_freqs; n++)
     {
-      if(s1(n*coeffPerFreqs, 0) == 0.0) //Infinite frequency case
+      if (s1(n * coeffPerFreqs, 0) == 0.0) // Infinite frequency case
       {
-      for (int k = 0; k < coeffPerFreqs; k++)
+        for (int k = 0; k < coeffPerFreqs; k++)
         {
-        int i = n * coeffPerFreqs + k;
-        this->fd_X_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
-        this->fd_Y_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) = 0; //m_rho * fd_am_dmp_omega(n) * s1(i, 4);
+          int i = n * coeffPerFreqs + k;
+          this->fd_X_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
+          this->fd_Y_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) = 0; // m_rho * fd_am_dmp_omega(n) * s1(i, 4);
         }
       }
       else
       {
-      this->fd_am_dmp_tps(nn) = s1(n * coeffPerFreqs, 0);
-      if(this->fd_am_dmp_tps(nn) < 0) //Negative period indicates zero frequency
-        this->fd_am_dmp_omega(nn) = 0.0;
-      else
-        this->fd_am_dmp_omega(nn) = M_PI * 2 / this->fd_am_dmp_tps(nn);
-      Eigen::Matrix<double, 6, 6> X;
-      Eigen::Matrix<double, 6, 6> Y;
-      X.Constant(0.0);
-      Y.Constant(0.0);
-      for (int k = 0; k < coeffPerFreqs; k++)
-      {
-        int i = n * coeffPerFreqs + k;
-        X(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
-        Y(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * fd_am_dmp_omega(nn) * s1(i, 4);
-      }
-      this->fd_X.push_back(X);
-      this->fd_Y.push_back(Y);
-       nn++;
+        this->fd_am_dmp_tps(nn) = s1(n * coeffPerFreqs, 0);
+        if (this->fd_am_dmp_tps(nn) < 0) // Negative period indicates zero frequency
+          this->fd_am_dmp_omega(nn) = 0.0;
+        else
+          this->fd_am_dmp_omega(nn) = M_PI * 2 / this->fd_am_dmp_tps(nn);
+        Eigen::Matrix<double, 6, 6> X;
+        Eigen::Matrix<double, 6, 6> Y;
+        X.Constant(0.0);
+        Y.Constant(0.0);
+        for (int k = 0; k < coeffPerFreqs; k++)
+        {
+          int i = n * coeffPerFreqs + k;
+          X(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
+          Y(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * fd_am_dmp_omega(nn) * s1(i, 4);
+        }
+        this->fd_X.push_back(X);
+        this->fd_Y.push_back(Y);
+        nn++;
       }
     }
   }
@@ -156,8 +155,6 @@ void FS_HydroDynamics::ReadWAMITData_FD(std::string filenm)
     auto Re_Xi = VectorXd(n_freqs);
     auto Im_Xi = VectorXd(n_freqs);
 
-    this->fd_Mod_Xi.resize(6);
-
     for (int k = 0; k < coeffPerFreq; k++) // Collect all values for each mode
     {
       for (n = 0; n < n_freqs; n++)
@@ -165,7 +162,7 @@ void FS_HydroDynamics::ReadWAMITData_FD(std::string filenm)
         int i = n * coeffPerFreq + k;
         Mod_Xi(n) = m_rho * m_grav * s3(i, 3);
         Pha_Xi(n) = s3(i, 4);
-        Re_Xi(n) = m_rho * m_grav * m_grav * s3(i, 5);
+        Re_Xi(n) = m_rho * m_grav * s3(i, 5);
         Im_Xi(n) = m_rho * m_grav * s3(i, 6);
         if (k == 0) // Collect tps and beta just once
         {
@@ -251,7 +248,7 @@ void FS_HydroDynamics::ReadWAMITData_TD(std::string filenm)
     for (int k = 0; k < n_lines3; k++)
       m_tau_exc(k) = s3(k, 0);
 
-     m_dtau_exc = m_tau_exc(1)-m_tau_exc(0);
+    m_dtau_exc = m_tau_exc(1) - m_tau_exc(0);
 
     for (int j = 0; j < 6; j++)
     {
@@ -266,110 +263,206 @@ void FS_HydroDynamics::ReadWAMITData_TD(std::string filenm)
 
 void FS_HydroDynamics::Plot_FD_Coeffs()
 {
-  std::vector<double> pts_omega;
-  for(int k = 0;k<fd_am_dmp_omega.size();k++){ //k = 0 is zero freq, k = 1 is inf freq
+  const char *modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
+
+  { // Plot Added Mass and Damping Values
+    std::vector<double> pts_omega;
+    for (int k = 0; k < fd_am_dmp_omega.size(); k++)
       pts_omega.push_back(fd_am_dmp_omega(k));
+
+    for (int i = 0; i < 6; i++)
+      for (int j = i; j < 6; j++)
+      {
+        std::vector<double> pts_am, pts_am_sym;
+        std::vector<double> pts_dmp, pts_dmp_sym;
+        double am_norm = 0;
+        double dmp_norm = 0;
+        for (int k = 0; k < fd_am_dmp_tps.size(); k++)
+        {
+          pts_am.push_back(fd_X[k](i, j));
+          pts_am_sym.push_back(fd_X[k](j, i));
+          am_norm += fabs(fd_X[k](i, j)) + fabs(fd_X[k](j, i));
+          pts_dmp.push_back(fd_Y[k](i, j));
+          pts_dmp_sym.push_back(fd_Y[k](j, i));
+          dmp_norm += fabs(fd_Y[k](i, j)) + fabs(fd_Y[k](j, i));
+        }
+        if ((am_norm > 1e-6) || (dmp_norm > 1e-6))
+        {
+          Gnuplot gp;
+
+          if (i == j)
+          {
+            gp << "set term X11 title 'Added Mass and Damping (" << i + 1 << "," << j + 1 << ")\n";
+            gp << "set multiplot layout 2,1 rowsfirst \n";
+            gp << "set grid\n";
+            gp << "set xlabel 'rad/sec'\n";
+            gp << "set ylabel 'kg'\n";
+            gp << "plot '-' u 1:2 with lines title 'am(" << i + 1 << "," << j + 1 << ") inf\\_freq\\_am = " << std::fixed << std::setprecision(2) << this->fd_X_inf_freq(i, j) << "'\n";
+            gp.send1d(boost::make_tuple(pts_omega, pts_am));
+
+            gp << "set xlabel 'rad/sec'\n";
+            gp << "set ylabel 'kg'\n";
+            gp << "plot '-' u 1:2 with lines title 'dmp(" << i + 1 << "," << j + 1 << ") inf\\_freq\\_dmp = " << std::fixed << std::setprecision(2) << this->fd_Y_inf_freq(i, j) << "'\n";
+            gp.send1d(boost::make_tuple(pts_omega, pts_dmp));
+          }
+          else
+          {
+            gp << "set term X11 title 'Added Mass and Damping (" << i + 1 << "," << j + 1 << ") and (" << j + 1 << "," << i + 1 << ")\n";
+            gp << "set multiplot layout 2,1 rowsfirst \n";
+            gp << "set grid\n";
+            gp << "set xlabel 'rad/sec'\n";
+            gp << "set ylabel 'kg'\n";
+            gp << "plot '-' w l title 'am(" << i + 1 << "," << j + 1 << ") inf\\_freq\\_am = " << std::fixed << std::setprecision(2) << this->fd_X_inf_freq(i, j) << "','-' w l title 'am(" << j + 1 << "," << i + 1 << ") inf\\_freq\\_am = " << std::fixed << std::setprecision(2) << this->fd_X_inf_freq(j, i) << "'\n";
+            gp.send1d(boost::make_tuple(pts_omega, pts_am));
+            gp.send1d(boost::make_tuple(pts_omega, pts_am_sym));
+
+            gp << "set xlabel 'rad/sec'\n";
+            gp << "set ylabel 'kg'\n";
+            gp << "plot '-' w l title 'dmp(" << i + 1 << "," << j + 1 << ") inf\\_freq\\_dmp = " << std::fixed << std::setprecision(2) << this->fd_Y_inf_freq(i, j) << "','-' w l title 'dmp(" << j + 1 << "," << i + 1 << ") inf\\_freq\\_dmp = " << std::fixed << std::setprecision(2) << this->fd_Y_inf_freq(j, i) << "'\n";
+            gp.send1d(boost::make_tuple(pts_omega, pts_dmp));
+            gp.send1d(boost::make_tuple(pts_omega, pts_dmp_sym));
+          }
+        }
+      }
   }
- 
- for(int i = 0; i<6; i++) 
-   for(int j = i; j<6; j++) 
-   {
-  std::vector<double> pts_am,pts_am_sym;
-  std::vector<double> pts_dmp,pts_dmp_sym;
-  double am_norm = 0;
-  double dmp_norm = 0;
-  for(int k = 0;k<fd_am_dmp_tps.size();k++)
-  {
-    pts_am.push_back(fd_X[k](i,j));
-    pts_am_sym.push_back(fd_X[k](j,i));
-    am_norm += fabs(fd_X[k](i,j))+fabs(fd_X[k](j,i));
-    pts_dmp.push_back(fd_Y[k](i,j));
-    pts_dmp_sym.push_back(fd_Y[k](j,i));
-    dmp_norm += fabs(fd_Y[k](i,j))+fabs(fd_Y[k](j,i));
-     }
-   if((am_norm > 1e-6) || (dmp_norm > 1e-6))
-   {
-   Gnuplot am_gp;
-   Gnuplot dmp_gp; 
-   Gnuplot gp;
-
-   if(i==j) 
-   {
-     gp << "set term X11 title 'Added Mass and Damping (" << i+1 << "," << j+1 << ")\n";
-     gp << "set multiplot layout 2,1 rowsfirst \n";
-     gp << "set grid\n";
-     gp << "plot '-' u 1:2 with lines title 'am(" << i+1 << "," << j+1 << ") inf\\_freq\\_am = " << std::fixed << std::setprecision(2) << this->fd_X_inf_freq(i,j)  <<  "'\n";
-     gp.send1d(boost::make_tuple(pts_omega, pts_am));
-     gp << "set xlabel 'rad/sec'\n";
-     gp << "set ylabel 'kg'\n";
-
-     gp << "plot '-' u 1:2 with lines title 'dmp(" << i+1 << "," << j+1 << ") inf\\_freq\\_dmp = " << std::fixed << std::setprecision(2) << this->fd_Y_inf_freq(i,j)  <<  "'\n";
-     gp.send1d(boost::make_tuple(pts_omega, pts_dmp));
-     gp << "set xlabel 'rad/sec'\n";
-     gp << "set ylabel 'kg'\n";
-   }
-else{
-     gp << "set term X11 title 'Added Mass and Damping (" << i+1 << "," << j+1 << ") and (" << j+1 << "," << i+1 <<")\n";
-     gp << "set multiplot layout 2,1 rowsfirst \n";
-     gp << "set grid\n";
-     gp << "plot '-' w l title 'am(" << i+1 << "," << j+1 << ") inf\\_freq\\_am = " << std::fixed << std::setprecision(2) << this->fd_X_inf_freq(i,j)  <<
-     "','-' w l title 'am(" << j+1 << "," << i+1 << ") inf\\_freq\\_am = " << std::fixed << std::setprecision(2) << this->fd_X_inf_freq(j,i)  <<  "'\n";
-     gp.send1d(boost::make_tuple(pts_omega, pts_am));
-     gp.send1d(boost::make_tuple(pts_omega, pts_am_sym));
-     gp << "set xlabel 'rad/sec'\n";
-     gp << "set ylabel 'kg'\n";
-
-     gp << "plot '-' w l title 'dmp(" << i+1 << "," << j+1 << ") inf\\_freq\\_dmp = " << std::fixed << std::setprecision(2) << this->fd_Y_inf_freq(i,j)  <<
-     "','-' w l title 'dmp(" << j+1 << "," << i+1 << ") inf\\_freq\\_dmp = " << std::fixed << std::setprecision(2) << this->fd_Y_inf_freq(j,i)  <<  "'\n";
-     gp.send1d(boost::make_tuple(pts_omega, pts_dmp));
-     gp.send1d(boost::make_tuple(pts_omega, pts_dmp_sym));
-     gp << "set xlabel 'rad/sec'\n";
-     gp << "set ylabel 'kg'\n";
+  { // Plot Wave Exciting Forces
+    for (int i = 0; i < 6; i++)
+    {
+      std::vector<double> pts_omega;
+      std::vector<double> pts_ReXi, pts_ImXi;
+      std::vector<double> pts_Mod_Xi, pts_Pha_Xi;
+      for (int k = 0; k < fd_ext_omega.size(); k++)
+      {
+        pts_omega.push_back(fd_ext_omega(k));
+        pts_ReXi.push_back(fd_Re_Xi[i](k));
+        pts_ImXi.push_back(fd_Im_Xi[i](k));
+        pts_Mod_Xi.push_back(fd_Mod_Xi[i](k));
+        pts_Pha_Xi.push_back(fd_Pha_Xi[i](k));
+      }
+      Gnuplot gp;
+      gp << "set term X11 title '" << modes[i] << "Exciting Forces'\n";
+      gp << "set multiplot layout 2,1 rowsfirst \n";
+      gp << "set grid\n";
+      gp << "set xlabel 'rad/sec'\n";
+      if (i < 3)
+        gp << "set ylabel 'N/m'\n";
+      else
+        gp << "set ylabel 'N-m/m'\n";
+      gp << "plot '-' u 1:2 with lines title 'Re',"
+         << "'-' u 1:2 with lines title 'Im'\n";
+      gp.send1d(boost::make_tuple(pts_omega, pts_ReXi));
+      gp.send1d(boost::make_tuple(pts_omega, pts_ImXi));
+      
+      gp << "set xlabel 'rad/sec'\n";
+      if (i < 3)
+        gp << "set ylabel 'N/m'\n";
+      else
+        gp << "set ylabel 'N-m/m'\n";
+      gp << "plot '-' u 1:2 with lines title 'Mod',"
+         << "'-' u 1:2 with lines title 'Pha'\n";
+      gp.send1d(boost::make_tuple(pts_omega, pts_Mod_Xi));
+      gp.send1d(boost::make_tuple(pts_omega, pts_Pha_Xi));
+    }
+  }
 }
-   }
-}
-}
-
-
 
 void FS_HydroDynamics::Plot_TD_Coeffs()
 {
- for(int i = 0; i<6; i++) 
-   for(int j = i; j<6; j++) 
-   {
-  std::vector<double> pts_L,pts_L_sym;
-  std::vector<double> pts_tau;
-  if (m_L_rad(i, j).size() > 0)  //Check to see if impulse response functoin is nonzero.
-  {
-  for(int k = 0;k<m_L_rad(i,j).size();k++)
-  {
-    pts_tau.push_back(m_dt*k);
-    pts_L.push_back(m_L_rad(i,j)[k]);
-    if(i !=j )
-      pts_L_sym.push_back(m_L_rad(j,i)[k]);
-   }
-   
-   Gnuplot gp;
-   if(i==j) 
-   {
-     gp << "set term X11 title 'Radiation IRF (" << i+1 << "," << j+1 << ")\n";
-     gp << "set grid\n";
-     gp << "plot '-' u 1:2 with lines title 'IRF(" << i+1 << "," << j+1 << ")'\n";
-     gp.send1d(boost::make_tuple(pts_tau, pts_L));
-     gp << "set xlabel 'sec'\n";
-     gp << "set ylabel '-'\n";
-   }
-else{
-     gp << "set term X11 title 'Radiation IRF (" << i+1 << "," << j+1 << ") and (" << j+1 << "," << i+1 <<")\n";
-     gp << "set grid\n";
-     gp << "plot '-' w l title 'IRF(" << i+1 << "," << j+1 << ")"   << "','-' w l title 'IRF(" << j+1 << "," << i+1 << ")'\n";
-     gp.send1d(boost::make_tuple(pts_tau, pts_L));
-     gp.send1d(boost::make_tuple(pts_tau, pts_L_sym));
-     gp << "set xlabel 'sec'\n";
-     gp << "set ylabel '-'\n";
+  for (int i = 0; i < 6; i++)
+    for (int j = i; j < 6; j++)
+    {
+      std::vector<double> pts_L, pts_L_sym;
+      std::vector<double> pts_tau;
+      if (m_L_rad(i, j).size() > 0) // Check to see if impulse response functoin is nonzero.
+      {
+        for (int k = 0; k < m_L_rad(i, j).size(); k++)
+        {
+          pts_tau.push_back(m_dt * k);
+          pts_L.push_back(m_L_rad(i, j)[k]);
+          if (i != j)
+            pts_L_sym.push_back(m_L_rad(j, i)[k]);
+        }
+
+        Gnuplot gp;
+        if (i == j)
+        {
+          gp << "set term X11 title 'Radiation IRF (" << i + 1 << "," << j + 1 << ")\n";
+          gp << "set grid\n";
+          gp << "plot '-' u 1:2 with lines title 'IRF(" << i + 1 << "," << j + 1 << ")'\n";
+          gp.send1d(boost::make_tuple(pts_tau, pts_L));
+          gp << "set xlabel 'sec'\n";
+          gp << "set ylabel '-'\n";
+        }
+        else
+        {
+          gp << "set term X11 title 'Radiation IRF (" << i + 1 << "," << j + 1 << ") and (" << j + 1 << "," << i + 1 << ")\n";
+          gp << "set grid\n";
+          gp << "plot '-' w l title 'IRF(" << i + 1 << "," << j + 1 << ")"
+             << "','-' w l title 'IRF(" << j + 1 << "," << i + 1 << ")'\n";
+          gp.send1d(boost::make_tuple(pts_tau, pts_L));
+          gp.send1d(boost::make_tuple(pts_tau, pts_L_sym));
+          gp << "set xlabel 'sec'\n";
+          gp << "set ylabel '-'\n";
+        }
+      }
+    }
 }
-   }
+/// \brief Returns added mass at specified frequency
+///  Interpolates from tabulated WAMIT data, omega must be greater than or equal to zero.
+double FS_HydroDynamics::AddedMass(double omega, int i, int j)
+{
+  if (omega < 0)
+    std::cout << "ERROR:  FS_Hydrodyanmics::AddedMass:  omega must be great than zero" << std::endl;
+
+  int nd = this->fd_X.size() + 1;
+  double xd[nd];
+  double yd[nd];
+  for (int n = 0; n < nd - 1; n++)
+  {
+    xd[n] = this->fd_am_dmp_omega(n);
+    yd[n] = this->fd_X[n](i - 1, j - 1);
+  }
+  xd[nd - 1] = 1e6;
+  yd[nd - 1] = fd_X_inf_freq(i - 1, j - 1);
+  constexpr int ni = 1;
+  double yi; // Result is stored in this buffer
+  double xi = omega;
+  // Perform the interpolation
+  interp(
+      &nd, ni,  // Number of points
+      yd, &yi,  // Output axis (y)
+      xd, &xi); // Input axis (x)
+
+  return yi;
 }
+
+/// \brief Returns damping at specified frequency
+///  Interpolates from tabulated WAMIT data, omega must be greater than or equal to zero.
+double FS_HydroDynamics::Damping(double omega, int i, int j)
+{
+  if (omega < 0)
+    std::cout << "ERROR:  FS_Hydrodyanmics::Damping:  omega must be great than zero" << std::endl;
+
+  int nd = this->fd_Y.size() + 1;
+  double xd[nd];
+  double yd[nd];
+  for (int n = 0; n < nd - 1; n++)
+  {
+    xd[n] = this->fd_am_dmp_omega(n);
+    yd[n] = this->fd_Y[n](i - 1, j - 1);
+  }
+  xd[nd - 1] = 1e6;
+  yd[nd - 1] = fd_Y_inf_freq(i - 1, j - 1);
+  constexpr int ni = 1;
+  double yi; // Result is stored in this buffer
+  double xi = omega;
+  // Perform the interpolation
+  interp(
+      &nd, ni,  // Number of points
+      yd, &yi,  // Output axis (y)
+      xd, &xi); // Input axis (x)
+
+  return yi;
 }
 
 void FS_HydroDynamics::SetTimestepSize(double dt)
@@ -398,18 +491,15 @@ void FS_HydroDynamics::SetTimestepSize(double dt)
 
   for (int i = 0; i < 6; i++)
     m_xddot(i).resize(STORAGE_MULTIPLIER * _n_rad_intpts); // Create storage for 5 times the length of the Impulse
-                                     // response function,  code will shift data when this fills.
+                                                           // response function,  code will shift data when this fills.
 
-
-  _rad_tstep_index = 0;
-
+  _rad_tstep_index = STORAGE_MULTIPLIER * _n_rad_intpts - 1; // Set to fill from last memory spot backwards
 
   _n_exc_intpts = (m_tau_exc(m_tau_exc.size() - 1) - m_tau_exc(0)) / dt + 1;
   double x_exc[_n_exc_intpts];
 
   for (int k = 0; k < _n_exc_intpts; k++)
     x_exc[k] = m_tau_exc(0) + k * dt;
-
 
   for (int j = 0; j < 6; j++)
     if (m_IR_exc(j).size() > 0)
@@ -420,9 +510,8 @@ void FS_HydroDynamics::SetTimestepSize(double dt)
              m_tau_exc.data(), x_exc);
     }
   _eta0.resize(STORAGE_MULTIPLIER * _n_exc_intpts); // Create storage for 5 times the length of the Impulse
-                               // response function,  code will shift data when this fills.
+                                                    // response function,  code will shift data when this fills.
 
- 
   _exc_tstep_index = 0;
 }
 
@@ -430,19 +519,18 @@ Eigen::VectorXd FS_HydroDynamics::ExcitingForce()
 {
   Eigen::VectorXd ExctForces(6);
 
-  if(_exc_tstep_index == 0)  //Fill in initial values
-    for(; _exc_tstep_index <_n_exc_intpts;_exc_tstep_index++)
-       _eta0(_exc_tstep_index) = _IncWave.eta(0,0,_exc_tstep_index*m_dt+m_tau_exc(0));
+  if (_exc_tstep_index == 0) // Fill in initial values
+    for (; _exc_tstep_index < _n_exc_intpts; _exc_tstep_index++)
+      _eta0(_exc_tstep_index) = _IncWave.eta(0, 0, _exc_tstep_index * m_dt + m_tau_exc(0));
   else
-    _eta0(_exc_tstep_index) = _IncWave.eta(0,0,_exc_tstep_index*m_dt+m_tau_exc(0)); //Compute next needed wave-elevation
-
+    _eta0(_exc_tstep_index) = _IncWave.eta(0, 0, _exc_tstep_index * m_dt + m_tau_exc(0)); // Compute next needed wave-elevation
 
   for (int i = 0; i < 6; i++) // Compute convolution integrals, no need to adjust ends in trap rule since integrand there is zero.
     ExctForces(i) = m_L_exc(i).dot(_eta0.segment(_exc_tstep_index - _n_exc_intpts, _n_exc_intpts).reverse());
-  
+
   // Increment timestep index and shift stored xddot data if needed.
   _exc_tstep_index++;
-  if (_exc_tstep_index == STORAGE_MULTIPLIER*_n_exc_intpts) // At end of allocated storage,
+  if (_exc_tstep_index == STORAGE_MULTIPLIER * _n_exc_intpts) // At end of allocated storage,
   {
     _eta0.head(_n_exc_intpts) = _eta0.tail(_n_exc_intpts);
     _exc_tstep_index = _n_exc_intpts;
@@ -455,49 +543,38 @@ Eigen::VectorXd FS_HydroDynamics::ExcitingForce()
 Eigen::VectorXd FS_HydroDynamics::RadiationForce(Eigen::VectorXd last_xddot)
 {
   Eigen::VectorXd RadiationForces(6);
-
-
-
-  for (int j = 0; j < 6; j++)
-   {
-    m_xddot(j)(_rad_tstep_index) = 0; //This is unknown at this timestep, but can be set to zero since L_rad(tau = 0) = 0 always.
-    if(_rad_tstep_index > 0)
-      m_xddot(j)(_rad_tstep_index-1) = last_xddot(j);  //Store xddot from last timestep
-   }
-
-  for (int i = 0; i < 6; i++) 
+  for (int i = 0; i < 6; i++)
+    RadiationForces(i) = 0.0;                                     // set to zero.
+  if (_rad_tstep_index <= STORAGE_MULTIPLIER * _n_rad_intpts - 2) // There is no memory contribution at the first timestep, so no need to compute the convolution integrals the first time.
   {
-    RadiationForces(i) = 0;     // Initialize to zero.
-    for (int j = 0; j < 6; j++) // Sum up convolution integrals, no need to adjust ends in trap rule since integrand there is zero.
+    for (int j = 0; j < 6; j++)
     {
-      if (m_L_rad(i, j).size() > 0)
+      m_xddot(j)(_rad_tstep_index) = 0; // This is unknown at this timestep, but can be set to zero since L_rad(tau = 0) = 0 always.
+      if (_rad_tstep_index < m_xddot(j).size() - 1)
       {
-        if (_rad_tstep_index < _n_rad_intpts) // Limit IRF used early in the simulation
-        {
-          RadiationForces(i) +=
-              m_L_rad(i, j)
-                  .head(_rad_tstep_index)
-                  .dot(m_xddot(j).segment(0, _rad_tstep_index).reverse());
-        }
-        else
-        {
-          RadiationForces(i) += m_L_rad(i, j).dot(m_xddot(j).segment(_rad_tstep_index - _n_rad_intpts, _n_rad_intpts) .reverse());
-        }
+        m_xddot(j)(_rad_tstep_index + 1) = last_xddot(j); // Store xddot from last timestep
       }
     }
+    for (int i = 0; i < 6; i++)
+      for (int j = 0; j < 6; j++) // Sum up convolution integrals, no need to adjust ends in trap rule since integrand there is zero.
+        if (m_L_rad(i, j).size() > 0)
+        {
+          int num_int_pts = m_xddot(j).size() - _rad_tstep_index;
+          if (num_int_pts > _n_rad_intpts) // Sufficiently into simulation that entire IRF can be used.
+            num_int_pts = _n_rad_intpts;
+          RadiationForces(i) += m_L_rad(i, j).head(num_int_pts).dot(m_xddot(j).segment(_rad_tstep_index, num_int_pts));
+        }
   }
 
-  // Increment timestep index and shift stored xddot data if needed.
-  _rad_tstep_index++;
-  if (_rad_tstep_index == STORAGE_MULTIPLIER*_n_rad_intpts) // At end of allocated storage,
+  // Decrement timestep index and shift stored xddot data if needed.
+  _rad_tstep_index--;
+  if (_rad_tstep_index == 0) // At end of allocated storage.
   {
-    for (int j = 0; j < 6; j++) // Copy most recent xdddot data to start of vector.
-      m_xddot(j).head(_n_rad_intpts) = m_xddot(j).tail(_n_rad_intpts);
-    _rad_tstep_index = _n_rad_intpts;
+    for (int j = 0; j < 6; j++) // Copy most recent xdddot data to end of acceleration storage vector.
+      m_xddot(j).tail(_n_rad_intpts) = m_xddot(j).head(_n_rad_intpts);
+    _rad_tstep_index = STORAGE_MULTIPLIER * _n_rad_intpts - _n_rad_intpts;
   }
-
-  RadiationForces *= m_dt;
-
+  RadiationForces *= this->m_dt;
   return RadiationForces;
 }
 

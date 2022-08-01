@@ -1,0 +1,6 @@
+gz_add_plugin(ElectroHydraulicPTO
+  SOURCES
+    FreeSurfaceHydrodynamics.cpp
+  INCLUDE_DIRS
+    include/
+)
