@@ -48,21 +48,16 @@
 class WindingCurrentTarget
 {
 public:
-  double TorqueConstantNMPerAmp;   // N-m/Amp
+  double TorqueConstantNMPerAmp;  // N-m/Amp
   double TorqueConstantInLbPerAmp;  // in-lb/Amp
   JustInterp::LinearInterpolator<double> DefaultDamping;
   double ScaleFactor;
   double RetractFactor;
-  double PistonPos;
-  double SimTime;
-  double UserCommandedCurrent;
+  double UserCommandedCurrent{0.0};
   double BiasCurrent;
-  double BiasCurrentTimeout;
-
-private:
-  double BiasCurrentSetSimTime;
-  double UserCurrentSetSimTime;
-  double UserCommandedCurrentTimeout;
+  double I{0.0};
+  bool current_override_{false};
+  bool bias_override_{false};
 
 public:
   /// \brief mutex to protect jointVelCmd
@@ -70,107 +65,36 @@ public:
 
   WindingCurrentTarget()
   {
-    std::vector<double> N {0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};       // RPM
-    std::vector<double> Torque {0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};       // N-m
+    std::vector<double> N {0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};  // RPM
+    std::vector<double> Torque {0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};  // N-m
     this->DefaultDamping.SetData(N.size(), N.data(), Torque.data());
 
     // Set Electric Motor Torque Constant
-    this->TorqueConstantNMPerAmp = TORQUE_CONSTANT;     // N-m/Amp
+    this->TorqueConstantNMPerAmp = TORQUE_CONSTANT;  // N-m/Amp
     this->TorqueConstantInLbPerAmp = this->TorqueConstantNMPerAmp * 8.851;  // in-lb/Amp
 
     this->ScaleFactor = DEFAULT_SCALE_FACTOR;
     this->RetractFactor = DEFAULT_RETRACT_FACTOR;
     this->BiasCurrent = DEFAULT_BIASCURRENT;
-
-    this->BiasCurrentTimeout = BIAS_CMD_TIMEOUT;
-    this->UserCommandedCurrentTimeout = TORQUE_CMD_TIMEOUT;
-  }
-
-
-  void SetScaleFactor(double SF)
-  {
-    this->UserCommandMutex.lock();
-    if (SF < MIN_SCALE_FACTOR) {
-      this->ScaleFactor = MIN_SCALE_FACTOR;
-    } else if (SF > MAX_SCALE_FACTOR) {
-      this->ScaleFactor = MAX_SCALE_FACTOR;
-    } else {
-      this->ScaleFactor = SF;
-    }
-    this->UserCommandMutex.unlock();
-  }
-
-  void SetRetractFactor(double RF)
-  {
-    this->UserCommandMutex.lock();
-    if (RF < MIN_RETRACT_FACTOR) {
-      this->RetractFactor = MIN_RETRACT_FACTOR;
-    } else if (RF > MAX_RETRACT_FACTOR) {
-      this->RetractFactor = MAX_RETRACT_FACTOR;
-    } else {
-      this->RetractFactor = RF;
-    }
-    this->UserCommandMutex.unlock();
-  }
-
-
-  void SetUserCommandedCurrent(double I)
-  {
-    this->UserCommandMutex.lock();
-    std::cout << "## Adjusting UserCommanded Current " << I << std::endl;
-
-    if (I < -MAX_WINDCURRENTLIMIT) {
-      this->UserCommandedCurrent = -MAX_WINDCURRENTLIMIT;
-    } else if (I > MAX_WINDCURRENTLIMIT) {
-      this->UserCommandedCurrent = MAX_WINDCURRENTLIMIT;
-    } else {
-      this->UserCommandedCurrent = I;
-    }
-
-    // Arguably could pass the current sim time in here,
-    // but assuming the timeouts are larger than the timestep
-    this->UserCurrentSetSimTime = this->SimTime;
-    this->UserCommandMutex.unlock();
-  }
-
-  void SetBiasCurrent(double BC)
-  {
-    this->UserCommandMutex.lock();
-    std::cout << "## Adjusting Bias Current " << BC << std::endl;
-
-    if (BC < -MAX_BIASCURRENT) {
-      this->BiasCurrent = -MAX_BIASCURRENT;
-    } else if (BC > MAX_BIASCURRENT) {
-      this->BiasCurrent = MAX_BIASCURRENT;
-    } else {
-      this->BiasCurrent = BC;
-    }
-
-    // Arguably could pass the current sim time in here,
-    // but assuming the timeouts are larger than the timestep
-    this->BiasCurrentSetSimTime = this->SimTime;
-    this->UserCommandMutex.unlock();
   }
 
   double operator()(const double & N) const
   {
     double I;
-    if ((SimTime - UserCurrentSetSimTime) < UserCommandedCurrentTimeout) {
-      // this->UserCommandedCurrentMutex.lock();  // Can't do this b/c this () is const
+    if (current_override_) {
       I = UserCommandedCurrent;
-      // this->UserCommandedCurrentMutex.unlock();
     } else {
       // TODO(anyone):  1.375 makes this match experiment, not sure what is wrong...
       I = this->DefaultDamping(fabs(N)) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
-      if (N > 0) {
+      if (N > 0.0) {
         I *= -this->RetractFactor;
       }
 
-      if ((SimTime - BiasCurrentSetSimTime) < BiasCurrentTimeout) {
+      if (bias_override_) {
+        std::cerr << "using override current" << std::endl;
         I += BiasCurrent;
       }
     }
-
 
     return I;
   }

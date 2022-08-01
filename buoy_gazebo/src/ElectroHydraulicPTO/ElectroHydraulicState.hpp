@@ -25,7 +25,8 @@
 
 namespace buoy_gazebo
 {
-struct PowerStatusBits {
+struct PowerStatusBits
+{
   uint8_t Mode : 2;  // controller mode. specified by defines in config.h
                      // (GENERATOR_MODE, TORQUE_MODE)
   uint8_t TorqueCmdLimited : 1;  // defines what is limited the Torque Command

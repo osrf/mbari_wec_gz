@@ -28,6 +28,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 
 
 // NOLINTNEXTLINE
@@ -89,6 +90,10 @@ public:
     auto request = std::make_shared<buoy_msgs::srv::ValveCommand::Request>();
     request->duration_sec = 5U;
 
+    ValveServiceCallback valve_callback =
+      default_service_response_callback<ValveServiceCallback,
+        ValveServiceResponseFuture>();
+
     valve_response_future_ = valve_client_->async_send_request(request, valve_callback);
   }
 
@@ -96,6 +101,10 @@ public:
   {
     auto request = std::make_shared<buoy_msgs::srv::PumpCommand::Request>();
     request->duration_sec = 20U;
+
+    PumpServiceCallback pump_callback =
+      default_service_response_callback<PumpServiceCallback,
+        PumpServiceResponseFuture>();
 
     pump_response_future_ = pump_client_->async_send_request(request, pump_callback);
   }
@@ -185,6 +194,8 @@ TEST_F(BuoySCTests, SCValveROS)
   // Run simulation server and wait for piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
   EXPECT_EQ(preCmdIterations, iterations);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
@@ -227,6 +238,8 @@ TEST_F(BuoySCTests, SCValveROS)
   // Run a bit for Valve to open and Status to be set
   fixture->Server()->Run(true /*blocking*/, statusCheckIterations, false /*paused*/);
   EXPECT_EQ(preCmdIterations + statusCheckIterations, iterations);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
@@ -258,6 +271,8 @@ TEST_F(BuoySCTests, SCValveROS)
   // Run to allow Valve command to finish
   fixture->Server()->Run(true /*blocking*/, postCmdIterations, false /*paused*/);
   EXPECT_EQ(preCmdIterations + statusCheckIterations + postCmdIterations, iterations);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
@@ -314,6 +329,8 @@ TEST_F(BuoySCTests, SCPumpROS)
   // Run simulation server and allow piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
   EXPECT_EQ(preCmdIterations, iterations);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
@@ -357,6 +374,8 @@ TEST_F(BuoySCTests, SCPumpROS)
   // Run to let Pump start
   fixture->Server()->Run(true /*blocking*/, 500, false /*paused*/);
   EXPECT_EQ(preCmdIterations + 500, iterations);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
@@ -389,6 +408,8 @@ TEST_F(BuoySCTests, SCPumpROS)
   for (size_t n = 1U; n < 5U; ++n) {
     fixture->Server()->Run(true /*blocking*/, statusCheckIterations, false /*paused*/);
     EXPECT_EQ(preCmdIterations + 500 + n * statusCheckIterations, iterations);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     EXPECT_EQ(
       static_cast<int>(node->clock_->now().seconds()),
       static_cast<int>(iterations / 1000.0F));
@@ -407,6 +428,8 @@ TEST_F(BuoySCTests, SCPumpROS)
   // Run to allow Pump command to finish
   fixture->Server()->Run(true /*blocking*/, postCmdIterations, false /*paused*/);
   EXPECT_EQ(preCmdIterations + 500 + 4 * statusCheckIterations + postCmdIterations, iterations);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
