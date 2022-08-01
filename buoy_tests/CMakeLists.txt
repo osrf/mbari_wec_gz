@@ -114,6 +114,7 @@ if(BUILD_TESTING)
   buoy_add_pytest(no_inputs no_inputs)
   buoy_add_pytest(sc_valve_ros_feedback fixture_server)
   buoy_add_pytest(sc_pump_ros_feedback fixture_server)
+  buoy_add_pytest(pc_commands_ros_feedback fixture_server)
 
   ament_add_pytest_test(test_fixture tests/test_fixture.py)
 
