@@ -60,17 +60,35 @@ def default_generate_test_description():
     ]), locals()
 
 
-class BuoySCInterface(Interface):
+class BuoyPyTestInterface(Interface):
 
     def __init__(self):
-        super().__init__('test_sc_inputs_py', wait_for_services=True)
+        super().__init__('test_inputs_py', wait_for_services=True)
         self.set_parameters([Parameter('use_sim_time', Parameter.Type.BOOL, True)])
-        self.range_finder_ = 0
-        self.status_ = 0
+
+        # Spring data
+        self.range_finder_ = 0.0
+        self.sc_status_ = 0
+
+        # Power data
+        self.rpm_ = 0.0
+        self.wind_curr_ = 0.0
+        self.bias_curr_ = 0.0
+        self.scale_ = 1.0
+        self.retract_ = 0.6
+        self.pc_status_ = 0
 
     def spring_callback(self, data):
         self.range_finder_ = data.range_finder
-        self.status_ = data.status
+        self.sc_status_ = data.status
+
+    def power_callback(self, data):
+        self.rpm_ = data.rpm
+        self.wind_curr_ = data.wcurrent
+        self.bias_curr_ = data.bias_current
+        self.scale_ = data.scale
+        self.retract_ = data.retract
+        self.pc_status_ = data.status
 
     """  TODO(anyone) put back when TestFixture fixed upstream
     def start(self):
@@ -130,12 +148,12 @@ class TestHelper(ros2Node):
         self.run(0)
 
 
-class BuoySCPyTests(unittest.TestCase):
+class BuoyPyTests(unittest.TestCase):
 
     def setUp(self):
         rclpy.init()
         self.test_helper = TestHelper()
-        self.node = BuoySCInterface()
+        self.node = BuoyPyTestInterface()
         self.executor = MultiThreadedExecutor()
         self.executor.add_node(self.node)
         self.executor.add_node(self.test_helper)
@@ -156,7 +174,7 @@ class BuoySCPyTests(unittest.TestCase):
 
 
 @launch_testing.post_shutdown_test()
-class BuoySCPyTestAfterShutdown(unittest.TestCase):
+class BuoyPyTestAfterShutdown(unittest.TestCase):
 
     def test_exit_code_gazebo(self, gazebo_test_fixture, proc_info):
         launch_testing.asserts.assertExitCodes(
