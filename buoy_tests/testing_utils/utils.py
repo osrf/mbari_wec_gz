@@ -81,7 +81,7 @@ class BuoySCInterface(Interface):
         request.duration_sec = 20
 
         self.pump_future_ = self.pump_client_.call_async(request)
-        self.pump_future_.add_done_callback(self.service_response_callback)
+        self.pump_future_.add_done_callback(self.default_service_response_callback)
         await self.pump_future_
 
     def send_valve_command(self):
@@ -92,7 +92,7 @@ class BuoySCInterface(Interface):
         request.duration_sec = 5
 
         self.valve_future_ = self.valve_client_.call_async(request)
-        self.valve_future_.add_done_callback(self.service_response_callback)
+        self.valve_future_.add_done_callback(self.default_service_response_callback)
         await self.valve_future_
 
     """  TODO(anyone) put back when TestFixture fixed upstream
