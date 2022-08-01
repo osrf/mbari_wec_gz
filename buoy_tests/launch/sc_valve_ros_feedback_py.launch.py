@@ -39,6 +39,7 @@ class BuoySCValvePyTest(BuoySCPyTests):
 
         # Run simulation server and wait for piston to settle
         self.test_helper.run(preCmdIterations)
+        self.assertTrue(self.test_helper.run_status)
         self.assertEqual(preCmdIterations, self.test_helper.iterations)
 
         time.sleep(0.5)
@@ -67,7 +68,7 @@ class BuoySCValvePyTest(BuoySCPyTests):
         self.assertFalse(self.node.status_ & SCRecord.LR_FAULT)
 
         # Now send Valve command to OPEN for 5 seconds
-        self.node.send_valve_command()
+        self.node.send_valve_command(5)
         self.assertEqual(self.node.valve_future_.result().result.value,
                          self.node.valve_future_.result().result.OK)
 

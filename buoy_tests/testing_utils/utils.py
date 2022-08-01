@@ -17,7 +17,6 @@ from threading import Thread
 import unittest
 
 from buoy_msgs.interface import Interface
-from buoy_msgs.srv import PumpCommand, ValveCommand
 
 from buoy_tests.srv import RunServer
 
@@ -72,28 +71,6 @@ class BuoySCInterface(Interface):
     def spring_callback(self, data):
         self.range_finder_ = data.range_finder
         self.status_ = data.status
-
-    def send_pump_command(self):
-        return asyncio.run(self._send_pump_command())
-
-    async def _send_pump_command(self):
-        request = PumpCommand.Request()
-        request.duration_sec = 20
-
-        self.pump_future_ = self.pump_client_.call_async(request)
-        self.pump_future_.add_done_callback(self.service_response_callback)
-        await self.pump_future_
-
-    def send_valve_command(self):
-        return asyncio.run(self._send_valve_command())
-
-    async def _send_valve_command(self):
-        request = ValveCommand.Request()
-        request.duration_sec = 5
-
-        self.valve_future_ = self.valve_client_.call_async(request)
-        self.valve_future_.add_done_callback(self.service_response_callback)
-        await self.valve_future_
 
     """  TODO(anyone) put back when TestFixture fixed upstream
     def start(self):
