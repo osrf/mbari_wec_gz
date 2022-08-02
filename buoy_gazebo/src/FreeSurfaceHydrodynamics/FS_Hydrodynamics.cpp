@@ -30,6 +30,8 @@
 using namespace Eigen;
 using namespace mlinterp;
 
+const char *modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
+
 int CountLines(std::string filenm)
 {
   int count = 0;
@@ -263,7 +265,6 @@ void FS_HydroDynamics::ReadWAMITData_TD(std::string filenm)
 
 void FS_HydroDynamics::Plot_FD_Coeffs()
 {
-  const char *modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
 
   { // Plot Added Mass and Damping Values
     std::vector<double> pts_omega;
@@ -352,7 +353,7 @@ void FS_HydroDynamics::Plot_FD_Coeffs()
          << "'-' u 1:2 with lines title 'Im'\n";
       gp.send1d(boost::make_tuple(pts_omega, pts_ReXi));
       gp.send1d(boost::make_tuple(pts_omega, pts_ImXi));
-      
+
       gp << "set xlabel 'rad/sec'\n";
       if (i < 3)
         gp << "set ylabel 'N/m'\n";
@@ -368,6 +369,7 @@ void FS_HydroDynamics::Plot_FD_Coeffs()
 
 void FS_HydroDynamics::Plot_TD_Coeffs()
 {
+  // Plot Radiation Impulse Response Function
   for (int i = 0; i < 6; i++)
     for (int j = i; j < 6; j++)
     {
@@ -406,6 +408,30 @@ void FS_HydroDynamics::Plot_TD_Coeffs()
         }
       }
     }
+  // Plot Exciting Force Impulse Response Functions
+  int i = 0; 
+    for (int j = i; j < 6; j++)
+  {
+std::vector<double> pts_Xi;
+      std::vector<double> pts_tau;
+      if (m_L_exc(i, j).size() > 0) // Check to see if impulse response functoin is nonzero.
+      {
+        for (int k = 0; k < m_L_exc(i, j).size(); k++)
+        {
+          pts_tau.push_back(m_dt * (k-m_L_exc(i,j).size()/2)); //Have to recreate this as there's no real reason to store...
+          pts_Xi.push_back(m_L_exc(i, j)[k]);
+        }
+
+        Gnuplot gp;
+          gp << "set term X11 title '" << modes[j] << "Wave Exciting IRF '\n";
+          gp << "set grid\n";
+          gp << "plot '-' u 1:2 with lines title 'IRF(" << j+1 << ")'\n";
+          gp.send1d(boost::make_tuple(pts_tau, pts_Xi));
+          gp << "set xlabel 'sec'\n";
+          gp << "set ylabel '-'\n";
+      }
+
+  }
 }
 /// \brief Returns added mass at specified frequency
 ///  Interpolates from tabulated WAMIT data, omega must be greater than or equal to zero.
@@ -451,7 +477,7 @@ double FS_HydroDynamics::Damping(double omega, int i, int j)
     xd[n] = this->fd_am_dmp_omega(n);
     yd[n] = this->fd_Y[n](i - 1, j - 1);
   }
-  xd[nd - 1] = 1e6;
+
   yd[nd - 1] = fd_Y_inf_freq(i - 1, j - 1);
   constexpr int ni = 1;
   double yi; // Result is stored in this buffer
