@@ -30,8 +30,8 @@ int main()
   LinearIncidentWave Inc;
 
   //Inc.SetToPiersonMoskowitzSpectrum(1, 0, 300);
-  Inc.SetToPiersonMoskowitzSpectrum(6, 0);
-  //Inc.SetToMonoChromatic(1, 12, 90*M_PI/180);
+  //Inc.SetToPiersonMoskowitzSpectrum(6, 0);
+  Inc.SetToMonoChromatic(1, 12, 90*M_PI/180);
 
   std::cout << Inc << std::endl;
 

@@ -132,7 +132,7 @@ double xx = x*cos(m_beta) + y*sin(m_beta);
 
 double eta = 0;
 for(int i = 0;i<m_A.size();i++)
-  eta = eta - m_A(i)*sin(m_k(i)*xx - m_omega(i)*t + m_phases(i));
+  eta = eta + m_A(i)*cos(m_k(i)*xx - m_omega(i)*t + m_phases(i));
 return eta;
 
 //Eigen::VectorXd temp;

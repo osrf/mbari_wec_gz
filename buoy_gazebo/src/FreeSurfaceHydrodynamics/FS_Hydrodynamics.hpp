@@ -84,10 +84,12 @@ public:
 
     // Storage for wave-elevation at origin;
     VectorXd _eta0;
-
+    
     int _rad_tstep_index = 0;
     int _exc_tstep_index = 0;
-
     int _n_rad_intpts = 0;
     int _n_exc_intpts = 0;
+
+    // wave-elevation evaluation time;
+    double _t_eta;
 };
