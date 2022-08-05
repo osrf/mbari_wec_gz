@@ -42,121 +42,14 @@
       </link>
     </model>
 
-    <model name="MBARI_WEC">
+    <model name="MBARI_WEC_ROS">
       <pose relative_to="world">0 0 -2 0 0 0</pose>
 
       <include merge="true">
-        <uri>package://buoy_description/models/mbari_wec</uri>
+        <uri>package://buoy_description/models/mbari_wec_ros</uri>
       </include>
 
-      <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
-        <PrismaticJointName>HydraulicRam</PrismaticJointName>
-        <PistonArea>1.375</PistonArea>
-        <HydMotorDisp>0.30</HydMotorDisp>
-        <RotorInertia>1</RotorInertia>
-      </plugin>
-
-      <!-- Handle Unimplemented Services -->
-      <plugin filename="NoOpController" name="buoy_gazebo::NoOpController">
-        <namespace>/</namespace>
-        <node_name>noop_controller</node_name>
-      </plugin>
-
-      <plugin filename="SpringController" name="buoy_gazebo::SpringController">
-        <JointName>HydraulicRam</JointName>
-        <namespace>/</namespace>
-        <node_name>spring_controller</node_name>
-        <topic>spring_data</topic>
-        <publish_rate>31</publish_rate>
-      </plugin>
-
-      <plugin filename="PowerController" name="buoy_gazebo::PowerController">
-        <JointName>HydraulicRam</JointName>
-        <namespace>/</namespace>
-        <node_name>power_controller</node_name>
-        <topic>power_data</topic>
-        <publish_rate>23</publish_rate>
-      </plugin>
-
-      <plugin filename="XBowAHRS" name="buoy_gazebo::XBowAHRS">
-        <namespace>/</namespace>
-        <node_name>xbow_ahrs</node_name>
-        <xb_topic>ahrs_data</xb_topic>
-        <imu_topic>xb_imu</imu_topic>
-        <publish_rate>17</publish_rate>
-      </plugin>
-
-      <!-- Add Upper/Lower Polytropic Spring plugin -->
-      <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
-        <JointName>HydraulicRam</JointName>
-        <chamber>upper_polytropic</chamber>
-        <is_upper>true</is_upper>
-        <!-- measure of valve opening cross-section and duration (meter-seconds) -->
-        <valve_absement>49e-7</valve_absement>
-        <pump_absement>14e-8</pump_absement>
-        <pump_pressure>1.7e+6</pump_pressure>
-        <stroke>2.03</stroke>
-        <piston_area>0.0127</piston_area>
-        <dead_volume>0.0266</dead_volume>
-        <T0>283.15</T0>
-        <R_specific>0.2968</R_specific>
-        <c_p>1.04</c_p>
-        <hysteresis>true</hysteresis>
-        <n1>1.2371</n1>
-        <n2>1.2307</n2>
-        <x1>0.9790</x1>
-        <x2>1.1912</x2>
-        <P1>410291</P1>
-        <P2>410266</P2>
-      </plugin>
-
-      <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
-      <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
-        <JointName>HydraulicRam</JointName>
-        <chamber>lower_polytropic</chamber>
-        <is_upper>false</is_upper>
-        <!-- measure of valve opening cross-section and duration (meter-seconds) -->
-        <valve_absement>49e-7</valve_absement>
-        <pump_absement>14e-8</pump_absement>
-        <pump_pressure>1.7e+6</pump_pressure>
-        <stroke>2.03</stroke>
-        <piston_area>0.0115</piston_area>
-        <dead_volume>0.0523</dead_volume>
-        <T0>283.15</T0>
-        <R_specific>0.2968</R_specific>
-        <c_p>1.04</c_p>
-        <hysteresis>true</hysteresis>
-        <n1>1.2327</n1>
-        <n2>1.2518</n2>
-        <x1>1.1958</x1>
-        <x2>1.3935</x2>
-        <P1>1212090</P1>
-        <P2>1212140</P2>
-      </plugin>
-      <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
-
-      <plugin
-        filename="ignition-gazebo-joint-state-publisher-system"
-        name="ignition::gazebo::systems::JointStatePublisher">
-      </plugin>
-
-      <plugin
-        filename="ignition-gazebo-pose-publisher-system"
-        name="ignition::gazebo::systems::PosePublisher">
-        <publish_link_pose>true</publish_link_pose>
-        <use_pose_vector_msg>true</use_pose_vector_msg>
-        <static_publisher>true</static_publisher>
-        <static_update_frequency>1</static_update_frequency>
-      </plugin>
-
-      <plugin
-        filename="ignition-gazebo-odometry-publisher-system"
-        name="ignition::gazebo::systems::OdometryPublisher">
-        <dimensions>3</dimensions>
-        <odom_frame>MBARI_WEC/odom</odom_frame>
-        <robot_base_frame>MBARI_WEC</robot_base_frame>
-      </plugin>
-
     </model>
+
   </world>
 </sdf>
