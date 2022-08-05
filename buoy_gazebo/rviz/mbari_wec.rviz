@@ -69,14 +69,14 @@ Visualization Manager:
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
       Name: RobotModel
-      TF Prefix: MBARI_WEC
+      TF Prefix: MBARI_WEC_ROS
       Update Interval: 0
       Value: true
       Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: MBARI_WEC/odom
+    Fixed Frame: MBARI_WEC_ROS/odom
     Frame Rate: 30
   Name: root
   Tools:
