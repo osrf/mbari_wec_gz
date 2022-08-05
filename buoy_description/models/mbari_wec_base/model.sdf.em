@@ -76,7 +76,7 @@ pto_inner_radius = tether_radius + pto_gap
 pto_scale = pto_inner_radius / pto_stl_inner_radius
 }@
 <sdf version="1.8">
-  <model name="MBARI_WEC">
+  <model name="MBARI_WEC_BASE">
     <self_collide>true</self_collide>
     <link name="Buoy">
       <pose relative_to="__model__">0 0 0 0 0 0</pose>
@@ -95,7 +95,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <visual name="visual_Buoy">
         <geometry>
           <mesh>
-            <uri>package://buoy_description/models/mbari_wec/meshes/buoy_float.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec_base/meshes/buoy_float.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -143,7 +143,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <visual name="visual_PTO">
         <geometry>
           <mesh>
-            <uri>package://buoy_description/models/mbari_wec/meshes/pto.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec_base/meshes/pto.stl</uri>
           </mesh>
         </geometry>
         <material>
@@ -155,7 +155,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <collision name="collision">
         <geometry>
           <mesh>
-            <uri>package://buoy_description/models/mbari_wec/meshes/pto_collision.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec_base/meshes/pto_collision.stl</uri>
             <scale>@(pto_scale) @(pto_scale) 1.0</scale>
           </mesh>
         </geometry>
@@ -192,7 +192,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <visual name="visual_Piston">
         <geometry>
           <mesh>
-            <uri>package://buoy_description/models/mbari_wec/meshes/rod_and_piston.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec_base/meshes/rod_and_piston.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -359,7 +359,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <visual name="visual_HeaveCone">
         <geometry>
           <mesh>
-            <uri>package://buoy_description/models/mbari_wec/meshes/heave_cone.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec_base/meshes/heave_cone.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -397,7 +397,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <visual name="visual_Trefoil">
         <geometry>
           <mesh>
-            <uri>package://buoy_description/models/mbari_wec/meshes/trefoil.stl</uri>
+            <uri>package://buoy_description/models/mbari_wec_base/meshes/trefoil.stl</uri>
           </mesh>
         </geometry>
         <!--color-->
@@ -461,5 +461,6 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <xyz>0.0 0.0 1.0</xyz>
       </axis>
     </joint>
+
   </model>
 </sdf>

@@ -156,7 +156,7 @@ protected:
       {
         auto world = ignition::gazebo::World(_worldEntity);
 
-        buoyEntity = world.ModelByName(_ecm, "MBARI_WEC");
+        buoyEntity = world.ModelByName(_ecm, "MBARI_WEC_ROS");
         EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
       }).
     OnPostUpdate(
