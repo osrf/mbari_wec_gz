@@ -37,8 +37,12 @@ public:
 
     Eigen::VectorXd RadiationForce(Eigen::VectorXd last_xddot);
     Eigen::VectorXd ExcitingForce();
+    Eigen::VectorXd ExcitingForce(double eta, double beta);
 
-    friend std::ostream &operator<<(std::ostream &out, const FS_HydroDynamics &f);
+    void WaveExcitingForceComponents(double *XiRe, double *XiIm, double omega, int j);
+
+    friend std::ostream &
+    operator<<(std::ostream &out, const FS_HydroDynamics &f);
     std::string m_fd_filename;
     std::string m_td_filename;
     IncidentWave &_IncWave;

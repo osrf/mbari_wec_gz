@@ -409,28 +409,24 @@ void FS_HydroDynamics::Plot_TD_Coeffs()
       }
     }
   // Plot Exciting Force Impulse Response Functions
-  int i = 0; 
-    for (int j = i; j < 6; j++)
+  int i = 0;
+  for (int j = i; j < 6; j++)
   {
-std::vector<double> pts_Xi;
-      std::vector<double> pts_tau;
-      if (m_L_exc(i, j).size() > 0) // Check to see if impulse response functoin is nonzero.
-      {
-        for (int k = 0; k < m_L_exc(i, j).size(); k++)
-        {
-          pts_tau.push_back(m_dt * (k-m_L_exc(i,j).size()/2)); //Have to recreate this as there's no real reason to store...
-          pts_Xi.push_back(m_L_exc(i, j)[k]);
-        }
+    std::vector<double> pts_Xi;
+    std::vector<double> pts_tau;
+    for (int k = 0; k < m_L_exc(j).size(); k++)
+    {
+      pts_tau.push_back(m_dt * (k - m_L_exc(i, j).size() / 2)); // Have to recreate this as there's no real reason to store...
+      pts_Xi.push_back(m_L_exc(j)[k]);
+    }
 
-        Gnuplot gp;
-          gp << "set term X11 title '" << modes[j] << "Wave Exciting IRF '\n";
-          gp << "set grid\n";
-          gp << "plot '-' u 1:2 with lines title 'IRF(" << j+1 << ")'\n";
-          gp.send1d(boost::make_tuple(pts_tau, pts_Xi));
-          gp << "set xlabel 'sec'\n";
-          gp << "set ylabel '-'\n";
-      }
-
+    Gnuplot gp;
+    gp << "set term X11 title '" << modes[j] << "Wave Exciting IRF '\n";
+    gp << "set grid\n";
+    gp << "plot '-' u 1:2 with lines title 'IRF(" << j + 1 << ")'\n";
+    gp.send1d(boost::make_tuple(pts_tau, pts_Xi));
+    gp << "set xlabel 'sec'\n";
+    gp << "set ylabel '-'\n";
   }
 }
 /// \brief Returns added mass at specified frequency
@@ -446,10 +442,10 @@ double FS_HydroDynamics::AddedMass(double omega, int i, int j)
   for (int n = 0; n < nd - 1; n++)
   {
     xd[n] = this->fd_am_dmp_omega(n);
-    yd[n] = this->fd_X[n](i - 1, j - 1);
+    yd[n] = this->fd_X[n](i, j);
   }
   xd[nd - 1] = 1e6;
-  yd[nd - 1] = fd_X_inf_freq(i - 1, j - 1);
+  yd[nd - 1] = fd_X_inf_freq(i, j);
   constexpr int ni = 1;
   double yi; // Result is stored in this buffer
   double xi = omega;
@@ -475,10 +471,10 @@ double FS_HydroDynamics::Damping(double omega, int i, int j)
   for (int n = 0; n < nd - 1; n++)
   {
     xd[n] = this->fd_am_dmp_omega(n);
-    yd[n] = this->fd_Y[n](i - 1, j - 1);
+    yd[n] = this->fd_Y[n](i, j);
   }
 
-  yd[nd - 1] = fd_Y_inf_freq(i - 1, j - 1);
+  yd[nd - 1] = fd_Y_inf_freq(i, j);
   constexpr int ni = 1;
   double yi; // Result is stored in this buffer
   double xi = omega;
@@ -489,6 +485,38 @@ double FS_HydroDynamics::Damping(double omega, int i, int j)
       xd, &xi); // Input axis (x)
 
   return yi;
+}
+
+/// \brief Returns Wave Exciting Forces at specified frequency
+///  Interpolates from tabulated WAMIT data, omega must be greater than or equal to zero.
+///  Real and imaginary components returned in first and second argument, must be allocated by calling rountine as "double Xi[2]" or larger
+void FS_HydroDynamics::WaveExcitingForceComponents(double *Xi_Re, double *Xi_Im, double omega, int j)
+{
+  if (omega < 0)
+    std::cout << "ERROR:  FS_Hydrodyanmics::WaveExcitingForceComponents:  omega must be great than zero" << std::endl;
+
+  int nd = this->fd_Re_Xi.size();
+  double xd[nd];
+  double yRed[nd];
+  double yImd[nd];
+  for (int n = 0; n < nd - 1; n++)
+  {
+    xd[n] = this->fd_ext_omega(n);
+    yRed[n] = this->fd_Re_Xi[n](j);
+    yImd[n] = this->fd_Im_Xi[n](j);
+  }
+
+  constexpr int ni = 1;
+  double xi = omega;
+  // Perform the interpolation
+  interp(
+      &nd, ni,     // Number of points
+      yRed, Xi_Re, // Output axis (y)
+      xd, &xi);    // Input axis (x)
+  interp(
+      &nd, ni,     // Number of points
+      yImd, Xi_Im, // Output axis (y)
+      xd, &xi);    // Input axis (x)
 }
 
 void FS_HydroDynamics::SetTimestepSize(double dt)
@@ -538,28 +566,35 @@ void FS_HydroDynamics::SetTimestepSize(double dt)
   _eta0.resize(STORAGE_MULTIPLIER * _n_exc_intpts); // Create storage for 5 times the length of the Impulse
                                                     // response function,  code will shift data when this fills.
 
-  _exc_tstep_index = 0;
+  _exc_tstep_index = STORAGE_MULTIPLIER * _n_exc_intpts - 1; // Set to fill from last memory spot backwards
 }
 
-Eigen::VectorXd FS_HydroDynamics::ExcitingForce()
+Eigen::VectorXd FS_HydroDynamics::ExcitingForce(double eta, double beta)
 {
   Eigen::VectorXd ExctForces(6);
 
-  if (_exc_tstep_index == 0) // Fill in initial values
-    for (; _exc_tstep_index < _n_exc_intpts; _exc_tstep_index++)
-      _eta0(_exc_tstep_index) = _IncWave.eta(0, 0, _exc_tstep_index * m_dt + m_tau_exc(0));
-  else
-    _eta0(_exc_tstep_index) = _IncWave.eta(0, 0, _exc_tstep_index * m_dt + m_tau_exc(0)); // Compute next needed wave-elevation
+  if (_exc_tstep_index == STORAGE_MULTIPLIER * _n_exc_intpts - 1) // Fill in initial values the first time, this is the "negative time portion", assumed to be zero which may be a bit non-physical...
+    for (; _exc_tstep_index > STORAGE_MULTIPLIER * _n_exc_intpts - _n_exc_intpts / 2; _exc_tstep_index--)
+      _eta0(_exc_tstep_index) = 0; //_IncWave.eta(0, 0, _exc_tstep_index * m_dt + m_tau_exc(0));
 
+  _eta0(_exc_tstep_index) = eta; // Store most recent wave elevation.
+
+//std::cout << _eta0.transpose() << std::endl;
+
+  int num_int_pts = _eta0.size() - _exc_tstep_index;
+  if (num_int_pts > _n_exc_intpts) // Sufficiently into simulation that entire IRF can be used.
+    num_int_pts = _n_exc_intpts;
+  std::cout << "eta = " << _eta0(_exc_tstep_index) << "  Size m_L_exc(0).size() = " << m_L_exc(0).size() << "  size _eta0 " << _eta0.size() << "  num_int_pts = " << num_int_pts << " _exc_tstep_index =  " << _exc_tstep_index << std::endl;
   for (int i = 0; i < 6; i++) // Compute convolution integrals, no need to adjust ends in trap rule since integrand there is zero.
-    ExctForces(i) = m_L_exc(i).dot(_eta0.segment(_exc_tstep_index - _n_exc_intpts, _n_exc_intpts).reverse());
+    ExctForces(i) += m_L_exc(i).head(num_int_pts).dot(_eta0.segment(_rad_tstep_index, num_int_pts));
 
-  // Increment timestep index and shift stored xddot data if needed.
-  _exc_tstep_index++;
-  if (_exc_tstep_index == STORAGE_MULTIPLIER * _n_exc_intpts) // At end of allocated storage,
+  // Decrement timestep index and shift stored eta data if needed.
+  _exc_tstep_index--;
+  if (_exc_tstep_index == 0) // At beginning of allocated storage,
   {
-    _eta0.head(_n_exc_intpts) = _eta0.tail(_n_exc_intpts);
-    _exc_tstep_index = _n_exc_intpts;
+    _eta0.tail(_n_exc_intpts) = _eta0.head(_n_exc_intpts);
+    _exc_tstep_index = STORAGE_MULTIPLIER * _n_exc_intpts - _n_exc_intpts;
+    _n_exc_intpts;
   }
 
   ExctForces *= m_dt;
@@ -594,7 +629,7 @@ Eigen::VectorXd FS_HydroDynamics::RadiationForce(Eigen::VectorXd last_xddot)
 
   // Decrement timestep index and shift stored xddot data if needed.
   _rad_tstep_index--;
-  if (_rad_tstep_index == 0) // At end of allocated storage.
+  if (_rad_tstep_index == 0) // At beginning of allocated storage.
   {
     for (int j = 0; j < 6; j++) // Copy most recent xdddot data to end of acceleration storage vector.
       m_xddot(j).tail(_n_rad_intpts) = m_xddot(j).head(_n_rad_intpts);
@@ -622,3 +657,30 @@ std::ostream &operator<<(std::ostream &out, const FS_HydroDynamics &f)
 
   return out; // return std::ostream so we can chain calls to operator<<
 }
+
+#if 0
+Eigen::VectorXd FS_HydroDynamics::ExcitingForce()
+{
+  Eigen::VectorXd ExctForces(6);
+
+  if (_exc_tstep_index == 0) // Fill in initial values
+    for (; _exc_tstep_index < _n_exc_intpts; _exc_tstep_index++)
+      _eta0(_exc_tstep_index) = _IncWave.eta(0, 0, _exc_tstep_index * m_dt + m_tau_exc(0));
+  else
+    _eta0(_exc_tstep_index) = _IncWave.eta(0, 0, _exc_tstep_index * m_dt + m_tau_exc(0)); // Compute next needed wave-elevation
+
+  for (int i = 0; i < 6; i++) // Compute convolution integrals, no need to adjust ends in trap rule since integrand there is zero.
+    ExctForces(i) = m_L_exc(i).dot(_eta0.segment(_exc_tstep_index - _n_exc_intpts, _n_exc_intpts).reverse());
+
+  // Increment timestep index and shift stored xddot data if needed.
+  _exc_tstep_index++;
+  if (_exc_tstep_index == STORAGE_MULTIPLIER * _n_exc_intpts) // At end of allocated storage,
+  {
+    _eta0.head(_n_exc_intpts) = _eta0.tail(_n_exc_intpts);
+    _exc_tstep_index = _n_exc_intpts;
+  }
+
+  ExctForces *= m_dt;
+  return ExctForces;
+}
+#endif
