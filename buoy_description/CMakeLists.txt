@@ -3,7 +3,7 @@ project(buoy_description)
 find_package(ament_cmake REQUIRED)
 
 # Model Generation
-set(BUOY_MODEL_PATH "/models/mbari_wec")
+set(BUOY_MODEL_PATH "/models/mbari_wec_base")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${BUOY_MODEL_PATH})
 add_custom_command(
   OUTPUT model_gen_cmd

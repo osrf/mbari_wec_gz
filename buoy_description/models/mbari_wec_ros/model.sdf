@@ -1,0 +1,62 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <model name="MBARI_WEC_ROS">
+
+    <include merge="true">
+      <uri>package://buoy_description/models/mbari_wec</uri>
+    </include>
+
+    <!-- Handle Unimplemented Services -->
+    <plugin filename="NoOpController" name="buoy_gazebo::NoOpController">
+      <namespace>/</namespace>
+      <node_name>noop_controller</node_name>
+    </plugin>
+
+    <plugin filename="SpringController" name="buoy_gazebo::SpringController">
+      <JointName>HydraulicRam</JointName>
+      <namespace>/</namespace>
+      <node_name>spring_controller</node_name>
+      <topic>spring_data</topic>
+      <publish_rate>10</publish_rate>
+    </plugin>
+
+    <plugin filename="PowerController" name="buoy_gazebo::PowerController">
+      <JointName>HydraulicRam</JointName>
+      <namespace>/</namespace>
+      <node_name>power_controller</node_name>
+      <topic>power_data</topic>
+      <publish_rate>10</publish_rate>
+    </plugin>
+
+    <plugin filename="XBowAHRS" name="buoy_gazebo::XBowAHRS">
+      <namespace>/</namespace>
+      <node_name>xbow_ahrs</node_name>
+      <xb_topic>ahrs_data</xb_topic>
+      <imu_topic>xb_imu</imu_topic>
+      <publish_rate>10</publish_rate>
+    </plugin>
+
+      <plugin
+        filename="ignition-gazebo-joint-state-publisher-system"
+        name="ignition::gazebo::systems::JointStatePublisher">
+      </plugin>
+
+      <plugin
+        filename="ignition-gazebo-pose-publisher-system"
+        name="ignition::gazebo::systems::PosePublisher">
+        <publish_link_pose>true</publish_link_pose>
+        <use_pose_vector_msg>true</use_pose_vector_msg>
+        <static_publisher>true</static_publisher>
+        <static_update_frequency>1</static_update_frequency>
+      </plugin>
+
+      <plugin
+        filename="ignition-gazebo-odometry-publisher-system"
+        name="ignition::gazebo::systems::OdometryPublisher">
+        <dimensions>3</dimensions>
+        <odom_frame>MBARI_WEC_ROS/odom</odom_frame>
+        <robot_base_frame>MBARI_WEC_ROS</robot_base_frame>
+      </plugin>
+
+  </model>
+</sdf>
