@@ -30,8 +30,8 @@ def generate_launch_description():
     pkg_ros_ign_gazebo = get_package_share_directory('ros_ign_gazebo')
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
-    model_dir = 'mbari_wec'
-    model_name = 'MBARI_WEC'
+    model_dir = 'mbari_wec_ros'
+    model_name = 'MBARI_WEC_ROS'
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     with open(sdf_file, 'r') as infp:
