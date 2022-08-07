@@ -1,6 +1,6 @@
-gz_add_plugin(ElectroHydraulicPTO
+gz_add_plugin(WaveBodyInteractions
   SOURCES
-    FreeSurfaceHydrodynamics.cpp
-  INCLUDE_DIRS
-    include/
+    WaveBodyInteractions.cpp
+    FS_Hydrodynamics.cpp
+    LinearIncidentWave.cpp
 )

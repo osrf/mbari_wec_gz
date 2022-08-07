@@ -49,12 +49,22 @@ int CountLines(std::string filenm) {
   return count;
 }
 
+//FS_HydroDynamics::FS_HydroDynamics()
+//    : m_L{1.0}, m_grav{9.81}, m_rho{1025} {}
+
 FS_HydroDynamics::FS_HydroDynamics(IncidentWave &IncWave)
     : _IncWave(IncWave), m_L{1.0}, m_grav{9.81}, m_rho{1025} {}
 
 FS_HydroDynamics::FS_HydroDynamics(IncidentWave &IncWave, double L, double g,
                                    double rho)
     : _IncWave(IncWave), m_L{L}, m_grav{g}, m_rho{rho} {}
+
+
+ //void FS_HydroDynamics::AssignIncidentWave(IncidentWave &IncWave)
+ //{
+ //    _IncWave = IncWave);
+// }
+
 
 /// \brief  Read frequency domain coefficients from WAMIT.
 ///
@@ -485,15 +495,14 @@ void FS_HydroDynamics::WaveExcitingForceComponents(double *Xi_Re, double *Xi_Im,
                  "omega must be great than zero"
               << std::endl;
 
-  int nd = this->fd_Re_Xi.size();
+  int nd = this->fd_Re_Xi[0].size();
   double xd[nd];
   double yRed[nd];
   double yImd[nd];
-  for (int n = 0; n < nd - 1; n++) {
+  for (int n = 0; n < nd; n++) {
     xd[n] = this->fd_ext_omega(n);
     yRed[n] = this->fd_Re_Xi[j](n);
     yImd[n] = this->fd_Im_Xi[j](n);
-
   }
 
   constexpr int ni = 1;

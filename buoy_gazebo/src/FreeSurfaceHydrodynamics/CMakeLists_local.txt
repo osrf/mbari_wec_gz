@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
 
-project(FreeSurface_Hydrodynamics)
+project(WaveBodyInteractions)
 
-#find_package(ignition-cmake2 REQUIRED)
+find_package(ignition-cmake2 REQUIRED)
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 
 set(Boost_USE_STATIC_LIBS OFF) 
@@ -12,31 +12,33 @@ set(Boost_INCLUDEDIR "/usr/include") # This didn't work, cmake insisted on using
 find_package(Boost 1.71.0 COMPONENTS system iostreams filesystem) 
 
 
-set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra")
+#set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra")
 
-#find_package(ignition-plugin1 REQUIRED COMPONENTS register)
-#set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
-
-#find_package(ignition-gazebo6 REQUIRED)
+find_package(ignition-plugin1 REQUIRED COMPONENTS register)
+set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
+find_package(ignition-gazebo6 REQUIRED)
 
 
 add_executable(Test_IncidentWave  Test_IncidentWave.cpp LinearIncidentWave.cpp)
 target_link_libraries (Test_IncidentWave Eigen3::Eigen)
+set_property(TARGET Test_IncidentWave PROPERTY CXX_STANDARD 17)
 
-#include_directories(${Boost_INCLUDE_DIRS}) 
 add_executable(Test_FS_Hydrodynamics Test_FS_Hydrodynamics.cpp FS_Hydrodynamics.cpp LinearIncidentWave.cpp)
 target_link_libraries (Test_FS_Hydrodynamics Eigen3::Eigen Boost::system Boost::iostreams Boost::filesystem)
+set_property(TARGET Test_FS_Hydrodynamics PROPERTY CXX_STANDARD 17)
+
+add_library(WaveBodyInteractions SHARED WaveBodyInteractions.cpp FS_Hydrodynamics.cpp LinearIncidentWave.cpp)
+#add_library(WaveBodyInteractions SHARED WaveBodyInteractions.cpp)
+#target_include_directories(WaveBodyInteractions PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set_property(TARGET WaveBodyInteractions PROPERTY CXX_STANDARD 17)
+target_link_libraries(WaveBodyInteractions
+  PRIVATE ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
+  PRIVATE ignition-gazebo6::ignition-gazebo6)
 
 
-#target_include_directories(FS_Hydrodynamics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set_property(TARGET Test_FS_Hydrodynamics PROPERTY CXX_STANDARD 20)
-set_property(TARGET Test_IncidentWave PROPERTY CXX_STANDARD 20)
-#target_link_libraries(FS_Hydrodynamics
-#  PRIVATE ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
-#  PRIVATE ignition-gazebo6::ignition-gazebo6)
-
-
-#install(TARGETS FS_Hydrodynamics DESTINATION ~/.ignition/gazebo/plugins)
+#install(TARGETS WaveBodyInteractions DESTINATION ~/.ignition/gazebo/plugins)
+#install(TARGETS WaveBodyInteractions DESTINATION ${IGN_GAZEBO_SYSTEM_PLUGIN_PATH})
+install(TARGETS WaveBodyInteractions DESTINATION /home/hamilton/buoy_ws/install/buoy_gazebo/lib)
 
 
 find_package(Doxygen)
