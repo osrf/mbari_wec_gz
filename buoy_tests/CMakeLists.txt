@@ -115,7 +115,9 @@ if(BUILD_TESTING)
   buoy_add_pytest(sc_valve_ros_feedback fixture_server)
   buoy_add_pytest(sc_pump_ros_feedback fixture_server)
   buoy_add_pytest(pc_commands_ros_feedback fixture_server)
+  buoy_add_pytest(pc_bias_damping_ros_feedback fixture_server_sinusoidal_piston)
 
+  # Note: This is an xfail test until fixed upstream
   ament_add_pytest_test(test_fixture tests/test_fixture.py)
 
   install(PROGRAMS

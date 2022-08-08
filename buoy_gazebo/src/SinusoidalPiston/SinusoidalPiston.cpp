@@ -17,7 +17,6 @@
 #include <ignition/common/Profiler.hh>
 #include <ignition/plugin/Register.hh>
 
-#include <ignition/gazebo/components/JointVelocity.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
 #include <ignition/gazebo/Model.hh>
 
@@ -113,38 +112,6 @@ void SinusoidalPiston::PreUpdate(
   if (_info.paused) {
     return;
   }
-
-  // Create joint position component if one doesn't exist
-  auto jointPosComp =
-    _ecm.Component<ignition::gazebo::components::JointPosition>(
-    this->dataPtr->jointEntity);
-  if (jointPosComp == nullptr) {
-    _ecm.CreateComponent(
-      this->dataPtr->jointEntity, ignition::gazebo::components::JointPosition());
-  }
-  // We just created the joint position component, give one iteration for the
-  // physics system to update its size
-  if (jointPosComp == nullptr || jointPosComp->Data().empty()) {
-    return;
-  }
-
-  // Create joint velocity component if one doesn't exist
-  auto jointVelComp =
-    _ecm.Component<ignition::gazebo::components::JointVelocity>(
-    this->dataPtr->jointEntity);
-  if (jointVelComp == nullptr) {
-    _ecm.CreateComponent(
-      this->dataPtr->jointEntity, ignition::gazebo::components::JointVelocity());
-  }
-  // We just created the joint velocity component, give one iteration for the
-  // physics system to update its size
-  if (jointVelComp == nullptr || jointVelComp->Data().empty()) {
-    return;
-  }
-
-  // TODO(anyone): Figure out if (0) for the index is always correct,
-  // some OR code has a process of finding the index for this argument.
-  double v = jointVelComp->Data().at(0);
 
   double period = 2.0;  // sec
   double piston_velocity = this->dataPtr->stroke * cos(

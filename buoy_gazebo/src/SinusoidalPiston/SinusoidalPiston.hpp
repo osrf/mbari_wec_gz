@@ -46,6 +46,10 @@ public:
   void PreUpdate(
     const ignition::gazebo::UpdateInfo & _info,
     ignition::gazebo::EntityComponentManager & _ecm) override;
+
+private:
+  /// \brief Private data pointer
+  std::unique_ptr<SinusoidalPistonPrivate> dataPtr;
 };
 }  // namespace buoy_gazebo
 
