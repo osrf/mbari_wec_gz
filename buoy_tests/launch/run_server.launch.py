@@ -12,6 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .utils import BuoyPyTestAfterShutdown  # noqa F401
-from .utils import BuoyPyTests  # noqa F401
-from .utils import default_generate_test_description  # noqa F401
+import launch
+
+from launch_ros.actions import Node as launchNode
+
+
+def generate_launch_description():
+
+    # Test fixture
+    gazebo_test_fixture = launchNode(
+        package='buoy_tests',
+        executable='fixture_server',
+        output='screen'
+    )
+
+    bridge = launchNode(package='ros_ign_bridge',
+                        executable='parameter_bridge',
+                        arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+                        output='screen')
+
+    return launch.LaunchDescription([
+        gazebo_test_fixture,
+        bridge
+    ])

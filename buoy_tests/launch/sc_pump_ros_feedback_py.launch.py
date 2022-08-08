@@ -16,8 +16,8 @@ import time
 
 from buoy_msgs.msg import SCRecord
 
-from testing_utils import BuoySCPyTestAfterShutdown  # noqa F401
-from testing_utils import BuoySCPyTests
+from testing_utils import BuoyPyTestAfterShutdown  # noqa F401 -- runs if imported
+from testing_utils import BuoyPyTests
 from testing_utils import default_generate_test_description
 
 
@@ -25,7 +25,7 @@ def generate_test_description():
     return default_generate_test_description()
 
 
-class BuoySCPumpPyTest(BuoySCPyTests):
+class BuoySCPumpPyTest(BuoyPyTests):
 
     def test_sc_pump_ros(self, gazebo_test_fixture, proc_info):
         clock = self.node.get_clock()
@@ -41,6 +41,7 @@ class BuoySCPumpPyTest(BuoySCPyTests):
         self.test_helper.run(preCmdIterations)
         self.assertTrue(self.test_helper.run_status)
         self.assertEqual(self.test_helper.iterations, preCmdIterations)
+
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
@@ -49,25 +50,25 @@ class BuoySCPumpPyTest(BuoySCPyTests):
         pre_pump_range_finder = self.node.range_finder_
 
         # Check status field
-        self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_REQUEST,
+        self.assertFalse(self.node.sc_status_ & SCRecord.RELIEF_VALVE_REQUEST,
                          'SC Valve Request should be FALSE')
-        self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_STATUS,
+        self.assertFalse(self.node.sc_status_ & SCRecord.RELIEF_VALVE_STATUS,
                          'SC Valve should be CLOSED')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_REQUEST,
+        self.assertFalse(self.node.sc_status_ & SCRecord.PUMP_REQUEST,
                          'SC Pump Request should be FALSE')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_STATUS,
+        self.assertFalse(self.node.sc_status_ & SCRecord.PUMP_STATUS,
                          'SC Pump should be OFF')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_TOGGLE,
+        self.assertFalse(self.node.sc_status_ & SCRecord.PUMP_TOGGLE,
                          'SC Pump Toggle should be OFF')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_OVER_TEMP)
-        self.assertFalse(self.node.status_ & SCRecord.TETHER_POWER_REQUEST)
-        self.assertTrue(self.node.status_ & SCRecord.TETHER_POWER_STATUS,
+        self.assertFalse(self.node.sc_status_ & SCRecord.PUMP_OVER_TEMP)
+        self.assertFalse(self.node.sc_status_ & SCRecord.TETHER_POWER_REQUEST)
+        self.assertTrue(self.node.sc_status_ & SCRecord.TETHER_POWER_STATUS,
                         'SC Tether Power should be ON')
-        self.assertFalse(self.node.status_ & SCRecord.LR_FAULT)
-        self.assertFalse(self.node.status_ & SCRecord.LR_FAULT)
+        self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
+        self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
 
         # Now send Pump command to run for 20 seconds
-        self.node.send_pump_command()
+        self.node.send_pump_command(20)
         self.assertEqual(self.node.pump_future_.result().result.value,
                          self.node.pump_future_.result().result.OK)
 
@@ -80,22 +81,22 @@ class BuoySCPumpPyTest(BuoySCPyTests):
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
         # Check status field
-        self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_REQUEST,
+        self.assertFalse(self.node.sc_status_ & SCRecord.RELIEF_VALVE_REQUEST,
                          'SC Valve Request should be FALSE')
-        self.assertFalse(self.node.status_ & SCRecord.RELIEF_VALVE_STATUS,
+        self.assertFalse(self.node.sc_status_ & SCRecord.RELIEF_VALVE_STATUS,
                          'SC Valve should be CLOSED')
-        self.assertTrue(self.node.status_ & SCRecord.PUMP_REQUEST,
+        self.assertTrue(self.node.sc_status_ & SCRecord.PUMP_REQUEST,
                         'SC Pump Request should be TRUE')
-        self.assertTrue(self.node.status_ & SCRecord.PUMP_STATUS,
+        self.assertTrue(self.node.sc_status_ & SCRecord.PUMP_STATUS,
                         'SC Pump should be ON')
-        self.assertTrue(self.node.status_ & SCRecord.PUMP_TOGGLE,
+        self.assertTrue(self.node.sc_status_ & SCRecord.PUMP_TOGGLE,
                         'SC Pump Toggle should be ON')
-        self.assertFalse(self.node.status_ & SCRecord.PUMP_OVER_TEMP)
-        self.assertFalse(self.node.status_ & SCRecord.TETHER_POWER_REQUEST)
-        self.assertTrue(self.node.status_ & SCRecord.TETHER_POWER_STATUS,
+        self.assertFalse(self.node.sc_status_ & SCRecord.PUMP_OVER_TEMP)
+        self.assertFalse(self.node.sc_status_ & SCRecord.TETHER_POWER_REQUEST)
+        self.assertTrue(self.node.sc_status_ & SCRecord.TETHER_POWER_STATUS,
                         'SC Tether Power should be ON')
-        self.assertFalse(self.node.status_ & SCRecord.LR_FAULT)
-        self.assertFalse(self.node.status_ & SCRecord.LR_FAULT)
+        self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
+        self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
 
         # Check pump toggle
         for n in range(1, 5):
@@ -108,10 +109,10 @@ class BuoySCPumpPyTest(BuoySCPyTests):
             self.assertEqual(t, self.test_helper.iterations // 1000)
 
             if n % 2 == 1:
-                self.assertFalse(self.node.status_ & SCRecord.PUMP_TOGGLE,
+                self.assertFalse(self.node.sc_status_ & SCRecord.PUMP_TOGGLE,
                                  'SC Pump Toggle should be OFF')
             else:
-                self.assertTrue(self.node.status_ & SCRecord.PUMP_TOGGLE,
+                self.assertTrue(self.node.sc_status_ & SCRecord.PUMP_TOGGLE,
                                 'SC Pump Toggle should be ON')
 
         # Run to allow Pump command to finish

@@ -70,7 +70,7 @@ public:
 
   double WindingCurrent{0.0};
 
-  double Ve{315.0};
+  static constexpr double Ve{315.0};
 
   bool VelMode{false};
 
@@ -319,22 +319,32 @@ void ElectroHydraulicPTO::PreUpdate(
     (rand_r(&seed) % 200 - 100);
 
   static const double eff_e = 0.85;
-  const double ShaftPower = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
-    this->dataPtr->WindingCurrent * 2.0 * M_PI * N / 60.0;  // Watts
-  const double P = eff_e * ShaftPower;
+  static const double RPM_TO_RAD_PER_SEC = 2.0 * M_PI / 60.0;
+  static const double P_conv = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
+    RPM_TO_RAD_PER_SEC;
+  const double ShaftPower = P_conv * this->dataPtr->WindingCurrent * N;  // Watts
+  double P = eff_e * ShaftPower;
   static const double Ri = 8.0;  // Ohms
 
-  const double a = (1.0 / Ri);
-  const double b = -this->dataPtr->Ve / Ri;
-  const double c = -P;
+  static const double two_a = 2.0 / Ri;
+  static const double four_a = 2.0 * two_a;
+  static const double neg_b = this->dataPtr->Ve / Ri;
+  static const double neg_b_sq = neg_b * neg_b;
 
-  const double VBus1 = (-b + sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
-  const double VBus2 = (-b - sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
+  // TODO(hamilton) temporary fix for NaN's when discriminant < 0.0
+  // this happens when user commanded winding current is too large
+  const double c = std::min(-P, neg_b_sq / four_a - 0.001 /* ensure discriminant > 0.0 */);
+  // P = -c;
+  // std::cerr << "P limited: " << P << std::endl;
+
+  const double sqrt_discriminant = sqrt(neg_b_sq - four_a * c);
+  const double VBus1 = (neg_b + sqrt_discriminant) / two_a;
+  const double VBus2 = (neg_b - sqrt_discriminant) / two_a;
 
   double VBus = VBus1 > VBus2 ? std::min(VBus1, 325.0) : std::min(VBus2, 325.0);
 
   double I_Batt = (VBus - this->dataPtr->Ve) / Ri;
-  const double I_BattMax = 7.0;
+  static const double I_BattMax = 7.0;
 
   if (I_Batt > I_BattMax) {  // Need to limit charge current
     I_Batt = I_BattMax;
