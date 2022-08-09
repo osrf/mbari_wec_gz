@@ -31,7 +31,7 @@ def generate_launch_description():
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
     model_dir = 'mbari_wec_ros'
-    model_name = 'MBARI_WEC_ROS'
+    model_name = 'MBARI_WEC_SINUSOIDAL_PISTON'
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     with open(sdf_file, 'r') as infp:
@@ -43,7 +43,7 @@ def generate_launch_description():
     )
 
     gazebo_world_name_launch_arg = DeclareLaunchArgument(
-        'world_name', default_value=['world_demo'],
+        'world_name', default_value=['sinusoidal_piston'],
         description='Gazebo <world name>'
     )
 

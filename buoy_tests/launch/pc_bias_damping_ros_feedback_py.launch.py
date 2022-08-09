@@ -12,9 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import time
 
+from ament_index_python.packages import get_package_share_directory
+
 from buoy_examples.bias_damping import NLBiasDampingPolicy
+
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 from testing_utils import BuoyPyTestAfterShutdown  # noqa F401 -- runs if imported
 from testing_utils import BuoyPyTests
@@ -22,182 +28,83 @@ from testing_utils import default_generate_test_description
 
 
 def generate_test_description():
-    return default_generate_test_description()
+    pkg_buoy_examples = get_package_share_directory('buoy_examples')
+
+    bias_damping = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_buoy_examples, 'launch', 'bias_damping_py.launch.py'),
+        ),
+    )
+
+    ld, locals_ = default_generate_test_description(server='fixture_server_sinusoidal_piston')
+    ld.add_entity(bias_damping)
+
+    return ld, {**locals_, 'bias_damping': bias_damping}
 
 
 class BuoyPCBiasDampingPyTest(BuoyPyTests):
 
     def test_pc_bias_damping_ros(self, gazebo_test_fixture, proc_info):
-        bias_policy_ = NLBiasDampingPolicy()
-
         time.sleep(0.5)
         clock = self.node.get_clock()
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
 
-        preCmdIterations = 15000
-        feedbackCheckIterations = 100
+        preCmdIterations = 1000
+        testIterations = 20000
+        feedbackCheckIterations = 500
 
-        #######################################
-        # Check Default Winding Current Damping
-        self.test_helper.run(feedbackCheckIterations)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(self.test_helper.iterations, feedbackCheckIterations)
-
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        expected_wind_curr = \
-            torque_policy_.winding_current_target(self.node.rpm_,
-                                                  self.node.scale_,
-                                                  self.node.retract_) + self.node.bias_curr_
-        self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.1)
-        self.assertLess(self.node.wind_curr_, expected_wind_curr + 0.1)
-
-        # Run simulation server and allow piston to settle
+        # set PC feedback rate and let server process
+        # and let bias damping node load up
+        self.node.set_pc_pack_rate_param(50.0)
         self.test_helper.run(preCmdIterations)
         self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(self.test_helper.iterations, preCmdIterations + feedbackCheckIterations)
-
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        ##################################################
-        # Winding Current
-        wc = 12.345
-        self.assertNotEqual(self.node.wind_curr_, wc)
-
-        # Now send wind curr command
-        self.node.send_pc_wind_curr_command(wc)
-        self.assertEqual(self.node.pc_wind_curr_future_.result().result.value,
-                         self.node.pc_wind_curr_future_.result().result.OK)
-
-        # Run to let wind curr process
-        self.test_helper.run(feedbackCheckIterations)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(preCmdIterations + 2 * feedbackCheckIterations,
+        self.assertEqual(preCmdIterations,
                          self.test_helper.iterations)
-
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
-        self.assertGreater(self.node.wind_curr_, wc - 0.1)
-        self.assertLess(self.node.wind_curr_, wc + 0.1)
+        bias_policy_ = NLBiasDampingPolicy()
+        params = self.test_helper.get_params_from_node('pb_nl_bias_damping',
+                                                       ['bias_damping.bias',
+                                                        'bias_damping.position_breaks',
+                                                        'bias_damping.position_deadzone'])
+        bias_policy_.bias = params.values[0].double_array_value
+        bias_policy_.breaks = params.values[1].double_array_value
+        bias_policy_.deadzone = params.values[2].double_array_value
+        bias_policy_.update_params()
+        self.assertIsNotNone(bias_policy_.bias_interp1d)
+        policy_config = f"""bias: {bias_policy_.bias}
+breaks: {bias_policy_.breaks}
+deadzone: {bias_policy_.deadzone}"""
+        print(policy_config)
 
-        ##############################################
-        # Scale
-        scale = 1.23
-        self.assertNotEqual(self.node.scale_, scale)
+        # check bias current at intervals while
+        # sinusoidal force plugin is running in fixture
+        prev_is_None = False
+        for idx, _ in enumerate(range(0, testIterations, feedbackCheckIterations)):
+            self.test_helper.run(feedbackCheckIterations)
+            self.assertTrue(self.test_helper.run_status)
+            self.assertEqual(preCmdIterations + (idx + 1) * feedbackCheckIterations,
+                             self.test_helper.iterations)
+            time.sleep(0.5)
+            t, _ = clock.now().seconds_nanoseconds()
+            self.assertEqual(t, self.test_helper.iterations // 1000)
 
-        # Now send scale command
-        self.node.send_pc_scale_command(scale)
-        self.assertEqual(self.node.pc_scale_future_.result().result.value,
-                         self.node.pc_scale_future_.result().result.OK)
-
-        # Run to let scale process
-        self.test_helper.run(feedbackCheckIterations)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(preCmdIterations + 3 * feedbackCheckIterations,
-                         self.test_helper.iterations)
-
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        self.assertGreater(self.node.scale_, scale - 0.01)
-        self.assertLess(self.node.scale_, scale + 0.01)
-
-        ##################################################
-        # Retract
-        retract = 0.75
-        self.assertNotEqual(self.node.retract_, retract)
-
-        # Now send scale command
-        self.node.send_pc_retract_command(retract)
-        self.assertEqual(self.node.pc_retract_future_.result().result.value,
-                         self.node.pc_retract_future_.result().result.OK)
-
-        # Run to let scale process
-        self.test_helper.run(feedbackCheckIterations)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(preCmdIterations + 4 * feedbackCheckIterations,
-                         self.test_helper.iterations)
-
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        self.assertGreater(self.node.retract_, retract - 0.01)
-        self.assertLess(self.node.retract_, retract + 0.01)
-
-        ##################################################
-        # Check return to default winding current damping
-        torque_timeout_iterations = 2000
-
-        # Run to let winding current finish
-        self.test_helper.run(torque_timeout_iterations - 2 * feedbackCheckIterations)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(preCmdIterations +
-                         2 * feedbackCheckIterations +
-                         torque_timeout_iterations,
-                         self.test_helper.iterations)
-
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        expected_wind_curr = \
-            torque_policy_.winding_current_target(self.node.rpm_,
-                                                  self.node.scale_,
-                                                  self.node.retract_) + self.node.bias_curr_
-        self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.1)
-        self.assertLess(self.node.wind_curr_, expected_wind_curr + 0.1)
-
-        #############################################################
-        # Bias Current
-        bc = 7.89
-        self.assertNotEqual(self.node.bias_curr_, bc)
-
-        # Now send bias curr command
-        self.node.send_pc_bias_curr_command(bc)
-        self.assertEqual(self.node.pc_retract_future_.result().result.value,
-                         self.node.pc_retract_future_.result().result.OK)
-
-        # Run to let bias curr process
-        bias_curr_iterations = 9000
-        bias_curr_timeout_iterations = 10000
-        self.test_helper.run(bias_curr_iterations)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(preCmdIterations + 2 * feedbackCheckIterations +
-                         torque_timeout_iterations + bias_curr_iterations,
-                         self.test_helper.iterations)
-
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        self.assertGreater(self.node.bias_curr_, bc - 0.1)
-        self.assertLess(self.node.bias_curr_, bc + 0.1)
-
-        self.assertLess(self.node.range_finder_, 0.5)  # meters
-
-        self.test_helper.run(bias_curr_timeout_iterations - bias_curr_iterations +
-                             feedbackCheckIterations)
-        self.assertTrue(self.test_helper.run_status)
-        self.assertEqual(preCmdIterations + 3 * feedbackCheckIterations +
-                         torque_timeout_iterations + bias_curr_timeout_iterations,
-                         self.test_helper.iterations)
-
-        time.sleep(0.5)
-        t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
-
-        self.assertGreater(self.node.bias_curr_, -0.1)
-        self.assertLess(self.node.bias_curr_, 0.1)
+            expected_bias_curr = bias_policy_.bias_current_target(self.node.range_finder_)
+            if expected_bias_curr is not None:
+                if prev_is_None:
+                    prev_is_None = False
+                    continue
+                self.assertGreater(self.node.bias_curr_, expected_bias_curr - 2.0)
+                self.assertLess(self.node.bias_curr_, expected_bias_curr + 2.0)
+            else:
+                self.assertTrue(bias_policy_.deadzone[0] <
+                                self.node.range_finder_ <
+                                bias_policy_.deadzone[1])
+                prev_is_None = True
 
         # TODO(anyone) remove once TestFixture is fixed upstream
         self.test_helper.stop()

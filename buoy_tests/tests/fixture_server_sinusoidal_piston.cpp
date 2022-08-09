@@ -38,7 +38,7 @@ TEST(BuoyTests, RunServer)
 
   // Setup fixture
   ignition::gazebo::ServerConfig config;
-  config.SetSdfFile("mbari_wec.sdf");
+  config.SetSdfFile("mbari_wec_sinusoidal_piston.sdf");
   config.SetUpdateRate(0.0);
 
   size_t iterations{0U};
@@ -56,7 +56,7 @@ TEST(BuoyTests, RunServer)
     {
       auto world = ignition::gazebo::World(_worldEntity);
 
-      buoyEntity = world.ModelByName(_ecm, "MBARI_WEC_ROS");
+      buoyEntity = world.ModelByName(_ecm, "MBARI_WEC_SINUSOIDAL_PISTON");
       EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
     }).
   OnPostUpdate(
@@ -114,9 +114,10 @@ TEST(BuoyTests, RunServer)
       static const bool blocking = true;
       static const bool paused = false;
       response->success = fixture->Server()->Run(blocking, request->iterations, paused);
-      response->iterations = iterations - initial_iterations;
+      response->success = fixture->Server()->RunOnce(true);
+      response->iterations = iterations - initial_iterations - 1U;
 
-      EXPECT_EQ(iterations - initial_iterations, request->iterations);
+      EXPECT_EQ(response->iterations, request->iterations);
 
       RCLCPP_INFO_STREAM(
         rclcpp::get_logger("run_server"),

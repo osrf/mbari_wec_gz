@@ -17,7 +17,7 @@
 #include <ignition/common/Profiler.hh>
 #include <ignition/plugin/Register.hh>
 
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <ignition/gazebo/components/JointForceCmd.hh>
 #include <ignition/gazebo/Model.hh>
 
 #include <memory>
@@ -113,18 +113,22 @@ void SinusoidalPiston::PreUpdate(
     return;
   }
 
-  double period = 2.0;  // sec
-  double piston_velocity = this->dataPtr->stroke * cos(
-    2.0 * IGN_PI *
-    std::chrono::duration_cast<std::chrono::seconds>(_info.simTime).count() / period);
-  auto joint_vel = _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(
+  static const double T{10000.0};  // milliseconds
+  static const double m{150.0};  // kg
+  static const double shift{0.5};  // meters
+  const double a = -2.0 * IGN_PI * IGN_PI * this->dataPtr->stroke * (sin(
+      2.0 * IGN_PI *
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+        _info.simTime).count() / T) + shift);
+  auto forceComp =
+    _ecm.Component<ignition::gazebo::components::JointForceCmd>(
     this->dataPtr->jointEntity);
-  if (joint_vel == nullptr) {
+  if (forceComp == nullptr) {
     _ecm.CreateComponent(
       this->dataPtr->jointEntity,
-      ignition::gazebo::components::JointVelocityCmd({piston_velocity}));
+      ignition::gazebo::components::JointForceCmd({m * a}));
   } else {
-    *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_velocity});
+    forceComp->Data()[0] += m * a;  // Add force to existing forces.
   }
 }
 }  // namespace buoy_gazebo
