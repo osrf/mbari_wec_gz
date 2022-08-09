@@ -21,6 +21,9 @@
 #include <ignition/gazebo/components/JointForceCmd.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
 #include <ignition/gazebo/components/JointVelocity.hh>
+#include "ignition/gazebo/components/LinearAcceleration.hh"
+#include "ignition/gazebo/components/AngularAcceleration.hh"
+#include "ignition/gazebo/Link.hh"
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Util.hh>
 #include <ignition/math/PID.hh>
@@ -39,6 +42,9 @@
 #include <vector>
 
 using namespace Eigen;
+using namespace ignition;
+using namespace gazebo;
+using namespace systems;
 
 namespace buoy_gazebo
 {
@@ -133,6 +139,12 @@ namespace buoy_gazebo
     this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
     this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
     this->dataPtr->FloatingBody.SetTimestepSize(.01); // TODO:  Need to get timestep size from ecm.
+
+    //  if (!_ecm.Component<ignition::gazebo::components::WorldLinearAcceleration>(this->dataPtr->linkEntity))
+    //    _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldLinearAcceleration());
+
+    //  if (!_ecm.Component<ignition::gazebo::components::WorldAngularAcceleration>(this->dataPtr->linkEntity))
+    //    _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldAngularAcceleration());
   }
 
   //////////////////////////////////////////////////
@@ -155,7 +167,31 @@ namespace buoy_gazebo
     {
       ignwarn << "Detected jump back in time [" << std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count() << "s]. System may not work properly." << std::endl;
     }
+    // ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
+    // auto rotationalVelocity = baseLink.WorldAngularVelocity(_ecm);
+    // auto worldLinAccelComp = baselink.WorldLinearAcceleration(_ecm);
+
+    //  auto WorldLinearAcceleration = _ecm.Component<components::WorldLinearAcceleration>(this->dataPtr->linkEntity);
+    //  auto WorldAngularAcceleration = _ecm.Component<components::WorldAngularAcceleration>(this->dataPtr->linkEntity);
+
+    ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
+
+    auto worldLinearAcceleration = baseLink.WorldLinearAcceleration(_ecm);
+    auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
+
+    //std::cout << worldLinearAcceleration->X() << "  " << worldLinearAcceleration->Y() << "  "  << worldLinearAcceleration->Z() << std::endl;
+    std::cout << "World Linear Acceleration = " << *worldLinearAcceleration << std::endl;
+    std::cout << "World Angular Acceleration = " << *worldAngularAcceleration << std::endl;
+
+    auto pose = baseLink.WorldPose(_ecm);
+    auto localLinearAcceleration = pose->Rot().Inverse() * *worldLinearAcceleration;
+    auto localAngularAcceleration = pose->Rot().Inverse() * *worldAngularAcceleration;
+    
+    //std::cout << localLinearAcceleration->X() << "  " << localLinearAcceleration->Y() << "  "  << localLinearAcceleration->Z() << std::endl;
+    std::cout << "Local Linear Acceleration = " << localLinearAcceleration << std::endl;
+    std::cout << "Local Angular Acceleration = " << localAngularAcceleration << std::endl;
   }
+
 
   //////////////////////////////////////////////////
   void WaveBodyInteractions::Update(
@@ -192,17 +228,16 @@ namespace buoy_gazebo
   {
     std::cout << "In OnUserCmdCurr" << std::endl;
   }
-  } // namespace buoy_gazebo
-  
+} // namespace buoy_gazebo
 
-  IGNITION_ADD_PLUGIN(
-      buoy_gazebo::WaveBodyInteractions,
-      ignition::gazebo::System,
-      buoy_gazebo::WaveBodyInteractions::ISystemConfigure,
-      buoy_gazebo::WaveBodyInteractions::ISystemPreUpdate,
-      buoy_gazebo::WaveBodyInteractions::ISystemUpdate,
-      buoy_gazebo::WaveBodyInteractions::ISystemPostUpdate);
-  
+IGNITION_ADD_PLUGIN(
+    buoy_gazebo::WaveBodyInteractions,
+    ignition::gazebo::System,
+    buoy_gazebo::WaveBodyInteractions::ISystemConfigure,
+    buoy_gazebo::WaveBodyInteractions::ISystemPreUpdate,
+    buoy_gazebo::WaveBodyInteractions::ISystemUpdate,
+    buoy_gazebo::WaveBodyInteractions::ISystemPostUpdate);
+
 /*
   IGNITION_ADD_PLUGIN(
       WaveBodyInteractions,
