@@ -18,7 +18,7 @@
 
     <include>
       <pose>0 0 0 0 0 0</pose>
-      <uri>buoy</uri>
+      <uri>package://buoy_description/models/mbari_wec_base</uri>
     </include>
 
   </world>
