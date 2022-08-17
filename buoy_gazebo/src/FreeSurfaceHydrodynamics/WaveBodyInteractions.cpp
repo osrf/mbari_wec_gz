@@ -21,8 +21,11 @@
 #include <ignition/gazebo/components/JointForceCmd.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
 #include <ignition/gazebo/components/JointVelocity.hh>
+#include "ignition/gazebo/components/LinearVelocity.hh"
 #include "ignition/gazebo/components/LinearAcceleration.hh"
 #include "ignition/gazebo/components/AngularAcceleration.hh"
+#include "ignition/gazebo/components/Pose.hh"
+#include "ignition/gazebo/components/World.hh"
 #include "ignition/gazebo/Link.hh"
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Util.hh>
@@ -140,11 +143,23 @@ namespace buoy_gazebo
     this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
     this->dataPtr->FloatingBody.SetTimestepSize(.01); // TODO:  Need to get timestep size from ecm.
 
-    //  if (!_ecm.Component<ignition::gazebo::components::WorldLinearAcceleration>(this->dataPtr->linkEntity))
-    //    _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldLinearAcceleration());
+    ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
 
-    //  if (!_ecm.Component<ignition::gazebo::components::WorldAngularAcceleration>(this->dataPtr->linkEntity))
-    //    _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldAngularAcceleration());
+    baseLink.EnableAccelerationChecks(_ecm, true);
+
+#if 0
+      if (!_ecm.Component<ignition::gazebo::components::WorldLinearVelocity>(this->dataPtr->linkEntity))
+        _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldLinearVelocity());
+
+      if (!_ecm.Component<ignition::gazebo::components::WorldLinearAcceleration>(this->dataPtr->linkEntity))
+        _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldLinearAcceleration());
+
+      if (!_ecm.Component<ignition::gazebo::components::WorldAngularAcceleration>(this->dataPtr->linkEntity))
+        _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldAngularAcceleration());
+
+      if (!_ecm.Component<ignition::gazebo::components::WorldPose>(this->dataPtr->linkEntity))
+        _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldPose());
+#endif
   }
 
   //////////////////////////////////////////////////
@@ -175,12 +190,31 @@ namespace buoy_gazebo
     //  auto WorldAngularAcceleration = _ecm.Component<components::WorldAngularAcceleration>(this->dataPtr->linkEntity);
 
     ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
+    auto worldLinearAcceleration = baseLink.WorldLinearAcceleration(_ecm);
+    auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
+    std::cout << "World Linear Acceleration = " << *worldLinearAcceleration << std::endl;
+    std::cout << "World Angular Acceleration = " << *worldAngularAcceleration << std::endl;
+
+    auto pose = ignition::gazebo::worldPose(this->dataPtr->linkEntity, _ecm);
+    std::cout << "Pose: " << pose << std::endl;
+    auto localLinearAcceleration = pose.Rot().Inverse() * *worldLinearAcceleration;
+    auto localAngularAcceleration = pose.Rot().Inverse() * *worldAngularAcceleration;
+    std::cout << "Local Linear Acceleration = " << localLinearAcceleration << std::endl;
+    std::cout << "Local Angular Acceleration = " << localAngularAcceleration << std::endl;
+
+#if 0
+    ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
+
+
+    auto worldLinearVelocity = baseLink.WorldLinearVelocity(_ecm);
+    baseLink.EnableVelocityChecks(_ecm, true);
+    std::cout << "#World Linear Velocity = " << *worldLinearVelocity << std::endl;
 
     auto worldLinearAcceleration = baseLink.WorldLinearAcceleration(_ecm);
     auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
 
     //std::cout << worldLinearAcceleration->X() << "  " << worldLinearAcceleration->Y() << "  "  << worldLinearAcceleration->Z() << std::endl;
-    std::cout << "World Linear Acceleration = " << *worldLinearAcceleration << std::endl;
+    std::cout << "#World Linear Acceleration = " << *worldLinearAcceleration << std::endl;
     std::cout << "World Angular Acceleration = " << *worldAngularAcceleration << std::endl;
 
     auto pose = baseLink.WorldPose(_ecm);
@@ -188,10 +222,10 @@ namespace buoy_gazebo
     auto localAngularAcceleration = pose->Rot().Inverse() * *worldAngularAcceleration;
     
     //std::cout << localLinearAcceleration->X() << "  " << localLinearAcceleration->Y() << "  "  << localLinearAcceleration->Z() << std::endl;
-    std::cout << "Local Linear Acceleration = " << localLinearAcceleration << std::endl;
-    std::cout << "Local Angular Acceleration = " << localAngularAcceleration << std::endl;
+    std::cout << "#Local Linear Acceleration = " << localLinearAcceleration << std::endl;
+    std::cout << "#Local Angular Acceleration = " << localAngularAcceleration << std::endl;
+#endif
   }
-
 
   //////////////////////////////////////////////////
   void WaveBodyInteractions::Update(
