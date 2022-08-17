@@ -1,5 +1,5 @@
-find_package(gz-math6 REQUIRED)
-set(GZ_MATH_VER ${gz-math6_VERSION_MAJOR})
+find_package(gz-math7 REQUIRED)
+set(GZ_MATH_VER ${gz-math7_VERSION_MAJOR})
 
 gz_add_plugin(PolytropicPneumaticSpring
   SOURCES
