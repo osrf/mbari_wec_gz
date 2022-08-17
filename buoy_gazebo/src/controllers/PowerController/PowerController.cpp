@@ -39,7 +39,7 @@
 #include <string>
 #include <vector>
 
-#include "buoy_utils/StopwatchSimTime.hpp"
+#include "buoy_utils/Stopwatch.hpp"
 #include "ElectroHydraulicPTO/ElectroHydraulicState.hpp"
 
 
@@ -72,7 +72,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Request>,
     std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Response>)> torque_command_handler_;
 
-  buoy_utils::StopwatchSimTime torque_command_watch_;
+  buoy_utils::Stopwatch torque_command_watch_;
   rclcpp::Duration torque_command_duration_{0, 0U};
   static const rclcpp::Duration TORQUE_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_wind_curr_range_;
@@ -85,7 +85,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Request>,
     std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Response>)> scale_command_handler_;
 
-  buoy_utils::StopwatchSimTime scale_command_watch_;
+  buoy_utils::Stopwatch scale_command_watch_;
   rclcpp::Duration scale_command_duration_{0, 0U};
   static const rclcpp::Duration SCALE_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_scale_range_;
@@ -98,7 +98,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_msgs::srv::PCRetractCommand::Request>,
     std::shared_ptr<buoy_msgs::srv::PCRetractCommand::Response>)> retract_command_handler_;
 
-  buoy_utils::StopwatchSimTime retract_command_watch_;
+  buoy_utils::Stopwatch retract_command_watch_;
   rclcpp::Duration retract_command_duration_{0, 0U};
   static const rclcpp::Duration RETRACT_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_retract_range_;
@@ -111,7 +111,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_msgs::srv::PCBiasCurrCommand::Request>,
     std::shared_ptr<buoy_msgs::srv::PCBiasCurrCommand::Response>)> bias_curr_command_handler_;
 
-  buoy_utils::StopwatchSimTime bias_curr_command_watch_;
+  buoy_utils::Stopwatch bias_curr_command_watch_;
   rclcpp::Duration bias_curr_command_duration_{0, 0U};
   static const rclcpp::Duration BIAS_CURR_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_bias_curr_range_;
@@ -412,7 +412,7 @@ struct PowerControllerPrivate
   void manageCommandTimer(
     const std::string & command_name,
     buoy_utils::CommandTriState<> & command,
-    buoy_utils::StopwatchSimTime & watch,
+    buoy_utils::Stopwatch & watch,
     const rclcpp::Duration & duration)
   {
     // override
@@ -477,7 +477,7 @@ struct PowerControllerPrivate
     std::atomic<bool> & services_command,
     std::atomic<bool> & new_command,
     const double & command_value,
-    buoy_utils::StopwatchSimTime & watch,
+    buoy_utils::Stopwatch & watch,
     rclcpp::Duration & duration,
     const rclcpp::Duration & timeout)
   {

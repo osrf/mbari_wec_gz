@@ -36,7 +36,7 @@
 #include <string>
 #include <vector>
 
-#include "buoy_utils/StopwatchSimTime.hpp"
+#include "buoy_utils/Stopwatch.hpp"
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 
 
@@ -67,7 +67,7 @@ struct SpringControllerServices
   std::function<void(std::shared_ptr<buoy_msgs::srv::PumpCommand::Request>,
     std::shared_ptr<buoy_msgs::srv::PumpCommand::Response>)> pump_command_handler_;
 
-  buoy_utils::StopwatchSimTime command_watch_;
+  buoy_utils::Stopwatch command_watch_;
   rclcpp::Duration command_duration_{0, 0U};
 
   std::atomic<bool> valve_command_{false}, pump_command_{false};
