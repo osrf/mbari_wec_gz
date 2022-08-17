@@ -15,9 +15,9 @@
 #ifndef POLYTROPICPNEUMATICSPRING__SPRINGSTATE_HPP_
 #define POLYTROPICPNEUMATICSPRING__SPRINGSTATE_HPP_
 
-#include <ignition/gazebo/components/Factory.hh>
-#include <ignition/gazebo/components/Component.hh>
-#include <ignition/gazebo/config.hh>
+#include <gz/sim/components/Factory.hh>
+#include <gz/sim/components/Component.hh>
+#include <gz/sim/config.hh>
 
 #include <buoy_utils/CommandTriState.hpp>
 #include <buoy_utils/Status.hpp>
@@ -68,7 +68,7 @@ struct SpringState
 
 namespace components
 {
-using SpringState = ignition::gazebo::components::Component<buoy_gazebo::SpringState,
+using SpringState = gz::sim::components::Component<buoy_gazebo::SpringState,
     class SpringStateTag>;
 IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.components.SpringState", SpringState)
 }  // namespace components

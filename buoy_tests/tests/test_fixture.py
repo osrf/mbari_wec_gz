@@ -25,8 +25,8 @@ import os
 import time
 import unittest
 
-from ignition.common import set_verbosity
-from ignition.gazebo import TestFixture, World, world_entity
+from gz.common import set_verbosity
+from gz.sim import TestFixture, World, world_entity
 
 import pytest
 
@@ -62,9 +62,9 @@ class PyTestFixture(unittest.TestCase):
             ^^ fails with:
             [224.080s] 6: E           TypeError: Unable to convert function return value to a
                                       Python type! The signature was
-            [224.080s] 6: E                 (self: ignition.gazebo.World,
-                                             arg0: ignition.gazebo.EntityComponentManager)
-                                            -> Optional[ignition::math::v6::Vector3<double>]
+            [224.080s] 6: E                 (self: gz.sim.World,
+                                             arg0: gz.sim.EntityComponentManager)
+                                            -> Optional[gz::math::v6::Vector3<double>]
             """
             # print('Gravity ', v)
             modelEntity = w.model_by_name(_ecm, 'falling')

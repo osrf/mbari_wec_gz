@@ -14,10 +14,10 @@
 
 #include "NoOpController.hpp"
 
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/common/Profiler.hh>
-#include <ignition/plugin/Register.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/common/Profiler.hh>
+#include <gz/plugin/Register.hh>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/floating_point_range.hpp>
@@ -340,13 +340,13 @@ NoOpController::~NoOpController()
 }
 
 void NoOpController::Configure(
-  const ignition::gazebo::Entity & _entity,
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  ignition::gazebo::EntityComponentManager & _ecm,
-  ignition::gazebo::EventManager &)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager &)
 {
   // Make sure the controller is attached to a valid model
-  auto model = ignition::gazebo::Model(_entity);
+  auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
     ignerr << "[ROS 2 NoOp Controller] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
@@ -355,7 +355,7 @@ void NoOpController::Configure(
   }
 
   // controller scoped name
-  std::string scoped_name = ignition::gazebo::scopedName(_entity, _ecm, "/", false);
+  std::string scoped_name = gz::sim::scopedName(_entity, _ecm, "/", false);
 
   // ROS node
   std::string ns = _sdf->Get<std::string>("namespace", scoped_name).first;
@@ -377,5 +377,5 @@ void NoOpController::Configure(
 
 IGNITION_ADD_PLUGIN(
   buoy_gazebo::NoOpController,
-  ignition::gazebo::System,
+  gz::sim::System,
   buoy_gazebo::NoOpController::ISystemConfigure)

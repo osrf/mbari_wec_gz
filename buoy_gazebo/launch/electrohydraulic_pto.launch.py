@@ -34,7 +34,7 @@ def generate_launch_description():
 
     # For now, each field is published in its own topic as a double / float64
     ros_msg_type = 'std_msgs/msg/Float64'
-    gz_msg_type = 'ignition.msgs.Double'
+    gz_msg_type = 'gz.msgs.Double'
     joint_name = 'HydraulicRam'
     model_name = 'Hydraulics_Test'
 

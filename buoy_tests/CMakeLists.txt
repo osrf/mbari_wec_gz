@@ -10,8 +10,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
-  find_package(ignition-gazebo6 REQUIRED)
-  set(GZ_SIM_VER ${ignition-gazebo6_VERSION_MAJOR})
+  find_package(gz-sim7 REQUIRED)
+  set(GZ_SIM_VER ${gz-sim7_VERSION_MAJOR})
 
   # Linters
   find_package(ament_lint_auto REQUIRED)
@@ -42,7 +42,7 @@ if(BUILD_TESTING)
       tests/${TEST_NAME}.cpp
     )
     target_link_libraries(${TEST_NAME}
-      ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
+      gz-sim${GZ_SIM_VER}::gz-sim${GZ_SIM_VER}
     )
     if(buoy_add_test_ROS)
       set(ROS_PKGS rclcpp buoy_msgs ${buoy_add_test_EXTRA_ROS_PKGS})
@@ -81,7 +81,7 @@ if(BUILD_TESTING)
         )
 
         target_link_libraries(${GTEST_NAME}
-          ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
+          gz-sim${GZ_SIM_VER}::gz-sim${GZ_SIM_VER}
         )
         rosidl_target_interfaces(${GTEST_NAME} ${PROJECT_NAME} "rosidl_typesupport_cpp")
         ament_target_dependencies(${GTEST_NAME} rclcpp)

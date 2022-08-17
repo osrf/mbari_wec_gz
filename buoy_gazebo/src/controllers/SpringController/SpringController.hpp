@@ -15,7 +15,7 @@
 #ifndef CONTROLLERS__SPRINGCONTROLLER__SPRINGCONTROLLER_HPP_
 #define CONTROLLERS__SPRINGCONTROLLER__SPRINGCONTROLLER_HPP_
 
-#include <ignition/gazebo/System.hh>
+#include <gz/sim/System.hh>
 #include <memory>
 
 namespace buoy_gazebo
@@ -34,10 +34,10 @@ struct SpringControllerPrivate;
 /// * `<topic>`: ROS2 topic to publish to, defaults to "sc_record"
 /// * `<publish_rate>`: ROS2 topic publish rate, defaults to 10Hz
 class SpringController
-  : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPreUpdate,
-  public ignition::gazebo::ISystemPostUpdate
+  : public gz::sim::System,
+  public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPreUpdate,
+  public gz::sim::ISystemPostUpdate
 {
 public:
   /// \brief Constructor
@@ -48,20 +48,20 @@ public:
 
   // Documentation inherited
   void Configure(
-    const ignition::gazebo::Entity & _entity,
+    const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager & _eventMgr) override;
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager & _eventMgr) override;
 
   // Documentation inherited
   void PreUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    gz::sim::EntityComponentManager & _ecm) override;
 
   // Documentation inherited
   void PostUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    const ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    const gz::sim::EntityComponentManager & _ecm) override;
 
 private:
   /// \brief Private data pointer.

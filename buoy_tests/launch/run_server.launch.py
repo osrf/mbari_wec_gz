@@ -28,7 +28,7 @@ def generate_launch_description():
 
     bridge = launchNode(package='ros_ign_bridge',
                         executable='parameter_bridge',
-                        arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+                        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                         output='screen')
 
     return launch.LaunchDescription([

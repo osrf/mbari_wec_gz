@@ -14,13 +14,13 @@
 
 #include "PowerController.hpp"
 
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/common/Profiler.hh>
-#include <ignition/plugin/Register.hh>
-#include <ignition/msgs/wrench.pb.h>
-#include <ignition/transport/Node.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/common/Profiler.hh>
+#include <gz/plugin/Register.hh>
+#include <gz/msgs/wrench.pb.h>
+#include <gz/transport/Node.hh>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
@@ -147,9 +147,9 @@ const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_bia
 
 struct PowerControllerPrivate
 {
-  ignition::gazebo::Entity entity_{ignition::gazebo::kNullEntity};
-  ignition::gazebo::Entity jointEntity_{ignition::gazebo::kNullEntity};
-  ignition::transport::Node node_;
+  gz::sim::Entity entity_{gz::sim::kNullEntity};
+  gz::sim::Entity jointEntity_{gz::sim::kNullEntity};
+  gz::transport::Node node_;
   std::chrono::steady_clock::duration current_time_;
 
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
@@ -574,13 +574,13 @@ PowerController::~PowerController()
 }
 
 void PowerController::Configure(
-  const ignition::gazebo::Entity & _entity,
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  ignition::gazebo::EntityComponentManager & _ecm,
-  ignition::gazebo::EventManager &)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager &)
 {
   // Make sure the controller is attached to a valid model
-  auto model = ignition::gazebo::Model(_entity);
+  auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
     ignerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
@@ -599,14 +599,14 @@ void PowerController::Configure(
   }
 
   this->dataPtr->jointEntity_ = model.JointByName(_ecm, jointName);
-  if (this->dataPtr->jointEntity_ == ignition::gazebo::kNullEntity) {
+  if (this->dataPtr->jointEntity_ == gz::sim::kNullEntity) {
     ignerr << "Joint with name[" << jointName << "] not found. " <<
       "The PowerController may not influence this joint.\n";
     return;
   }
 
   // controller scoped name
-  std::string scoped_name = ignition::gazebo::scopedName(_entity, _ecm, "/", false);
+  std::string scoped_name = gz::sim::scopedName(_entity, _ecm, "/", false);
 
   // ROS node
   std::string ns = _sdf->Get<std::string>("namespace", scoped_name).first;
@@ -674,8 +674,8 @@ void PowerController::Configure(
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 void PowerController::PreUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  gz::sim::EntityComponentManager & _ecm)
 {
   IGN_PROFILE("PowerController::PreUpdate");
 
@@ -710,8 +710,8 @@ void PowerController::PreUpdate(
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 void PowerController::PostUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  const ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  const gz::sim::EntityComponentManager & _ecm)
 {
   IGN_PROFILE("PowerController::PostUpdate");
 
@@ -740,7 +740,7 @@ void PowerController::PostUpdate(
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
 
-  auto sec_nsec = ignition::math::durationToSecNsec(this->dataPtr->current_time_);
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
 
   this->dataPtr->ros_->pc_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->ros_->pc_record_.header.stamp.nanosec = sec_nsec.second;
@@ -773,7 +773,7 @@ void PowerController::PostUpdate(
 
 IGNITION_ADD_PLUGIN(
   buoy_gazebo::PowerController,
-  ignition::gazebo::System,
+  gz::sim::System,
   buoy_gazebo::PowerController::ISystemConfigure,
   buoy_gazebo::PowerController::ISystemPreUpdate,
   buoy_gazebo::PowerController::ISystemPostUpdate)

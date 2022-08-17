@@ -14,4 +14,4 @@ and enable the profiler with `colcon`:
 colcon build --cmake-args ' -DBUILD_TESTING=false' ' -DENABLE_PROFILER=1'
 ```
 
-See more on [this tutorial](https://ignitionrobotics.org/api/common/4.4/profiler.html).
+See more on [this tutorial](https://gazebosim.org/api/common/4.4/profiler.html).

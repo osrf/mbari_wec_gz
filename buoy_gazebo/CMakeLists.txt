@@ -6,25 +6,25 @@ project(buoy_gazebo)
 # endif()
 
 # Option to enable profiler
-option(ENABLE_PROFILER "Enable Ignition Profiler" FALSE)
+option(ENABLE_PROFILER "Enable Gazebo Profiler" FALSE)
 
 if(ENABLE_PROFILER)
-  add_definitions("-DIGN_PROFILER_ENABLE=1")
+  add_definitions("-DGZ_PROFILER_ENABLE=1")
 else()
-  add_definitions("-DIGN_PROFILER_ENABLE=0")
+  add_definitions("-DGZ_PROFILER_ENABLE=0")
 endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(buoy_msgs REQUIRED)
 
-find_package(ignition-cmake2 REQUIRED)
-find_package(ignition-plugin1 REQUIRED COMPONENTS register)
-set(GZ_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
-find_package(ignition-common4 REQUIRED COMPONENTS profiler)
-set(GZ_COMMON_VER ${ignition-common4_VERSION_MAJOR})
-find_package(ignition-gazebo6 REQUIRED)
-set(GZ_SIM_VER ${ignition-gazebo6_VERSION_MAJOR})
+find_package(gz-cmake3 REQUIRED)
+find_package(gz-plugin2 REQUIRED COMPONENTS register)
+set(GZ_PLUGIN_VER ${gz-plugin2_VERSION_MAJOR})
+find_package(gz-common4 REQUIRED COMPONENTS profiler)
+set(GZ_COMMON_VER ${gz-common5_VERSION_MAJOR})
+find_package(gz-sim7 REQUIRED)
+set(GZ_SIM_VER ${gz-sim7_VERSION_MAJOR})
 
 
 # Plugins
@@ -68,9 +68,9 @@ function(gz_add_plugin plugin_name)
   )
   target_link_libraries(${plugin_name}
     PUBLIC
-      ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
-      ignition-plugin${GZ_PLUGIN_VER}::ignition-plugin${GZ_PLUGIN_VER}
-      ignition-common${GZ_COMMON_VER}::profiler
+      gz-sim${GZ_SIM_VER}::gz-sim${GZ_SIM_VER}
+      gz-plugin${GZ_PLUGIN_VER}::gz-plugin${GZ_PLUGIN_VER}
+      gz-common${GZ_COMMON_VER}::profiler
       ${gz_add_plugin_PUBLIC_LINK_LIBS}
     PRIVATE
       ${gz_add_plugin_PRIVATE_LINK_LIBS}
