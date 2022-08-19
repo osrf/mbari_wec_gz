@@ -207,86 +207,12 @@
       </link>
     </model>
 
-    <model name="heave_cone_test">
-      <link name="HeaveCone">
-        <pose>0 0 0 0 0 0</pose>
-        <inertial>
-          <pose>0 0 -1.25 0 0 0</pose>
-          <mass>807</mass>
-          <inertia>
-            <ixx>339.8</ixx>
-            <ixy>0.16</ixy>
-            <ixz>-0.29</ixz>
-            <iyy>343.73</iyy>
-            <iyz>0.33</iyz>
-            <izz>613.52</izz>
-          </inertia>
-        </inertial>
-        <visual name="visual">
-          <geometry>
-            <mesh>
-              <uri>package://buoy_description/models/mbari_wec_base/meshes/heave_cone.stl</uri>
-            </mesh>
-          </geometry>
-          <!--color-->
-          <material>
-            <ambient>0.1 0.1 .1 1</ambient>
-            <diffuse>0.1 0.1 .1 1</diffuse>
-            <specular>0.1 0.1 .1 1</specular>
-          </material>
-        </visual>
-        <collision name="collision">
-          <pose>0 0 -1.21 0 0 0 </pose>
-          <geometry>
-            <box>
-              <size>0.578 0.578 0.5771</size>
-            </box>
-          </geometry>
-        </collision>
-      </link>
+    <model name="MBARI_WEC_ROS">
+      <pose relative_to="world">0 0 -2 0 0 0</pose>
 
-      <link name="Trefoil">
-        <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
-        <inertial>
-          <pose>0 0 -1.25 0 0 0</pose>
-          <mass>10</mass>
-          <inertia>
-            <ixx>10</ixx>
-            <ixy>0</ixy>
-            <ixz>0</ixz>
-            <iyy>10</iyy>
-            <iyz>0</iyz>
-            <izz>19.9</izz>
-          </inertia>
-        </inertial>
-        <visual name="visual">
-          <geometry>
-            <mesh>
-              <uri>package://buoy_description/models/mbari_wec_base/meshes/trefoil.stl</uri>
-            </mesh>
-          </geometry>
-          <!--color-->
-          <material>
-            <ambient>0.1 0.1 .1 1</ambient>
-            <diffuse>0.1 0.1 .1 1</diffuse>
-            <specular>0.1 0.1 .1 1</specular>
-          </material>
-        </visual>
-      </link>
-
-      <joint name="TrefoilDoors" type="revolute">
-      <parent>HeaveCone</parent>
-      <child>Trefoil</child>
-      <provide_feedback>1</provide_feedback>
-      <pose>0.0 0.0 0.0 0 0 0</pose>
-      <axis>
-        <limit>
-          <lower>0.0</lower>
-          <upper>1.047</upper>
-        </limit>
-        <xyz>0.0 0.0 1.0</xyz>
-      </axis>
-      </joint>
+      <include merge="true">
+        <uri>package://buoy_description/models/mbari_wec_ros</uri>
+      </include>
 
       <!-- Heave Cone Hydrodynamics -->
       <plugin filename="ignition-gazebo-hydrodynamics-system"
