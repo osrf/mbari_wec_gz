@@ -108,8 +108,6 @@ if(BUILD_TESTING)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(pc_commands_ros_feedback
     ROS LAUNCH_TEST)
-  #   EXTRA_ROS_PKGS
-  #     buoy_examples)
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)

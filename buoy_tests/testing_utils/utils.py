@@ -16,7 +16,7 @@ import asyncio
 from threading import Thread
 import unittest
 
-from buoy_msgs.interface import Interface
+from buoy_api import Interface
 
 from buoy_tests.srv import RunServer
 

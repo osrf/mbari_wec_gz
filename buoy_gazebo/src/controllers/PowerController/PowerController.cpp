@@ -68,7 +68,8 @@ const rcl_interfaces::msg::FloatingPointRange PowerControllerROS2::valid_pub_rat
 struct PowerControllerServices
 {
   // PCWindCurrCommand -- Winding Current (Torque)
-  rclcpp::Service<buoy_interfaces::srv::PCWindCurrCommand>::SharedPtr torque_command_service_{nullptr};
+  rclcpp::Service<buoy_interfaces::srv::PCWindCurrCommand>::SharedPtr torque_command_service_{
+    nullptr};
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response>)> torque_command_handler_;
 
@@ -94,7 +95,8 @@ struct PowerControllerServices
   std::atomic<bool> new_scale_command_{false};
 
   // PCRetractCommand -- winding current retract factor (additional scaling in retract direction)
-  rclcpp::Service<buoy_interfaces::srv::PCRetractCommand>::SharedPtr retract_command_service_{nullptr};
+  rclcpp::Service<buoy_interfaces::srv::PCRetractCommand>::SharedPtr retract_command_service_{
+    nullptr};
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Response>)> retract_command_handler_;
 
@@ -107,7 +109,8 @@ struct PowerControllerServices
   std::atomic<bool> new_retract_command_{false};
 
   // PCBiasCurrCommand -- winding current bias offset
-  rclcpp::Service<buoy_interfaces::srv::PCBiasCurrCommand>::SharedPtr bias_curr_command_service_{nullptr};
+  rclcpp::Service<buoy_interfaces::srv::PCBiasCurrCommand>::SharedPtr bias_curr_command_service_{
+    nullptr};
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response>)> bias_curr_command_handler_;
 

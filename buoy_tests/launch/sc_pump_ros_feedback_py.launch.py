@@ -14,7 +14,7 @@
 
 import time
 
-from buoy_msgs.msg import SCRecord
+from buoy_interfaces.msg import SCRecord
 
 from testing_utils import BuoyPyTestAfterShutdown  # noqa F401 -- runs if imported
 from testing_utils import BuoyPyTests

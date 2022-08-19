@@ -120,17 +120,23 @@ struct NoOpServices
   DECLARE_SERVICE(TFSetStateMachineCommand, tfsetstatemachine, IntegerRange);
 
   // BCResetCommand
-  rclcpp::Service<buoy_interfaces::srv::BCResetCommand>::SharedPtr bcreset_command_service_{nullptr};
+  rclcpp::Service<
+    buoy_interfaces::srv::BCResetCommand
+  >::SharedPtr bcreset_command_service_{nullptr};
   std::function<void(std::shared_ptr<buoy_interfaces::srv::BCResetCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::BCResetCommand::Response>)> bcreset_command_handler_;
 
   // SCResetCommand
-  rclcpp::Service<buoy_interfaces::srv::SCResetCommand>::SharedPtr screset_command_service_{nullptr};
+  rclcpp::Service<
+    buoy_interfaces::srv::SCResetCommand
+  >::SharedPtr screset_command_service_{nullptr};
   std::function<void(std::shared_ptr<buoy_interfaces::srv::SCResetCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::SCResetCommand::Response>)> screset_command_handler_;
 
   // TFResetCommand
-  rclcpp::Service<buoy_interfaces::srv::TFResetCommand>::SharedPtr tfreset_command_service_{nullptr};
+  rclcpp::Service<
+    buoy_interfaces::srv::TFResetCommand
+  >::SharedPtr tfreset_command_service_{nullptr};
   std::function<void(std::shared_ptr<buoy_interfaces::srv::TFResetCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::TFResetCommand::Response>)> tfreset_command_handler_;
 
@@ -138,8 +144,11 @@ struct NoOpServices
   rclcpp::Service<
     buoy_interfaces::srv::TFWatchDogCommand
   >::SharedPtr tfwatchdog_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Request>,
-    std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Response>)> tfwatchdog_command_handler_;
+  std::function<
+    void(
+      std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Request>,
+      std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Response>
+    )> tfwatchdog_command_handler_;
 };
 INIT_VALID_RANGE(bender, IntegerRange, 0, 2);
 INIT_VALID_RANGE(bus, IntegerRange, 0, 2);

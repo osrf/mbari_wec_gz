@@ -196,7 +196,9 @@ TEST_F(BuoySCTests, SCValveROS)
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be OFF";
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
@@ -237,7 +239,9 @@ TEST_F(BuoySCTests, SCValveROS)
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be OFF";
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
@@ -270,7 +274,9 @@ TEST_F(BuoySCTests, SCValveROS)
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be OFF";
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
@@ -332,7 +338,9 @@ TEST_F(BuoySCTests, SCPumpROS)
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be OFF";
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
@@ -373,7 +381,9 @@ TEST_F(BuoySCTests, SCPumpROS)
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be ON";
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
     static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
