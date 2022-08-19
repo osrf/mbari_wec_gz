@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 project(buoy_gazebo)
 
+# if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#   add_compile_options(-Wall -Wextra -Wpedantic)
+# endif()
+
 # Option to enable profiler
 option(ENABLE_PROFILER "Enable Ignition Profiler" FALSE)
 
@@ -30,6 +34,7 @@ set(GZ_SIM_VER ${ignition-gazebo6_VERSION_MAJOR})
 #              [PUBLIC_LINK_LIBS <libraries...>]
 #              [PRIVATE_LINK_LIBS <libraries...>])
 #              [INCLUDE_DIRS <paths_to_directories...>
+#              [ROS]
 #
 # Add a system plugin
 #
@@ -44,6 +49,8 @@ set(GZ_SIM_VER ${ignition-gazebo6_VERSION_MAJOR})
 #
 # [INCLUDE_DIRS]: Specify a list of path to directories to be included,
 #
+# [ROS]: Signal that this plugin is ROS-enabled
+
 function(gz_add_plugin plugin_name)
   set(options ROS)
   set(oneValueArgs)
@@ -73,6 +80,7 @@ function(gz_add_plugin plugin_name)
   endif()
   target_include_directories(${plugin_name}
       PUBLIC ${gz_add_plugin_INCLUDE_DIRS})
+  # target_compile_features(${plugin_name} PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
   install(
     TARGETS ${plugin_name}
     DESTINATION lib)
@@ -86,6 +94,7 @@ install(DIRECTORY
   worlds
   launch
   gazebo
+  rviz
   DESTINATION share/${PROJECT_NAME}/
 )
 

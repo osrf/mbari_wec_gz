@@ -32,7 +32,8 @@ rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
 # Build everything up to buoy_gazebo
 source /opt/ros/$ROS_DISTRO/setup.bash
 cd $COLCON_WS
-colcon build --packages-up-to buoy_gazebo --event-handlers console_direct+
+colcon build --packages-up-to buoy_tests --event-handlers console_direct+
+source $COLCON_WS/install/setup.bash
 
 # Test all buoy packages
 colcon test --packages-select-regex=buoy --event-handlers console_direct+
