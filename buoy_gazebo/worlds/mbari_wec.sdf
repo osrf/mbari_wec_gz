@@ -110,6 +110,12 @@
         <P2>1212140</P2>
       </plugin>
       <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
+
+    <plugin filename="WaveBodyInteractions" name="buoy_gazebo::WaveBodyInteractions">
+      <LinkName>Buoy</LinkName>
+    </plugin>
+
+
     </model>
   </world>
 </sdf>

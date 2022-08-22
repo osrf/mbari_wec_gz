@@ -82,7 +82,8 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <pose relative_to="__model__">0 0 0 0 0 0</pose>
       <inertial>
         <pose>0 0 2.13 0 0 0</pose>
-        <mass>1400</mass>
+        <!-- <mass>1400</mass> -->
+        <mass>2400</mass>
         <inertia>
           <ixx>1429</ixx>
           <ixy>6.77</ixy>

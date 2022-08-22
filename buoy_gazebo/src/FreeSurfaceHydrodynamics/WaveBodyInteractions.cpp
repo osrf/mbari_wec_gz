@@ -133,10 +133,10 @@ namespace buoy_gazebo
       return;
     }
 
-    double A = .5 + ((float)(rand() % 20) / 10);
-    double T = 3.0 + (rand() % 9);
-    // this->dataptr->Inc.SetToPiersonMoskowitzSpectrum(2*A, 0);
-    this->dataPtr->Inc.SetToMonoChromatic(2 * A, T, 0);
+    double A = 1; //.5 + ((float)(rand() % 20) / 10);
+    double T = 8; ///3.0 + (rand() % 9);
+    this->dataPtr->Inc.SetToPiersonMoskowitzSpectrum(2*A, 0);
+    //this->dataPtr->Inc.SetToMonoChromatic(2 * A, T, 0);
 
     std::string HydrodynamicsBaseFilename = "/home/hamilton/buoy_ws/src/buoy_sim/buoy_gazebo/src/FreeSurfaceHydrodynamics/HydrodynamicCoeffs/BuoyA5";
     this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
@@ -147,19 +147,7 @@ namespace buoy_gazebo
 
     baseLink.EnableAccelerationChecks(_ecm, true);
 
-#if 0
-      if (!_ecm.Component<ignition::gazebo::components::WorldLinearVelocity>(this->dataPtr->linkEntity))
-        _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldLinearVelocity());
 
-      if (!_ecm.Component<ignition::gazebo::components::WorldLinearAcceleration>(this->dataPtr->linkEntity))
-        _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldLinearAcceleration());
-
-      if (!_ecm.Component<ignition::gazebo::components::WorldAngularAcceleration>(this->dataPtr->linkEntity))
-        _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldAngularAcceleration());
-
-      if (!_ecm.Component<ignition::gazebo::components::WorldPose>(this->dataPtr->linkEntity))
-        _ecm.CreateComponent(this->dataPtr->linkEntity, ignition::gazebo::components::WorldPose());
-#endif
   }
 
   //////////////////////////////////////////////////
@@ -182,49 +170,49 @@ namespace buoy_gazebo
     {
       ignwarn << "Detected jump back in time [" << std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count() << "s]. System may not work properly." << std::endl;
     }
-    // ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
-    // auto rotationalVelocity = baseLink.WorldAngularVelocity(_ecm);
-    // auto worldLinAccelComp = baselink.WorldLinearAcceleration(_ecm);
 
-    //  auto WorldLinearAcceleration = _ecm.Component<components::WorldLinearAcceleration>(this->dataPtr->linkEntity);
-    //  auto WorldAngularAcceleration = _ecm.Component<components::WorldAngularAcceleration>(this->dataPtr->linkEntity);
-
-    ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
-    auto worldLinearAcceleration = baseLink.WorldLinearAcceleration(_ecm);
-    auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
-    std::cout << "World Linear Acceleration = " << *worldLinearAcceleration << std::endl;
-    std::cout << "World Angular Acceleration = " << *worldAngularAcceleration << std::endl;
+ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
+auto worldLinearAcceleration = baseLink.WorldLinearAcceleration(_ecm);
+auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
 
     auto pose = ignition::gazebo::worldPose(this->dataPtr->linkEntity, _ecm);
-    std::cout << "Pose: " << pose << std::endl;
-    auto localLinearAcceleration = pose.Rot().Inverse() * *worldLinearAcceleration;
-    auto localAngularAcceleration = pose.Rot().Inverse() * *worldAngularAcceleration;
-    std::cout << "Local Linear Acceleration = " << localLinearAcceleration << std::endl;
-    std::cout << "Local Angular Acceleration = " << localAngularAcceleration << std::endl;
+    std::optional< math::Vector3d > localLinearAcceleration = pose.Rot().Inverse() * *worldLinearAcceleration;
+    std::optional< math::Vector3d > localAngularAcceleration = pose.Rot().Inverse() * *worldAngularAcceleration;
 
-#if 0
-    ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
+        Eigen::VectorXd xddot(6);
+        for(int i = 0; i<3; i++)
+        {
+  xddot(i) = localLinearAcceleration.value()[i];
+  xddot(i+3) = localAngularAcceleration.value()[i];
+        }
+
+        std::cout << "pose = " << pose << std::endl;
+
+        Eigen::VectorXd MemForce(6);
+        MemForce = this->dataPtr->FloatingBody.RadiationForce(xddot);
+        std::cout << " MemForce = " << MemForce.transpose() << std::endl << std::endl;
+
+      Eigen::VectorXd ExtForce(6);
+      ExtForce = this->dataPtr->FloatingBody.ExcitingForce();
+        std::cout << "Exciting Force = " << ExtForce.transpose() << std::endl << std::endl;
+
+      Eigen::VectorXd BuoyancyForce(6);
+      BuoyancyForce(2) = -1025*9.81*5*(pose.Z()+1.75);
+        std::cout << "Buoyancy Force = " << BuoyancyForce.transpose() << std::endl << std::endl;
+  
+  ignition::math::Vector3d
+    totalForce(0, 0, -MemForce(2)+BuoyancyForce(2)+ExtForce(2));
+    std::cout << "Total Force = "  << totalForce << std::endl;
+    //totalForce(0, 0, -MemForce(2)+ExtForce(2));
+    //totalForce(+MemForce(0)+ExtForce(0), +MemForce(1)+ExtForce(1), +MemForce(2)+ExtForce(2));
+  ignition::math::Vector3d
+    totalTorque(0,0,0);
+    //totalTorque(+MemForce(3)+ExtForce(3), +MemForce(4)+ExtForce(4), +MemForce(5)+ExtForce(5));
+
+baseLink.AddWorldWrench( _ecm, pose.Rot()*(totalForce), pose.Rot()*totalTorque);
 
 
-    auto worldLinearVelocity = baseLink.WorldLinearVelocity(_ecm);
-    baseLink.EnableVelocityChecks(_ecm, true);
-    std::cout << "#World Linear Velocity = " << *worldLinearVelocity << std::endl;
 
-    auto worldLinearAcceleration = baseLink.WorldLinearAcceleration(_ecm);
-    auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
-
-    //std::cout << worldLinearAcceleration->X() << "  " << worldLinearAcceleration->Y() << "  "  << worldLinearAcceleration->Z() << std::endl;
-    std::cout << "#World Linear Acceleration = " << *worldLinearAcceleration << std::endl;
-    std::cout << "World Angular Acceleration = " << *worldAngularAcceleration << std::endl;
-
-    auto pose = baseLink.WorldPose(_ecm);
-    auto localLinearAcceleration = pose->Rot().Inverse() * *worldLinearAcceleration;
-    auto localAngularAcceleration = pose->Rot().Inverse() * *worldAngularAcceleration;
-    
-    //std::cout << localLinearAcceleration->X() << "  " << localLinearAcceleration->Y() << "  "  << localLinearAcceleration->Z() << std::endl;
-    std::cout << "#Local Linear Acceleration = " << localLinearAcceleration << std::endl;
-    std::cout << "#Local Angular Acceleration = " << localAngularAcceleration << std::endl;
-#endif
   }
 
   //////////////////////////////////////////////////
@@ -245,8 +233,7 @@ namespace buoy_gazebo
   //////////////////////////////////////////////////
   void WaveBodyInteractions::PostUpdate(
       const ignition::gazebo::UpdateInfo &_info,
-      const ignition::gazebo::EntityComponentManager &_ecm)
-  {
+      const ignition::gazebo::EntityComponentManager &_ecm) {
     IGN_PROFILE("#WaveBodyInteractions::PostUpdate");
     // Nothing left to do if paused.
     if (_info.paused)
