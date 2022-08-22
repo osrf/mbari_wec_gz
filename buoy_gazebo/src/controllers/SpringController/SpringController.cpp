@@ -17,6 +17,7 @@
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Name.hh>
+#include <ignition/common/Profiler.hh>
 #include <ignition/plugin/Register.hh>
 #include <ignition/msgs/wrench.pb.h>
 #include <ignition/transport/Node.hh>
@@ -25,41 +26,60 @@
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 
 #include <buoy_msgs/msg/sc_record.hpp>
-#include <buoy_msgs/srv/sc_pack_rate_command.hpp>
+#include <buoy_msgs/srv/valve_command.hpp>
+#include <buoy_msgs/srv/pump_command.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <limits>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "buoy_utils/StopwatchSimTime.hpp"
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 
+
+using namespace std::chrono_literals;
 
 namespace buoy_gazebo
 {
 struct SpringControllerROS2
 {
   rclcpp::Node::SharedPtr node_{nullptr};
-  rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
-  rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_;
-  std::unique_ptr<rclcpp::Rate> pub_rate_;
+  rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_{nullptr};
+  rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr parameter_handler_{nullptr};
+  bool use_sim_time_{true};
+
+  rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_{nullptr};
+  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
   buoy_msgs::msg::SCRecord sc_record_;
-  rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr parameter_handler_;
+  double pub_rate_hz_{10.0};
 };
 
 struct SpringControllerServices
 {
-  // TODO(andermi) set up other services like this
-  // rclcpp::Service<buoy_msgs::srv::SCPackRateCommand>::SharedPtr sc_pack_rate_service_;
-  // std::function<void(std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Request>,
-  //   std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Response>)> sc_pack_rate_handler_;
+  rclcpp::Service<buoy_msgs::srv::ValveCommand>::SharedPtr valve_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_msgs::srv::ValveCommand::Request>,
+    std::shared_ptr<buoy_msgs::srv::ValveCommand::Response>)> valve_command_handler_;
+
+  rclcpp::Service<buoy_msgs::srv::PumpCommand>::SharedPtr pump_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_msgs::srv::PumpCommand::Request>,
+    std::shared_ptr<buoy_msgs::srv::PumpCommand::Response>)> pump_command_handler_;
+
+  buoy_utils::StopwatchSimTime command_watch_;
+  rclcpp::Duration command_duration_{0, 0U};
+
+  std::atomic<bool> valve_command_{false}, pump_command_{false};
+  std::atomic<bool> new_pump_command_{false}, new_valve_command_{false};
+
+  std::mutex command_mutex_;
 };
 
 struct SpringControllerPrivate
 {
-  ignition::gazebo::Entity entity_;
-  ignition::gazebo::Entity jointEntity_;
+  ignition::gazebo::Entity entity_{ignition::gazebo::kNullEntity};
+  ignition::gazebo::Entity jointEntity_{ignition::gazebo::kNullEntity};
   ignition::transport::Node node_;
   std::function<void(const ignition::msgs::Wrench &)> ft_cb_;
   std::chrono::steady_clock::duration current_time_;
@@ -71,7 +91,6 @@ struct SpringControllerPrivate
   std::atomic<bool> stop_{false}, paused_{true};
 
   int16_t seq_num{0};
-  double pub_rate_hz_{10.0};
 
   std::unique_ptr<SpringControllerROS2> ros_;
   std::unique_ptr<SpringControllerServices> services_;
@@ -89,11 +108,16 @@ struct SpringControllerPrivate
 
     ros_->node_ = rclcpp::Node::make_shared(node_name, ns);
 
+    ros_->node_->set_parameter(
+      rclcpp::Parameter(
+        "use_sim_time",
+        ros_->use_sim_time_));
+
     rcl_interfaces::msg::ParameterDescriptor descriptor;
     rcl_interfaces::msg::FloatingPointRange range;
     range.set__from_value(10.0F).set__to_value(50.0F).set__step(1.0F);
     descriptor.floating_point_range = {range};
-    ros_->node_->declare_parameter("publish_rate", pub_rate_hz_, descriptor);
+    ros_->node_->declare_parameter("publish_rate", ros_->pub_rate_hz_, descriptor);
 
     ros_->parameter_handler_ = ros_->node_->add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> & parameters)
@@ -109,18 +133,21 @@ struct SpringControllerPrivate
             RCLCPP_INFO_STREAM(
               ros_->node_->get_logger(),
               "[ROS 2 Spring Control] setting publish_rate: " << rate_hz);
+
             if (rate_hz < 10.0 || rate_hz > 50.0) {
               RCLCPP_WARN_STREAM(
                 ros_->node_->get_logger(),
                 "[ROS 2 Spring Control] publish_rate out of bounds -- clipped between [10,50]");
             }
-            pub_rate_hz_ = std::min(std::max(rate_hz, 10.0), 50.0);
+
+            ros_->pub_rate_hz_ = std::min(std::max(rate_hz, 10.0), 50.0);
+
             // low prio data access
             std::unique_lock low(low_prio_mutex_);
             std::unique_lock next(next_access_mutex_);
             std::unique_lock data(data_mutex_);
             next.unlock();
-            ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(pub_rate_hz_);
+            ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(ros_->pub_rate_hz_);
             data.unlock();
           }
         }
@@ -140,35 +167,261 @@ struct SpringControllerPrivate
     thread_executor_spin_ = std::thread(spin);
   }
 
-/*  TODO(andermi) set up other services like this
   void setup_services()
   {
-    // SCPackRateCommand
-    services_->sc_pack_rate_handler_ = \
-      [this](const std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::SCPackRateCommand::Response> response)
+    services_->command_watch_.SetClock(ros_->node_->get_clock());
+
+    // ValveCommand
+    services_->valve_command_handler_ =
+      [this](const std::shared_ptr<buoy_msgs::srv::ValveCommand::Request> request,
+        std::shared_ptr<buoy_msgs::srv::ValveCommand::Response> response)
       {
-        if (request->rate_hz < 10 || request->rate_hz > 50) {
-          response->result.value = response->result.BAD_INPUT;
-          RCLCPP_WARN_STREAM(
-            ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] SCPackRateCommand out of bounds -- clipped between [10,50]");
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "[ROS 2 Spring Control] ValveCommand Received (" << request->duration_sec << "s)");
+
+        std::unique_lock lock(services_->command_mutex_);
+        // if already running pump, don't allow valve
+        // unless for some reason we need to turn valve off (shouldn't get in that state)
+        if (services_->pump_command_) {
+          if (request->duration_sec != request->OFF) {
+            response->result.value = response->result.BUSY;
+
+            RCLCPP_ERROR_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] ValveCommand cannot process" <<
+                " while pump command is running...");
+
+            return;
+          }
         }
-        pub_rate_hz_ = std::min(std::max(static_cast<double>(request->rate_hz), 10.0), 50.0);
-        // low prio data access
-        std::unique_lock low(low_prio_mutex_);
-        std::unique_lock next(next_access_mutex_);
-        std::unique_lock data(data_mutex_);
-        next.unlock();
-        ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(pub_rate_hz_);
-        data.unlock();
+
+        if (request->duration_sec == request->OFF) {
+          services_->command_duration_ = rclcpp::Duration(0, 0U);
+          services_->valve_command_ = false;
+          services_->new_valve_command_ = true;
+        } else {
+          uint16_t duration_sec{request->duration_sec};
+          if (duration_sec > 20U) {
+            duration_sec = std::min(
+              std::max(duration_sec, static_cast<uint16_t>(1U)),
+              static_cast<uint16_t>(20U));
+
+            response->result.value = response->result.BAD_INPUT;
+
+            RCLCPP_WARN_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] ValveCommand out of bounds -- clipped to 20s");
+          }
+
+          services_->command_duration_ =
+            rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
+
+          services_->valve_command_ = true;
+          services_->new_valve_command_ = true;
+        }
       };
-    services_->sc_pack_rate_service_ = \
-      ros_->node_->create_service<buoy_msgs::srv::SCPackRateCommand>(
-      "sc_pack_rate_command",
-      services_->sc_pack_rate_handler_);
+    services_->valve_command_service_ =
+      ros_->node_->create_service<buoy_msgs::srv::ValveCommand>(
+      "valve_command",
+      services_->valve_command_handler_);
+
+    // PumpCommand
+    services_->pump_command_handler_ =
+      [this](const std::shared_ptr<buoy_msgs::srv::PumpCommand::Request> request,
+        std::shared_ptr<buoy_msgs::srv::PumpCommand::Response> response)
+      {
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "[ROS 2 Spring Control] PumpCommand Received (" << request->duration_sec << "s)");
+
+        std::unique_lock lock(services_->command_mutex_);
+        // if already running valve, don't allow pump
+        // unless for some reason we need to turn pump off (shouldn't get in that state)
+        if (services_->valve_command_) {
+          if (request->duration_sec != request->OFF) {
+            response->result.value = response->result.BUSY;
+
+            RCLCPP_ERROR_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] PumpCommand cannot process" <<
+                " while valve command is running...");
+
+            return;
+          }
+        }
+
+        if (request->duration_sec == request->OFF) {
+          services_->command_duration_ = rclcpp::Duration(0, 0U);
+          services_->pump_command_ = false;
+          services_->new_pump_command_ = true;
+        } else {
+          uint16_t duration_sec{request->duration_sec};
+          if (duration_sec > 20U) {
+            duration_sec = std::min(
+              std::max(duration_sec, static_cast<uint16_t>(1U)),
+              static_cast<uint16_t>(20U));
+
+            response->result.value = response->result.BAD_INPUT;
+
+            RCLCPP_WARN_STREAM(
+              ros_->node_->get_logger(),
+              "[ROS 2 Spring Control] PumpCommand out of bounds -- clipped to 20s");
+          }
+
+          services_->command_duration_ =
+            rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
+
+          services_->pump_command_ = true;
+          services_->new_pump_command_ = true;
+        }
+      };
+    services_->pump_command_service_ =
+      ros_->node_->create_service<buoy_msgs::srv::PumpCommand>(
+      "pump_command",
+      services_->pump_command_handler_);
   }
-*/
+
+  void manageCommandTimer(SpringState & state)
+  {
+    static double init_x = 0.0;
+    static rclcpp::Duration pump_prev{0, 0U};
+
+    // open valve
+    if (state.valve_command && !services_->command_watch_.Running()) {
+      RCLCPP_INFO_STREAM(
+        ros_->node_->get_logger(),
+        "Valve open (" <<
+          services_->command_duration_.seconds() << "s)");
+
+      services_->command_watch_.Start(true);
+      state.status.bits().ReliefValveStatus = 1U;
+
+      init_x = state.range_finder;
+
+      // turn pump on
+    } else if (state.pump_command.isRunning() && !services_->command_watch_.Running()) {
+      RCLCPP_INFO_STREAM(
+        ros_->node_->get_logger(),
+        "Pump on (" <<
+          services_->command_duration_.seconds() << "s)");
+
+      services_->command_watch_.Start(true);
+      state.status.bits().PumpStatus = 1U;
+      state.status.bits().PumpToggle = 1U;
+      pump_prev = services_->command_watch_.ElapsedRunTime();
+
+      init_x = state.range_finder;
+
+    } else {
+      // close valve
+      if (state.valve_command &&
+        services_->command_watch_.ElapsedRunTime() >= services_->command_duration_)
+      {
+        services_->command_watch_.Stop();
+        state.status.bits().ReliefValveStatus = 0U;
+        state.valve_command = false;
+
+        RCLCPP_INFO_STREAM(
+          ros_->node_->get_logger(),
+          "Valve closed after (" <<
+            services_->command_watch_.ElapsedRunTime().seconds() << "s)");
+
+        igndbg << "piston moved: " << (state.range_finder - init_x) /
+        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
+          " m/s" << std::endl;
+      }
+
+      if (state.pump_command) {
+        // turn pump off
+        if (services_->command_watch_.ElapsedRunTime() >= services_->command_duration_) {
+          services_->command_watch_.Stop();
+          state.status.bits().PumpStatus = 0U;
+          state.status.bits().PumpToggle = 0U;
+          state.pump_command = false;
+
+          RCLCPP_INFO_STREAM(
+            ros_->node_->get_logger(),
+            "Pump off after (" <<
+              services_->command_watch_.ElapsedRunTime().seconds() << "s)");
+
+          igndbg << "piston moved: " << (state.range_finder - init_x) /
+          (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
+            " m/s" << std::endl;
+        } else {
+          // set pump toggle -- linear pump servo drives back and forth
+          if (floor(services_->command_watch_.ElapsedRunTime().seconds()) !=
+            floor(pump_prev.seconds()))
+          {
+            state.status.bits().PumpToggle += 1U;
+            state.status.bits().PumpToggle %= 2U;
+          }
+        }
+        pump_prev = services_->command_watch_.ElapsedRunTime();
+      }
+    }
+  }
+
+  void manageCommandState(SpringState & state)
+  {
+    if (state.valve_command.isFinished()) {
+      std::unique_lock lock(services_->command_mutex_);
+      services_->valve_command_ = false;
+      state.status.bits().ReliefValveRequest = 0U;
+      services_->command_duration_ = rclcpp::Duration(0, 0U);
+      services_->command_watch_.Reset();
+      state.valve_command.reset();
+    }
+
+    if (state.pump_command.isFinished()) {
+      std::unique_lock lock(services_->command_mutex_);
+      services_->pump_command_ = false;
+      state.status.bits().PumpRequest = 0U;
+      services_->command_duration_ = rclcpp::Duration(0, 0U);
+      services_->command_watch_.Reset();
+      state.pump_command.reset();
+    }
+
+
+    if (services_->new_pump_command_ || services_->new_valve_command_) {
+      std::unique_lock lock(services_->command_mutex_);
+
+      if (state.valve_command || state.pump_command) {
+        state.valve_command = services_->valve_command_;
+        state.status.bits().ReliefValveRequest =
+          static_cast<uint8_t>(services_->new_valve_command_);
+
+        state.pump_command = services_->pump_command_;
+        state.status.bits().PumpRequest = static_cast<uint8_t>(services_->new_pump_command_);
+
+        services_->command_duration_ =
+          services_->command_duration_ +
+          services_->command_watch_.ElapsedRunTime();
+
+        if (state.valve_command) {
+          RCLCPP_INFO_STREAM(
+            ros_->node_->get_logger(),
+            "Valve open (" <<
+              services_->command_duration_.seconds() << "s)");
+
+        } else if (state.pump_command) {
+          RCLCPP_INFO_STREAM(
+            ros_->node_->get_logger(),
+            "Pump on (" <<
+              services_->command_duration_.seconds() << "s)");
+        }
+      } else {
+        state.valve_command = services_->valve_command_;
+        state.status.bits().ReliefValveRequest =
+          static_cast<uint8_t>(services_->new_valve_command_);
+
+        state.pump_command = services_->pump_command_;
+        state.status.bits().PumpRequest = static_cast<uint8_t>(services_->new_pump_command_);
+      }
+
+      services_->new_pump_command_ = services_->new_valve_command_ = false;
+    }
+  }
 };
 
 //////////////////////////////////////////////////
@@ -199,8 +452,8 @@ void SpringController::Configure(
   // Make sure the controller is attached to a valid model
   auto model = ignition::gazebo::Model(_entity);
   if (!model.Valid(_ecm)) {
-    ignerr << "[ROS 2 Spring Control] Failed to initialize because [" << \
-      model.Name(_ecm) << "] is not a model." << std::endl << \
+    ignerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
+      model.Name(_ecm) << "] is not a model." << std::endl <<
       "Please make sure that ROS 2 Spring Control is attached to a valid model." << std::endl;
     return;
   }
@@ -256,25 +509,28 @@ void SpringController::Configure(
   }
 
   // Publisher
-  std::string topic = _sdf->Get<std::string>("topic", "sc_record").first;
-  this->dataPtr->ros_->sc_pub_ = \
+  std::string topic = _sdf->Get<std::string>("topic", "spring_data").first;
+  this->dataPtr->ros_->sc_pub_ =
     this->dataPtr->ros_->node_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
 
-  this->dataPtr->pub_rate_hz_ = \
-    _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
+  this->dataPtr->ros_->pub_rate_hz_ =
+    _sdf->Get<double>("publish_rate", this->dataPtr->ros_->pub_rate_hz_).first;
 
   RCLCPP_INFO_STREAM(
     this->dataPtr->ros_->node_->get_logger(),
-    "[ROS 2 Spring Control] Set publish_rate param from SDF: " << this->dataPtr->pub_rate_hz_);
+    "[ROS 2 Spring Control] Set publish_rate param from SDF: " <<
+      this->dataPtr->ros_->pub_rate_hz_);
+
   this->dataPtr->ros_->node_->set_parameter(
     rclcpp::Parameter(
       "publish_rate",
-      this->dataPtr->pub_rate_hz_));
+      this->dataPtr->ros_->pub_rate_hz_));
 
   auto publish = [this]()
     {
       while (rclcpp::ok() && !this->dataPtr->stop_) {
         if (this->dataPtr->ros_->sc_pub_->get_subscription_count() <= 0) {continue;}
+
         // Only update and publish if not paused.
         if (this->dataPtr->paused_) {continue;}
 
@@ -285,10 +541,11 @@ void SpringController::Configure(
         next.unlock();
 
         if (this->dataPtr->data_valid()) {
-          this->dataPtr->ros_->sc_record_.seq_num = \
+          this->dataPtr->ros_->sc_record_.seq_num =
             this->dataPtr->seq_num++ % std::numeric_limits<int16_t>::max();
           sc_record = this->dataPtr->ros_->sc_record_;
           data.unlock();
+
           this->dataPtr->ros_->sc_pub_->publish(sc_record);
         } else {
           data.unlock();
@@ -299,7 +556,44 @@ void SpringController::Configure(
     };
   this->dataPtr->thread_publish_ = std::thread(publish);
 
-  // this->dataPtr->setup_services();
+  this->dataPtr->setup_services();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+void SpringController::PreUpdate(
+  const ignition::gazebo::UpdateInfo & _info,
+  ignition::gazebo::EntityComponentManager & _ecm)
+{
+  IGN_PROFILE("SpringController::PreUpdate");
+
+  this->dataPtr->paused_ = _info.paused;
+  this->dataPtr->current_time_ = _info.simTime;
+
+  if (_info.paused) {
+    return;
+  }
+
+  buoy_gazebo::SpringState spring_state;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->jointEntity_,
+      buoy_gazebo::components::SpringState().TypeId()))
+  {
+    auto spring_state_comp =
+      _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity_);
+
+    spring_state = buoy_gazebo::SpringState(spring_state_comp->Data());
+  } else {
+    return;
+  }
+
+  this->dataPtr->manageCommandTimer(spring_state);
+  this->dataPtr->manageCommandState(spring_state);
+
+  spring_state.status.bits().TetherPowerStatus = 1U;
+
+  _ecm.SetComponentData<buoy_gazebo::components::SpringState>(
+    this->dataPtr->jointEntity_,
+    spring_state);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -307,20 +601,26 @@ void SpringController::PostUpdate(
   const ignition::gazebo::UpdateInfo & _info,
   const ignition::gazebo::EntityComponentManager & _ecm)
 {
+  IGN_PROFILE("SpringController::PostUpdate");
+
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
 
+  if (_info.paused) {
+    return;
+  }
+
   if (!_ecm.EntityHasComponentType(
       this->dataPtr->jointEntity_,
-      buoy_gazebo::SpringStateComponent().TypeId()))
+      buoy_gazebo::components::SpringState().TypeId()))
   {
     // Pneumatic Spring hasn't updated values yet
     this->dataPtr->spring_data_valid_ = false;
     return;
   }
 
-  auto spring_state_comp = \
-    _ecm.Component<buoy_gazebo::SpringStateComponent>(this->dataPtr->jointEntity_);
+  auto spring_state_comp =
+    _ecm.Component<buoy_gazebo::components::SpringState>(this->dataPtr->jointEntity_);
 
   // low prio data access
   std::unique_lock low(this->dataPtr->low_prio_mutex_);
@@ -332,14 +632,18 @@ void SpringController::PostUpdate(
 
   this->dataPtr->ros_->sc_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->ros_->sc_record_.header.stamp.nanosec = sec_nsec.second;
-  // this->dataPtr->sc_record_.load_cell = spring_state_comp->Data().load_cell;
   this->dataPtr->ros_->sc_record_.range_finder = spring_state_comp->Data().range_finder;
   this->dataPtr->ros_->sc_record_.upper_psi = spring_state_comp->Data().upper_psi;
   this->dataPtr->ros_->sc_record_.lower_psi = spring_state_comp->Data().lower_psi;
+
+  // Currently existing but unused fields by physical buoy -- the CTD sensor is not in service
   // this->dataPtr->sc_record_.epoch = spring_state_comp->Data().epoch_;
   // this->dataPtr->sc_record_.salinity = spring_state_comp->Data().salinity_;
   // this->dataPtr->sc_record_.temperature = spring_state_comp->Data().temperature_;
-  // this->dataPtr->sc_record_.status = spring_state_comp->Data().status_;
+
+  // TODO(andermi) set the bits for this
+  this->dataPtr->ros_->sc_record_.status = spring_state_comp->Data().status;
+
   this->dataPtr->spring_data_valid_ = true;
   data.unlock();
 }
@@ -349,4 +653,5 @@ IGNITION_ADD_PLUGIN(
   buoy_gazebo::SpringController,
   ignition::gazebo::System,
   buoy_gazebo::SpringController::ISystemConfigure,
+  buoy_gazebo::SpringController::ISystemPreUpdate,
   buoy_gazebo::SpringController::ISystemPostUpdate)

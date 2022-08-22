@@ -14,7 +14,11 @@
   <depend>buoy_examples</depend>
   <depend>buoy_msgs</depend>
   <depend>ignition-gazebo6</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>ros_ign_bridge</depend>
   <depend>ros_ign_gazebo</depend>
+  <depend>rviz2</depend>
+  <depend>sdformat_urdf</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

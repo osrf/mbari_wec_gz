@@ -1,0 +1,9 @@
+gz_add_plugin(PowerController
+  SOURCES
+    PowerController.cpp
+  INCLUDE_DIRS
+    ../..
+  PUBLIC_LINK_LIBS
+    StopwatchSimTime
+  ROS
+)

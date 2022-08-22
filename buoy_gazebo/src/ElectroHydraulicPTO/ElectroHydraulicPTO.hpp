@@ -23,8 +23,6 @@
 
 namespace buoy_gazebo
 {
-// enum class SpringType { linear, pneumatic_adiabatic, pneumatic_calibrated};
-
 // Forward declaration
 class ElectroHydraulicPTOPrivate;
 
@@ -51,9 +49,7 @@ class ElectroHydraulicPTOPrivate;
 ///     <Displacement>  Displacement per revolution of rotary pump/motor.
 class ElectroHydraulicPTO : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPreUpdate,
-  public ignition::gazebo::ISystemUpdate,
-  public ignition::gazebo::ISystemPostUpdate
+  public ignition::gazebo::ISystemPreUpdate
 {
 public:
   /// \brief Constructor
@@ -73,16 +69,6 @@ public:
   void PreUpdate(
     const ignition::gazebo::UpdateInfo & _info,
     ignition::gazebo::EntityComponentManager & _ecm) override;
-
-  // Documentation inherited
-  void Update(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
-
-  // Documentation inherited
-  void PostUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    const ignition::gazebo::EntityComponentManager & _ecm) override;
 
 private:
   ignition::transport::Node node;

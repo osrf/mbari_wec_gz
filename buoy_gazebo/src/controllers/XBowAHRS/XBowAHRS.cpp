@@ -169,7 +169,7 @@ void XBowAHRS::Configure(
   }
 
   // Publisher
-  std::string xb_topic = _sdf->Get<std::string>("xb_topic", "xb_record").first;
+  std::string xb_topic = _sdf->Get<std::string>("xb_topic", "ahrs_data").first;
   this->dataPtr->xb_pub_ = \
     this->dataPtr->rosnode_->create_publisher<buoy_msgs::msg::XBRecord>(xb_topic, 10);
 
