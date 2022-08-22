@@ -15,6 +15,7 @@
 
   <test_depend>buoy_api_cpp</test_depend>
   <test_depend>buoy_api_py</test_depend>
+  <test_depend>buoy_examples</test_depend>
   <test_depend>buoy_gazebo</test_depend>
   <test_depend>buoy_interfaces</test_depend>
 
