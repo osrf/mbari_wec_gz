@@ -98,6 +98,11 @@ class BuoySCValvePyTest(BuoyPyTests):
         self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
         self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
 
+        # Check that pump command fails (controller returns BUSY)
+        self.node.send_pump_command(2)
+        self.assertEqual(self.node.pump_future_.result().result.value,
+                         self.node.pump_future_.result().result.BUSY)
+
         # Run to allow Valve command to finish
         self.test_helper.run(postCmdIterations)
         self.assertTrue(self.test_helper.run_status)

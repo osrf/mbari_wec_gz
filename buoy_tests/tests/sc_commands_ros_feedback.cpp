@@ -248,6 +248,14 @@ TEST_F(BuoySCTests, SCValveROS)
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
 
+  // Check that pump command fails (controller returns BUSY)
+  node->pump_response_future_ = node->send_pump_command(2U);
+  ASSERT_TRUE(node->pump_response_future_.valid());
+  node->pump_response_future_.wait();
+  EXPECT_EQ(
+    node->pump_response_future_.get()->result.value,
+    node->pump_response_future_.get()->result.BUSY);
+
   // Run to allow Valve command to finish
   fixture->Server()->Run(true /*blocking*/, postCmdIterations, false /*paused*/);
   EXPECT_EQ(preCmdIterations + statusCheckIterations + postCmdIterations, iterations);
@@ -410,6 +418,14 @@ TEST_F(BuoySCTests, SCPumpROS)
         "SC Pump Toggle should be ON";
     }
   }
+
+  // Check that valve command fails (controller returns BUSY)
+  node->valve_response_future_ = node->send_valve_command(2U);
+  ASSERT_TRUE(node->valve_response_future_.valid());
+  node->valve_response_future_.wait();
+  EXPECT_EQ(
+    node->valve_response_future_.get()->result.value,
+    node->valve_response_future_.get()->result.BUSY);
 
   // Run to allow Pump command to finish
   fixture->Server()->Run(true /*blocking*/, postCmdIterations, false /*paused*/);
