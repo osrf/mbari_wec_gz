@@ -67,8 +67,8 @@ if(BUILD_TESTING)
 
   # Helper function to generate pytest
   function(buoy_add_pytest PYTEST_NAME #[[optional: GTEST_NAME]])
-    find_package(buoy_interfaces REQUIRED)
     find_package(buoy_api_cpp REQUIRED)
+    find_package(buoy_interfaces REQUIRED)
     find_package(rclcpp REQUIRED)
     find_package(rclpy REQUIRED)
 
