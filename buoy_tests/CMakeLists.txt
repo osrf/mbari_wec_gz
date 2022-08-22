@@ -105,16 +105,17 @@ if(BUILD_TESTING)
   # Add gtests
   buoy_add_gtest(no_inputs)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
+  buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
-  buoy_add_gtest(pc_commands_ros_feedback
-    ROS LAUNCH_TEST)
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)
-  buoy_add_pytest(sc_valve_ros_feedback fixture_server)
-  buoy_add_pytest(sc_pump_ros_feedback fixture_server)
+  buoy_add_pytest(pc_bias_damping_ros_feedback fixture_server_sinusoidal_piston)
   buoy_add_pytest(pc_commands_ros_feedback fixture_server)
+  buoy_add_pytest(sc_pump_ros_feedback fixture_server)
+  buoy_add_pytest(sc_valve_ros_feedback fixture_server)
 
+  # Note: This is an xfail test until fixed upstream
   ament_add_pytest_test(test_fixture tests/test_fixture.py)
 
   install(PROGRAMS
