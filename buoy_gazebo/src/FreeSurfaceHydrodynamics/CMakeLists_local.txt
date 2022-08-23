@@ -19,6 +19,10 @@ set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
 find_package(ignition-gazebo6 REQUIRED)
 
 
+add_executable(Test_IncidentWave_Peters  Test_IncidentWave_Peters.cpp LinearIncidentWave.cpp)
+target_link_libraries (Test_IncidentWave_Peters Eigen3::Eigen)
+set_property(TARGET Test_IncidentWave_Peters PROPERTY CXX_STANDARD 17)
+
 add_executable(Test_IncidentWave  Test_IncidentWave.cpp LinearIncidentWave.cpp)
 target_link_libraries (Test_IncidentWave Eigen3::Eigen)
 set_property(TARGET Test_IncidentWave PROPERTY CXX_STANDARD 17)

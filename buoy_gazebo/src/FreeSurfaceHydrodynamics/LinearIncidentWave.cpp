@@ -56,14 +56,14 @@ void LinearIncidentWave::SetToPiersonMoskowitzSpectrum(double Hs, double beta, i
   double b = 0.74; 
   srand(time(0));  // Initialize random number generator.
   
-  double df = MAX_FREQ*2*M_PI/n_phases;
+  double d_omega = MAX_FREQ*2*M_PI/n_phases;
 
   for (int i = 0; i < m_k.size(); i++)
   {
-    m_omega(i) = df * (i+1);
+    m_omega(i) = d_omega * (i+1);
     m_k(i) = m_omega(i) * m_omega(i) / m_grav;
     m_Spectrum(i) = (a*m_grav*m_grav/pow(m_omega(i),5))*exp(-b*pow(w0/m_omega(i),4)); 
-    m_A(i) = sqrt(df*2*m_Spectrum(i));  //Precompute components once here to save time at eval.
+    m_A(i) = sqrt(d_omega*2*m_Spectrum(i));  //Precompute components once here to save time at eval.
     m_phases(i) = (2* M_PI * rand())/RAND_MAX;
 }
 

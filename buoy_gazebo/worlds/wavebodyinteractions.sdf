@@ -76,9 +76,13 @@
      
     <plugin filename="WaveBodyInteractions" name="buoy_gazebo::WaveBodyInteractions">  
       <LinkName>Buoy</LinkName>
+      <S>5</S>
+      <S11>1.2</S11>
+      <S22>1.2</S22>
+      <COB_x>0</COB_x>
+      <COB_y>0</COB_y>
+      <COB_z>-1.7</COB_z>  <!-- COG relative to waterplane -->
     </plugin>
-
-
    </model>
   </world>
 </sdf>

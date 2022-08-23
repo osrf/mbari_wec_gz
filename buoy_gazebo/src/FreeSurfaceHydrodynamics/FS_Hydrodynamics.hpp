@@ -36,10 +36,13 @@ public:
     double Damping(double omega, int i, int j);
 
     void SetTimestepSize(double dt);
+    void SetWaterplane(double S, double S11, double S22);
+    void SetCOB(double x, double y, double z);
+    void SetVolume(double V);
 
+    Eigen::VectorXd BuoyancyForce(Eigen::VectorXd x);
     Eigen::VectorXd RadiationForce(Eigen::VectorXd last_xddot);
     Eigen::VectorXd ExcitingForce();
-    Eigen::VectorXd ExcitingForce(double eta, double beta);
 
     void WaveExcitingForceComponents(double *XiRe, double *XiIm, double omega, int j);
 
@@ -94,4 +97,19 @@ public:
 
     // wave-elevation evaluation time;
     double _t_eta;
+
+    /// \brief Buoy WaterPlane Area
+    double S;  
+
+    /// \brief Buoy WaterPlane Area Second Moment of Area around x
+    double S11;  
+
+    /// \brief Buoy WaterPlane Area Second Moment of Area around y
+    double S22;  
+
+    /// \brief Submerged Volume 
+    double Vol;
+
+    /// \brief Center of Buoyancy relative to water-plane coordinate system 
+    Eigen::Vector3d COB;
 };

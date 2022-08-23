@@ -53,7 +53,7 @@ int CountLines(std::string filenm) {
 //    : m_L{1.0}, m_grav{9.81}, m_rho{1025} {}
 
 FS_HydroDynamics::FS_HydroDynamics(IncidentWave &IncWave)
-    : _IncWave(IncWave), m_L{1.0}, m_grav{9.81}, m_rho{1025} {}
+    : _IncWave(IncWave), m_L{1.0}, m_grav{9.81}, m_rho{1025}  {}
 
 FS_HydroDynamics::FS_HydroDynamics(IncidentWave &IncWave, double L, double g,
                                    double rho)
@@ -516,6 +516,26 @@ void FS_HydroDynamics::WaveExcitingForceComponents(double *Xi_Re, double *Xi_Im,
          xd, &xi);    // Input axis (x)
 }
 
+
+void FS_HydroDynamics::SetWaterplane(double S, double S11, double S22) 
+{
+this->S = S;
+this->S11 = S11;
+this->S22 = S22;
+}
+
+void FS_HydroDynamics::SetVolume(double V)
+{
+  this->Vol = V;
+}
+
+void FS_HydroDynamics::SetCOB(double x, double y, double z) 
+{
+this->COB(0) = x;
+this->COB(1) = y;
+this->COB(2) = z;
+}
+
 void FS_HydroDynamics::SetTimestepSize(double dt) {
 
   m_dt = dt;
@@ -604,6 +624,16 @@ Eigen::VectorXd FS_HydroDynamics::ExcitingForce() {
   return ExctForces;
 }
 
+// Returns linearized buoyancy force and moment in the body frame, as applied at the origin of water-plane.
+Eigen::VectorXd FS_HydroDynamics::BuoyancyForce(Eigen::VectorXd x) 
+{
+  Eigen::VectorXd BuoyancyForces(6);
+BuoyancyForces(2) = this->m_rho*this->m_grav*(this->Vol-x(2)*this->S);
+BuoyancyForces(3)= -this->m_rho*this->m_grav*(this->Vol*this->COB(2)+this->S11)*x(4);
+BuoyancyForces(4)= -this->m_rho*this->m_grav*(this->Vol*this->COB(2)+this->S22)*x(3);
+return BuoyancyForces;
+}
+
 Eigen::VectorXd FS_HydroDynamics::RadiationForce(Eigen::VectorXd last_xddot) {
   Eigen::VectorXd RadiationForces(6);
   for (int i = 0; i < 6; i++)
@@ -650,6 +680,8 @@ Eigen::VectorXd FS_HydroDynamics::RadiationForce(Eigen::VectorXd last_xddot) {
   RadiationForces *= this->m_dt;
   return RadiationForces;
 }
+
+
 
 std::ostream &operator<<(std::ostream &out, const FS_HydroDynamics &f) {
 

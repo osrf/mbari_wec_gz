@@ -33,6 +33,9 @@ int main()
   LinearIncidentWave Inc;
   LinearIncidentWave &IncRef = Inc;
   FS_HydroDynamics BuoyA5(IncRef, 1.0, 9.81, 1025);
+  BuoyA5.SetWaterplane(5,1.2,1.2); // Set area and 2nd moments of area for waterplane
+  BuoyA5.SetCOB(0,0,-1.7); //Set COB relative to waterplane coordinate system.
+  BuoyA5.SetVolume(3); 
   BuoyA5.ReadWAMITData_FD("HydrodynamicCoeffs/BuoyA5");
   BuoyA5.ReadWAMITData_TD("HydrodynamicCoeffs/BuoyA5");
   BuoyA5.Plot_FD_Coeffs();

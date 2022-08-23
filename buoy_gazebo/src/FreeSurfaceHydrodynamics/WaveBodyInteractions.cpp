@@ -71,11 +71,8 @@ namespace buoy_gazebo
     /// \brief  Free-Surface hydrodynamics implementation
     FS_HydroDynamics FloatingBody;
 
-    double TargetWindingCurrent;
-
-    double WindingCurrent;
-
-    double Ve;
+    /// \brief Location of Waterplane in Link Frame
+    Eigen::VectorXd WaterplanePose; 
 
     /// \brief Ignition communication node.
     ignition::transport::Node node;
@@ -133,6 +130,7 @@ namespace buoy_gazebo
       return;
     }
 
+
     double A = 1; //.5 + ((float)(rand() % 20) / 10);
     double T = 8; ///3.0 + (rand() % 9);
     this->dataPtr->Inc.SetToPiersonMoskowitzSpectrum(2*A, 0);
@@ -145,7 +143,17 @@ namespace buoy_gazebo
 
     ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
 
-    baseLink.EnableAccelerationChecks(_ecm, true);
+    baseLink.EnableAccelerationChecks(_ecm, true); //Allow access to last-timestep's acceleration in Configure()
+
+  double S = SdfParamDouble(_sdf, "S", 5.0);
+  double S11 = SdfParamDouble(_sdf, "S11", 1.2);
+  double S22 = SdfParamDouble(_sdf, "S22", 1.2);
+  this->dataPtr->FloatingBody.SetWaterplane(S,S11,S22);
+
+  double COB_x = SdfParamDouble(_sdf, "COB_x", 0);
+  double COB_y = SdfParamDouble(_sdf, "COB_y", 0);
+  double COB_z = SdfParamDouble(_sdf, "COB_z", -1.7);
+  this->dataPtr->FloatingBody.SetCOB(COB_x,COB_y,COB_z);
 
 
   }
