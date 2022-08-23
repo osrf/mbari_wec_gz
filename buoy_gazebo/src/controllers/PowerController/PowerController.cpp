@@ -25,12 +25,12 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 
-#include <buoy_msgs/msg/pc_record.hpp>
-#include <buoy_msgs/srv/pc_wind_curr_command.hpp>
-#include <buoy_msgs/srv/pc_scale_command.hpp>
-#include <buoy_msgs/srv/pc_retract_command.hpp>
-#include <buoy_msgs/srv/pc_bias_curr_command.hpp>
-#include <buoy_msgs/msg/pb_command_response.hpp>
+#include <buoy_interfaces/msg/pc_record.hpp>
+#include <buoy_interfaces/srv/pc_wind_curr_command.hpp>
+#include <buoy_interfaces/srv/pc_scale_command.hpp>
+#include <buoy_interfaces/srv/pc_retract_command.hpp>
+#include <buoy_interfaces/srv/pc_bias_curr_command.hpp>
+#include <buoy_interfaces/msg/pb_command_response.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -54,10 +54,10 @@ struct PowerControllerROS2
   rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr parameter_handler_{nullptr};
   bool use_sim_time_{true};
 
-  rclcpp::Publisher<buoy_msgs::msg::PCRecord>::SharedPtr pc_pub_{nullptr};
+  rclcpp::Publisher<buoy_interfaces::msg::PCRecord>::SharedPtr pc_pub_{nullptr};
   std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
   static const rcl_interfaces::msg::FloatingPointRange valid_pub_rate_range_;
-  buoy_msgs::msg::PCRecord pc_record_;
+  buoy_interfaces::msg::PCRecord pc_record_;
   double pub_rate_hz_{10.0};
 };
 const rcl_interfaces::msg::FloatingPointRange PowerControllerROS2::valid_pub_rate_range_ =
@@ -68,9 +68,10 @@ const rcl_interfaces::msg::FloatingPointRange PowerControllerROS2::valid_pub_rat
 struct PowerControllerServices
 {
   // PCWindCurrCommand -- Winding Current (Torque)
-  rclcpp::Service<buoy_msgs::srv::PCWindCurrCommand>::SharedPtr torque_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Response>)> torque_command_handler_;
+  rclcpp::Service<buoy_interfaces::srv::PCWindCurrCommand>::SharedPtr torque_command_service_{
+    nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response>)> torque_command_handler_;
 
   buoy_utils::Stopwatch torque_command_watch_;
   rclcpp::Duration torque_command_duration_{0, 0U};
@@ -81,9 +82,9 @@ struct PowerControllerServices
   std::atomic<bool> new_torque_command_{false};
 
   // PCScaleCommand -- winding current scale factor
-  rclcpp::Service<buoy_msgs::srv::PCScaleCommand>::SharedPtr scale_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Response>)> scale_command_handler_;
+  rclcpp::Service<buoy_interfaces::srv::PCScaleCommand>::SharedPtr scale_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Response>)> scale_command_handler_;
 
   buoy_utils::Stopwatch scale_command_watch_;
   rclcpp::Duration scale_command_duration_{0, 0U};
@@ -94,9 +95,10 @@ struct PowerControllerServices
   std::atomic<bool> new_scale_command_{false};
 
   // PCRetractCommand -- winding current retract factor (additional scaling in retract direction)
-  rclcpp::Service<buoy_msgs::srv::PCRetractCommand>::SharedPtr retract_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::PCRetractCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::PCRetractCommand::Response>)> retract_command_handler_;
+  rclcpp::Service<buoy_interfaces::srv::PCRetractCommand>::SharedPtr retract_command_service_{
+    nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Response>)> retract_command_handler_;
 
   buoy_utils::Stopwatch retract_command_watch_;
   rclcpp::Duration retract_command_duration_{0, 0U};
@@ -107,9 +109,10 @@ struct PowerControllerServices
   std::atomic<bool> new_retract_command_{false};
 
   // PCBiasCurrCommand -- winding current bias offset
-  rclcpp::Service<buoy_msgs::srv::PCBiasCurrCommand>::SharedPtr bias_curr_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::PCBiasCurrCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::PCBiasCurrCommand::Response>)> bias_curr_command_handler_;
+  rclcpp::Service<buoy_interfaces::srv::PCBiasCurrCommand>::SharedPtr bias_curr_command_service_{
+    nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response>)> bias_curr_command_handler_;
 
   buoy_utils::Stopwatch bias_curr_command_watch_;
   rclcpp::Duration bias_curr_command_duration_{0, 0U};
@@ -255,7 +258,7 @@ struct PowerControllerPrivate
     std::atomic<bool> & services_command,
     std::atomic<bool> & new_command)
   {
-    int8_t result = buoy_msgs::msg::PBCommandResponse::OK;
+    int8_t result = buoy_interfaces::msg::PBCommandResponse::OK;
     std::unique_lock lock(services_->command_mutex_);
     if (valid_range.from_value > command_value ||
       command_value > valid_range.to_value)
@@ -266,7 +269,7 @@ struct PowerControllerPrivate
           valid_range.from_value),
         valid_range.to_value);
 
-      result = buoy_msgs::msg::PBCommandResponse::BAD_INPUT;
+      result = buoy_interfaces::msg::PBCommandResponse::BAD_INPUT;
     }
 
     services_command_value = command_value;
@@ -283,8 +286,8 @@ struct PowerControllerPrivate
     // PCWindCurrCommand
     services_->torque_command_watch_.SetClock(ros_->node_->get_clock());
     services_->torque_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::PCWindCurrCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
@@ -308,15 +311,15 @@ struct PowerControllerPrivate
         }
       };
     services_->torque_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::PCWindCurrCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::PCWindCurrCommand>(
       "pc_wind_curr_command",
       services_->torque_command_handler_);
 
     // PCScaleCommand
     services_->scale_command_watch_.SetClock(ros_->node_->get_clock());
     services_->scale_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::PCScaleCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
@@ -340,15 +343,15 @@ struct PowerControllerPrivate
         }
       };
     services_->scale_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::PCScaleCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::PCScaleCommand>(
       "pc_scale_command",
       services_->scale_command_handler_);
 
     // PCRetractCommand
     services_->retract_command_watch_.SetClock(ros_->node_->get_clock());
     services_->retract_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::PCRetractCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::PCRetractCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
@@ -372,15 +375,15 @@ struct PowerControllerPrivate
         }
       };
     services_->retract_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::PCRetractCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::PCRetractCommand>(
       "pc_retract_command",
       services_->retract_command_handler_);
 
     // PCBiasCurrCommand
     services_->bias_curr_command_watch_.SetClock(ros_->node_->get_clock());
     services_->bias_curr_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::PCBiasCurrCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::PCBiasCurrCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
@@ -404,7 +407,7 @@ struct PowerControllerPrivate
         }
       };
     services_->bias_curr_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::PCBiasCurrCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::PCBiasCurrCommand>(
       "pc_bias_curr_command",
       services_->bias_curr_command_handler_);
   }
@@ -624,7 +627,7 @@ void PowerController::Configure(
   // Publisher
   std::string topic = _sdf->Get<std::string>("topic", "power_data").first;
   this->dataPtr->ros_->pc_pub_ =
-    this->dataPtr->ros_->node_->create_publisher<buoy_msgs::msg::PCRecord>(topic, 10);
+    this->dataPtr->ros_->node_->create_publisher<buoy_interfaces::msg::PCRecord>(topic, 10);
 
   this->dataPtr->ros_->pub_rate_hz_ =
     _sdf->Get<double>("publish_rate", this->dataPtr->ros_->pub_rate_hz_).first;
@@ -647,7 +650,7 @@ void PowerController::Configure(
         // Only update and publish if not paused.
         if (this->dataPtr->paused_) {continue;}
 
-        buoy_msgs::msg::PCRecord pc_record;
+        buoy_interfaces::msg::PCRecord pc_record;
         // high prio data access
         std::unique_lock next(this->dataPtr->next_access_mutex_);
         std::unique_lock data(this->dataPtr->data_mutex_);
