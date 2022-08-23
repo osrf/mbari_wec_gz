@@ -204,8 +204,16 @@ auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
       ExtForce = this->dataPtr->FloatingBody.ExcitingForce();
         std::cout << "Exciting Force = " << ExtForce.transpose() << std::endl << std::endl;
 
+      Eigen::VectorXd x(6);
+      x(0) = pose.X();
+      x(1) = pose.Y();
+      x(2) = pose.Z();
+      x(3) = pose.Roll();
+      x(4) = pose.Pitch();
+      x(5) = pose.Yaw();
+
       Eigen::VectorXd BuoyancyForce(6);
-      BuoyancyForce(2) = -1025*9.81*5*(pose.Z()+1.75);
+      BuoyancyForce = this->dataPtr->FloatingBody.BuoyancyForce(x);
         std::cout << "Buoyancy Force = " << BuoyancyForce.transpose() << std::endl << std::endl;
   
   ignition::math::Vector3d
