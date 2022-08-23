@@ -17,7 +17,7 @@ import time
 
 from ament_index_python.packages import get_package_share_directory
 
-from buoy_examples.bias_damping import NLBiasDampingPolicy
+from buoy_api.examples.bias_damping import NLBiasDampingPolicy
 
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource

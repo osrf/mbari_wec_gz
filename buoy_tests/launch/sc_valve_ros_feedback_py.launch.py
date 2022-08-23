@@ -14,7 +14,7 @@
 
 import time
 
-from buoy_msgs.msg import SCRecord
+from buoy_interfaces.msg import SCRecord
 
 from testing_utils import BuoyPyTestAfterShutdown  # noqa F401 -- runs if imported
 from testing_utils import BuoyPyTests
@@ -97,6 +97,11 @@ class BuoySCValvePyTest(BuoyPyTests):
                         'SC Tether Power should be ON')
         self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
         self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
+
+        # Check that pump command fails (controller returns BUSY)
+        self.node.send_pump_command(2)
+        self.assertEqual(self.node.pump_future_.result().result.value,
+                         self.node.pump_future_.result().result.BUSY)
 
         # Run to allow Valve command to finish
         self.test_helper.run(postCmdIterations)

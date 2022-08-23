@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <buoy_msgs/interface.hpp>
+#include <buoy_api/interface.hpp>
 
 #include <gtest/gtest.h>
 
@@ -29,12 +29,12 @@
 #include <thread>
 
 
-class NoInputsROSNode final : public buoy_msgs::Interface<NoInputsROSNode>
+class NoInputsROSNode final : public buoy_api::Interface<NoInputsROSNode>
 {
 public:
   float rpm_{10000.0F}, wcurrent_{10000.0F};
   explicit NoInputsROSNode(const std::string & node_name)
-  : buoy_msgs::Interface<NoInputsROSNode>(node_name)
+  : buoy_api::Interface<NoInputsROSNode>(node_name)
   {
     set_parameter(
       rclcpp::Parameter(
@@ -72,7 +72,7 @@ public:
 private:
   friend CRTP;  // syntactic sugar (see https://stackoverflow.com/a/58435857/9686600)
 
-  void power_callback(const buoy_msgs::msg::PCRecord & data)
+  void power_callback(const buoy_interfaces::msg::PCRecord & data)
   {
     rpm_ = data.rpm;
     wcurrent_ = data.wcurrent;
