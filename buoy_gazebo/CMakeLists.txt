@@ -15,6 +15,7 @@ else()
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(buoy_description REQUIRED)
 find_package(buoy_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 
