@@ -15,7 +15,7 @@
 import time
 import unittest
 
-from buoy_msgs.interface import Interface
+from buoy_api import Interface
 
 import launch
 import launch.actions

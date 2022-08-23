@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <buoy_msgs/interface.hpp>
+#include <buoy_api/interface.hpp>
 
 #include <gtest/gtest.h>
 
@@ -23,7 +23,7 @@
 #include <gz/sim/TestFixture.hh>
 #include <gz/transport/Node.hh>
 
-#include <buoy_msgs/msg/sc_record.hpp>
+#include <buoy_interfaces/msg/sc_record.hpp>
 
 #include <chrono>
 #include <memory>
@@ -36,7 +36,7 @@ using namespace std::chrono;
 
 constexpr double INCHES_TO_METERS{0.0254};
 
-class SCROSNode final : public buoy_msgs::Interface<SCROSNode>
+class SCROSNode final : public buoy_api::Interface<SCROSNode>
 {
 public:
   rclcpp::Clock::SharedPtr clock_{nullptr};
@@ -48,7 +48,7 @@ public:
   PumpServiceResponseFuture pump_response_future_;
 
   explicit SCROSNode(const std::string & node_name)
-  : buoy_msgs::Interface<SCROSNode>(node_name)
+  : buoy_api::Interface<SCROSNode>(node_name)
   {
     set_parameter(
       rclcpp::Parameter(
@@ -88,7 +88,7 @@ public:
 private:
   friend CRTP;  // syntactic sugar (see https://stackoverflow.com/a/58435857/9686600)
 
-  void spring_callback(const buoy_msgs::msg::SCRecord & data)
+  void spring_callback(const buoy_interfaces::msg::SCRecord & data)
   {
     range_finder_ = data.range_finder;
     status_ = data.status;
@@ -181,27 +181,29 @@ TEST_F(BuoySCTests, SCValveROS)
 
   // Check status field
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
     "SC Valve Request should be FALSE";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
     "SC Valve should be CLOSED";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_REQUEST)) <<
     "SC Pump Request should be FALSE";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_STATUS)) <<
     "SC Pump should be OFF";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be OFF";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
 
   // Now send Valve command to OPEN for 5 seconds
   node->valve_response_future_ = node->send_valve_command(5U);
@@ -222,27 +224,37 @@ TEST_F(BuoySCTests, SCValveROS)
 
   // Check status field
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
     "SC Valve Request should be TRUE";
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
     "SC Valve should be OPEN";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_REQUEST)) <<
     "SC Pump Request should be FALSE";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_STATUS)) <<
     "SC Pump should be OFF";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be OFF";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
+
+  // Check that pump command fails (controller returns BUSY)
+  node->pump_response_future_ = node->send_pump_command(2U);
+  ASSERT_TRUE(node->pump_response_future_.valid());
+  node->pump_response_future_.wait();
+  EXPECT_EQ(
+    node->pump_response_future_.get()->result.value,
+    node->pump_response_future_.get()->result.BUSY);
 
   // Run to allow Valve command to finish
   fixture->Server()->Run(true /*blocking*/, postCmdIterations, false /*paused*/);
@@ -255,27 +267,29 @@ TEST_F(BuoySCTests, SCValveROS)
 
   // Check Status goes back to normal
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
     "SC Valve Request should be FALSE";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
     "SC Valve should be CLOSED";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_REQUEST)) <<
     "SC Pump Request should be FALSE";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_STATUS)) <<
     "SC Pump should be OFF";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be OFF";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
 
   // Check piston motion
   float post_valve_range_finder = node->range_finder_;
@@ -317,27 +331,29 @@ TEST_F(BuoySCTests, SCPumpROS)
 
   // Check status field
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
     "SC Valve Request should be FALSE";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
     "SC Valve should be CLOSED";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_REQUEST)) <<
     "SC Pump Request should be FALSE";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_STATUS)) <<
     "SC Pump should be OFF";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be OFF";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
 
   // Now send Pump command to run for 20 seconds
   node->pump_response_future_ = node->send_pump_command(20U);
@@ -358,27 +374,29 @@ TEST_F(BuoySCTests, SCPumpROS)
 
   // Check status field
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_REQUEST)) <<
     "SC Valve Request should be FALSE";
   EXPECT_FALSE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::RELIEF_VALVE_STATUS)) <<
     "SC Valve should be CLOSED";
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_REQUEST)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_REQUEST)) <<
     "SC Pump Request should be TRUE";
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_STATUS)) <<
     "SC Pump should be ON";
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
     "SC Pump Toggle should be ON";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_OVER_TEMP));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_REQUEST));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_OVER_TEMP));
+  EXPECT_FALSE(
+    static_cast<bool>(node->status_ &
+    buoy_interfaces::msg::SCRecord::TETHER_POWER_REQUEST));
   EXPECT_TRUE(
-    static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::TETHER_POWER_STATUS)) <<
+    static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::TETHER_POWER_STATUS)) <<
     "SC Tether Power should be ON";
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
-  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
+  EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
 
   // Check pump toggle
   for (size_t n = 1U; n < 5U; ++n) {
@@ -392,14 +410,22 @@ TEST_F(BuoySCTests, SCPumpROS)
 
     if (n % 2U == 1) {
       EXPECT_FALSE(
-        static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+        static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
         "SC Pump Toggle should be OFF";
     } else {
       EXPECT_TRUE(
-        static_cast<bool>(node->status_ & buoy_msgs::msg::SCRecord::PUMP_TOGGLE)) <<
+        static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::PUMP_TOGGLE)) <<
         "SC Pump Toggle should be ON";
     }
   }
+
+  // Check that valve command fails (controller returns BUSY)
+  node->valve_response_future_ = node->send_valve_command(2U);
+  ASSERT_TRUE(node->valve_response_future_.valid());
+  node->valve_response_future_.wait();
+  EXPECT_EQ(
+    node->valve_response_future_.get()->result.value,
+    node->valve_response_future_.get()->result.BUSY);
 
   // Run to allow Pump command to finish
   fixture->Server()->Run(true /*blocking*/, postCmdIterations, false /*paused*/);

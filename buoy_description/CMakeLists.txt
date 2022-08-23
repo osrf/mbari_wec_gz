@@ -3,14 +3,18 @@ project(buoy_description)
 find_package(ament_cmake REQUIRED)
 
 # Model Generation
-set(BUOY_MODEL_PATH "/models/mbari_wec_base")
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${BUOY_MODEL_PATH})
+set(BUOY_BASE_MODEL_PATH "/models/mbari_wec_base")
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${BUOY_BASE_MODEL_PATH})
 add_custom_command(
   OUTPUT model_gen_cmd
   COMMAND empy3
-    ${CMAKE_CURRENT_SOURCE_DIR}${BUOY_MODEL_PATH}/model.sdf.em >
-    ${CMAKE_CURRENT_BINARY_DIR}${BUOY_MODEL_PATH}/model.sdf
+    ${CMAKE_CURRENT_SOURCE_DIR}${BUOY_BASE_MODEL_PATH}/model.sdf.em >
+    ${CMAKE_CURRENT_BINARY_DIR}${BUOY_BASE_MODEL_PATH}/model.sdf
 )
+set(BUOY_MODEL_PATH "/models/mbari_wec")
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${BUOY_MODEL_PATH})
+set(BUOY_ROS_MODEL_PATH "/models/mbari_wec_ros")
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${BUOY_ROS_MODEL_PATH})
 
 add_custom_target(model_gen_target ALL
   DEPENDS model_gen_cmd

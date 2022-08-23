@@ -11,8 +11,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>buoy_description</depend>
-  <depend>buoy_examples</depend>
-  <depend>buoy_msgs</depend>
+  <depend>buoy_interfaces</depend>
   <depend>gz-sim7</depend>
   <depend>robot_state_publisher</depend>
   <depend>ros_ign_bridge</depend>

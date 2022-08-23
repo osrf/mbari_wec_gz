@@ -24,7 +24,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <buoy_msgs/msg/xb_record.hpp>
+#include <buoy_interfaces/msg/xb_record.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 
 #include <memory>
@@ -39,12 +39,12 @@ struct buoy_gazebo::XBowAHRSPrivate
   rclcpp::Node::SharedPtr rosnode_{nullptr};
   gz::transport::Node node_;
   std::function<void(const gz::msgs::IMU &)> imu_cb_;
-  rclcpp::Publisher<buoy_msgs::msg::XBRecord>::SharedPtr xb_pub_{nullptr};
+  rclcpp::Publisher<buoy_interfaces::msg::XBRecord>::SharedPtr xb_pub_{nullptr};
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_{nullptr};
   double pub_rate_hz_{10.0};
   std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
   std::chrono::steady_clock::duration current_time_;
-  buoy_msgs::msg::XBRecord xb_record_;
+  buoy_interfaces::msg::XBRecord xb_record_;
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
   std::atomic<bool> imu_data_valid_{false}, velocity_data_valid_{false};
   std::thread thread_executor_spin_, thread_publish_;
@@ -171,7 +171,7 @@ void XBowAHRS::Configure(
   // Publisher
   std::string xb_topic = _sdf->Get<std::string>("xb_topic", "ahrs_data").first;
   this->dataPtr->xb_pub_ = \
-    this->dataPtr->rosnode_->create_publisher<buoy_msgs::msg::XBRecord>(xb_topic, 10);
+    this->dataPtr->rosnode_->create_publisher<buoy_interfaces::msg::XBRecord>(xb_topic, 10);
 
   std::string imu_topic = _sdf->Get<std::string>("imu_topic", "xb_imu").first;
   this->dataPtr->imu_pub_ = \
@@ -189,7 +189,7 @@ void XBowAHRS::Configure(
         // Only update and publish if not paused.
         if (this->dataPtr->paused_) {continue;}
 
-        buoy_msgs::msg::XBRecord xb_record;
+        buoy_interfaces::msg::XBRecord xb_record;
         // high prio data access
         std::unique_lock next(this->dataPtr->next_access_mutex_);
         std::unique_lock data(this->dataPtr->data_mutex_);

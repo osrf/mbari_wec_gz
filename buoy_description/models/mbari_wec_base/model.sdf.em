@@ -443,6 +443,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <lower>0.0</lower>
           <!-- TODO(chapulina) Check why it's only going up to ~1.16-->
           <upper>2.03</upper>
+          <effort>1e6</effort>
         </limit>
         <xyz>0.0 0.0 1.0</xyz>
       </axis>

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <buoy_msgs/interface.hpp>
+#include <buoy_api/interface.hpp>
 
 #include <gtest/gtest.h>
 
@@ -23,8 +23,8 @@
 #include <gz/sim/TestFixture.hh>
 #include <gz/transport/Node.hh>
 
-#include <buoy_msgs/msg/pc_record.hpp>
-#include <buoy_examples/torque_control_policy.hpp>
+#include <buoy_interfaces/msg/pc_record.hpp>
+#include <buoy_api/examples/torque_control_policy.hpp>
 
 #include <chrono>
 #include <memory>
@@ -37,7 +37,7 @@ using namespace std::chrono;
 
 constexpr double INCHES_TO_METERS{0.0254};
 
-class PCROSNode final : public buoy_msgs::Interface<PCROSNode>
+class PCROSNode final : public buoy_api::Interface<PCROSNode>
 {
 public:
   rclcpp::Clock::SharedPtr clock_{nullptr};
@@ -57,7 +57,7 @@ public:
   PCRetractServiceResponseFuture pc_retract_response_future_;
 
   explicit PCROSNode(const std::string & node_name)
-  : buoy_msgs::Interface<PCROSNode>(node_name)
+  : buoy_api::Interface<PCROSNode>(node_name)
   {
     set_parameter(
       rclcpp::Parameter(
@@ -97,7 +97,7 @@ public:
 private:
   friend CRTP;  // syntactic sugar (see https://stackoverflow.com/a/58435857/9686600)
 
-  void power_callback(const buoy_msgs::msg::PCRecord & data)
+  void power_callback(const buoy_interfaces::msg::PCRecord & data)
   {
     rpm_ = data.rpm;
     wind_curr_ = data.wcurrent;
@@ -106,7 +106,7 @@ private:
     retract_ = data.retract;
   }
 
-  void spring_callback(const buoy_msgs::msg::SCRecord & data)
+  void spring_callback(const buoy_interfaces::msg::SCRecord & data)
   {
     range_finder_ = data.range_finder;
   }
