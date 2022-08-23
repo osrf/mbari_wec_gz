@@ -16,7 +16,7 @@ import asyncio
 from threading import Thread
 import unittest
 
-from buoy_msgs.interface import Interface
+from buoy_api import Interface
 
 from buoy_tests.srv import RunServer
 
@@ -32,18 +32,20 @@ from launch_ros.actions import Node as launchNode
 import launch_testing
 import launch_testing.actions
 
+from rcl_interfaces.srv import GetParameters
+
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.node import Node as ros2Node
+from rclpy.node import Node as rclpyNode
 from rclpy.parameter import Parameter
 
 
-def default_generate_test_description():
+def default_generate_test_description(server='fixture_server'):
 
     # Test fixture
     gazebo_test_fixture = launchNode(
         package='buoy_tests',
-        executable='fixture_server',
+        executable=server,
         output='screen'
     )
 
@@ -101,7 +103,7 @@ class BuoyPyTestInterface(Interface):
     """
 
 
-class TestHelper(ros2Node):
+class TestHelper(rclpyNode):
 
     def __init__(self):
         super().__init__('gz_fixture_client')
@@ -146,6 +148,23 @@ class TestHelper(ros2Node):
     # TODO(anyone) remove when TestFixture fixed upstream
     def stop(self):
         self.run(0)
+
+    def get_params_from_node(self, node_name, params):
+        return asyncio.run(self._get_params_from_node(node_name, params))
+
+    async def _get_params_from_node(self, node_name, params):
+        srv_name = node_name + '/get_parameters'
+        client = self.create_client(GetParameters, srv_name)
+        while rclpy.ok() and not client.wait_for_service(0.1):
+            pass
+        req = GetParameters.Request()
+        req.names = params
+        future = client.call_async(req)
+        await future
+        resp = None
+        if future.result is not None:
+            resp = future.result()
+        return resp
 
 
 class BuoyPyTests(unittest.TestCase):

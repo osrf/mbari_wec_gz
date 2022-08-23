@@ -48,8 +48,6 @@
       <include merge="true">
         <uri>package://buoy_description/models/mbari_wec_ros</uri>
       </include>
-
-<<<<<<< HEAD
       <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
         <PrismaticJointName>HydraulicRam</PrismaticJointName>
         <PistonArea>1.375</PistonArea>
@@ -112,6 +110,5 @@
       </plugin>
       <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
     </model>
-
   </world>
 </sdf>

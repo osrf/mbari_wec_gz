@@ -14,7 +14,7 @@
 
 import time
 
-from buoy_examples.torque_controller import PBTorqueControlPolicy
+from buoy_api.examples.torque_controller import PBTorqueControlPolicy
 
 from testing_utils import BuoyPyTestAfterShutdown  # noqa F401 -- runs if imported
 from testing_utils import BuoyPyTests
