@@ -22,37 +22,37 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/floating_point_range.hpp>
 
-#include <buoy_msgs/msg/pb_command_response.hpp>
+#include <buoy_interfaces/msg/pb_command_response.hpp>
 
 #include <memory>
 #include <string>
 
-#include "buoy_msgs/srv/bc_reset_command.hpp"
-#include "buoy_msgs/srv/bender_command.hpp"
-#include "buoy_msgs/srv/bus_command.hpp"
-#include "buoy_msgs/srv/gain_command.hpp"
-#include "buoy_msgs/srv/pc_batt_switch_command.hpp"
-#include "buoy_msgs/srv/pc_charge_curr_lim_command.hpp"
-#include "buoy_msgs/srv/pc_draw_curr_lim_command.hpp"
-#include "buoy_msgs/srv/pc_std_dev_targ_command.hpp"
-#include "buoy_msgs/srv/pcv_targ_max_command.hpp"
-#include "buoy_msgs/srv/sc_reset_command.hpp"
-#include "buoy_msgs/srv/tether_command.hpp"
-#include "buoy_msgs/srv/tf_reset_command.hpp"
-#include "buoy_msgs/srv/tf_set_actual_pos_command.hpp"
-#include "buoy_msgs/srv/tf_set_charge_mode_command.hpp"
-#include "buoy_msgs/srv/tf_set_curr_lim_command.hpp"
-#include "buoy_msgs/srv/tf_set_mode_command.hpp"
-#include "buoy_msgs/srv/tf_set_pos_command.hpp"
-#include "buoy_msgs/srv/tf_set_state_machine_command.hpp"
-#include "buoy_msgs/srv/tf_watch_dog_command.hpp"
+#include "buoy_interfaces/srv/bc_reset_command.hpp"
+#include "buoy_interfaces/srv/bender_command.hpp"
+#include "buoy_interfaces/srv/bus_command.hpp"
+#include "buoy_interfaces/srv/gain_command.hpp"
+#include "buoy_interfaces/srv/pc_batt_switch_command.hpp"
+#include "buoy_interfaces/srv/pc_charge_curr_lim_command.hpp"
+#include "buoy_interfaces/srv/pc_draw_curr_lim_command.hpp"
+#include "buoy_interfaces/srv/pc_std_dev_targ_command.hpp"
+#include "buoy_interfaces/srv/pcv_targ_max_command.hpp"
+#include "buoy_interfaces/srv/sc_reset_command.hpp"
+#include "buoy_interfaces/srv/tether_command.hpp"
+#include "buoy_interfaces/srv/tf_reset_command.hpp"
+#include "buoy_interfaces/srv/tf_set_actual_pos_command.hpp"
+#include "buoy_interfaces/srv/tf_set_charge_mode_command.hpp"
+#include "buoy_interfaces/srv/tf_set_curr_lim_command.hpp"
+#include "buoy_interfaces/srv/tf_set_mode_command.hpp"
+#include "buoy_interfaces/srv/tf_set_pos_command.hpp"
+#include "buoy_interfaces/srv/tf_set_state_machine_command.hpp"
+#include "buoy_interfaces/srv/tf_watch_dog_command.hpp"
 
 
 #define CREATE_SERVICE(type, prefix, cmd_var, service, \
     cmd_type, range_type) \
   services_->prefix ## _command_handler_ = \
-    [this](const std::shared_ptr<buoy_msgs::srv::type::Request> request, \
-      std::shared_ptr<buoy_msgs::srv::type::Response> response) \
+    [this](const std::shared_ptr<buoy_interfaces::srv::type::Request> request, \
+      std::shared_ptr<buoy_interfaces::srv::type::Response> response) \
     { \
       RCLCPP_WARN_STREAM( \
         ros_->node_->get_logger(), \
@@ -73,15 +73,15 @@
       } \
     }; \
   services_->prefix ## _command_service_ = \
-    ros_->node_->create_service<buoy_msgs::srv::type>( \
+    ros_->node_->create_service<buoy_interfaces::srv::type>( \
     #service, \
     services_->prefix ## _command_handler_)
 
 
 #define DECLARE_SERVICE(type, prefix, range_type) \
-  rclcpp::Service<buoy_msgs::srv::type>::SharedPtr prefix ## _command_service_{nullptr}; \
-  std::function<void(std::shared_ptr<buoy_msgs::srv::type::Request>, \
-    std::shared_ptr<buoy_msgs::srv::type::Response>)> prefix ## _command_handler_; \
+  rclcpp::Service<buoy_interfaces::srv::type>::SharedPtr prefix ## _command_service_{nullptr}; \
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::type::Request>, \
+    std::shared_ptr<buoy_interfaces::srv::type::Response>)> prefix ## _command_handler_; \
   static const rcl_interfaces::msg::range_type valid_ ## prefix ## _range_
 
 #define INIT_VALID_RANGE(prefix, range_type, low, high) \
@@ -120,26 +120,35 @@ struct NoOpServices
   DECLARE_SERVICE(TFSetStateMachineCommand, tfsetstatemachine, IntegerRange);
 
   // BCResetCommand
-  rclcpp::Service<buoy_msgs::srv::BCResetCommand>::SharedPtr bcreset_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::BCResetCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::BCResetCommand::Response>)> bcreset_command_handler_;
+  rclcpp::Service<
+    buoy_interfaces::srv::BCResetCommand
+  >::SharedPtr bcreset_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::BCResetCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::BCResetCommand::Response>)> bcreset_command_handler_;
 
   // SCResetCommand
-  rclcpp::Service<buoy_msgs::srv::SCResetCommand>::SharedPtr screset_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::SCResetCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::SCResetCommand::Response>)> screset_command_handler_;
+  rclcpp::Service<
+    buoy_interfaces::srv::SCResetCommand
+  >::SharedPtr screset_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::SCResetCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::SCResetCommand::Response>)> screset_command_handler_;
 
   // TFResetCommand
-  rclcpp::Service<buoy_msgs::srv::TFResetCommand>::SharedPtr tfreset_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::TFResetCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::TFResetCommand::Response>)> tfreset_command_handler_;
+  rclcpp::Service<
+    buoy_interfaces::srv::TFResetCommand
+  >::SharedPtr tfreset_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::TFResetCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::TFResetCommand::Response>)> tfreset_command_handler_;
 
   // TFWatchDogCommand
   rclcpp::Service<
-    buoy_msgs::srv::TFWatchDogCommand
+    buoy_interfaces::srv::TFWatchDogCommand
   >::SharedPtr tfwatchdog_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::TFWatchDogCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::TFWatchDogCommand::Response>)> tfwatchdog_command_handler_;
+  std::function<
+    void(
+      std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Request>,
+      std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Response>
+    )> tfwatchdog_command_handler_;
 };
 INIT_VALID_RANGE(bender, IntegerRange, 0, 2);
 INIT_VALID_RANGE(bus, IntegerRange, 0, 2);
@@ -197,11 +206,11 @@ struct NoOpControllerPrivate
     T command_value,
     const U & valid_range)
   {
-    int8_t result = buoy_msgs::msg::PBCommandResponse::NOT_IMPLEMENTED;
+    int8_t result = buoy_interfaces::msg::PBCommandResponse::NOT_IMPLEMENTED;
     if (valid_range.from_value > command_value ||
       command_value > valid_range.to_value)
     {
-      result = buoy_msgs::msg::PBCommandResponse::BAD_INPUT;
+      result = buoy_interfaces::msg::PBCommandResponse::BAD_INPUT;
     }
 
     return result;
@@ -257,8 +266,8 @@ struct NoOpControllerPrivate
 
     // BCResetCommand
     services_->bcreset_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::BCResetCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::BCResetCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::BCResetCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::BCResetCommand::Response> response)
       {
         RCLCPP_WARN_STREAM(
           ros_->node_->get_logger(),
@@ -267,14 +276,14 @@ struct NoOpControllerPrivate
         response->result.value = response->result.NOT_IMPLEMENTED;
       };
     services_->bcreset_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::BCResetCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::BCResetCommand>(
       "bc_reset_command",
       services_->bcreset_command_handler_);
 
     // SCResetCommand
     services_->screset_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::SCResetCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::SCResetCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::SCResetCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::SCResetCommand::Response> response)
       {
         RCLCPP_WARN_STREAM(
           ros_->node_->get_logger(),
@@ -283,14 +292,14 @@ struct NoOpControllerPrivate
         response->result.value = response->result.NOT_IMPLEMENTED;
       };
     services_->screset_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::SCResetCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::SCResetCommand>(
       "sc_reset_command",
       services_->screset_command_handler_);
 
     // TFResetCommand
     services_->tfreset_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::TFResetCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::TFResetCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::TFResetCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::TFResetCommand::Response> response)
       {
         RCLCPP_WARN_STREAM(
           ros_->node_->get_logger(),
@@ -299,14 +308,14 @@ struct NoOpControllerPrivate
         response->result.value = response->result.NOT_IMPLEMENTED;
       };
     services_->tfreset_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::TFResetCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::TFResetCommand>(
       "tf_reset_command",
       services_->tfreset_command_handler_);
 
     // TFWatchDogCommand
     services_->tfwatchdog_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::TFWatchDogCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::TFWatchDogCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Response> response)
       {
         RCLCPP_WARN_STREAM(
           ros_->node_->get_logger(),
@@ -315,7 +324,7 @@ struct NoOpControllerPrivate
         response->result.value = response->result.NOT_IMPLEMENTED;
       };
     services_->tfwatchdog_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::TFWatchDogCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::TFWatchDogCommand>(
       "tf_watch_dog_command",
       services_->tfwatchdog_command_handler_);
   }

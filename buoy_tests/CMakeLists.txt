@@ -45,7 +45,7 @@ if(BUILD_TESTING)
       ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
     )
     if(buoy_add_test_ROS)
-      set(ROS_PKGS rclcpp buoy_msgs ${buoy_add_test_EXTRA_ROS_PKGS})
+      set(ROS_PKGS rclcpp buoy_interfaces buoy_api_cpp ${buoy_add_test_EXTRA_ROS_PKGS})
       foreach(PKG ${ROS_PKGS})
         find_package(${PKG} REQUIRED)
       endforeach()
@@ -67,7 +67,8 @@ if(BUILD_TESTING)
 
   # Helper function to generate pytest
   function(buoy_add_pytest PYTEST_NAME #[[optional: GTEST_NAME]])
-    find_package(buoy_msgs REQUIRED)
+    find_package(buoy_api_cpp REQUIRED)
+    find_package(buoy_interfaces REQUIRED)
     find_package(rclcpp REQUIRED)
     find_package(rclpy REQUIRED)
 
@@ -104,10 +105,7 @@ if(BUILD_TESTING)
   # Add gtests
   buoy_add_gtest(no_inputs)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
-  buoy_add_gtest(pc_commands_ros_feedback
-    ROS LAUNCH_TEST
-    EXTRA_ROS_PKGS
-      buoy_examples)
+  buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
 
   # Add pytests

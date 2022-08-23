@@ -14,7 +14,7 @@
 
 import time
 
-from buoy_msgs.msg import SCRecord
+from buoy_interfaces.msg import SCRecord
 
 from testing_utils import BuoyPyTestAfterShutdown  # noqa F401 -- runs if imported
 from testing_utils import BuoyPyTests
@@ -114,6 +114,11 @@ class BuoySCPumpPyTest(BuoyPyTests):
             else:
                 self.assertTrue(self.node.sc_status_ & SCRecord.PUMP_TOGGLE,
                                 'SC Pump Toggle should be ON')
+
+        # Check that valve command fails (controller returns BUSY)
+        self.node.send_valve_command(2)
+        self.assertEqual(self.node.valve_future_.result().result.value,
+                         self.node.valve_future_.result().result.BUSY)
 
         # Run to allow Pump command to finish
         self.test_helper.run(postCmdIterations)

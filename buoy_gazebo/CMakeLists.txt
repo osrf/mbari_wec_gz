@@ -15,8 +15,8 @@ else()
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(buoy_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(buoy_msgs REQUIRED)
 
 find_package(ignition-cmake2 REQUIRED)
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
@@ -76,7 +76,7 @@ function(gz_add_plugin plugin_name)
       ${gz_add_plugin_PRIVATE_LINK_LIBS}
   )
   if(gz_add_plugin_ROS)
-    ament_target_dependencies(${plugin_name} PUBLIC rclcpp buoy_msgs)
+    ament_target_dependencies(${plugin_name} PUBLIC rclcpp buoy_interfaces)
   endif()
   target_include_directories(${plugin_name}
       PUBLIC ${gz_add_plugin_INCLUDE_DIRS})
