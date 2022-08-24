@@ -311,7 +311,8 @@ void ElectroHydraulicPTO::PreUpdate(
   // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
   // to the max absolute rpm from the winding current interpolation
   // (no extrapolation, default torque controller).
-  const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
+  // const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
+  const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;
   unsigned int seed{1U};
