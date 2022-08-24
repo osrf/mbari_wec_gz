@@ -15,14 +15,16 @@
 #ifndef ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 #define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 
-#include <stdio.h>
-
-#include <JustInterp/JustInterp.hpp>
-
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
+
+#include "splinter/datatable.h"
+#include "splinter/bspline.h"
+#include "splinter/bsplinebuilder.h"
+
 
 // Defines from Controller Firmware, behavior replicated here
 #define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
@@ -48,9 +50,12 @@
 class WindingCurrentTarget
 {
 public:
+  const std::vector<double> NSpec {0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};  // RPM
+  const std::vector<double> TorqueSpec {0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};  // N-m
+
   double TorqueConstantNMPerAmp;  // N-m/Amp
   double TorqueConstantInLbPerAmp;  // in-lb/Amp
-  JustInterp::LinearInterpolator<double> DefaultDamping;
+
   double ScaleFactor;
   double RetractFactor;
   double UserCommandedCurrent{0.0};
@@ -59,15 +64,21 @@ public:
   bool current_override_{false};
   bool bias_override_{false};
 
-public:
-  /// \brief mutex to protect jointVelCmd
-  std::mutex UserCommandMutex;
+  SPLINTER::DataTable samples;
+  std::unique_ptr<SPLINTER::BSpline> DefaultDamping;
 
+public:
   WindingCurrentTarget()
   {
-    std::vector<double> N {0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};  // RPM
-    std::vector<double> Torque {0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};  // N-m
-    this->DefaultDamping.SetData(N.size(), N.data(), Torque.data());
+    for (size_t idx = 0U; idx < 7U; ++idx) {
+      SPLINTER::DenseVector x(1);
+      x(0) = NSpec[idx];
+      double torque_y = TorqueSpec[idx];
+      samples.addSample(x, torque_y);
+    }
+    DefaultDamping = std::make_unique<SPLINTER::BSpline>(
+      SPLINTER::BSpline::Builder(samples)
+      .degree(1).build());
 
     // Set Electric Motor Torque Constant
     this->TorqueConstantNMPerAmp = TORQUE_CONSTANT;  // N-m/Amp
@@ -83,10 +94,15 @@ public:
     if (current_override_) {
       I = UserCommandedCurrent;
     } else {
-      // TODO(anyone):  1.375 makes this match experiment, not sure what is wrong...
-      I = this->DefaultDamping(fabs(N)) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
-      if (N > 0.0) {
-        I *= -this->RetractFactor;
+      if (fabs(N) >= NSpec.back()) {
+        I = TorqueSpec.back() * this->ScaleFactor / this->TorqueConstantNMPerAmp;
+      } else {
+        SPLINTER::DenseVector sample(1);
+        sample(0) = fabs(N);
+        I = this->DefaultDamping->eval(sample) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
+        if (N > 0.0) {
+          I *= -this->RetractFactor;
+        }
       }
 
       if (bias_override_) {

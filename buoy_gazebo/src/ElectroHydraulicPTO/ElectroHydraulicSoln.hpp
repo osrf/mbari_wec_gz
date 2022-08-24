@@ -154,9 +154,12 @@ public:
     // (no extrapolation, default torque controller).
     // const double rpm = std::min(std::max(x[0U], -6790.0), 6790.0);
 
+    const double rpm = std::min(fabs(x[0U]), Neff.back());
+    const double pressure = std::min(fabs(x[0U]), Peff.back());
+
     SPLINTER::DenseVector sample(2);
-    sample(0) = fabs(x[0U]);  // rpm
-    sample(1) = fabs(x[1U]);  // pressure
+    sample(0) = rpm;
+    sample(1) = pressure;
     const double eff_m = this->hyd_eff_m->eval(sample);
     const double eff_v = this->hyd_eff_v->eval(sample);
 
@@ -165,15 +168,15 @@ public:
 
     static constexpr double Pset = 2925;
     double QQ = this->Q;
-    if (x[1] > Pset) {   // Extending
-      QQ += (x[1] - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
+    if (x[1U] > Pset) {   // Extending
+      QQ += (x[1U] - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
     }
     // SPLINTER::DenseVector sample_rv(1);
-    // sample_rv(0) = x[1];
+    // sample_rv(0) = x[1U];
     // QQ += this->reliefValve->eval(sample_rv);
 
-    fvec[0] = x[0] - eff_v * 60.0 * QQ / this->HydMotorDisp;
-    fvec[1] = x[1] - eff_m * T_applied / (this->HydMotorDisp / (2 * M_PI));
+    fvec[0U] = x[0U] - eff_v * 60.0 * QQ / this->HydMotorDisp;
+    fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
 
     return 0;
   }
