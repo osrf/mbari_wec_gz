@@ -22,18 +22,17 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
+// Interpolation library for efficiency maps
 #include "splinter/datatable.h"
 #include "splinter/bspline.h"
 #include "splinter/bsplinebuilder.h"
 
 #include "ElectroHydraulicState.hpp"
 #include "WindingCurrentTarget.hpp"
-
-// Interpolation library for efficiency maps
-#include "JustInterp/JustInterp.hpp"
 
 
 /////////////////////////////////////////////////////
@@ -73,13 +72,14 @@ struct Functor
 struct ElectroHydraulicSoln : Functor<double>
 {
 public:
-  // JustInterp::TableInterpolator<double> hyd_eff_v;
-  // JustInterp::TableInterpolator<double> hyd_eff_m;
-
   // Create new DataTable to manage samples
   SPLINTER::DataTable samples_eff_v, samples_eff_m;
   std::unique_ptr<SPLINTER::BSpline> hyd_eff_v, hyd_eff_m;
-  JustInterp::LinearInterpolator<double> reliefValve;
+
+  // data table and interpolator for relief valve
+  SPLINTER::DataTable samples_reliefValve;
+  std::unique_ptr<SPLINTER::BSpline> reliefValve;
+
   // Class that computes Target Winding Current based on RPM, Scale Factor, limits, etc..
   mutable WindingCurrentTarget I_Wind;
   double Q;
@@ -101,18 +101,12 @@ private:
 
 public:
   ElectroHydraulicSoln()
-  : Functor<double>(2, 2),
-    // Set Pressure versus flow relationship for relief valve
-    reliefValve{Prelief, Qrelief}
-    // hyd_eff_v{Peff, Neff, eff_v},
-    // hyd_eff_m{Peff, Neff, eff_m}
+  : Functor<double>(2, 2)
   {
     // Set HydraulicMotor Volumetric & Mechanical Efficiency
     // Sample the efficiency LUTs
-    for(size_t idx = 0U; idx < 22; idx++)
-    {
-      for(size_t jdx = 0U; jdx < 21; jdx++)
-      {
+    for (size_t idx = 0U; idx < 22; ++idx) {
+      for (size_t jdx = 0U; jdx < 21; ++jdx) {
         // Sample function at x
         SPLINTER::DenseVector x(2);
         x(0) = Neff[idx];
@@ -132,6 +126,17 @@ public:
     hyd_eff_m = std::make_unique<SPLINTER::BSpline>(
       SPLINTER::BSpline::Builder(samples_eff_m)
       .degree(1).build());
+
+    // Set pressure vs flow for relief valve
+    for (size_t kdx = 0U; kdx < 3; ++kdx) {
+      SPLINTER::DenseVector x(1);
+      x(0) = Prelief[kdx];
+      double qr_y = Qrelief[kdx];
+      samples_reliefValve.addSample(x, qr_y);
+    }
+    reliefValve = std::make_unique<SPLINTER::BSpline>(
+      SPLINTER::BSpline::Builder(samples_reliefValve)
+      .degree(1).build());
   }
 
   // x[0] = RPM
@@ -149,7 +154,7 @@ public:
     // (no extrapolation, default torque controller).
     // const double rpm = std::min(std::max(x[0U], -6790.0), 6790.0);
 
-    SPLINTER::DenseVector sample;
+    SPLINTER::DenseVector sample(2);
     sample(0) = fabs(x[0U]);  // rpm
     sample(1) = fabs(x[1U]);  // pressure
     const double eff_m = this->hyd_eff_m->eval(sample);
@@ -163,7 +168,9 @@ public:
     if (x[1] > Pset) {   // Extending
       QQ += (x[1] - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
     }
-    // QQ += this->reliefValve(x[1]);
+    // SPLINTER::DenseVector sample_rv(1);
+    // sample_rv(0) = x[1];
+    // QQ += this->reliefValve->eval(sample_rv);
 
     fvec[0] = x[0] - eff_v * 60.0 * QQ / this->HydMotorDisp;
     fvec[1] = x[1] - eff_m * T_applied / (this->HydMotorDisp / (2 * M_PI));

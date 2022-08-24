@@ -39,7 +39,7 @@ def generate_launch_description():
                  '--force-version',
                  LaunchConfiguration('ign_version'),
                  ],
-            prefix=['x-terminal-emulator -e gdb -ex run --args'],
+            prefix=['xterm -e gdb -ex run --args'],
             # prefix=['xterm -e valgrind'],
             output='screen',
             additional_env=env,
