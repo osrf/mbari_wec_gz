@@ -76,6 +76,33 @@ public:
 
   /// \brief Ignition communication node.
   ignition::transport::Node node;
+  
+  float compute_sd_rpm(const float & N)
+  {
+    static unsigned long k = 1U;
+    static float Mlast, Slast;
+    float M, S;
+    float StdDev;
+
+    // Start of period
+    if (k == 1)
+    {
+      Mlast = N;
+      Slast = 0;
+    }
+
+    M = Mlast + (N - Mlast) / k++;
+    S = Slast + (N - Mlast) * (N - M);
+    Mlast = M;
+    Slast = S;
+    StdDev = sqrt(S / k);
+
+    if (k >= 60 /* sec/min */ * 10 /* mins */ * 1000 /* Hz */) {
+      k = 1;
+    }
+
+    return StdDev;
+  }
 };
 
 //////////////////////////////////////////////////
@@ -323,7 +350,7 @@ void ElectroHydraulicPTO::PreUpdate(
   static const double P_conv = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
     RPM_TO_RAD_PER_SEC;
   const double ShaftPower = P_conv * this->dataPtr->WindingCurrent * N;  // Watts
-  double P = eff_e * ShaftPower;
+  const double P = eff_e * ShaftPower;
   static const double Ri = 8.0;  // Ohms
 
   static const double two_a = 2.0 / Ri;
@@ -334,8 +361,6 @@ void ElectroHydraulicPTO::PreUpdate(
   // TODO(hamilton) temporary fix for NaN's when discriminant < 0.0
   // this happens when user commanded winding current is too large
   const double c = std::min(-P, neg_b_sq / four_a - 0.001 /* ensure discriminant > 0.0 */);
-  // P = -c;
-  // std::cerr << "P limited: " << P << std::endl;
 
   const double sqrt_discriminant = sqrt(neg_b_sq - four_a * c);
   const double VBus1 = (neg_b + sqrt_discriminant) / two_a;
@@ -364,6 +389,13 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_state.scale = this->dataPtr->functor.I_Wind.ScaleFactor;
   pto_state.retract = this->dataPtr->functor.I_Wind.RetractFactor;
   pto_state.target_a = this->dataPtr->TargetWindingCurrent;
+
+  pto_state.sd_rpm = this->dataPtr->compute_sd_rpm(N);
+  // TODO(anyone) not yet calculated
+  // pto_state.draw_curr_limit = 
+  // pto_state.torque = 
+  // pto_state.target_v = 
+  // pto_state.charge_curr_limit = 
 
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
     this->dataPtr->PrismaticJointEntity,
