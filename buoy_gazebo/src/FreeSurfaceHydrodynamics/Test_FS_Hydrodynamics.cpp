@@ -33,9 +33,9 @@ int main()
   LinearIncidentWave Inc;
   LinearIncidentWave &IncRef = Inc;
   FS_HydroDynamics BuoyA5(IncRef, 1.0, 9.81, 1025);
-  BuoyA5.SetWaterplane(5,1.2,1.2); // Set area and 2nd moments of area for waterplane
-  BuoyA5.SetCOB(0,0,-1.7); //Set COB relative to waterplane coordinate system.
-  BuoyA5.SetVolume(3); 
+  BuoyA5.SetWaterplane(5.47,1.37,1.37); // Set area and 2nd moments of area for waterplane
+  BuoyA5.SetCOB(0,0,-.18); //Set COB relative to waterplane coordinate system.
+  BuoyA5.SetVolume(1.75); 
   BuoyA5.ReadWAMITData_FD("HydrodynamicCoeffs/BuoyA5");
   BuoyA5.ReadWAMITData_TD("HydrodynamicCoeffs/BuoyA5");
   BuoyA5.Plot_FD_Coeffs();
@@ -112,7 +112,7 @@ int main()
     }
 #endif
 
-#if 1 // Test Exciting Forces
+#if 0 // Test Exciting Forces
   srand((unsigned)time(0));
   double A = .5 + ((float)(rand() % 20) / 10);
   double T = 3.0 + (rand() % 9);
@@ -151,6 +151,52 @@ int main()
     gp.send1d(boost::make_tuple(pts_t, pts_F_TD));
     gp.send1d(boost::make_tuple(pts_t, pts_F_FD));
     gp.send1d(boost::make_tuple(pts_t, pts_eta));
+    gp << "set xlabel 'time (s)'\n";
+    if (j < 3)
+      gp << "set ylabel 'F (N)'\n";
+    else
+      gp << "set  ylabel 'M (N-m)'\n";
+    gp << "replot\n";
+  }
+#endif
+
+#if 1 // Test Buoyancy Forces
+  srand((unsigned)time(0));
+  double A = .5 + ((float)(rand() % 20) / 10);
+  double T = 6.0 + (rand() % 9);
+  double tf = T;
+  double omega = 2 * M_PI / T;
+
+
+  for (int j = 0; j < 6; j++) // j denotes direction of resulting force
+  {
+    std::vector<double> pts_t, pts_x,pts_F_B;
+    for (int k = 0; k < tf / BuoyA5.m_dt; k++)
+    {
+      double tt = BuoyA5.m_dt * k;
+      pts_t.push_back(tt);
+      Eigen::VectorXd x(6);
+      x(0) = 0; x(1) = 0; x(2) = 0;x(3) = 0; x(4) = 0; x(5) = 0;
+      x(j) = A*cos(omega*tt);
+      pts_x.push_back(x(j));
+      Eigen::VectorXd BuoyancyForce(6);
+      BuoyancyForce = BuoyA5.BuoyancyForce(x);
+      std::cout << "x = " << x.transpose() << std::endl;
+      std::cout << "F_B = " << BuoyancyForce.transpose() << std::endl << std::endl;
+      pts_F_B.push_back(BuoyancyForce(j));
+    }
+    Gnuplot gp;
+    gp << "set term X11 title  '" << modes[j] << " Buoyancy Forces'\n";
+    gp << "set grid\n";
+    gp << "set xlabel 'time (s)'\n";
+    if (j < 3)
+      gp << "set ylabel 'F (N)'\n";
+    else
+      gp << "set  ylabel 'M (N-m)'\n";
+    gp << "plot '-' w l title 'x(t)'"
+       << ",'-' w l title 'Buoyancy Force'\n";
+    gp.send1d(boost::make_tuple(pts_t, pts_x));
+    gp.send1d(boost::make_tuple(pts_t, pts_F_B));
     gp << "set xlabel 'time (s)'\n";
     if (j < 3)
       gp << "set ylabel 'F (N)'\n";

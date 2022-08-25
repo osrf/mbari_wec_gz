@@ -628,9 +628,12 @@ Eigen::VectorXd FS_HydroDynamics::ExcitingForce() {
 Eigen::VectorXd FS_HydroDynamics::BuoyancyForce(Eigen::VectorXd x) 
 {
   Eigen::VectorXd BuoyancyForces(6);
+  for (int i = 0; i < 6; i++)
+    BuoyancyForces(i) = 0.0; // set to zero.
 BuoyancyForces(2) = this->m_rho*this->m_grav*(this->Vol-x(2)*this->S);
-BuoyancyForces(3)= -this->m_rho*this->m_grav*(this->Vol*this->COB(2)+this->S11)*x(4);
-BuoyancyForces(4)= -this->m_rho*this->m_grav*(this->Vol*this->COB(2)+this->S22)*x(3);
+BuoyancyForces(3)= -this->m_rho*this->m_grav*(this->Vol*this->COB(2)+this->S11)*x(3);
+BuoyancyForces(4)= -this->m_rho*this->m_grav*(this->Vol*this->COB(2)+this->S22)*x(4);
+
 return BuoyancyForces;
 }
 

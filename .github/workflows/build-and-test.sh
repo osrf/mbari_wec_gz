@@ -18,6 +18,7 @@ apt-get install -y git \
                    python3-colcon-common-extensions \
                    python3-rosdep \
                    python3-vcstool \
+                   libgnuplot-iostream-dev \ 
                    wget
 
 cd $COLCON_WS_SRC

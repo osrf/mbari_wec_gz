@@ -72,7 +72,7 @@ namespace buoy_gazebo
     FS_HydroDynamics FloatingBody;
 
     /// \brief Location of Waterplane in Link Frame
-    Eigen::VectorXd WaterplanePose; 
+    Eigen::Vector3d WaterplaneOrigin; 
 
     /// \brief Ignition communication node.
     ignition::transport::Node node;
@@ -133,8 +133,8 @@ namespace buoy_gazebo
 
     double A = 1; //.5 + ((float)(rand() % 20) / 10);
     double T = 8; ///3.0 + (rand() % 9);
-    this->dataPtr->Inc.SetToPiersonMoskowitzSpectrum(2*A, 0);
-    //this->dataPtr->Inc.SetToMonoChromatic(2 * A, T, 0);
+    //this->dataPtr->Inc.SetToPiersonMoskowitzSpectrum(2*A, 0);
+    this->dataPtr->Inc.SetToMonoChromatic(2 * A, T, 0);
 
     std::string HydrodynamicsBaseFilename = "/home/hamilton/buoy_ws/src/buoy_sim/buoy_gazebo/src/FreeSurfaceHydrodynamics/HydrodynamicCoeffs/BuoyA5";
     this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
@@ -145,17 +145,23 @@ namespace buoy_gazebo
 
     baseLink.EnableAccelerationChecks(_ecm, true); //Allow access to last-timestep's acceleration in Configure()
 
-  double S = SdfParamDouble(_sdf, "S", 5.0);
-  double S11 = SdfParamDouble(_sdf, "S11", 1.2);
-  double S22 = SdfParamDouble(_sdf, "S22", 1.2);
+  double S = SdfParamDouble(_sdf, "S", 5.47);
+  double S11 = SdfParamDouble(_sdf, "S11", 1.37);
+  double S22 = SdfParamDouble(_sdf, "S22", 1.37);
   this->dataPtr->FloatingBody.SetWaterplane(S,S11,S22);
 
   double COB_x = SdfParamDouble(_sdf, "COB_x", 0);
   double COB_y = SdfParamDouble(_sdf, "COB_y", 0);
-  double COB_z = SdfParamDouble(_sdf, "COB_z", -1.7);
+  double COB_z = SdfParamDouble(_sdf, "COB_z", -.18);
   this->dataPtr->FloatingBody.SetCOB(COB_x,COB_y,COB_z);
+  this->dataPtr->FloatingBody.SetVolume(1.75); 
 
-
+  double WaterPlaneOrigin_x = SdfParamDouble(_sdf, "WaterPlaneOrigin_x", 0);
+  double WaterPlaneOrigin_y = SdfParamDouble(_sdf, "WaterPlaneOrigin_y", 0);
+  double WaterPlaneOrigin_z = SdfParamDouble(_sdf, "WaterPlaneOrigin_z", 0);
+  this->dataPtr->WaterplaneOrigin(0) = WaterPlaneOrigin_x;
+  this->dataPtr->WaterplaneOrigin(1) = WaterPlaneOrigin_y;
+  this->dataPtr->WaterplaneOrigin(2) = WaterPlaneOrigin_z;
   }
 
   //////////////////////////////////////////////////
@@ -207,7 +213,7 @@ auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
       Eigen::VectorXd x(6);
       x(0) = pose.X();
       x(1) = pose.Y();
-      x(2) = pose.Z();
+      x(2) = pose.Z()+2.25;
       x(3) = pose.Roll();
       x(4) = pose.Pitch();
       x(5) = pose.Yaw();
@@ -215,15 +221,27 @@ auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
       Eigen::VectorXd BuoyancyForce(6);
       BuoyancyForce = this->dataPtr->FloatingBody.BuoyancyForce(x);
         std::cout << "Buoyancy Force = " << BuoyancyForce.transpose() << std::endl << std::endl;
-  
+
+      Eigen::Vector3d ForceAtWaterplaneOrigin;
+      ForceAtWaterplaneOrigin(0) = BuoyancyForce(0)-MemForce(0)+ExtForce(0);
+      ForceAtWaterplaneOrigin(1) = BuoyancyForce(1)-MemForce(1)+ExtForce(1);//
+      ForceAtWaterplaneOrigin(2) = BuoyancyForce(2)-MemForce(2)+ExtForce(2);
+
   ignition::math::Vector3d
-    totalForce(0, 0, -MemForce(2)+BuoyancyForce(2)+ExtForce(2));
+    totalForce(ForceAtWaterplaneOrigin(0),ForceAtWaterplaneOrigin(1),ForceAtWaterplaneOrigin(2));
     std::cout << "Total Force = "  << totalForce << std::endl;
-    //totalForce(0, 0, -MemForce(2)+ExtForce(2));
-    //totalForce(+MemForce(0)+ExtForce(0), +MemForce(1)+ExtForce(1), +MemForce(2)+ExtForce(2));
+
+      Eigen::Vector3d MomentAtLinkOriginDueToForceAtWaterplaneOrigin;
+      MomentAtLinkOriginDueToForceAtWaterplaneOrigin =  this->dataPtr->WaterplaneOrigin.cross(ForceAtWaterplaneOrigin);
+
   ignition::math::Vector3d
-    totalTorque(0,0,0);
-    //totalTorque(+MemForce(3)+ExtForce(3), +MemForce(4)+ExtForce(4), +MemForce(5)+ExtForce(5));
+//    totalTorque(0,0,0);
+//    totalTorque(BuoyancyForce(3) + MomentAtLinkOriginDueToForceAtWaterplaneOrigin(0)-MemForce(3), 
+ //               BuoyancyForce(4) + MomentAtLinkOriginDueToForceAtWaterplaneOrigin(1)-MemForce(4),
+  //              BuoyancyForce(5) + MomentAtLinkOriginDueToForceAtWaterplaneOrigin(2)-MemForce(5));
+    totalTorque(-MemForce(3)+ExtForce(3)+BuoyancyForce(3) + MomentAtLinkOriginDueToForceAtWaterplaneOrigin(0), 
+                -MemForce(4)+ExtForce(4)+BuoyancyForce(4) + MomentAtLinkOriginDueToForceAtWaterplaneOrigin(1),
+                -MemForce(5)+ExtForce(5)+BuoyancyForce(5) + MomentAtLinkOriginDueToForceAtWaterplaneOrigin(2));
 
 baseLink.AddWorldWrench( _ecm, pose.Rot()*(totalForce), pose.Rot()*totalTorque);
 
