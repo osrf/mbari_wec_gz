@@ -76,17 +76,16 @@ public:
 
   /// \brief Ignition communication node.
   ignition::transport::Node node;
-  
+
   float compute_sd_rpm(const float & N)
   {
-    static unsigned long k = 1U;
+    static uint64_t k = 1U;
     static float Mlast, Slast;
     float M, S;
     float StdDev;
 
     // Start of period
-    if (k == 1)
-    {
+    if (k == 1) {
       Mlast = N;
       Slast = 0;
     }
@@ -391,11 +390,13 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_state.target_a = this->dataPtr->TargetWindingCurrent;
 
   pto_state.sd_rpm = this->dataPtr->compute_sd_rpm(N);
+  pto_state.torque = this->dataPtr->WindingCurrent *
+    this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp;
+
   // TODO(anyone) not yet calculated
-  // pto_state.draw_curr_limit = 
-  // pto_state.torque = 
-  // pto_state.target_v = 
-  // pto_state.charge_curr_limit = 
+  // pto_state.draw_curr_limit =
+  // pto_state.target_v =
+  // pto_state.charge_curr_limit =
 
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
     this->dataPtr->PrismaticJointEntity,

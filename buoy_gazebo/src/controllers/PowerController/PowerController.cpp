@@ -760,10 +760,10 @@ void PowerController::PostUpdate(
   this->dataPtr->ros_->pc_record_.target_a = pto_state_comp->Data().target_a;
 
   this->dataPtr->ros_->pc_record_.sd_rpm = pto_state_comp->Data().sd_rpm;
+  this->dataPtr->ros_->pc_record_.torque = pto_state_comp->Data().torque;
 
   // TODO(anyone)
   // this->dataPtr->ros_->pc_record_.draw_curr_limit = pto_state_comp->Data().draw_curr_limit;
-  // this->dataPtr->ros_->pc_record_.torque = pto_state_comp->Data().torque;
   // this->dataPtr->ros_->pc_record_.target_v = pto_state_comp->Data().target_v;
   // this->dataPtr->ros_->pc_record_.charge_curr_limit = pto_state_comp->Data().charge_curr_limit;
 
