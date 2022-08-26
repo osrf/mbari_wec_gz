@@ -220,13 +220,18 @@ auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
 
       Eigen::VectorXd BuoyancyForce(6);
       BuoyancyForce = this->dataPtr->FloatingBody.BuoyancyForce(x);
-        std::cout << "Buoyancy Force = " << BuoyancyForce.transpose() << std::endl << std::endl;
+        std::cout << "Buoyancy Force = " << BuoyancyForce.transpose() << std::endl;
 
-      Eigen::Vector3d ForceAtWaterplaneOrigin;
-      ForceAtWaterplaneOrigin(0) = BuoyancyForce(0)-MemForce(0)+ExtForce(0);
-      ForceAtWaterplaneOrigin(1) = BuoyancyForce(1)-MemForce(1)+ExtForce(1);//
-      ForceAtWaterplaneOrigin(2) = BuoyancyForce(2)-MemForce(2)+ExtForce(2);
+      Eigen::Vector3d BuoyancyMomentAtLinkOrigin;
+      //BuoyancyMomentAtLinkOrigin =  this->dataPtr->WaterplaneOrigin.cross(BuoyancyForce.segment(0,3))+BuoyancyForce.segment(3,3);
+      BuoyancyMomentAtLinkOrigin =  BuoyancyForce.segment(3,3);
+      std::cout << "Buoyancy Moment At Origin= " << BuoyancyMomentAtLinkOrigin.transpose() << std::endl << std::endl;
 
+      ignition::math::Vector3d AppliedForce(BuoyancyForce(0),BuoyancyForce(1),BuoyancyForce(2));
+      ignition::math::Vector3d AppliedMoment(BuoyancyMomentAtLinkOrigin(0),BuoyancyMomentAtLinkOrigin(1),BuoyancyMomentAtLinkOrigin(2));
+      baseLink.AddWorldWrench( _ecm, AppliedForce, AppliedMoment);
+
+/*
   ignition::math::Vector3d
     totalForce(ForceAtWaterplaneOrigin(0),ForceAtWaterplaneOrigin(1),ForceAtWaterplaneOrigin(2));
     std::cout << "Total Force = "  << totalForce << std::endl;
@@ -245,7 +250,7 @@ auto worldAngularAcceleration = baseLink.WorldAngularAcceleration(_ecm);
 
 baseLink.AddWorldWrench( _ecm, pose.Rot()*(totalForce), pose.Rot()*totalTorque);
 
-
+*/
 
   }
 
