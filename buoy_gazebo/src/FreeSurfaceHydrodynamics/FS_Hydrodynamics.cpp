@@ -632,7 +632,7 @@ Eigen::VectorXd FS_HydroDynamics::BuoyancyForce(Eigen::VectorXd x)
     BuoyancyForces(i) = 0.0; // set to zero.
 BuoyancyForces(2) = this->m_rho*this->m_grav*(this->Vol-this->S*x(2));
 BuoyancyForces(3) = this->m_rho*this->m_grav*(this->Vol*this->COB(1)-(this->Vol*this->COB(2)+this->S22)*x(3)+this->Vol*COB(0)*x(5));
-BuoyancyForces(4) = this->m_rho*this->m_grav*(-this->Vol*this->COB(0)-(this->Vol*this->COB(2)+this->S11)*x(3)+this->Vol*COB(1)*x(5));
+BuoyancyForces(4) = this->m_rho*this->m_grav*(-this->Vol*this->COB(0)-(this->Vol*this->COB(2)+this->S11)*x(4)+this->Vol*COB(1)*x(5));
 
 return BuoyancyForces;
 }
