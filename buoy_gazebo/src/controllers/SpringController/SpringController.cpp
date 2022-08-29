@@ -326,8 +326,8 @@ struct SpringControllerPrivate
           "Valve closed after (" <<
             services_->command_watch_.ElapsedRunTime().seconds() << "s)");
 
-        igndbg << "piston moved: " << (state.range_finder - init_x) /
-        (services_->command_watch_.ElapsedRunTime().nanoseconds() * GZ_NANO_TO_SEC) <<
+        gzdbg << "piston moved: " << (state.range_finder - init_x) /
+          (services_->command_watch_.ElapsedRunTime().nanoseconds() * GZ_NANO_TO_SEC) <<
           " m/s" << std::endl;
       }
 
@@ -344,8 +344,8 @@ struct SpringControllerPrivate
             "Pump off after (" <<
               services_->command_watch_.ElapsedRunTime().seconds() << "s)");
 
-          igndbg << "piston moved: " << (state.range_finder - init_x) /
-          (services_->command_watch_.ElapsedRunTime().nanoseconds() * GZ_NANO_TO_SEC) <<
+          gzdbg << "piston moved: " << (state.range_finder - init_x) /
+            (services_->command_watch_.ElapsedRunTime().nanoseconds() * GZ_NANO_TO_SEC) <<
             " m/s" << std::endl;
         } else {
           // set pump toggle -- linear pump servo drives back and forth
@@ -451,7 +451,7 @@ void SpringController::Configure(
   // Make sure the controller is attached to a valid model
   auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
-    ignerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
+    gzerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
       "Please make sure that ROS 2 Spring Control is attached to a valid model." << std::endl;
     return;
@@ -462,14 +462,14 @@ void SpringController::Configure(
   // Get params from SDF
   auto jointName = _sdf->Get<std::string>("JointName");
   if (jointName.empty()) {
-    ignerr << "SpringController found an empty JointName parameter. " <<
+    gzerr << "SpringController found an empty JointName parameter. " <<
       "Failed to initialize.";
     return;
   }
 
   this->dataPtr->jointEntity_ = model.JointByName(_ecm, jointName);
   if (this->dataPtr->jointEntity_ == gz::sim::kNullEntity) {
-    ignerr << "Joint with name[" << jointName << "] not found. " <<
+    gzerr << "Joint with name[" << jointName << "] not found. " <<
       "The SpringController may not influence this joint.\n";
     return;
   }
@@ -503,7 +503,7 @@ void SpringController::Configure(
       data.unlock();
     };
   if (!this->dataPtr->node_.Subscribe("/Universal_joint/force_torque", this->dataPtr->ft_cb_)) {
-    ignerr << "Error subscribing to topic [" << "/Universal_joint/force_torque" << "]" << std::endl;
+    gzerr << "Error subscribing to topic [" << "/Universal_joint/force_torque" << "]" << std::endl;
     return;
   }
 

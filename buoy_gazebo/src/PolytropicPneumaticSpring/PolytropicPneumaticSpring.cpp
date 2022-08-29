@@ -268,10 +268,10 @@ void PolytropicPneumaticSpring::Configure(
   PolytropicPneumaticSpringConfig config;
 
   config.name = _sdf->Get<std::string>("chamber", "upper_adiabatic").first;
-  igndbg << "name: " << config.name << std::endl;
+  gzdbg << "name: " << config.name << std::endl;
 
   config.is_upper = _sdf->Get<bool>("is_upper");
-  igndbg << "is upper? " << std::boolalpha << config.is_upper << std::noboolalpha << std::endl;
+  gzdbg << "is upper? " << std::boolalpha << config.is_upper << std::noboolalpha << std::endl;
 
   config.valve_absement = SdfParamDouble(_sdf, "valve_absement", config.valve_absement);
   config.pump_absement = SdfParamDouble(_sdf, "pump_absement", config.pump_absement);
@@ -308,16 +308,16 @@ void PolytropicPneumaticSpring::Configure(
 
     config.V1 = config.dead_volume +
       config.x1 * config.piston_area;
-    igndbg << "V1: " << config.V1 << std::endl;
+    gzdbg << "V1: " << config.V1 << std::endl;
     config.V2 = config.dead_volume +
       config.x2 * config.piston_area;
-    igndbg << "V2: " << config.V2 << std::endl;
+    gzdbg << "V2: " << config.V2 << std::endl;
     this->dataPtr->V0 = config.V1;
 
     config.c = this->dataPtr->P1 * config.V1 / config.T0;
-    igndbg << "c: " << config.c << std::endl;
+    gzdbg << "c: " << config.c << std::endl;
     this->dataPtr->mass = config.c / config.R;
-    igndbg << "mass: " << this->dataPtr->mass << std::endl;
+    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
   } else {  // no hysteresis
     config.n0 = SdfParamDouble(_sdf, "n", PolytropicPneumaticSpringConfig::ADIABATIC_INDEX);
     if (fabs(config.n0 - PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) < 1.0e-7) {
@@ -332,16 +332,16 @@ void PolytropicPneumaticSpring::Configure(
       config.x0 * config.piston_area;
     this->dataPtr->V0 = config.V0;
 
-    igndbg << "V0: " << config.V0 << std::endl;
+    gzdbg << "V0: " << config.V0 << std::endl;
     config.c = this->dataPtr->P0 * config.V0 / config.T0;
-    igndbg << "c: " << config.c << std::endl;
+    gzdbg << "c: " << config.c << std::endl;
     this->dataPtr->mass = config.c / config.R;
-    igndbg << "mass: " << this->dataPtr->mass << std::endl;
+    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
   }
 
   config.model = gz::sim::Model(_entity);
   if (!config.model.Valid(_ecm)) {
-    ignerr << "PolytropicPneumaticSpring plugin should be attached to a model entity. " <<
+    gzerr << "PolytropicPneumaticSpring plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
   }
@@ -349,7 +349,7 @@ void PolytropicPneumaticSpring::Configure(
   // Get params from SDF
   auto jointName = _sdf->Get<std::string>("JointName");
   if (jointName.empty()) {
-    ignerr << "PolytropicPneumaticSpring found an empty jointName parameter. " <<
+    gzerr << "PolytropicPneumaticSpring found an empty jointName parameter. " <<
       "Failed to initialize.";
     return;
   }
@@ -358,7 +358,7 @@ void PolytropicPneumaticSpring::Configure(
     _ecm,
     jointName);
   if (config.jointEntity == gz::sim::kNullEntity) {
-    ignerr << "Joint with name[" << jointName << "] not found. " <<
+    gzerr << "Joint with name[" << jointName << "] not found. " <<
       "The PolytropicPneumaticSpring may not influence this joint.\n";
     return;
   }
@@ -371,7 +371,7 @@ void PolytropicPneumaticSpring::Configure(
     gz::transport::TopicUtils::AsValidTopic(
       force_topic));
   if (!force_pub) {
-    ignerr << "Error advertising topic [" << force_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << force_topic << "]" << std::endl;
     return;
   }
 
@@ -381,7 +381,7 @@ void PolytropicPneumaticSpring::Configure(
     gz::transport::TopicUtils::AsValidTopic(
       pressure_topic));
   if (!pressure_pub) {
-    ignerr << "Error advertising topic [" << pressure_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << pressure_topic << "]" << std::endl;
     return;
   }
 
@@ -391,7 +391,7 @@ void PolytropicPneumaticSpring::Configure(
     gz::transport::TopicUtils::AsValidTopic(
       volume_topic));
   if (!volume_pub) {
-    ignerr << "Error advertising topic [" << volume_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << volume_topic << "]" << std::endl;
     return;
   }
 
@@ -401,7 +401,7 @@ void PolytropicPneumaticSpring::Configure(
     gz::transport::TopicUtils::AsValidTopic(
       temperature_topic));
   if (!temperature_pub) {
-    ignerr << "Error advertising topic [" << temperature_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << temperature_topic << "]" << std::endl;
     return;
   }
 
@@ -411,7 +411,7 @@ void PolytropicPneumaticSpring::Configure(
     gz::transport::TopicUtils::AsValidTopic(
       heat_rate_topic));
   if (!heat_rate_pub) {
-    ignerr << "Error advertising topic [" << heat_rate_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << heat_rate_topic << "]" << std::endl;
     return;
   }
 }
@@ -430,7 +430,7 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   // TODO(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero()) {
-    ignwarn << "Detected jump back in time [" <<
+    gzwarn << "Detected jump back in time [" <<
       std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count() <<
       "s]. System may not work properly." << std::endl;
   }
@@ -573,23 +573,23 @@ void PolytropicPneumaticSpring::PreUpdate(
   piston_velocity.set_data(v);
 
   if (!force_pub.Publish(force)) {
-    ignerr << "could not publish force" << std::endl;
+    gzerr << "could not publish force" << std::endl;
   }
 
   if (!pressure_pub.Publish(pressure)) {
-    ignerr << "could not publish pressure" << std::endl;
+    gzerr << "could not publish pressure" << std::endl;
   }
 
   if (!volume_pub.Publish(volume)) {
-    ignerr << "could not publish volume" << std::endl;
+    gzerr << "could not publish volume" << std::endl;
   }
 
   if (!temperature_pub.Publish(temperature)) {
-    ignerr << "could not publish temperature" << std::endl;
+    gzerr << "could not publish temperature" << std::endl;
   }
 
   if (!heat_rate_pub.Publish(heat_rate)) {
-    ignerr << "could not publish heat loss rate" << std::endl;
+    gzerr << "could not publish heat loss rate" << std::endl;
   }
 
   static const bool debug_prescribed_velocity{this->dataPtr->config_->debug_prescribed_velocity};

@@ -109,7 +109,7 @@ void XBowAHRS::Configure(
   // Make sure the controller is attached to a valid model
   auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
-    ignerr << "[ROS 2 XBow AHRS] Failed to initialize because [" << \
+    gzerr << "[ROS 2 XBow AHRS] Failed to initialize because [" << \
       model.Name(_ecm) << "] is not a model." << std::endl << \
       "Please make sure that ROS 2 XBow AHRS is attached to a valid model." << std::endl;
     return;
@@ -165,7 +165,7 @@ void XBowAHRS::Configure(
       data.unlock();
     };
   if (!this->dataPtr->node_.Subscribe("/Buoy_link/xbow_imu", this->dataPtr->imu_cb_)) {
-    ignerr << "Error subscribing to topic [" << "/Buoy_link/xbow_imu" << "]" << std::endl;
+    gzerr << "Error subscribing to topic [" << "/Buoy_link/xbow_imu" << "]" << std::endl;
     return;
   }
 

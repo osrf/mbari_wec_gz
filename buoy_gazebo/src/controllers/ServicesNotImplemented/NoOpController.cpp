@@ -356,7 +356,7 @@ void NoOpController::Configure(
   // Make sure the controller is attached to a valid model
   auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
-    ignerr << "[ROS 2 NoOp Controller] Failed to initialize because [" <<
+    gzerr << "[ROS 2 NoOp Controller] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
       "Please make sure that ROS 2 NoOp Controller is attached to a valid model." << std::endl;
     return;

@@ -64,7 +64,7 @@ void SinusoidalPiston::Configure(
 {
   this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
-    ignerr << "SinusoidalPiston plugin should be attached to a model entity. " <<
+    gzerr << "SinusoidalPiston plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
   }
@@ -74,7 +74,7 @@ void SinusoidalPiston::Configure(
 
   auto jointName = _sdf->Get<std::string>("JointName");
   if (jointName.empty()) {
-    ignerr << "SinusoidalPiston found an empty jointName parameter. " <<
+    gzerr << "SinusoidalPiston found an empty jointName parameter. " <<
       "Failed to initialize.";
     return;
   }
@@ -83,7 +83,7 @@ void SinusoidalPiston::Configure(
     _ecm,
     jointName);
   if (this->dataPtr->jointEntity == gz::sim::kNullEntity) {
-    ignerr << "Joint with name[" << jointName << "] not found. " <<
+    gzerr << "Joint with name[" << jointName << "] not found. " <<
       "The SinusoidalPiston may not influence this joint.\n";
     return;
   }
@@ -103,7 +103,7 @@ void SinusoidalPiston::PreUpdate(
 
   // TODO(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero()) {
-    ignwarn << "Detected jump back in time [" <<
+    gzwarn << "Detected jump back in time [" <<
       std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count() <<
       "s]. System may not work properly." << std::endl;
   }

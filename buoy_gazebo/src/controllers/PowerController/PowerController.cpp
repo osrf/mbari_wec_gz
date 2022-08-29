@@ -585,7 +585,7 @@ void PowerController::Configure(
   // Make sure the controller is attached to a valid model
   auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
-    ignerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
+    gzerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
       "Please make sure that ROS 2 Spring Control is attached to a valid model." << std::endl;
     return;
@@ -596,14 +596,14 @@ void PowerController::Configure(
   // Get params from SDF
   auto jointName = _sdf->Get<std::string>("JointName");
   if (jointName.empty()) {
-    ignerr << "PowerController found an empty JointName parameter. " <<
+    gzerr << "PowerController found an empty JointName parameter. " <<
       "Failed to initialize.";
     return;
   }
 
   this->dataPtr->jointEntity_ = model.JointByName(_ecm, jointName);
   if (this->dataPtr->jointEntity_ == gz::sim::kNullEntity) {
-    ignerr << "Joint with name[" << jointName << "] not found. " <<
+    gzerr << "Joint with name[" << jointName << "] not found. " <<
       "The PowerController may not influence this joint.\n";
     return;
   }
