@@ -3,7 +3,7 @@
   <world name="world_demo">
 
     <physics name="1ms" type="ignored">
-      <max_step_size>.001</max_step_size>
+      <max_step_size>.01</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
 
@@ -43,7 +43,7 @@
     </model>
 
     <model name="MBARI_WEC_ROS">
-      <pose relative_to="world">0 0 -2.36 0 0 0</pose>
+      <pose relative_to="world">0 0 -2.46 0 0 0</pose>
 
       <include merge="true">
         <uri>package://buoy_description/models/mbari_wec_ros</uri>
@@ -110,17 +110,19 @@
       </plugin>
       <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
 
-<plugin filename="WaveBodyInteractions" name="buoy_gazebo::WaveBodyInteractions">
+    <plugin filename="WaveBodyInteractions" name="buoy_gazebo::WaveBodyInteractions">
       <LinkName>Buoy</LinkName>
+      <WaterplaneOrigin_x>0</WaterplaneOrigin_x>  <!-- Waterplane origin relative to link origin -->
+      <WaterplaneOrigin_y>0</WaterplaneOrigin_y>
+      <WaterplaneOrigin_z>2.46</WaterplaneOrigin_z>
+      <COB_x>0</COB_x>  <!-- COG relative to waterplance origin -->
+      <COB_y>0</COB_y>
+      <COB_z>-.18</COB_z>
+      <Vol>1.75</Vol>
       <S>5.47</S>
       <S11>1.37</S11>
       <S22>1.37</S22>
-      <COB_x>0</COB_x>
-      <COB_y>0</COB_y>
-      <COB_z>-.18</COB_z>  <!-- COG relative to waterplane -->
-      <Vol>1.75</Vol>
     </plugin>
-
 
     </model>
   </world>

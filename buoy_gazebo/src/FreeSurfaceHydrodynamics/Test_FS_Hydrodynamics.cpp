@@ -42,21 +42,22 @@ int main()
   BuoyA5.SetTimestepSize(.01);
   // BuoyA5.Plot_TD_Coeffs();
 
-#if 0 // Test Radiation Forces
+#if 1 // Test Radiation Forces
   srand((unsigned)time(0));
-  double A = .5 + ((float)(rand() % 20) / 10);
-  double T = 3.0 + (rand() % 9);
-  double tf = 5 * T;
+  double A = .5; //.5 + ((float)(rand() % 20) / 10);
+  double T = 8; //3.0 + (rand() % 9);
+  double tf = 3 * T;
   double omega = 2 * M_PI / T;
-
+  int first = 1;
   for (int i = 0; i < 6; i++)   // i determines mode of motion.
     for (int j = 0; j < 6; j++) // j denotes direction of resulting force
     {
       double am = BuoyA5.AddedMass(omega, i, j);
-      double dmp = BuoyA5.Damping(omega, i  j);
+      double dmp = BuoyA5.Damping(omega, i,  j);
       double am_inf = BuoyA5.fd_X_inf_freq(i, j);
 
       std::vector<double> pts_t,pts_F_TD,pts_F_FD;
+      std::vector<double> pts_vel,pts_accel;
       double last_accel = 0;
       double F_max = -std::numeric_limits<double>::max();
       double F_min = std::numeric_limits<double>::max();
@@ -66,7 +67,9 @@ int main()
         pts_t.push_back(tt);
         //double pos = A * cos(omega * tt);  //Not needed, but handy to see...
         double vel = -A * omega * sin(omega * tt);
+        pts_vel.push_back(vel);
         double accel = -A * pow(omega, 2) * cos(omega * tt);
+        pts_accel.push_back(accel);
         Eigen::VectorXd xddot(6);
         for (int n = 0; n < 6; n++)
           xddot(n) = 0;
@@ -82,6 +85,22 @@ int main()
           F_max = FD_Force;
         if (FD_Force < F_min)
           F_min = FD_Force;
+      }
+      if(first)
+      {
+        Gnuplot gp;
+        first = 0;
+        char Amp[10];
+        sprintf(Amp, "%.1f", A);
+        char Per[10];
+        sprintf(Per, "%.1f", T);
+        gp << "set term X11 title  'A = " << Amp << "m  T = " << Per << "s'\n";
+        gp << "set grid\n";
+        gp << "set xlabel 'time (s)'\n";
+        gp << "plot '-' w l title 'Vel'"
+           << ",'-' w l title 'Accel'\n";
+        gp.send1d(boost::make_tuple(pts_t, pts_vel));
+        gp.send1d(boost::make_tuple(pts_t, pts_accel));
       }
       if ((F_min < -1) && (F_max > 1)) // Don't plot near-zero forces
       {
@@ -160,7 +179,7 @@ int main()
   }
 #endif
 
-#if 1 // Test Buoyancy Forces
+#if 0 // Test Buoyancy Forces
   srand((unsigned)time(0));
   double A = .5 + ((float)(rand() % 20) / 10);
   double T = 6.0 + (rand() % 9);
