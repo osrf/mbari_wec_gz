@@ -328,7 +328,7 @@ struct SpringControllerPrivate
             services_->command_watch_.ElapsedRunTime().seconds() << "s)");
 
         igndbg << "piston moved: " << (state.range_finder - init_x) /
-        (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
+        (services_->command_watch_.ElapsedRunTime().nanoseconds() * GZ_NANO_TO_SEC) <<
           " m/s" << std::endl;
       }
 
@@ -346,7 +346,7 @@ struct SpringControllerPrivate
               services_->command_watch_.ElapsedRunTime().seconds() << "s)");
 
           igndbg << "piston moved: " << (state.range_finder - init_x) /
-          (services_->command_watch_.ElapsedRunTime().nanoseconds() * IGN_NANO_TO_SEC) <<
+          (services_->command_watch_.ElapsedRunTime().nanoseconds() * GZ_NANO_TO_SEC) <<
             " m/s" << std::endl;
         } else {
           // set pump toggle -- linear pump servo drives back and forth
@@ -564,7 +564,7 @@ void SpringController::PreUpdate(
   const gz::sim::UpdateInfo & _info,
   gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("SpringController::PreUpdate");
+  GZ_PROFILE("SpringController::PreUpdate");
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
@@ -601,7 +601,7 @@ void SpringController::PostUpdate(
   const gz::sim::UpdateInfo & _info,
   const gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("SpringController::PostUpdate");
+  GZ_PROFILE("SpringController::PostUpdate");
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
@@ -649,7 +649,7 @@ void SpringController::PostUpdate(
 }
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::SpringController,
   gz::sim::System,
   buoy_gazebo::SpringController::ISystemConfigure,

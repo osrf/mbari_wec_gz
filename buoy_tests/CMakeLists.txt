@@ -84,7 +84,8 @@ if(BUILD_TESTING)
         target_link_libraries(${GTEST_NAME}
           gz-sim${GZ_SIM_VER}::gz-sim${GZ_SIM_VER}
         )
-        rosidl_target_interfaces(${GTEST_NAME} ${PROJECT_NAME} "rosidl_typesupport_cpp")
+        rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
+        target_link_libraries(${GTEST_NAME} "${cpp_typesupport_target}")
         ament_target_dependencies(${GTEST_NAME} rclcpp)
 
         include_directories(${CMAKE_CURRENT_BINARY_DIR})

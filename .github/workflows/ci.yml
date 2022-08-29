@@ -19,5 +19,5 @@ jobs:
       - name: Build and Test
         run: .github/workflows/build-and-test.sh
         env:
-          IGNITION_VERSION: ${{ matrix.gz-version  }}
+          GZ_VERSION: ${{ matrix.gz-version  }}
           ROS_DISTRO: ${{ matrix.ros-distro }}

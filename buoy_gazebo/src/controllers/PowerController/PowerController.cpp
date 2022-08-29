@@ -680,7 +680,7 @@ void PowerController::PreUpdate(
   const gz::sim::UpdateInfo & _info,
   gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("PowerController::PreUpdate");
+  GZ_PROFILE("PowerController::PreUpdate");
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
@@ -716,7 +716,7 @@ void PowerController::PostUpdate(
   const gz::sim::UpdateInfo & _info,
   const gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("PowerController::PostUpdate");
+  GZ_PROFILE("PowerController::PostUpdate");
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
@@ -774,7 +774,7 @@ void PowerController::PostUpdate(
 }
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::PowerController,
   gz::sim::System,
   buoy_gazebo::PowerController::ISystemConfigure,

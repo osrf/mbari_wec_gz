@@ -76,7 +76,7 @@ struct buoy_gazebo::XBowAHRSPrivate
 };
 
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::XBowAHRS,
   gz::sim::System,
   buoy_gazebo::XBowAHRS::ISystemConfigure,

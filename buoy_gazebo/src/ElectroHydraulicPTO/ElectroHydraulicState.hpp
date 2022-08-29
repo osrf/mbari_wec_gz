@@ -100,7 +100,7 @@ namespace components
 using ElectroHydraulicState =
   gz::sim::components::Component<buoy_gazebo::ElectroHydraulicState,
     class ElectroHydraulicStateTag>;
-IGN_GAZEBO_REGISTER_COMPONENT(
+GZ_SIM_REGISTER_COMPONENT(
   "buoy_gazebo.components.ElectroHydraulicState",
   ElectroHydraulicState)
 }  // namespace components

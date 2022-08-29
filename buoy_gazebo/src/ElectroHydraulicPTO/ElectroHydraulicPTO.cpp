@@ -31,7 +31,7 @@
 
 #include <stdio.h>
 
-#include <unsupported/Eigen/NonLinearOptimization>
+//#include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
 #include <algorithm>
 #include <cmath>
@@ -104,7 +104,7 @@ void ElectroHydraulicPTO::Configure(
 {
   this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
-    ignerr << "ElectroHydraulicPTO plugin should be attached to a model entity. " <<
+    gzerr << "ElectroHydraulicPTO plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
   }
@@ -113,7 +113,7 @@ void ElectroHydraulicPTO::Configure(
   // Get params from SDF for Prismatic Joint.
   auto PrismaticJointName = _sdf->Get<std::string>("PrismaticJointName");
   if (PrismaticJointName.empty()) {
-    ignerr << "ElectroHydraulicPTO found an empty PrismaticJointName parameter. " <<
+    gzerr << "ElectroHydraulicPTO found an empty PrismaticJointName parameter. " <<
       "Failed to initialize.";
     return;
   }
@@ -123,7 +123,7 @@ void ElectroHydraulicPTO::Configure(
     _ecm,
     PrismaticJointName);
   if (this->dataPtr->PrismaticJointEntity == gz::sim::kNullEntity) {
-    ignerr << "Joint with name [" << PrismaticJointName << "] not found. " <<
+    gzerr << "Joint with name [" << PrismaticJointName << "] not found. " <<
       "The ElectroHydraulicPTO may not influence this joint.\n";
     return;
   } else {
@@ -145,63 +145,63 @@ void ElectroHydraulicPTO::Configure(
   std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
   pistonvel_pub = node.Advertise<gz::msgs::Double>(pistonvel_topic);
   if (!pistonvel_pub) {
-    ignerr << "Error advertising topic [" << pistonvel_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << pistonvel_topic << "]" << std::endl;
     return;
   }
 
   std::string rpm_topic = std::string("/rpm_") + PrismaticJointName;
   rpm_pub = node.Advertise<gz::msgs::Double>(rpm_topic);
   if (!rpm_pub) {
-    ignerr << "Error advertising topic [" << rpm_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << rpm_topic << "]" << std::endl;
     return;
   }
 
   std::string deltaP_topic = std::string("/deltaP_") + PrismaticJointName;
   deltaP_pub = node.Advertise<gz::msgs::Double>(deltaP_topic);
   if (!deltaP_pub) {
-    ignerr << "Error advertising topic [" << deltaP_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << deltaP_topic << "]" << std::endl;
     return;
   }
 
   std::string targwindcurr_topic = std::string("/targwindcurr_") + PrismaticJointName;
   targwindcurr_pub = node.Advertise<gz::msgs::Double>(targwindcurr_topic);
   if (!targwindcurr_pub) {
-    ignerr << "Error advertising topic [" << targwindcurr_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << targwindcurr_topic << "]" << std::endl;
     return;
   }
 
   std::string windcurr_topic = std::string("/windcurr_") + PrismaticJointName;
   windcurr_pub = node.Advertise<gz::msgs::Double>(windcurr_topic);
   if (!windcurr_pub) {
-    ignerr << "Error advertising topic [" << windcurr_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << windcurr_topic << "]" << std::endl;
     return;
   }
 
   std::string battcurr_topic = std::string("/battcurr_") + PrismaticJointName;
   battcurr_pub = node.Advertise<gz::msgs::Double>(battcurr_topic);
   if (!battcurr_pub) {
-    ignerr << "Error advertising topic [" << battcurr_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << battcurr_topic << "]" << std::endl;
     return;
   }
 
   std::string loadcurr_topic = std::string("/loadcurr_") + PrismaticJointName;
   loadcurr_pub = node.Advertise<gz::msgs::Double>(loadcurr_topic);
   if (!loadcurr_pub) {
-    ignerr << "Error advertising topic [" << loadcurr_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << loadcurr_topic << "]" << std::endl;
     return;
   }
 
   std::string scalefactor_topic = std::string("/scalefactor_") + PrismaticJointName;
   scalefactor_pub = node.Advertise<gz::msgs::Double>(scalefactor_topic);
   if (!scalefactor_pub) {
-    ignerr << "Error advertising topic [" << scalefactor_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << scalefactor_topic << "]" << std::endl;
     return;
   }
 
   std::string retractfactor_topic = std::string("/retractfactor_") + PrismaticJointName;
   retractfactor_pub = node.Advertise<gz::msgs::Double>(retractfactor_topic);
   if (!retractfactor_pub) {
-    ignerr << "Error advertising topic [" << retractfactor_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << retractfactor_topic << "]" << std::endl;
     return;
   }
 }
@@ -211,7 +211,7 @@ void ElectroHydraulicPTO::PreUpdate(
   const gz::sim::UpdateInfo & _info,
   gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("#ElectroHydraulicPTO::PreUpdate");
+  GZ_PROFILE("#ElectroHydraulicPTO::PreUpdate");
   // Nothing left to do if paused.
   if (_info.paused) {
     return;
@@ -226,7 +226,7 @@ void ElectroHydraulicPTO::PreUpdate(
 
   // \TODO(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero()) {
-    ignwarn << "Detected jump back in time [" <<
+    gzwarn << "Detected jump back in time [" <<
       std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count() <<
       "s]. System may not work properly." << std::endl;
   }
@@ -409,39 +409,39 @@ void ElectroHydraulicPTO::PreUpdate(
   retractfactor.set_data(this->dataPtr->functor.I_Wind.RetractFactor);
 
   if (!pistonvel_pub.Publish(pistonvel)) {
-    ignerr << "could not publish pistonvel" << std::endl;
+    gzerr << "could not publish pistonvel" << std::endl;
   }
 
   if (!rpm_pub.Publish(rpm)) {
-    ignerr << "could not publish rpm" << std::endl;
+    gzerr << "could not publish rpm" << std::endl;
   }
 
   if (!deltaP_pub.Publish(deltap)) {
-    ignerr << "could not publish deltaP" << std::endl;
+    gzerr << "could not publish deltaP" << std::endl;
   }
 
   if (!targwindcurr_pub.Publish(targwindcurr)) {
-    ignerr << "could not publish targwindcurr" << std::endl;
+    gzerr << "could not publish targwindcurr" << std::endl;
   }
 
   if (!windcurr_pub.Publish(windcurr)) {
-    ignerr << "could not publish windcurr" << std::endl;
+    gzerr << "could not publish windcurr" << std::endl;
   }
 
   if (!battcurr_pub.Publish(battcurr)) {
-    ignerr << "could not publish battcurr" << std::endl;
+    gzerr << "could not publish battcurr" << std::endl;
   }
 
   if (!loadcurr_pub.Publish(loadcurr)) {
-    ignerr << "could not publish loadcurr" << std::endl;
+    gzerr << "could not publish loadcurr" << std::endl;
   }
 
   if (!scalefactor_pub.Publish(scalefactor)) {
-    ignerr << "could not publish scalefactor" << std::endl;
+    gzerr << "could not publish scalefactor" << std::endl;
   }
 
   if (!retractfactor_pub.Publish(retractfactor)) {
-    ignerr << "could not publish retractfactor" << std::endl;
+    gzerr << "could not publish retractfactor" << std::endl;
   }
 
 
@@ -463,7 +463,7 @@ void ElectroHydraulicPTO::PreUpdate(
 }
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::ElectroHydraulicPTO,
   gz::sim::System,
   buoy_gazebo::ElectroHydraulicPTO::ISystemConfigure,

@@ -70,7 +70,7 @@ namespace components
 {
 using SpringState = gz::sim::components::Component<buoy_gazebo::SpringState,
     class SpringStateTag>;
-IGN_GAZEBO_REGISTER_COMPONENT("buoy_gazebo.components.SpringState", SpringState)
+GZ_SIM_REGISTER_COMPONENT("buoy_gazebo.components.SpringState", SpringState)
 }  // namespace components
 
 }  // namespace buoy_gazebo

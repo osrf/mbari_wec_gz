@@ -17,7 +17,7 @@
 
 #include <stdio.h>
 
-#include <unsupported/Eigen/NonLinearOptimization>
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
 #include <algorithm>
 #include <cmath>

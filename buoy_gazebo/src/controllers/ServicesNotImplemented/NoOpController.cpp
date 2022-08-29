@@ -384,7 +384,7 @@ void NoOpController::Configure(
 
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::NoOpController,
   gz::sim::System,
   buoy_gazebo::NoOpController::ISystemConfigure)

@@ -168,10 +168,10 @@ void PolytropicPneumaticSpring::openValve(
   double & P1, const double & V1,
   double & P2, const double & V2)
 {
-  IGN_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
-  IGN_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
 
-  const double dt_sec = dt_nano * IGN_NANO_TO_SEC;
+  const double dt_sec = dt_nano * GZ_NANO_TO_SEC;
 
   // want piston to drop 1 inch per second
   // so let mass flow from lower chamber to upper
@@ -208,10 +208,10 @@ void PolytropicPneumaticSpring::pumpOn(
   double & P1, const double & V1,
   double & P2, const double & V2)
 {
-  IGN_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
-  IGN_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
 
-  const double dt_sec = dt_nano * IGN_NANO_TO_SEC;
+  const double dt_sec = dt_nano * GZ_NANO_TO_SEC;
 
   // want piston to raise 2 inches per minute
   // so pump mass flow from upper chamber to lower
@@ -422,7 +422,7 @@ void PolytropicPneumaticSpring::PreUpdate(
   const gz::sim::UpdateInfo & _info,
   gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("PolytropicPneumaticSpring::PreUpdate");
+  GZ_PROFILE("PolytropicPneumaticSpring::PreUpdate");
 
   // If the joint hasn't been identified yet, the plugin is disabled
   if (this->dataPtr->config_->jointEntity == gz::sim::kNullEntity) {
@@ -609,7 +609,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     double period = 2.0;  // sec
 
     double piston_velocity = this->dataPtr->config_->stroke * cos(
-      2.0 * IGN_PI *
+      2.0 * GZ_PI *
       std::chrono::duration_cast<std::chrono::seconds>(_info.simTime).count() / period);
     auto joint_vel = _ecm.Component<gz::sim::components::JointVelocityCmd>(
       this->dataPtr->config_->jointEntity);
@@ -624,7 +624,7 @@ void PolytropicPneumaticSpring::PreUpdate(
 }
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::PolytropicPneumaticSpring,
   gz::sim::System,
   buoy_gazebo::PolytropicPneumaticSpring::ISystemConfigure,

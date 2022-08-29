@@ -70,13 +70,13 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             # Clock (Gazebo -> ROS2)
-            '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
             # Joint states (Gazebo -> ROS2)
             ['/world/', LaunchConfiguration('world_name'), '/model/', model_name, '/joint_state',
-             '@', 'sensor_msgs/msg/JointState', '[', 'ignition.msgs.Model'],
+             '@', 'sensor_msgs/msg/JointState', '[', 'gz.msgs.Model'],
             # Link poses (Gazebo -> ROS2)
-            link_pose_gz_topic + '@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
-            link_pose_gz_topic + '_static@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
+            link_pose_gz_topic + '@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V',
+            link_pose_gz_topic + '_static@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V',
         ],
         remappings=[
             (['/world/', LaunchConfiguration('world_name'), '/model/', model_name, '/joint_state'],
