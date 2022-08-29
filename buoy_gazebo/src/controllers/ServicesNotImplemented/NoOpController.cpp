@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "NoOpController.hpp"
+#include <memory>
+#include <string>
 
 #include <gz/sim/Model.hh>
 #include <gz/sim/Util.hh>
@@ -23,9 +24,6 @@
 #include <rcl_interfaces/msg/floating_point_range.hpp>
 
 #include <buoy_interfaces/msg/pb_command_response.hpp>
-
-#include <memory>
-#include <string>
 
 #include "buoy_interfaces/srv/bc_reset_command.hpp"
 #include "buoy_interfaces/srv/bender_command.hpp"
@@ -47,6 +45,7 @@
 #include "buoy_interfaces/srv/tf_set_state_machine_command.hpp"
 #include "buoy_interfaces/srv/tf_watch_dog_command.hpp"
 
+#include "NoOpController.hpp"
 
 #define CREATE_SERVICE(type, prefix, cmd_var, service, \
     cmd_type, range_type) \

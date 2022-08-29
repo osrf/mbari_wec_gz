@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "SinusoidalPiston.hpp"
+#include <memory>
+#include <string>
 
 #include <gz/common/Profiler.hh>
 #include <gz/plugin/Register.hh>
@@ -20,8 +21,7 @@
 #include <gz/sim/components/JointForceCmd.hh>
 #include <gz/sim/Model.hh>
 
-#include <memory>
-#include <string>
+#include "SinusoidalPiston.hpp"
 
 
 using namespace std::chrono_literals;

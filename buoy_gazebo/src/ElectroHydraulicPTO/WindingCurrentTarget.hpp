@@ -17,12 +17,12 @@
 
 #include <stdio.h>
 
-#include <JustInterp/JustInterp.hpp>
-
 #include <cmath>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include <JustInterp/JustInterp.hpp>
 
 // Defines from Controller Firmware, behavior replicated here
 #define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current

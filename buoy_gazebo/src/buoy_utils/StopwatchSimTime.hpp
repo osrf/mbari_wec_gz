@@ -15,11 +15,10 @@
 #ifndef BUOY_UTILS__STOPWATCHSIMTIME_HPP_
 #define BUOY_UTILS__STOPWATCHSIMTIME_HPP_
 
-#include <rclcpp/clock.hpp>
-
 #include <chrono>
 #include <memory>
 
+#include <rclcpp/clock.hpp>
 
 namespace buoy_utils
 {

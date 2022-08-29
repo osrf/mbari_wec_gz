@@ -15,11 +15,10 @@
 #ifndef POLYTROPICPNEUMATICSPRING__POLYTROPICPNEUMATICSPRING_HPP_
 #define POLYTROPICPNEUMATICSPRING__POLYTROPICPNEUMATICSPRING_HPP_
 
-#include <gz/sim/System.hh>
-#include <gz/transport.hh>
-
 #include <memory>
 
+#include <gz/sim/System.hh>
+#include <gz/transport.hh>
 
 namespace buoy_gazebo
 {

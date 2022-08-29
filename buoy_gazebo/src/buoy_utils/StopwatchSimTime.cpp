@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "StopwatchSimTime.hpp"
-
-#include <rclcpp/clock.hpp>
-
 #include <chrono>
 #include <limits>
 #include <utility>
 
+#include <rclcpp/clock.hpp>
+
+#include "StopwatchSimTime.hpp"
 
 namespace buoy_utils
 {

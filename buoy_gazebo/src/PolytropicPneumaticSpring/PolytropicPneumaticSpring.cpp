@@ -12,11 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "PolytropicPneumaticSpring.hpp"
+#include <gz/msgs/double.pb.h>
+#include <gz/msgs/time.pb.h>
+
+#include <memory>
+#include <mutex>
+#include <string>
 
 #include <gz/common/Profiler.hh>
 #include <gz/math/PID.hh>
-#include <gz/msgs.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/transport/Node.hh>
 #include <gz/transport/TopicUtils.hh>
@@ -27,12 +31,7 @@
 #include <gz/sim/components/JointVelocityCmd.hh>
 #include <gz/sim/Model.hh>
 
-#include <gz/msgs/double.pb.h>
-
-#include <memory>
-#include <mutex>
-#include <string>
-
+#include "PolytropicPneumaticSpring.hpp"
 #include "SpringState.hpp"
 
 

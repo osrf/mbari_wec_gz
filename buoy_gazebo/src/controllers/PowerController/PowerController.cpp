@@ -12,14 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "PowerController.hpp"
+#include <gz/msgs/wrench.pb.h>
+
+#include <algorithm>
+#include <chrono>
+#include <limits>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include <gz/sim/Model.hh>
 #include <gz/sim/Util.hh>
 #include <gz/sim/components/Name.hh>
 #include <gz/common/Profiler.hh>
 #include <gz/plugin/Register.hh>
-#include <gz/msgs/wrench.pb.h>
 #include <gz/transport/Node.hh>
 
 #include <rclcpp/rclcpp.hpp>
@@ -32,15 +38,9 @@
 #include <buoy_interfaces/srv/pc_bias_curr_command.hpp>
 #include <buoy_interfaces/msg/pb_command_response.hpp>
 
-#include <algorithm>
-#include <chrono>
-#include <limits>
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "buoy_utils/StopwatchSimTime.hpp"
 #include "ElectroHydraulicPTO/ElectroHydraulicState.hpp"
+#include "PowerController.hpp"
 
 
 using namespace std::chrono_literals;

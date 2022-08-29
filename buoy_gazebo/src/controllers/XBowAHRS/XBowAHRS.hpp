@@ -15,8 +15,9 @@
 #ifndef CONTROLLERS__XBOWAHRS__XBOWAHRS_HPP_
 #define CONTROLLERS__XBOWAHRS__XBOWAHRS_HPP_
 
-#include <gz/sim/System.hh>
 #include <memory>
+
+#include <gz/sim/System.hh>
 
 namespace buoy_gazebo
 {

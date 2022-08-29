@@ -15,11 +15,11 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICPTO_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICPTO_HPP_
 
+#include <memory>
 #include <optional>
 
 #include <gz/sim/System.hh>
-#include <gz/transport.hh>
-#include <memory>
+#include <gz/transport/Node.hh>
 
 namespace buoy_gazebo
 {

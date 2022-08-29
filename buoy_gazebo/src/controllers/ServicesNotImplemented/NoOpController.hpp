@@ -15,8 +15,9 @@
 #ifndef CONTROLLERS__SERVICESNOTIMPLEMENTED__NOOPCONTROLLER_HPP_
 #define CONTROLLERS__SERVICESNOTIMPLEMENTED__NOOPCONTROLLER_HPP_
 
-#include <gz/sim/System.hh>
 #include <memory>
+
+#include <gz/sim/System.hh>
 
 namespace buoy_gazebo
 {

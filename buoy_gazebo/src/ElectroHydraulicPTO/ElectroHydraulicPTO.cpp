@@ -12,7 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ElectroHydraulicPTO.hpp"
+#include <stdio.h>
+
+#include <gz/msgs/double.pb.h>
+
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <gz/common/Profiler.hh>
 #include <gz/common/Console.hh>
 #include <gz/sim/Types.hh>
@@ -25,23 +35,13 @@
 #include <gz/sim/Util.hh>
 #include <gz/math/PID.hh>
 #include <gz/msgs.hh>
-#include <gz/msgs/double.pb.h>
 #include <gz/plugin/Register.hh>
 #include <gz/transport/Node.hh>
 
-#include <stdio.h>
 
-//#include <eigen3/unsupported/Eigen/NonLinearOptimization>
-
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
-
-#include "ElectroHydraulicState.hpp"
+#include "ElectroHydraulicPTO.hpp"
 #include "ElectroHydraulicSoln.hpp"
+#include "ElectroHydraulicState.hpp"
 
 #include "JustInterp/JustInterp.hpp"
 

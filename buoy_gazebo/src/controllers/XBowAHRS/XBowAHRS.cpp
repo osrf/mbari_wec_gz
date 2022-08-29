@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "XBowAHRS.hpp"
+#include <gz/msgs/imu.pb.h>
+
+#include <memory>
+#include <string>
+#include <vector>
+#include <limits>
 
 #include <gz/sim/Model.hh>
 #include <gz/sim/Link.hh>
 #include <gz/sim/Util.hh>
 #include <gz/sim/components/Name.hh>
 #include <gz/plugin/Register.hh>
-#include <gz/msgs/imu.pb.h>
 #include <gz/transport/Node.hh>
 
 #include <rclcpp/rclcpp.hpp>
@@ -27,10 +31,7 @@
 #include <buoy_interfaces/msg/xb_record.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 
-#include <memory>
-#include <string>
-#include <vector>
-#include <limits>
+#include "XBowAHRS.hpp"
 
 struct buoy_gazebo::XBowAHRSPrivate
 {
