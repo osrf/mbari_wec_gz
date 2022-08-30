@@ -379,6 +379,7 @@ void ElectroHydraulicPTO::PreUpdate(
 
   // Assign Values
   pto_state.rpm = N;
+  pto_state.sd_rpm = this->dataPtr->compute_sd_rpm(N);
   pto_state.voltage = VBus;
   pto_state.bcurrent = I_Batt;
   pto_state.wcurrent = this->dataPtr->WindingCurrent;
@@ -389,14 +390,14 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_state.retract = this->dataPtr->functor.I_Wind.RetractFactor;
   pto_state.target_a = this->dataPtr->TargetWindingCurrent;
 
-  pto_state.sd_rpm = this->dataPtr->compute_sd_rpm(N);
-  pto_state.torque = this->dataPtr->WindingCurrent *
-    this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp;
-
   // TODO(anyone) not yet calculated
   // pto_state.draw_curr_limit =
   // pto_state.target_v =
   // pto_state.charge_curr_limit =
+
+  // The following are not implemented
+  // AUX torque from bench testing
+  // pto_state.torque =
 
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
     this->dataPtr->PrismaticJointEntity,

@@ -50,12 +50,12 @@ struct PowerStatusBits
 struct ElectroHydraulicState
 {
   float rpm{0.0F};
-  float sd_rpm{0.0F};  // TODO(anyone) not set
+  float sd_rpm{0.0F};
   float voltage{0.0F};
   float draw_curr_limit{0.0F};  // TODO(anyone) not set
   float bcurrent{0.0F};
   float wcurrent{0.0F};
-  float torque{0.0F};  // TODO(anyone) not set
+  float torque{0.0F};  // Not implemented -- AUX torque from bench testing
   float diff_press{0.0F};
   float bias_current{0.0F};
   float loaddc{0.0F};
