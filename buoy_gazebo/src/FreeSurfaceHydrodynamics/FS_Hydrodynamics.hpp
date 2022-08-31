@@ -36,6 +36,7 @@ public:
     double Damping(double omega, int i, int j);
 
     void SetTimestepSize(double dt);
+    double GetTimestepSize();
     void SetWaterplane(double S, double S11, double S22);
     void SetCOB(double x, double y, double z);
     void SetVolume(double V);

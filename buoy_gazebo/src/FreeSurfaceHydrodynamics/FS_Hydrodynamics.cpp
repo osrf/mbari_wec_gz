@@ -63,7 +63,7 @@ FS_HydroDynamics::FS_HydroDynamics(IncidentWave &IncWave, double L, double g,
  //void FS_HydroDynamics::AssignIncidentWave(IncidentWave &IncWave)
  //{
  //    _IncWave = IncWave);
-// }
+
 
 
 /// \brief  Read frequency domain coefficients from WAMIT.
@@ -536,6 +536,11 @@ this->COB(1) = y;
 this->COB(2) = z;
 }
 
+double FS_HydroDynamics::GetTimestepSize()
+ {
+  return this->m_dt;
+ }
+
 void FS_HydroDynamics::SetTimestepSize(double dt) {
 
   m_dt = dt;
@@ -583,8 +588,7 @@ void FS_HydroDynamics::SetTimestepSize(double dt) {
                                // Impulse response function,  code will shift
                                // data when this fills.
 
-  _exc_tstep_index = STORAGE_MULTIPLIER * _n_exc_intpts -
-                     1; // Set to fill from last memory spot backwards
+  _exc_tstep_index = STORAGE_MULTIPLIER * _n_exc_intpts - 1; // Set to fill from last memory spot backwards
 }
 
 Eigen::VectorXd FS_HydroDynamics::ExcitingForce() {

@@ -40,7 +40,7 @@ int main()
   BuoyA5.ReadWAMITData_TD("HydrodynamicCoeffs/BuoyA5");
   BuoyA5.Plot_FD_Coeffs();
   BuoyA5.SetTimestepSize(.01);
-  // BuoyA5.Plot_TD_Coeffs();
+  BuoyA5.Plot_TD_Coeffs();
 
 #if 1 // Test Radiation Forces
   srand((unsigned)time(0));

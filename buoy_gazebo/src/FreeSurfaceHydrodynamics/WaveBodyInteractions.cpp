@@ -138,8 +138,7 @@ void WaveBodyInteractions::Configure(
       "FreeSurfaceHydrodynamics/HydrodynamicCoeffs/BuoyA5";
   this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
-  this->dataPtr->FloatingBody.SetTimestepSize(
-      .01); // TODO:  Need to get timestep size from ecm.
+  this->dataPtr->FloatingBody.SetTimestepSize(.001); // TODO:  Need to get timestep size from ecm.
 
   ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
 
@@ -183,6 +182,11 @@ void WaveBodyInteractions::Configure(
 
 }
 
+#define EPSILON 0.0000001;
+bool AreSame(double a, double b)
+{
+    return fabs(a - b) < EPSILON;
+}
 //////////////////////////////////////////////////
 void WaveBodyInteractions::PreUpdate(
     const ignition::gazebo::UpdateInfo &_info,
@@ -195,6 +199,14 @@ void WaveBodyInteractions::PreUpdate(
   }
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
   std::cout << "In PreUpdate SimTime = " << SimTime << std::endl;
+
+double dt = std::chrono::duration<double>(_info.dt).count();
+if(!AreSame(dt,dataPtr->FloatingBody.GetTimestepSize()))  //Would prefer to set this in Configure, but not sure how to access it or if it's guaranteed to be setup when configure is called.
+{
+  std::cout << " Setting timestep size " << std::endl;
+  //dataPtr->FloatingBody.SetTimestepSize(dt);
+}
+std::cout <<" DT = " << dataPtr->FloatingBody.GetTimestepSize() << std::endl;
 
   // \TODO(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero()) {
@@ -265,8 +277,8 @@ std::cout << "Exciting: applied force = " << w_FEp << std::endl;
 std::cout << "Exciting: applied moment = " << w_MEp << std::endl;
 
  w_MEp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FEp); //Add contribution due to force offset from origin
- baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp - w_MRp + w_MEp);  //TODO: Sign of w_MRp is wrong here, attempt to get at least some damping in angular modes..
- //baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp, w_MBp - w_MRp);
+ //baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp + w_MRp + w_MEp); 
+ baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp, w_MBp - w_MRp);
 
 std::cout << "ABCD " << SimTime << "  " <<w_MBp[0] << "  " <<  w_MRp[0] << std::endl;
 
