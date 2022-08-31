@@ -1,3 +1,4 @@
+find_package(rclcpp REQUIRED)
 add_library(StopwatchSimTime
   SHARED
     StopwatchSimTime.cpp

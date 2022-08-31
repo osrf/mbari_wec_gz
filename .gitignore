@@ -2,3 +2,7 @@
 *.bak
 
 __pycache__
+
+splinter/include
+splinter/lib
+splinter/splinter
