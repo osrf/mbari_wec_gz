@@ -14,17 +14,26 @@ ExternalProject_Add(splinter
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
 
-ADD_CUSTOM_TARGET(mkdir_include ALL
+add_custom_target(touch_ignore_splinter ALL
+                  COMMAND ${CMAKE_COMMAND} -E touch
+                  ${EXTERNAL_INSTALL_LOCATION}/AMENT_IGNORE)
+
+add_custom_target(mkdir_include ALL
                   COMMAND ${CMAKE_COMMAND} -E make_directory
                   ${CMAKE_SOURCE_DIR}/include)
 
-ADD_CUSTOM_TARGET(link_target_includes ALL
+add_custom_target(touch_ignore_include ALL
+                  COMMAND ${CMAKE_COMMAND} -E touch
+                  ${CMAKE_SOURCE_DIR}/include/AMENT_IGNORE)
+add_dependencies(touch_ignore_include mkdir_include)
+
+add_custom_target(link_target_includes ALL
                   COMMAND ${CMAKE_COMMAND} -E create_symlink
                   ${EXTERNAL_INSTALL_LOCATION}/include/SPLINTER
                   ${CMAKE_SOURCE_DIR}/include/splinter)
-add_dependencies(link_target_includes mkdir_include)
+add_dependencies(link_target_includes touch_ignore_include)
 
-ADD_CUSTOM_TARGET(link_target_libs ALL
+add_custom_target(link_target_libs ALL
                   COMMAND ${CMAKE_COMMAND} -E create_symlink
                   ${EXTERNAL_INSTALL_LOCATION}/lib
                   ${CMAKE_SOURCE_DIR}/lib)
@@ -42,6 +51,9 @@ ament_export_libraries(lib/libsplinter-3-0.so)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  set(ament_cmake_cpplint_FOUND TRUE)
+  set(ament_cmake_uncrustify_FOUND TRUE)
+  set(ament_cmake_cppcheck_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
 
