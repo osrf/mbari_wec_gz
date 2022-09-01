@@ -17,11 +17,39 @@ ExternalProject_Add(splinter
 add_custom_target(touch_ignore_splinter ALL
                   COMMAND ${CMAKE_COMMAND} -E touch
                   ${EXTERNAL_INSTALL_LOCATION}/AMENT_IGNORE)
+add_dependencies(touch_ignore_splinter splinter)
+
+add_custom_target(copy_readme ALL
+                  COMMAND ${CMAKE_COMMAND} -E copy
+                  ${CMAKE_BINARY_DIR}/splinter-prefix/src/splinter/README.md
+                  ${CMAKE_SOURCE_DIR}/README_SPLINTER.md)
+
+add_custom_target(copy_credits ALL
+                  COMMAND ${CMAKE_COMMAND} -E copy
+                  ${CMAKE_BINARY_DIR}/splinter-prefix/src/splinter/CREDITS.md
+                  ${CMAKE_SOURCE_DIR})
+
+add_custom_target(mkdir_assets ALL
+                  COMMAND ${CMAKE_COMMAND} -E make_directory
+                  ${CMAKE_SOURCE_DIR}/assets)
+add_custom_target(copy_assets ALL
+                  COMMAND ${CMAKE_COMMAND} -E copy
+                  ${CMAKE_BINARY_DIR}/splinter-prefix/src/splinter/assets/*
+                  ${CMAKE_SOURCE_DIR}/assets)
+add_dependencies(copy_assets mkdir_assets)
+
+add_custom_target(mkdir_docs ALL
+                  COMMAND ${CMAKE_COMMAND} -E make_directory
+                  ${CMAKE_SOURCE_DIR}/docs)
+add_custom_target(copy_docs ALL
+                  COMMAND ${CMAKE_COMMAND} -E copy
+                  ${CMAKE_BINARY_DIR}/splinter-prefix/src/splinter/docs/*
+                  ${CMAKE_SOURCE_DIR}/docs)
+add_dependencies(copy_docs mkdir_docs)
 
 add_custom_target(mkdir_include ALL
                   COMMAND ${CMAKE_COMMAND} -E make_directory
                   ${CMAKE_SOURCE_DIR}/include)
-
 add_custom_target(touch_ignore_include ALL
                   COMMAND ${CMAKE_COMMAND} -E touch
                   ${CMAKE_SOURCE_DIR}/include/AMENT_IGNORE)
