@@ -1,11 +1,11 @@
 find_package(rclcpp REQUIRED)
-add_library(StopwatchSimTime
+add_library(Stopwatch
   SHARED
-    StopwatchSimTime.cpp
+    Stopwatch.cpp
 )
-ament_target_dependencies(StopwatchSimTime PUBLIC rclcpp)
+ament_target_dependencies(Stopwatch PUBLIC rclcpp)
 
 install(
   TARGETS
-    StopwatchSimTime
+    Stopwatch
   DESTINATION lib)
