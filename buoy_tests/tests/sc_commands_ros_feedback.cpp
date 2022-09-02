@@ -249,7 +249,7 @@ TEST_F(BuoySCTests, SCValveROS)
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
 
   // Check that pump command fails (controller returns BUSY)
-  node->pump_response_future_ = node->send_pump_command(2U);
+  node->pump_response_future_ = node->send_pump_command(2.0);
   ASSERT_TRUE(node->pump_response_future_.valid());
   node->pump_response_future_.wait();
   EXPECT_EQ(
@@ -356,7 +356,7 @@ TEST_F(BuoySCTests, SCPumpROS)
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
 
   // Now send Pump command to run for 20 seconds
-  node->pump_response_future_ = node->send_pump_command(20U);
+  node->pump_response_future_ = node->send_pump_command(20.0 / 60.0);
   ASSERT_TRUE(node->pump_response_future_.valid());
   node->pump_response_future_.wait();
   EXPECT_EQ(
