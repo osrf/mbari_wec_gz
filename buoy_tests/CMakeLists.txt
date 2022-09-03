@@ -3,7 +3,7 @@ project(buoy_tests)
 
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-
+find_package(splinter REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/RunServer.srv"
   ADD_LINTER_TESTS
@@ -36,7 +36,7 @@ if(BUILD_TESTING)
     set(multiValueArgs
       EXTRA_ROS_PKGS)
 
-    cmake_parse_arguments(buoy_add_test "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    cmake_parse_arguments(buoy_add_gtest "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     ament_add_gtest_executable(${TEST_NAME}
       tests/${TEST_NAME}.cpp
@@ -44,8 +44,8 @@ if(BUILD_TESTING)
     target_link_libraries(${TEST_NAME}
       ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
     )
-    if(buoy_add_test_ROS)
-      set(ROS_PKGS rclcpp buoy_interfaces buoy_api_cpp ${buoy_add_test_EXTRA_ROS_PKGS})
+    if(buoy_add_gtest_ROS)
+      set(ROS_PKGS rclcpp buoy_interfaces buoy_api_cpp ${buoy_add_gtest_EXTRA_ROS_PKGS})
       foreach(PKG ${ROS_PKGS})
         find_package(${PKG} REQUIRED)
       endforeach()
@@ -56,7 +56,7 @@ if(BUILD_TESTING)
       TARGETS ${TEST_NAME}
       DESTINATION lib/${PROJECT_NAME}
     )
-    if(buoy_add_test_LAUNCH_TEST)
+    if(buoy_add_gtest_LAUNCH_TEST)
       add_launch_test(launch/${TEST_NAME}.launch.py
         TIMEOUT 300
       )
@@ -106,7 +106,9 @@ if(BUILD_TESTING)
   buoy_add_gtest(no_inputs)
   buoy_add_gtest(pto_experiment_comparison)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
-  buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
+  buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST
+  	EXTRA_ROS_PKGS
+  		splinter)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
 
   # Add pytests

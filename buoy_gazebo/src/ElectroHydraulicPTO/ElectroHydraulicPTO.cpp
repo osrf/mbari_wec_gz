@@ -43,7 +43,6 @@
 #include "ElectroHydraulicState.hpp"
 #include "ElectroHydraulicSoln.hpp"
 
-#include "JustInterp/JustInterp.hpp"
 
 namespace buoy_gazebo
 {
@@ -269,9 +268,6 @@ void ElectroHydraulicPTO::PreUpdate(
     pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
   }
 
-  // Preclude changing User Commanded Current while it may be being read.
-  this->dataPtr->functor.I_Wind.UserCommandMutex.lock();
-
   if (pto_state.scale_command) {
     this->dataPtr->functor.I_Wind.ScaleFactor = pto_state.scale_command.value();
   } else {
@@ -301,7 +297,6 @@ void ElectroHydraulicPTO::PreUpdate(
   // Initial Guess based on perfect efficiency
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
   const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
-  this->dataPtr->functor.I_Wind.UserCommandMutex.unlock();
 
 
   // Solve Electrical
@@ -311,7 +306,8 @@ void ElectroHydraulicPTO::PreUpdate(
   // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
   // to the max absolute rpm from the winding current interpolation
   // (no extrapolation, default torque controller).
-  const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
+  // const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
+  const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;
   unsigned int seed{1U};
