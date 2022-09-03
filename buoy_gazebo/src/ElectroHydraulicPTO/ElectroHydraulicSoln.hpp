@@ -19,17 +19,15 @@
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
+#include <splinter_ros/splinter1d.hpp>
+#include <splinter_ros/splinter2d.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
-
-// Interpolation library for efficiency maps
-#include "splinter/datatable.h"
-#include "splinter/bspline.h"
-#include "splinter/bsplinebuilder.h"
 
 #include "ElectroHydraulicState.hpp"
 #include "WindingCurrentTarget.hpp"
@@ -72,13 +70,8 @@ struct Functor
 struct ElectroHydraulicSoln : Functor<double>
 {
 public:
-  // Create new DataTable to manage samples
-  SPLINTER::DataTable samples_eff_v, samples_eff_m;
-  std::unique_ptr<SPLINTER::BSpline> hyd_eff_v, hyd_eff_m;
-
-  // data table and interpolator for relief valve
-  SPLINTER::DataTable samples_reliefValve;
-  std::unique_ptr<SPLINTER::BSpline> reliefValve;
+  std::unique_ptr<splinter_ros::Splinter2d> hyd_eff_v, hyd_eff_m;
+  std::unique_ptr<splinter_ros::Splinter1d> reliefValve;
 
   // Class that computes Target Winding Current based on RPM, Scale Factor, limits, etc..
   mutable WindingCurrentTarget I_Wind;
@@ -104,39 +97,11 @@ public:
   : Functor<double>(2, 2)
   {
     // Set HydraulicMotor Volumetric & Mechanical Efficiency
-    // Sample the efficiency LUTs
-    for (size_t idx = 0U; idx < 22; ++idx) {
-      for (size_t jdx = 0U; jdx < 21; ++jdx) {
-        // Sample function at x
-        SPLINTER::DenseVector x(2);
-        x(0) = Neff[idx];
-        x(1) = Peff[jdx];
-        double eff_v_y = eff_v[jdx][idx];
-        double eff_m_y = eff_m[jdx][idx];
-
-        // Store sample
-        samples_eff_v.addSample(x, eff_v_y);
-        samples_eff_m.addSample(x, eff_m_y);
-      }
-    }
-    // Build B-splines that interpolate the samples
-    hyd_eff_v = std::make_unique<SPLINTER::BSpline>(
-      SPLINTER::BSpline::Builder(samples_eff_v)
-      .degree(1).build());
-    hyd_eff_m = std::make_unique<SPLINTER::BSpline>(
-      SPLINTER::BSpline::Builder(samples_eff_m)
-      .degree(1).build());
+    hyd_eff_v = std::make_unique<splinter_ros::Splinter2d>(Neff, Peff, eff_v);
+    hyd_eff_m = std::make_unique<splinter_ros::Splinter2d>(Neff, Peff, eff_m);
 
     // Set pressure vs flow for relief valve
-    for (size_t kdx = 0U; kdx < 3; ++kdx) {
-      SPLINTER::DenseVector x(1);
-      x(0) = Prelief[kdx];
-      double qr_y = Qrelief[kdx];
-      samples_reliefValve.addSample(x, qr_y);
-    }
-    reliefValve = std::make_unique<SPLINTER::BSpline>(
-      SPLINTER::BSpline::Builder(samples_reliefValve)
-      .degree(1).build());
+    reliefValve = std::make_unique<splinter_ros::Splinter1d>(Prelief, Qrelief);
   }
 
   // x[0] = RPM
@@ -157,11 +122,8 @@ public:
     const double rpm = std::min(fabs(x[0U]), Neff.back());
     const double pressure = std::min(fabs(x[0U]), Peff.back());
 
-    SPLINTER::DenseVector sample(2);
-    sample(0) = rpm;
-    sample(1) = pressure;
-    const double eff_m = this->hyd_eff_m->eval(sample);
-    const double eff_v = this->hyd_eff_v->eval(sample);
+    const double eff_m = this->hyd_eff_m->eval(rpm, pressure);
+    const double eff_v = this->hyd_eff_v->eval(rpm, pressure);
 
     // 1.375 fudge factor required to match experiments, not yet sure why.
     const double T_applied = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(x[0U]);
@@ -171,9 +133,7 @@ public:
     if (x[1U] > Pset) {   // Extending
       QQ += (x[1U] - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
     }
-    // SPLINTER::DenseVector sample_rv(1);
-    // sample_rv(0) = x[1U];
-    // QQ += this->reliefValve->eval(sample_rv);
+    // QQ += this->reliefValve->eval(pressure);
 
     fvec[0U] = x[0U] - eff_v * 60.0 * QQ / this->HydMotorDisp;
     fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));

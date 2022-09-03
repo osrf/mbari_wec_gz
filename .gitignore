@@ -3,7 +3,7 @@
 
 __pycache__
 
-splinter/include
+splinter/include/splinter
 splinter/lib
 splinter/splinter
 splinter/assets

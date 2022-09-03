@@ -15,15 +15,13 @@
 #ifndef ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 #define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 
+#include <splinter_ros/splinter1d.hpp>
+
 #include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "splinter/datatable.h"
-#include "splinter/bspline.h"
-#include "splinter/bsplinebuilder.h"
 
 
 // Defines from Controller Firmware, behavior replicated here
@@ -64,21 +62,12 @@ public:
   bool current_override_{false};
   bool bias_override_{false};
 
-  SPLINTER::DataTable samples;
-  std::unique_ptr<SPLINTER::BSpline> DefaultDamping;
+  std::unique_ptr<splinter_ros::Splinter1d> DefaultDamping;
 
 public:
   WindingCurrentTarget()
   {
-    for (size_t idx = 0U; idx < 7U; ++idx) {
-      SPLINTER::DenseVector x(1);
-      x(0) = NSpec[idx];
-      double torque_y = TorqueSpec[idx];
-      samples.addSample(x, torque_y);
-    }
-    DefaultDamping = std::make_unique<SPLINTER::BSpline>(
-      SPLINTER::BSpline::Builder(samples)
-      .degree(1).build());
+    DefaultDamping = std::make_unique<splinter_ros::Splinter1d>(NSpec, TorqueSpec);
 
     // Set Electric Motor Torque Constant
     this->TorqueConstantNMPerAmp = TORQUE_CONSTANT;  // N-m/Amp
@@ -97,9 +86,7 @@ public:
       if (fabs(N) >= NSpec.back()) {
         I = TorqueSpec.back() * this->ScaleFactor / this->TorqueConstantNMPerAmp;
       } else {
-        SPLINTER::DenseVector sample(1);
-        sample(0) = fabs(N);
-        I = this->DefaultDamping->eval(sample) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
+        I = this->DefaultDamping->eval(fabs(N)) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
         if (N > 0.0) {
           I *= -this->RetractFactor;
         }
