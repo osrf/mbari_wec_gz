@@ -62,12 +62,12 @@ public:
   bool current_override_{false};
   bool bias_override_{false};
 
-  std::unique_ptr<splinter_ros::Splinter1d> DefaultDamping;
+  splinter_ros::Splinter1d DefaultDamping;
 
 public:
   WindingCurrentTarget()
+    : DefaultDamping(NSpec, TorqueSpec)
   {
-    DefaultDamping = std::make_unique<splinter_ros::Splinter1d>(NSpec, TorqueSpec);
 
     // Set Electric Motor Torque Constant
     this->TorqueConstantNMPerAmp = TORQUE_CONSTANT;  // N-m/Amp
@@ -86,7 +86,7 @@ public:
       if (fabs(N) >= NSpec.back()) {
         I = TorqueSpec.back() * this->ScaleFactor / this->TorqueConstantNMPerAmp;
       } else {
-        I = this->DefaultDamping->eval(fabs(N)) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
+        I = this->DefaultDamping.eval(fabs(N)) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
         if (N > 0.0) {
           I *= -this->RetractFactor;
         }

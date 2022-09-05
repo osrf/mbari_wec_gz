@@ -52,6 +52,11 @@ def generate_launch_description():
         description='Open RViz.'
     )
 
+    gazebo_debugger_arg = DeclareLaunchArgument(
+        'debugger', default_value='false',
+        description='run gazebo in gdb'
+    )
+
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_ign_gazebo, 'launch', 'ign_gazebo.launch.py'),
@@ -60,7 +65,8 @@ def generate_launch_description():
             pkg_buoy_gazebo,
             'worlds',
             LaunchConfiguration('world_file')
-        ])}.items(),
+        ]),
+        'debugger': LaunchConfiguration('debugger')}.items(),
     )
 
     # Bridge to forward tf and joint states to ros2
@@ -115,6 +121,7 @@ def generate_launch_description():
         gazebo_world_file_launch_arg,
         gazebo_world_name_launch_arg,
         rviz_launch_arg,
+        gazebo_debugger_arg,
         gazebo,
         bridge,
         robot_state_publisher,

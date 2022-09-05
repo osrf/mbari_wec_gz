@@ -17,8 +17,12 @@ public:
 
   ~Splinter2d();
 
+  void update(const std::vector<double> & x,
+    const std::vector<double> & y,
+    const std::vector<std::vector<double>> & z);
+
   double eval(const double & x,
-    const double & y);
+    const double & y) const;
 
 private:
   std::unique_ptr<Splinter2dImpl> impl_;

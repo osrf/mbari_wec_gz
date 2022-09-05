@@ -15,8 +15,8 @@ namespace splinter_ros
 {
 struct Splinter2dImpl
 {
-  SPLINTER::DataTable samples;
   std::unique_ptr<SPLINTER::BSpline> splinter2d;
+  SPLINTER::DataTable samples;
 
   explicit Splinter2dImpl(const std::vector<double> & _x,
     const std::vector<double> & _y,
@@ -40,10 +40,12 @@ struct Splinter2dImpl
       .degree(1).build());
   }
 
-  ~Splinter2dImpl() {}
+  ~Splinter2dImpl()
+  {
+  }
 
   double eval(const double & _x,
-    const double & _y)
+    const double & _y) const
   {
     SPLINTER::DenseVector x(2);
     x(0) = _x;
@@ -63,8 +65,15 @@ Splinter2d::~Splinter2d()
 {
 }
 
+void Splinter2d::update(const std::vector<double> & x,
+  const std::vector<double> & y,
+  const std::vector<std::vector<double>> & z)
+{
+  impl_ = std::make_unique<Splinter2dImpl>(x, y, z);
+}
+
 double Splinter2d::eval(const double & x,
-  const double & y)
+  const double & y) const
 {
   return impl_->eval(x, y);
 }

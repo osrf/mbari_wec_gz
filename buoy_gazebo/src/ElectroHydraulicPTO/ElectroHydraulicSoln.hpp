@@ -70,8 +70,8 @@ struct Functor
 struct ElectroHydraulicSoln : Functor<double>
 {
 public:
-  std::unique_ptr<splinter_ros::Splinter2d> hyd_eff_v, hyd_eff_m;
-  std::unique_ptr<splinter_ros::Splinter1d> reliefValve;
+  splinter_ros::Splinter2d hyd_eff_v, hyd_eff_m;
+  splinter_ros::Splinter1d reliefValve;
 
   // Class that computes Target Winding Current based on RPM, Scale Factor, limits, etc..
   mutable WindingCurrentTarget I_Wind;
@@ -94,14 +94,13 @@ private:
 
 public:
   ElectroHydraulicSoln()
-  : Functor<double>(2, 2)
-  {
+  : Functor<double>(2, 2),
     // Set HydraulicMotor Volumetric & Mechanical Efficiency
-    hyd_eff_v = std::make_unique<splinter_ros::Splinter2d>(Neff, Peff, eff_v);
-    hyd_eff_m = std::make_unique<splinter_ros::Splinter2d>(Neff, Peff, eff_m);
-
+    hyd_eff_v(Neff, Peff, eff_v),
+    hyd_eff_m(Neff, Peff, eff_m),
     // Set pressure vs flow for relief valve
-    reliefValve = std::make_unique<splinter_ros::Splinter1d>(Prelief, Qrelief);
+    reliefValve(Prelief, Qrelief)
+  {
   }
 
   // x[0] = RPM
@@ -122,8 +121,8 @@ public:
     const double rpm = std::min(fabs(x[0U]), Neff.back());
     const double pressure = std::min(fabs(x[0U]), Peff.back());
 
-    const double eff_m = this->hyd_eff_m->eval(rpm, pressure);
-    const double eff_v = this->hyd_eff_v->eval(rpm, pressure);
+    const double eff_m = this->hyd_eff_m.eval(rpm, pressure);
+    const double eff_v = this->hyd_eff_v.eval(rpm, pressure);
 
     // 1.375 fudge factor required to match experiments, not yet sure why.
     const double T_applied = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(x[0U]);
@@ -133,7 +132,7 @@ public:
     if (x[1U] > Pset) {   // Extending
       QQ += (x[1U] - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
     }
-    // QQ += this->reliefValve->eval(pressure);
+    // QQ += this->reliefValve.eval(pressure);
 
     fvec[0U] = x[0U] - eff_v * 60.0 * QQ / this->HydMotorDisp;
     fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));

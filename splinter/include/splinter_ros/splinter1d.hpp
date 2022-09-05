@@ -16,7 +16,10 @@ public:
 
   ~Splinter1d();
 
-  double eval(const double & x);
+  void update(const std::vector<double> & x,
+    const std::vector<double> & y);
+
+  double eval(const double & x) const;
 
 private:
   std::unique_ptr<Splinter1dImpl> impl_;

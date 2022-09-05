@@ -2,6 +2,7 @@
 
 #include <splinter_ros/splinter1d.hpp>
 
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -36,9 +37,11 @@ struct Splinter1dImpl
       .degree(1).build());
   }
 
-  ~Splinter1dImpl() {}
+  ~Splinter1dImpl()
+  {
+  }
 
-  double eval(const double & _x)
+  double eval(const double & _x) const
   {
     SPLINTER::DenseVector x(1);
     x(0) = _x;
@@ -56,7 +59,13 @@ Splinter1d::~Splinter1d()
 {
 }
 
-double Splinter1d::eval(const double & x)
+void Splinter1d::update(const std::vector<double> & x,
+  const std::vector<double> & y)
+{
+  impl_ = std::make_unique<Splinter1dImpl>(x, y);
+}
+
+double Splinter1d::eval(const double & x) const
 {
   return impl_->eval(x);
 }
