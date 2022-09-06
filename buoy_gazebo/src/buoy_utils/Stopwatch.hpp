@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef BUOY_UTILS__STOPWATCHSIMTIME_HPP_
-#define BUOY_UTILS__STOPWATCHSIMTIME_HPP_
+#ifndef BUOY_UTILS__STOPWATCH_HPP_
+#define BUOY_UTILS__STOPWATCH_HPP_
 
 #include <rclcpp/clock.hpp>
 
@@ -24,7 +24,7 @@
 namespace buoy_utils
 {
 // Forward declarations.
-class StopwatchSimTimePrivate;
+class StopwatchPrivate;
 
 /// \brief The stopwatch accepts an rclcpp::Clock instance from a rclcpp::Node (allowing use of
 /// sim time if use_sim_time set in node). Keeps track of time spent in the run state, accessed
@@ -46,29 +46,29 @@ class StopwatchSimTimePrivate;
 ///   timeSys.ElapsedRunTime()).count() << " ms\n";
 /// watch.Stop();
 /// ```
-class StopwatchSimTime
+class Stopwatch
 {
   /// \brief Constructor.
 
 public:
-  StopwatchSimTime();
+  Stopwatch();
 
   /// \brief Copy constructor
   /// \param[in] _watch The stop watch to copy.
 
 public:
-  StopwatchSimTime(const StopwatchSimTime & _watch);
+  Stopwatch(const Stopwatch & _watch);
 
   /// \brief Move constructor
   /// \param[in] _watch The stop watch to move.
 
 public:
-  StopwatchSimTime(StopwatchSimTime && _watch) noexcept;
+  Stopwatch(Stopwatch && _watch) noexcept;
 
   /// \brief Destructor.
 
 public:
-  virtual ~StopwatchSimTime();
+  virtual ~Stopwatch();
 
 public:
   /// \brief Take a clock instance (e.g. get_clock() from rclcpp::Node).
@@ -141,28 +141,28 @@ public:
   /// \return True if this watch equals the provided watch.
 
 public:
-  bool operator==(const StopwatchSimTime & _watch) const;
+  bool operator==(const Stopwatch & _watch) const;
 
   /// \brief Inequality operator.
   /// \param[in] _watch The watch to compare.
   /// \return True if this watch does not equal the provided watch.
 
 public:
-  bool operator!=(const StopwatchSimTime & _watch) const;
+  bool operator!=(const Stopwatch & _watch) const;
 
   /// \brief Copy assignment operator
   /// \param[in] _watch The stop watch to copy.
   /// \return Reference to this.
 
 public:
-  StopwatchSimTime & operator=(const StopwatchSimTime & _watch);
+  Stopwatch & operator=(const Stopwatch & _watch);
 
   /// \brief Move assignment operator
   /// \param[in] _watch The stop watch to move.
   /// \return Reference to this.
 
 public:
-  StopwatchSimTime & operator=(StopwatchSimTime && _watch);
+  Stopwatch & operator=(Stopwatch && _watch);
 
 #ifdef _WIN32
 // Disable warning C4251 which is triggered by
@@ -173,10 +173,10 @@ public:
   /// \brief Private data pointer.
 
 private:
-  std::unique_ptr<StopwatchSimTimePrivate> dataPtr;
+  std::unique_ptr<StopwatchPrivate> dataPtr;
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
 };
 }  // namespace buoy_utils
-#endif  // BUOY_UTILS__STOPWATCHSIMTIME_HPP_
+#endif  // BUOY_UTILS__STOPWATCH_HPP_

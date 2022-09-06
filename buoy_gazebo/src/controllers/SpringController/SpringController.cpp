@@ -36,7 +36,7 @@
 #include <string>
 #include <vector>
 
-#include "buoy_utils/StopwatchSimTime.hpp"
+#include "buoy_utils/Stopwatch.hpp"
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 
 
@@ -67,7 +67,7 @@ struct SpringControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PumpCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PumpCommand::Response>)> pump_command_handler_;
 
-  buoy_utils::StopwatchSimTime command_watch_;
+  buoy_utils::Stopwatch command_watch_;
   rclcpp::Duration command_duration_{0, 0U};
 
   std::atomic<bool> valve_command_{false}, pump_command_{false};
@@ -233,13 +233,13 @@ struct SpringControllerPrivate
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
-          "[ROS 2 Spring Control] PumpCommand Received (" << request->duration_sec << "s)");
+          "[ROS 2 Spring Control] PumpCommand Received (" << request->duration_mins << " mins)");
 
         std::unique_lock lock(services_->command_mutex_);
         // if already running valve, don't allow pump
         // unless for some reason we need to turn pump off (shouldn't get in that state)
         if (services_->valve_command_) {
-          if (request->duration_sec != request->OFF) {
+          if (request->duration_mins != request->OFF) {
             response->result.value = response->result.BUSY;
 
             RCLCPP_ERROR_STREAM(
@@ -251,26 +251,26 @@ struct SpringControllerPrivate
           }
         }
 
-        if (request->duration_sec == request->OFF) {
+        if (request->duration_mins == request->OFF) {
           services_->command_duration_ = rclcpp::Duration(0, 0U);
           services_->pump_command_ = false;
           services_->new_pump_command_ = true;
         } else {
-          uint16_t duration_sec{request->duration_sec};
-          if (duration_sec > 20U) {
-            duration_sec = std::min(
-              std::max(duration_sec, static_cast<uint16_t>(1U)),
-              static_cast<uint16_t>(20U));
+          float duration_mins{request->duration_mins};
+          if (duration_mins > 10U) {
+            duration_mins = std::min(
+              std::max(duration_mins, static_cast<float>(10U)),
+              static_cast<float>(10U));
 
             response->result.value = response->result.BAD_INPUT;
 
             RCLCPP_WARN_STREAM(
               ros_->node_->get_logger(),
-              "[ROS 2 Spring Control] PumpCommand out of bounds -- clipped to 20s");
+              "[ROS 2 Spring Control] PumpCommand out of bounds -- clipped to 10mins");
           }
 
           services_->command_duration_ =
-            rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
+            rclcpp::Duration::from_seconds(static_cast<double>(duration_mins) * 60.0);
 
           services_->pump_command_ = true;
           services_->new_pump_command_ = true;
