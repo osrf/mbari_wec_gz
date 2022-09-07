@@ -52,7 +52,7 @@ def generate_launch_description():
         description='Open RViz.'
     )
 
-    gazebo_debug_arg = DeclareLaunchArgument(
+    gazebo_debugger_arg = DeclareLaunchArgument(
         'debug', default_value='false',
         description='run gazebo in gdb'
     )
@@ -66,7 +66,7 @@ def generate_launch_description():
             'worlds',
             LaunchConfiguration('world_file')
         ]),
-        'debugger': LaunchConfiguration('debugger')}.items(),
+            'debugger': LaunchConfiguration('debugger')}.items(),
     )
 
     # Bridge to forward tf and joint states to ros2

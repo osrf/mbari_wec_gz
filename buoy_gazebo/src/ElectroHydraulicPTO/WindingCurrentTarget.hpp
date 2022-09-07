@@ -66,9 +66,8 @@ public:
 
 public:
   WindingCurrentTarget()
-    : DefaultDamping(NSpec, TorqueSpec)
+  : DefaultDamping(NSpec, TorqueSpec)
   {
-
     // Set Electric Motor Torque Constant
     this->TorqueConstantNMPerAmp = TORQUE_CONSTANT;  // N-m/Amp
     this->TorqueConstantInLbPerAmp = this->TorqueConstantNMPerAmp * 8.851;  // in-lb/Amp
