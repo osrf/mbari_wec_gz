@@ -12,36 +12,52 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "Stopwatch.hpp"
+
+#include <rclcpp/clock.hpp>
+
 #include <chrono>
 #include <limits>
 #include <utility>
 
-#include <rclcpp/clock.hpp>
-
-#include "StopwatchSimTime.hpp"
 
 namespace buoy_utils
 {
 
 const rclcpp::Duration duration_zero = rclcpp::Duration(0, 0U);
-const rclcpp::Time time_min = rclcpp::Time(0, 0U);
+rclcpp::Time time_min = rclcpp::Time(0, 0U);
 
 // Private data class
-class StopwatchSimTimePrivate
+class StopwatchPrivate
 {
 public:
   /// \brief Default constructor.
-  StopwatchSimTimePrivate() = default;
+  StopwatchPrivate() = default;
 
   /// \brief Copy constructor.
   /// \param[in] _watch Watch to copy.
-  explicit StopwatchSimTimePrivate(const StopwatchSimTimePrivate & _watch)
+  explicit StopwatchPrivate(const StopwatchPrivate & _watch)
   : running(_watch.running),
     startTime(_watch.startTime),
     stopTime(_watch.stopTime),
     stopDuration(_watch.stopDuration),
     runDuration(_watch.runDuration)
   {
+    SetClock(_watch.clock);
+  }
+
+  void SetClock(rclcpp::Clock::SharedPtr _clock)
+  {
+    clock = _clock;
+    if (startTime.get_clock_type() != clock->get_clock_type()) {
+      startTime = rclcpp::Time(startTime.nanoseconds(), clock->get_clock_type());
+    }
+    if (stopTime.get_clock_type() != clock->get_clock_type()) {
+      stopTime = rclcpp::Time(stopTime.nanoseconds(), clock->get_clock_type());
+    }
+    if (time_min.get_clock_type() != clock->get_clock_type()) {
+      time_min = rclcpp::Time(0U, clock->get_clock_type());
+    }
   }
 
   /// \brief True if the real time clock is running.
@@ -64,36 +80,36 @@ public:
 };
 
 //////////////////////////////////////////////////
-StopwatchSimTime::StopwatchSimTime()
-: dataPtr(new StopwatchSimTimePrivate)
+Stopwatch::Stopwatch()
+: dataPtr(new StopwatchPrivate)
 {
 }
 
 //////////////////////////////////////////////////
-StopwatchSimTime::StopwatchSimTime(const StopwatchSimTime & _watch)
-: dataPtr(new StopwatchSimTimePrivate(*_watch.dataPtr))
+Stopwatch::Stopwatch(const Stopwatch & _watch)
+: dataPtr(new StopwatchPrivate(*_watch.dataPtr))
 {
 }
 
 //////////////////////////////////////////////////
-StopwatchSimTime::StopwatchSimTime(StopwatchSimTime && _watch) noexcept
+Stopwatch::Stopwatch(Stopwatch && _watch) noexcept
 : dataPtr(std::move(_watch.dataPtr))
 {
 }
 
 //////////////////////////////////////////////////
-StopwatchSimTime::~StopwatchSimTime()
+Stopwatch::~Stopwatch()
 {
 }
 
 //////////////////////////////////////////////////
-void StopwatchSimTime::SetClock(rclcpp::Clock::SharedPtr _clock)
+void Stopwatch::SetClock(rclcpp::Clock::SharedPtr _clock)
 {
-  this->dataPtr->clock = _clock;
+  this->dataPtr->SetClock(_clock);
 }
 
 //////////////////////////////////////////////////
-bool StopwatchSimTime::Start(const bool _reset)
+bool Stopwatch::Start(const bool _reset)
 {
   if (!this->dataPtr->clock) {
     return false;
@@ -118,13 +134,13 @@ bool StopwatchSimTime::Start(const bool _reset)
 }
 
 //////////////////////////////////////////////////
-const rclcpp::Time & StopwatchSimTime::StartTime() const
+const rclcpp::Time & Stopwatch::StartTime() const
 {
   return this->dataPtr->startTime;
 }
 
 //////////////////////////////////////////////////
-bool StopwatchSimTime::Stop()
+bool Stopwatch::Stop()
 {
   if (!this->dataPtr->clock) {
     return false;
@@ -142,19 +158,19 @@ bool StopwatchSimTime::Stop()
 }
 
 //////////////////////////////////////////////////
-const rclcpp::Time & StopwatchSimTime::StopTime() const
+const rclcpp::Time & Stopwatch::StopTime() const
 {
   return this->dataPtr->stopTime;
 }
 
 //////////////////////////////////////////////////
-bool StopwatchSimTime::Running() const
+bool Stopwatch::Running() const
 {
   return this->dataPtr->running;
 }
 
 //////////////////////////////////////////////////
-void StopwatchSimTime::Reset()
+void Stopwatch::Reset()
 {
   this->dataPtr->running = false;
   this->dataPtr->startTime = time_min;
@@ -164,7 +180,7 @@ void StopwatchSimTime::Reset()
 }
 
 //////////////////////////////////////////////////
-rclcpp::Duration StopwatchSimTime::ElapsedRunTime() const
+rclcpp::Duration Stopwatch::ElapsedRunTime() const
 {
   if (!this->dataPtr->clock) {
     return duration_zero;
@@ -178,7 +194,7 @@ rclcpp::Duration StopwatchSimTime::ElapsedRunTime() const
 }
 
 //////////////////////////////////////////////////
-rclcpp::Duration StopwatchSimTime::ElapsedStopTime() const
+rclcpp::Duration Stopwatch::ElapsedStopTime() const
 {
   if (!this->dataPtr->clock) {
     return duration_zero;
@@ -198,7 +214,7 @@ rclcpp::Duration StopwatchSimTime::ElapsedStopTime() const
 }
 
 //////////////////////////////////////////////////
-bool StopwatchSimTime::operator==(const StopwatchSimTime & _watch) const
+bool Stopwatch::operator==(const Stopwatch & _watch) const
 {
   return this->dataPtr->running == _watch.dataPtr->running &&
          this->dataPtr->startTime == _watch.dataPtr->startTime &&
@@ -208,20 +224,20 @@ bool StopwatchSimTime::operator==(const StopwatchSimTime & _watch) const
 }
 
 //////////////////////////////////////////////////
-bool StopwatchSimTime::operator!=(const StopwatchSimTime & _watch) const
+bool Stopwatch::operator!=(const Stopwatch & _watch) const
 {
   return !(*this == _watch);
 }
 
 //////////////////////////////////////////////////
-StopwatchSimTime & StopwatchSimTime::operator=(const StopwatchSimTime & _watch)
+Stopwatch & Stopwatch::operator=(const Stopwatch & _watch)
 {
-  this->dataPtr.reset(new StopwatchSimTimePrivate(*_watch.dataPtr));
+  this->dataPtr.reset(new StopwatchPrivate(*_watch.dataPtr));
   return *this;
 }
 
 //////////////////////////////////////////////////
-StopwatchSimTime & StopwatchSimTime::operator=(StopwatchSimTime && _watch)
+Stopwatch & Stopwatch::operator=(Stopwatch && _watch)
 {
   this->dataPtr = std::move(_watch.dataPtr);
   return *this;

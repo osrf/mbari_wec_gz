@@ -68,7 +68,7 @@ class BuoySCPumpPyTest(BuoyPyTests):
         self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
 
         # Now send Pump command to run for 20 seconds
-        self.node.send_pump_command(20)
+        self.node.send_pump_command(20.0 / 60.0)
         self.assertEqual(self.node.pump_future_.result().result.value,
                          self.node.pump_future_.result().result.OK)
 
