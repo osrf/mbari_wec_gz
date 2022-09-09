@@ -4,5 +4,5 @@ gz_add_plugin(ElectroHydraulicPTO
   INCLUDE_DIRS
     ..
   EXTRA_ROS_PKGS
-    splinter
+    splinter_ros
 )

@@ -3,7 +3,6 @@ project(buoy_tests)
 
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-find_package(splinter REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/RunServer.srv"
   ADD_LINTER_TESTS
@@ -105,9 +104,7 @@ if(BUILD_TESTING)
   # Add gtests
   buoy_add_gtest(no_inputs)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
-  buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST
-    EXTRA_ROS_PKGS
-      splinter)
+  buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
 
   # Add pytests
