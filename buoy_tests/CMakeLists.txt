@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.5)
 project(buoy_tests)
 
+include_directories (
+  ${PROJECT_SOURCE_DIR}/../buoy_gazebo/src
+  ${PROJECT_SOURCE_DIR}/../buoy_gazebo/src/ElectroHydraulicPTO
+  ${PROJECT_BINARY_DIR}/include/
+)
+
+configure_file (test_config.hh.in ${PROJECT_BINARY_DIR}/include/test_config.hh)
+
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(splinter REQUIRED)

@@ -365,7 +365,6 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->PrismaticJointEntity,
     pto_state);
 
-
   auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
   ignition::msgs::Double pistonvel;
