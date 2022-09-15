@@ -28,11 +28,11 @@ from testing_utils import default_generate_test_description
 
 
 def generate_test_description():
-    pkg_buoy_examples = get_package_share_directory('buoy_examples')
+    pkg_buoy_api_py = get_package_share_directory('buoy_api_py')
 
     bias_damping = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_buoy_examples, 'launch', 'bias_damping_py.launch.py'),
+            os.path.join(pkg_buoy_api_py, 'launch', 'bias_damping.launch.py'),
         ),
     )
 

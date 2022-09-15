@@ -1,12 +1,5 @@
 *.swp
 *.bak
+*.save*
 
 __pycache__
-
-splinter/include/splinter
-splinter/lib
-splinter/splinter
-splinter/assets
-splinter/CREDITS.md
-splinter/docs
-splinter/README_SPLINTER.md
