@@ -287,6 +287,8 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->functor.I_Wind.UserCommandedCurrent = 0.0;
   }
 
+std::cout << "Commanded Current = " << this->dataPtr->functor.I_Wind.UserCommandedCurrent << std::endl;
+
   this->dataPtr->functor.I_Wind.bias_override_ = pto_state.bias_current_command;
   if (pto_state.bias_current_command) {
     this->dataPtr->functor.I_Wind.BiasCurrent = pto_state.bias_current_command.value();
