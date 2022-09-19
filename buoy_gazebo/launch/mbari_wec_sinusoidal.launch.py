@@ -66,7 +66,7 @@ def generate_launch_description():
             'worlds',
             LaunchConfiguration('world_file')
         ]),
-            'debugger': LaunchConfiguration('debugger')}.items(),
+        'debugger': LaunchConfiguration('debugger')}.items(),
     )
 
     # Bridge to forward tf and joint states to ros2
