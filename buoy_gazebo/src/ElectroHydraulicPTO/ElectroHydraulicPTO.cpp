@@ -140,67 +140,10 @@ void ElectroHydraulicPTO::Configure(
 
   this->dataPtr->x.setConstant(2.0, 0.0);
 
-
   std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
   pistonvel_pub = node.Advertise<ignition::msgs::Double>(pistonvel_topic);
   if (!pistonvel_pub) {
     ignerr << "Error advertising topic [" << pistonvel_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string rpm_topic = std::string("/rpm_") + PrismaticJointName;
-  rpm_pub = node.Advertise<ignition::msgs::Double>(rpm_topic);
-  if (!rpm_pub) {
-    ignerr << "Error advertising topic [" << rpm_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string deltaP_topic = std::string("/deltaP_") + PrismaticJointName;
-  deltaP_pub = node.Advertise<ignition::msgs::Double>(deltaP_topic);
-  if (!deltaP_pub) {
-    ignerr << "Error advertising topic [" << deltaP_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string targwindcurr_topic = std::string("/targwindcurr_") + PrismaticJointName;
-  targwindcurr_pub = node.Advertise<ignition::msgs::Double>(targwindcurr_topic);
-  if (!targwindcurr_pub) {
-    ignerr << "Error advertising topic [" << targwindcurr_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string windcurr_topic = std::string("/windcurr_") + PrismaticJointName;
-  windcurr_pub = node.Advertise<ignition::msgs::Double>(windcurr_topic);
-  if (!windcurr_pub) {
-    ignerr << "Error advertising topic [" << windcurr_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string battcurr_topic = std::string("/battcurr_") + PrismaticJointName;
-  battcurr_pub = node.Advertise<ignition::msgs::Double>(battcurr_topic);
-  if (!battcurr_pub) {
-    ignerr << "Error advertising topic [" << battcurr_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string loadcurr_topic = std::string("/loadcurr_") + PrismaticJointName;
-  loadcurr_pub = node.Advertise<ignition::msgs::Double>(loadcurr_topic);
-  if (!loadcurr_pub) {
-    ignerr << "Error advertising topic [" << loadcurr_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string scalefactor_topic = std::string("/scalefactor_") + PrismaticJointName;
-  scalefactor_pub = node.Advertise<ignition::msgs::Double>(scalefactor_topic);
-  if (!scalefactor_pub) {
-    ignerr << "Error advertising topic [" << scalefactor_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string retractfactor_topic = std::string("/retractfactor_") + PrismaticJointName;
-  retractfactor_pub = node.Advertise<ignition::msgs::Double>(retractfactor_topic);
-  if (!retractfactor_pub) {
-    ignerr << "Error advertising topic [" << retractfactor_topic << "]" << std::endl;
     return;
   }
 }
@@ -287,8 +230,6 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->functor.I_Wind.UserCommandedCurrent = 0.0;
   }
 
-std::cout << "Commanded Current = " << this->dataPtr->functor.I_Wind.UserCommandedCurrent << std::endl;
-
   this->dataPtr->functor.I_Wind.bias_override_ = pto_state.bias_current_command;
   if (pto_state.bias_current_command) {
     this->dataPtr->functor.I_Wind.BiasCurrent = pto_state.bias_current_command.value();
@@ -373,74 +314,10 @@ std::cout << "Commanded Current = " << this->dataPtr->functor.I_Wind.UserCommand
   pistonvel.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   pistonvel.set_data(xdot);
 
-  ignition::msgs::Double rpm;
-  rpm.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  rpm.set_data(N);
-
-  ignition::msgs::Double deltap;
-  deltap.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  deltap.set_data(deltaP);
-
-  ignition::msgs::Double targwindcurr;
-  targwindcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  targwindcurr.set_data(this->dataPtr->TargetWindingCurrent);
-
-  ignition::msgs::Double windcurr;
-  windcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  windcurr.set_data(this->dataPtr->WindingCurrent);
-
-  ignition::msgs::Double battcurr;
-  battcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  battcurr.set_data(I_Batt);
-
-  ignition::msgs::Double loadcurr;
-  loadcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  loadcurr.set_data(I_Load);
-
-  ignition::msgs::Double scalefactor;
-  scalefactor.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  scalefactor.set_data(this->dataPtr->functor.I_Wind.ScaleFactor);
-
-  ignition::msgs::Double retractfactor;
-  retractfactor.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  retractfactor.set_data(this->dataPtr->functor.I_Wind.RetractFactor);
 
   if (!pistonvel_pub.Publish(pistonvel)) {
     ignerr << "could not publish pistonvel" << std::endl;
   }
-
-  if (!rpm_pub.Publish(rpm)) {
-    ignerr << "could not publish rpm" << std::endl;
-  }
-
-  if (!deltaP_pub.Publish(deltap)) {
-    ignerr << "could not publish deltaP" << std::endl;
-  }
-
-  if (!targwindcurr_pub.Publish(targwindcurr)) {
-    ignerr << "could not publish targwindcurr" << std::endl;
-  }
-
-  if (!windcurr_pub.Publish(windcurr)) {
-    ignerr << "could not publish windcurr" << std::endl;
-  }
-
-  if (!battcurr_pub.Publish(battcurr)) {
-    ignerr << "could not publish battcurr" << std::endl;
-  }
-
-  if (!loadcurr_pub.Publish(loadcurr)) {
-    ignerr << "could not publish loadcurr" << std::endl;
-  }
-
-  if (!scalefactor_pub.Publish(scalefactor)) {
-    ignerr << "could not publish scalefactor" << std::endl;
-  }
-
-  if (!retractfactor_pub.Publish(retractfactor)) {
-    ignerr << "could not publish retractfactor" << std::endl;
-  }
-
 
   // Apply force if not in Velocity Mode, in which case a joint velocity is applied elsewhere
   // (likely by a test Fixture)

@@ -9,6 +9,7 @@ include_directories (
 
 configure_file (test_config.hh.in ${PROJECT_BINARY_DIR}/include/test_config.hh)
 
+
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -19,6 +20,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 if(BUILD_TESTING)
   find_package(ignition-gazebo6 REQUIRED)
   set(GZ_SIM_VER ${ignition-gazebo6_VERSION_MAJOR})
+
+  set(Boost_USE_STATIC_LIBS OFF) 
+  set(Boost_USE_MULTITHREADED ON)  
+  set(Boost_USE_STATIC_RUNTIME OFF) 
+  set(Boost_INCLUDEDIR "/usr/include") # This didn't work, cmake insisted on using the non-existent /include directory, so I sym-linked /include to /usr/include and it worked, bad solution...  
+  find_package(Boost 1.71.0 COMPONENTS system iostreams filesystem) 
 
   # Linters
   find_package(ament_lint_auto REQUIRED)
@@ -43,13 +50,16 @@ if(BUILD_TESTING)
     set(multiValueArgs
       EXTRA_ROS_PKGS)
 
+    set(splinter_ros EXTRA_ROS_PKGS)
+
     cmake_parse_arguments(buoy_add_gtest "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     ament_add_gtest_executable(${TEST_NAME}
       tests/${TEST_NAME}.cpp
     )
     target_link_libraries(${TEST_NAME}
-      ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
+      ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER} 
+      Boost::system Boost::iostreams Boost::filesystem
     )
     if(buoy_add_gtest_ROS)
       set(ROS_PKGS rclcpp buoy_interfaces buoy_api_cpp ${buoy_add_gtest_EXTRA_ROS_PKGS})
