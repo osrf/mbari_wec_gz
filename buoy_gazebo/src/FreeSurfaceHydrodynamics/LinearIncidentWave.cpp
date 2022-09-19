@@ -145,11 +145,11 @@ double LinearIncidentWave::etadot(double x, double y, double t)
 {
 double xx = x*cos(m_beta) + y*sin(m_beta);
 
-double eta = 0;
+double etadot = 0;
 for(int i = 0;i<m_A.size();i++)
-  eta = eta + m_omega(i)*m_A(i)*cos(m_k(i)*xx - m_omega(i)*t + m_phases(i));
+  etadot = etadot + m_omega(i)*m_A(i)*sin(m_k(i)*xx - m_omega(i)*t + m_phases(i));
 
-return eta;
+return etadot;
 }
 
 #if 0
@@ -157,11 +157,11 @@ Eigen::VectorXd LinearIncidentWave::etadot(double x, double y, Eigen::VectorXd t
 {
 double xx = x*cos(m_beta) + y*sin(m_beta);
 
-double eta = 0;
+double etadot = 0;
 for(int i = 0;i<m_A.size();i++)
-  eta = eta + m_omega(i)*m_A(i)*cos(m_k(i)*xx - m_omega(i)*t + m_phases(i));
+  etadot = etadot + m_omega(i)*m_A(i)*sin(m_k(i)*xx - m_omega(i)*t + m_phases(i));
 
-return eta;
+return etadot;
 }
 
 #endif
