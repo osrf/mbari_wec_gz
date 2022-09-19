@@ -3,7 +3,7 @@ gz_add_plugin(PowerController
     PowerController.cpp
   INCLUDE_DIRS
     ../..
-  PUBLIC_LINK_LIBS
-    Stopwatch
   ROS
+  EXTRA_ROS_PKGS
+    ros_ign_gazebo
 )

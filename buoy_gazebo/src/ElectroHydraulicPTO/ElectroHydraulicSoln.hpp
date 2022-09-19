@@ -119,23 +119,23 @@ public:
     // const double rpm = std::min(std::max(x[0U], -6790.0), 6790.0);
 
     const double rpm = std::min(fabs(x[0U]), Neff.back());
-    const double pressure = std::min(fabs(x[0U]), Peff.back());
+    const double pressure = std::min(fabs(x[1U]), Peff.back());
 
     const double eff_m = this->hyd_eff_m.eval(rpm, pressure);
     const double eff_v = this->hyd_eff_v.eval(rpm, pressure);
 
     // 1.375 fudge factor required to match experiments, not yet sure why.
-    const double T_applied = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(x[0U]);
+    const double T_applied = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(rpm);
 
     static constexpr double Pset = 2925;
     double QQ = this->Q;
-    if (x[1U] > Pset) {   // Extending
-      QQ += (x[1U] - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
+    if (pressure > Pset) {   // Extending
+      QQ += (pressure - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
     }
     // QQ += this->reliefValve.eval(pressure);
 
-    fvec[0U] = x[0U] - eff_v * 60.0 * QQ / this->HydMotorDisp;
-    fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
+    fvec[0U] = rpm - eff_v * 60.0 * QQ / this->HydMotorDisp;
+    fvec[1U] = pressure - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
 
     return 0;
   }
