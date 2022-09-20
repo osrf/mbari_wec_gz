@@ -127,10 +127,10 @@ public:
     // 1.375 fudge factor required to match experiments, not yet sure why.
     const double T_applied = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(x[0U]);
 
-    static constexpr double Pset = 2925;
+    static constexpr double Pset = 2900.0;
     double QQ = this->Q;
-    if (x[1U] > Pset) {   // Extending
-      QQ += (x[1U] - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
+    if (x[1U] > Pset) {  // Extending
+      QQ += (x[1U] - Pset) * (50.0 / 600.0) * 231.0 / 60.0;  // TODO(hamilton) magic numbers
     }
     // QQ += this->reliefValve.eval(pressure);
 
