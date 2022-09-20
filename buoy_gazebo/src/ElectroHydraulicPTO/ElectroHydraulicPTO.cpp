@@ -274,7 +274,6 @@ void ElectroHydraulicPTO::PreUpdate(
   // this happens when user commanded winding current is too large
   const double c = std::min(-P, neg_b_sq / four_a - 0.001 /* ensure discriminant > 0.0 */);
   // P = -c;
-  // std::cerr << "P limited: " << P << std::endl;
 
   const double sqrt_discriminant = sqrt(neg_b_sq - four_a * c);
   const double VBus1 = (neg_b + sqrt_discriminant) / two_a;

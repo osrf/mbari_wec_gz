@@ -50,8 +50,11 @@ if(BUILD_TESTING)
     set(multiValueArgs
       EXTRA_ROS_PKGS)
 
+<<<<<<< HEAD
     set(splinter_ros EXTRA_ROS_PKGS)
 
+=======
+>>>>>>> 983f19d3b4469fe579c37ced134b815b07a5b3fe
     cmake_parse_arguments(buoy_add_gtest "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     ament_add_gtest_executable(${TEST_NAME}
