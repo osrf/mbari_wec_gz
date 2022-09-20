@@ -80,11 +80,8 @@ public:
   double HydMotorDisp;
 
 private:
-  // static constexpr double Pset{2000.0};  // 750;  // psi
-  // ~50GPM/600psi ~= .33472 in^3/psi -> From SUN RPECLAN data sheet
-  // static constexpr double QPerP{(50.0*241.0 / 60.0) / 600.0};
-  static const std::vector<double> Prelief;  // {0, Pset, Pset + 600.0};
-  static const std::vector<double> Qrelief;  // {0, 0, QPerP*6000.0};
+  static const std::vector<double> Prelief;
+  static const std::vector<double> Qrelief;
 
   static const std::vector<double> Peff;  // psi
   static const std::vector<double> Neff;  // rpm
@@ -110,14 +107,6 @@ public:
     const int n = x.size();
     assert(fvec.size() == n);
 
-    // TODO(hamilton) temporary fix for NaN situation. Should make this more robust
-    // or at least parameterized.
-    // Problem: If I repeatedly smash the PC with a -30 Amp winding current command, this solution
-    // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
-    // to the max absolute rpm from the winding current interpolation
-    // (no extrapolation, default torque controller).
-    // const double rpm = std::min(std::max(x[0U], -6790.0), 6790.0);
-
     const double rpm = std::min(fabs(x[0U]), Neff.back());
     const double pressure = std::min(fabs(x[1U]), Peff.back());
 
@@ -141,9 +130,7 @@ public:
   }
 };
 
-// {0, Pset, Pset + 600.0};
 const std::vector<double> ElectroHydraulicSoln::Prelief{0.0, 2800.0, 3000.0};
-// {0, 0, QPerP*6000.0};
 const std::vector<double> ElectroHydraulicSoln::Qrelief{1.0, 1.0, 0.0};
 
 const std::vector<double> ElectroHydraulicSoln::Peff
