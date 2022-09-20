@@ -101,8 +101,8 @@ TEST(BuoyTests, PTOExperimentComparison) {
 
   auto inputdata_dirname =
       common::joinPaths(std::string(PROJECT_SOURCE_PATH), "test_inputdata");
-  //std::string inputdata_filename = "EXP_2022.01.28T16.46.31.txt";
-  std::string inputdata_filename = "2022.01.28T16.46.31.txt";
+  std::string inputdata_filename = "EXP_2022.01.28T16.46.31.txt";
+  //std::string inputdata_filename = "2022.01.28T16.46.31.txt";
 
   bool EXP_Data = !inputdata_filename.compare(
       0, 4, "EXP_"); // Filenames starting with EXP denote raw experimental data,
