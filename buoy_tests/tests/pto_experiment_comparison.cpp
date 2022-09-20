@@ -45,6 +45,11 @@ struct TestData {
                            "RPM",     "LowerHydPressure", "UpperHydPressure",
                            "V_Bus",   "WindCurr",         "BattCurr",
                            "LoadCurr"};
+  const char *units[10] = {"seconds", "inches",        "in/sec",
+                           "RPM",     "psi_a", "psi_a",
+                           "Volts",   "Amps",         "Amps",
+                           "Amps"};
+
 
   std::vector<double> seconds;
   std::vector<double> PistonPos;
@@ -234,9 +239,10 @@ ResultsData.LoadCurr.push_back(InputData.LoadCurr.at(0));
   if (EXP_Data) { // Plot data for user to decide if it's valid.
     for (int i = 1; i < 10; i++) {
       Gnuplot gp;
-      gp << "set term X11 title  '" << InputData.names[i] << "' Comparison'\n";
+      gp << "set term X11 title  '" << InputData.names[i] << " Comparison'\n";
       gp << "set grid\n";
       gp << "set xlabel 'time (s)'\n";
+      gp << "set ylabel '" << InputData.units[i] << "'\n";
       gp << "plot '-' w l title 'EXP " << InputData.names[i]
          << "','-' w l title 'TEST " << InputData.names[i] << "'\n";
 
