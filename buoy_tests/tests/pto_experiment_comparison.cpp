@@ -159,8 +159,7 @@ ResultsData.LoadCurr.push_back(InputData.LoadCurr.at(0));
 
   // splinter_ros::Splinter1d PrescribedVel(seconds,PistonVel);
 
-  fixture
-      .
+  fixture.
       // Use configure callback to get values at startup
       OnConfigure(
           [&jointEntity](const ignition::gazebo::Entity &_worldEntity,
@@ -234,7 +233,9 @@ ResultsData.LoadCurr.push_back(InputData.LoadCurr.at(0));
 
   // Setup simulation server, this will call the post-update callbacks.
   // It also calls pre-update and update callbacks if those are being used.
-  fixture.Server()->Run(true, 50000, false);
+  fixture.Server()->Run(true, InputData.seconds.back()/.01, false);  //Hardcoded timestep that is set in sdf file until I figure out how to get access...
+
+  std::cout << iterations << " iterations complete" << std::endl;
 
   if (EXP_Data) { // Plot data for user to decide if it's valid.
     for (int i = 1; i < 10; i++) {
@@ -242,7 +243,7 @@ ResultsData.LoadCurr.push_back(InputData.LoadCurr.at(0));
       gp << "set term X11 title  '" << InputData.names[i] << " Comparison'\n";
       gp << "set grid\n";
       gp << "set xlabel 'time (s)'\n";
-      gp << "set ylabel '" << InputData.units[i] << "'\n";
+      gp << "set ylabel '" << InputData.units[i] <<"'\n";
       gp << "plot '-' w l title 'EXP " << InputData.names[i]
          << "','-' w l title 'TEST " << InputData.names[i] << "'\n";
 
