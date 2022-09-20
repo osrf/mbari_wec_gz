@@ -86,9 +86,10 @@ public:
         I = TorqueSpec.back() * this->ScaleFactor / this->TorqueConstantNMPerAmp;
       } else {
         I = this->DefaultDamping.eval(fabs(N)) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
-        if (N > 0.0) {
-          I *= -this->RetractFactor;
-        }
+      }
+
+      if (N > 0.0) {
+        I *= -this->RetractFactor;
       }
 
       if (bias_override_) {

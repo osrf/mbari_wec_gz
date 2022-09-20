@@ -228,6 +228,8 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
 
+  std::cout << node->torque_policy_ << std::endl;
+
   double expected_wind_curr =
     node->torque_policy_.WindingCurrentTarget(
     node->rpm_,
