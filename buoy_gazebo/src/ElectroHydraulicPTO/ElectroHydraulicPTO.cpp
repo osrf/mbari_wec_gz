@@ -254,8 +254,7 @@ void ElectroHydraulicPTO::PreUpdate(
   double deltaP = this->dataPtr->x[1U];
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;
   unsigned int seed{1U};
-  this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent + 0.001 *
-    (rand_r(&seed) % 200 - 100);
+  this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent;// + 0.001 * (rand_r(&seed) % 200 - 100);
 
   static const double eff_e = 0.85;
   static const double RPM_TO_RAD_PER_SEC = 2.0 * M_PI / 60.0;
@@ -274,7 +273,6 @@ void ElectroHydraulicPTO::PreUpdate(
   // this happens when user commanded winding current is too large
   const double c = std::min(-P, neg_b_sq / four_a - 0.001 /* ensure discriminant > 0.0 */);
   // P = -c;
-  // std::cerr << "P limited: " << P << std::endl;
 
   const double sqrt_discriminant = sqrt(neg_b_sq - four_a * c);
   const double VBus1 = (neg_b + sqrt_discriminant) / two_a;
