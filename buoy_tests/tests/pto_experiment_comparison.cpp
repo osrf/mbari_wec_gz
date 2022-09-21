@@ -289,7 +289,7 @@ TEST(BuoyTests, PTOExperimentComparison) {
       gp.send1d(boost::make_tuple(ResultsData.seconds, ResultsData(i)));
     }
 
-    std::cout << "Please examine plots and determine if they are accepatably "
+    std::cout << "Please examine plots and determine if they are acceptably "
                  "correct.  Enter y/n"
               << std::endl;
 
@@ -326,7 +326,7 @@ TEST(BuoyTests, PTOExperimentComparison) {
       outputdata.close();
     }
     FAIL() << "Running in manual mode with " << inputdata_filename
-           << "as input, can't pass this way";
+           << " as input, can't pass this way";
   } else // Compare test results to input data and pass test if so.
   {
 
