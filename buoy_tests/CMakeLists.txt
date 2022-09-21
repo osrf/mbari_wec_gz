@@ -1,13 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
 project(buoy_tests)
 
-include_directories (
-  ${PROJECT_SOURCE_DIR}/../buoy_gazebo/src
-  ${PROJECT_SOURCE_DIR}/../buoy_gazebo/src/ElectroHydraulicPTO
-  ${PROJECT_BINARY_DIR}/include/
-)
-
-configure_file (test_config.hh.in ${PROJECT_BINARY_DIR}/include/test_config.hh)
+# include_directories (
+#   ${PROJECT_SOURCE_DIR}/../buoy_gazebo/src
+#   ${PROJECT_SOURCE_DIR}/../buoy_gazebo/src/ElectroHydraulicPTO
+#   ${PROJECT_BINARY_DIR}/include/
+# )
+# configure_file (test_config.hh.in ${PROJECT_BINARY_DIR}/include/test_config.hh)
 
 
 find_package(ament_cmake REQUIRED)
@@ -17,15 +16,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   ADD_LINTER_TESTS
 )
 
+find_package(buoy_gazebo REQUIRED)
+message(STATUS ${buoy_gazebo_INCLUDE_DIRS})
+
 if(BUILD_TESTING)
   find_package(ignition-gazebo6 REQUIRED)
   set(GZ_SIM_VER ${ignition-gazebo6_VERSION_MAJOR})
-
-  set(Boost_USE_STATIC_LIBS OFF) 
-  set(Boost_USE_MULTITHREADED ON)  
-  set(Boost_USE_STATIC_RUNTIME OFF) 
-  set(Boost_INCLUDEDIR "/usr/include") # This didn't work, cmake insisted on using the non-existent /include directory, so I sym-linked /include to /usr/include and it worked, bad solution...  
-  find_package(Boost 1.71.0 COMPONENTS system iostreams filesystem) 
 
   # Linters
   find_package(ament_lint_auto REQUIRED)
@@ -48,31 +44,71 @@ if(BUILD_TESTING)
     )
     set(oneValueArgs)
     set(multiValueArgs
-      EXTRA_ROS_PKGS)
-
-    set(splinter_ros EXTRA_ROS_PKGS)
+      EXTRA_ROS_PKGS
+      BOOST_COMPONENTS)
 
     cmake_parse_arguments(buoy_add_gtest "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    ament_add_gtest_executable(${TEST_NAME}
-      tests/${TEST_NAME}.cpp
+    if(buoy_add_gtest_BOOST_COMPONENTS)
+      set(Boost_USE_STATIC_LIBS OFF)
+      set(Boost_USE_MULTITHREADED ON)
+      set(Boost_USE_STATIC_RUNTIME OFF)
+      find_package(Boost 1.71.0 REQUIRED COMPONENTS ${buoy_add_gtest_BOOST_COMPONENTS})
+      set(BOOST_LIBS "")
+      foreach(BOOST_COMP ${buoy_add_gtest_BOOST_COMPONENTS})
+        list(APPEND BOOST_LIBS "Boost::${BOOST_COMP}")
+      endforeach()
+    endif()
+
+    #ament_add_gtest_executable(${TEST_NAME}
+    #  tests/${TEST_NAME}.cpp
+    #)
+
+    add_executable(${TEST_NAME} tests/${TEST_NAME}.cpp)
+    target_include_directories(${TEST_NAME} BEFORE PUBLIC "${GTEST_INCLUDE_DIRS}")
+    if(NOT ARG_SKIP_LINKING_MAIN_LIBRARIES)
+      target_link_libraries(${TEST_NAME} PUBLIC ${GTEST_MAIN_LIBRARIES})
+    endif()
+    target_link_libraries(${TEST_NAME} PUBLIC ${GTEST_LIBRARIES})
+    if(NOT WIN32)
+      set(THREADS_PREFER_PTHREAD_FLAG ON)
+      find_package(Threads REQUIRED)
+      target_link_libraries(${TEST_NAME} PUBLIC Threads::Threads)
+    endif()
+
+    target_link_libraries(${TEST_NAME} PUBLIC
+      ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER}
     )
-    target_link_libraries(${TEST_NAME}
-      ignition-gazebo${GZ_SIM_VER}::ignition-gazebo${GZ_SIM_VER} 
-      Boost::system Boost::iostreams Boost::filesystem
-    )
+
+    if(buoy_add_gtest_BOOST_COMPONENTS)
+      target_link_libraries(${TEST_NAME} PUBLIC
+        ${BOOST_LIBS}
+      )
+    endif()
+
     if(buoy_add_gtest_ROS)
-      set(ROS_PKGS rclcpp buoy_interfaces buoy_api_cpp ${buoy_add_gtest_EXTRA_ROS_PKGS})
+      set(ROS_PKGS rclcpp buoy_interfaces buoy_api_cpp)
       foreach(PKG ${ROS_PKGS})
         find_package(${PKG} REQUIRED)
+        message(STATUS "found ${PKG}: ${${PKG}_FOUND}")
       endforeach()
-      ament_target_dependencies(${TEST_NAME} ${ROS_PKGS})
+      ament_target_dependencies(${TEST_NAME} PUBLIC ${ROS_PKGS})
     endif()
+    if(buoy_add_gtest_EXTRA_ROS_PKGS)
+      foreach(EXTRA_PKG ${buoy_add_gtest_EXTRA_ROS_PKGS})
+        find_package(${EXTRA_PKG} REQUIRED)
+        message(STATUS "found ${EXTRA_PKG}: ${${EXTRA_PKG}_FOUND}")
+      endforeach()
+      ament_target_dependencies(${TEST_NAME} PUBLIC ${buoy_add_gtest_EXTRA_ROS_PKGS})
+    endif()
+
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
     install(
       TARGETS ${TEST_NAME}
       DESTINATION lib/${PROJECT_NAME}
     )
+
     if(buoy_add_gtest_LAUNCH_TEST)
       add_launch_test(launch/${TEST_NAME}.launch.py
         TIMEOUT 300
@@ -121,7 +157,15 @@ if(BUILD_TESTING)
 
   # Add gtests
   buoy_add_gtest(no_inputs)
-  buoy_add_gtest(pto_experiment_comparison)
+  buoy_add_gtest(pto_experiment_comparison
+    BOOST_COMPONENTS
+      filesystem
+      iostreams
+      system
+    EXTRA_ROS_PKGS
+      ament_index_cpp
+      buoy_gazebo
+      splinter_ros)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
@@ -143,8 +187,15 @@ if(BUILD_TESTING)
 
   install(DIRECTORY
     launch
+    worlds
     DESTINATION share/${PROJECT_NAME}
   )
+
+  ADD_CUSTOM_TARGET(link_test_inputdata ALL
+                  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/test_inputdata ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/test_inputdata)
+
+  ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
+
 endif()
 
 ament_package()

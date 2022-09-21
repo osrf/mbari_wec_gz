@@ -100,6 +100,31 @@ endfunction()
 
 add_subdirectory(src)
 
+add_library(ElectroHydraulicState INTERFACE)
+target_include_directories(ElectroHydraulicState INTERFACE
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
+  "$<INSTALL_INTERFACE:include>"
+)
+
+install(TARGETS ElectroHydraulicState
+  EXPORT export_ElectroHydraulicState
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib
+  INCLUDES DESTINATION include
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
+  DESTINATION include
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ElectroHydraulicPTO
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
+ament_export_targets(export_ElectroHydraulicState)
 
 # Resources
 install(DIRECTORY

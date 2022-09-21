@@ -13,32 +13,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ament_index_cpp/get_package_prefix.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
+
 #include <gtest/gtest.h>
 
 #include <ignition/common/Console.hh>
+#include <ignition/gazebo/config.hh>
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Server.hh>
 #include <ignition/gazebo/TestFixture.hh>
 #include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/World.hh>
-#include <string.h>
 
-#include "JustInterp.hpp"
-//#include <splinter_ros/splinter1d.hpp>
+#include <cstring>
 
-#include "ignition/gazebo/components/JointForceCmd.hh"
-#include "ignition/gazebo/components/JointPosition.hh"
-#include "ignition/gazebo/components/JointVelocity.hh"
-#include "ignition/gazebo/components/JointVelocityCmd.hh"
+#include <splinter_ros/splinter1d.hpp>
 
-#include "ElectroHydraulicState.hpp"
-#include "gnuplot-iostream.h"
-#include "test_config.hh"
-//#include <boost/tuple/tuple.hpp>
+#include <ignition/gazebo/components/JointForceCmd.hh>
+#include <ignition/gazebo/components/JointPosition.hh>
+#include <ignition/gazebo/components/JointVelocity.hh>
+#include <ignition/gazebo/components/JointVelocityCmd.hh>
+
+#include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicState.hpp>
+
+#include <gnuplot-iostream.h>
+
 
 using namespace ignition;
 using namespace gazebo;
 using namespace systems;
+
 
 struct TestData {
   const char *names[10] = {"seconds", "PistonPos",        "PistonVel",
@@ -91,23 +96,27 @@ TEST(BuoyTests, PTOExperimentComparison) {
 
   // Instantiate test fixture. It starts a server and provides hooks that we'll
   // use to inspect the running simulation.
-  auto sdf_filename = common::joinPaths(std::string(PROJECT_SOURCE_PATH),
-                                        "worlds", "PTO_TestMachine.sdf");
+  std::string sdf_filename("PTO_TestMachine.sdf");
   std::cout << "Loading " << sdf_filename << std::endl;
   ignition::gazebo::TestFixture fixture(sdf_filename);
 
   int iterations{0};
   ignition::gazebo::Entity jointEntity;
 
-  auto inputdata_dirname =
-      common::joinPaths(std::string(PROJECT_SOURCE_PATH), "test_inputdata");
-  //std::string inputdata_filename = "EXP_2022.01.28T16.46.31.txt";
+	std::string buoy_tests_share("");
+  try {
+    buoy_tests_share = ament_index_cpp::get_package_share_directory("buoy_tests");
+  } catch(ament_index_cpp::PackageNotFoundError err) {
+  	std::cerr << "Could not find package share" << std::endl;
+  }
+
+  std::string inputdata_dirname(common::joinPaths(buoy_tests_share, "test_inputdata"));
+  // std::string inputdata_filename = "EXP_2022.01.28T16.46.31.txt";
   std::string inputdata_filename = "2022.01.28T16.46.31.txt";
 
   bool EXP_Data = !inputdata_filename.compare(
       0, 4, "EXP_"); // Filenames starting with EXP denote raw experimental data,
                     // which will be used to generate test data.
-
 
   // Read Test Data
   int NN;
@@ -145,14 +154,15 @@ ResultsData.WindCurr.push_back(InputData.WindCurr.at(0));
 ResultsData.BattCurr.push_back(InputData.BattCurr.at(0));
 ResultsData.LoadCurr.push_back(InputData.LoadCurr.at(0));
 
-  JustInterp::LinearInterpolator<double> PrescribedVel;
-  PrescribedVel.SetData(InputData.seconds.size(), InputData.seconds.data(),
-                        InputData.PistonVel.data());
-  JustInterp::LinearInterpolator<double> PrescribedPos;
-  PrescribedPos.SetData(InputData.seconds.size(), InputData.seconds.data(),
-                        InputData.PistonPos.data());
+  // JustInterp::LinearInterpolator<double> PrescribedVel;
+  // PrescribedVel.SetData(InputData.seconds.size(), InputData.seconds.data(),
+  //                       InputData.PistonVel.data());
+  // JustInterp::LinearInterpolator<double> PrescribedPos;
+  // PrescribedPos.SetData(InputData.seconds.size(), InputData.seconds.data(),
+  //                       InputData.PistonPos.data());
 
-  // splinter_ros::Splinter1d PrescribedVel(seconds,PistonVel);
+  splinter_ros::Splinter1d PrescribedPos(InputData.seconds, InputData.PistonPos);
+  splinter_ros::Splinter1d PrescribedVel(InputData.seconds, InputData.PistonVel);
 
   fixture
       .
@@ -171,7 +181,7 @@ ResultsData.LoadCurr.push_back(InputData.LoadCurr.at(0));
                        const ignition::gazebo::UpdateInfo &_info,
                        ignition::gazebo::EntityComponentManager &_ecm) {
         auto SimTime = std::chrono::duration<double>(_info.simTime).count();
-        double piston_vel = -.0254 * PrescribedVel(SimTime);
+        double piston_vel = -.0254 * PrescribedVel.eval(SimTime);
         // Create new component for this entitiy in ECM (if it doesn't already
         // exist)
         auto joint_vel =
@@ -193,7 +203,7 @@ ResultsData.LoadCurr.push_back(InputData.LoadCurr.at(0));
 
        //auto prismaticJointPosComp = _ecm.Component<ignition::gazebo::components::JointPosition>(jointEntity);
        //double x = prismaticJointPosComp->Data().at(0);
-       double x = .0254 * PrescribedPos(SimTime); //Interpolating from given data b/c having trouble getting joint position from ecm
+       double x = .0254 * PrescribedPos.eval(SimTime); //Interpolating from given data b/c having trouble getting joint position from ecm
        auto prismaticJointVelComp = _ecm.Component<ignition::gazebo::components::JointVelocity>(jointEntity);
        double xdot = prismaticJointVelComp->Data().at(0);
 
