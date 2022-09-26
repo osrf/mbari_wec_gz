@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 @{
-from gz.math import Cylinderd
-from gz.math import MassMatrix3d
-from gz.math import Material
+from gz.math7 import Cylinderd
+from gz.math7 import MassMatrix3d
+from gz.math7 import Material
 import math
 
 ##############
