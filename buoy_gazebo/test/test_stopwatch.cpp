@@ -15,17 +15,17 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <memory>
+#include <thread>
+#include <utility>
+
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/time_source.hpp>
 
 #include <buoy_utils/Stopwatch.hpp>
 
 #include <rosgraph_msgs/msg/clock.hpp>
-
-#include <chrono>
-#include <memory>
-#include <thread>
-#include <utility>
 
 
 // NOLINTNEXTLINE

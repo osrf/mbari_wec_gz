@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <buoy_api/interface.hpp>
-
 #include <gtest/gtest.h>
+
+#include <chrono>
+#include <memory>
+#include <string>
+#include <thread>
 
 #include <gz/common/Console.hh>
 #include <gz/sim/World.hh>
@@ -23,10 +26,7 @@
 #include <gz/sim/TestFixture.hh>
 #include <gz/transport/Node.hh>
 
-#include <chrono>
-#include <memory>
-#include <string>
-#include <thread>
+#include <buoy_api/interface.hpp>
 
 
 class NoInputsROSNode final : public buoy_api::Interface<NoInputsROSNode>

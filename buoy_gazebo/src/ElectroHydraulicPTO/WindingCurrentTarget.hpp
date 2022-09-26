@@ -15,13 +15,13 @@
 #ifndef ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 #define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 
-#include <splinter_ros/splinter1d.hpp>
-
 #include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <splinter_ros/splinter1d.hpp>
 
 
 // Defines from Controller Firmware, behavior replicated here

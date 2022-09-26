@@ -19,15 +19,15 @@
 
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
-#include <splinter_ros/splinter1d.hpp>
-#include <splinter_ros/splinter2d.hpp>
-
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <splinter_ros/splinter1d.hpp>
+#include <splinter_ros/splinter2d.hpp>
 
 #include "ElectroHydraulicState.hpp"
 #include "WindingCurrentTarget.hpp"

@@ -14,14 +14,14 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include <gz/common/Console.hh>
 #include <gz/sim/World.hh>
 #include <gz/sim/Server.hh>
 #include <gz/sim/Util.hh>
 #include <gz/sim/TestFixture.hh>
 #include <gz/transport/Node.hh>
-
-#include <memory>
 
 //////////////////////////////////////////////////
 TEST(BuoyTests, NoInputs)

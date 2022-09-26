@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <buoy_api/interface.hpp>
-
 #include <gtest/gtest.h>
+
+#include <chrono>
+#include <memory>
+#include <string>
+#include <thread>
 
 #include <gz/common/Console.hh>
 #include <gz/sim/World.hh>
@@ -23,13 +26,11 @@
 #include <gz/sim/TestFixture.hh>
 #include <gz/transport/Node.hh>
 
-#include <buoy_interfaces/msg/pc_record.hpp>
+
+#include <buoy_api/interface.hpp>
 #include <buoy_api/examples/torque_control_policy.hpp>
 
-#include <chrono>
-#include <memory>
-#include <string>
-#include <thread>
+#include <buoy_interfaces/msg/pc_record.hpp>
 
 
 // NOLINTNEXTLINE

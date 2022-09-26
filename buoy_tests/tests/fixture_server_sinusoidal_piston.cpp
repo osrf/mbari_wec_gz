@@ -14,7 +14,10 @@
 
 #include <gtest/gtest.h>
 
-#include <rclcpp/rclcpp.hpp>
+#include <chrono>
+#include <memory>
+#include <string>
+#include <thread>
 
 #include <gz/common/Console.hh>
 #include <gz/sim/World.hh>
@@ -25,10 +28,7 @@
 
 #include <buoy_tests/srv/run_server.hpp>
 
-#include <chrono>
-#include <memory>
-#include <string>
-#include <thread>
+#include <rclcpp/rclcpp.hpp>
 
 
 TEST(BuoyTests, RunServer)

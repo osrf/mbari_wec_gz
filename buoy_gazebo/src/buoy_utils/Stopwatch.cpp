@@ -14,12 +14,11 @@
 
 #include "Stopwatch.hpp"
 
-#include <rclcpp/clock.hpp>
-
 #include <chrono>
 #include <limits>
 #include <utility>
 
+#include <rclcpp/clock.hpp>
 
 namespace buoy_utils
 {
