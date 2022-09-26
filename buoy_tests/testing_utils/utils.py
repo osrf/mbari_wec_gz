@@ -64,8 +64,8 @@ def default_generate_test_description(server='fixture_server'):
 
 class BuoyPyTestInterface(Interface):
 
-    def __init__(self):
-        super().__init__('test_inputs_py', wait_for_services=True)
+    def __init__(self, node_name='test_interface_py', wait_for_services=True, **kwargs):
+        super().__init__(node_name, wait_for_services=True, **kwargs)
         self.set_parameters([Parameter('use_sim_time', Parameter.Type.BOOL, True)])
 
         # Spring data
@@ -169,10 +169,15 @@ class TestHelper(rclpyNode):
 
 class BuoyPyTests(unittest.TestCase):
 
+    NODE_NAME = 'test_interface_py'
+    CLI_ARGS = None
+
     def setUp(self):
         rclpy.init()
         self.test_helper = TestHelper()
-        self.node = BuoyPyTestInterface()
+        self.node = BuoyPyTestInterface(self.NODE_NAME, cli_args=self.CLI_ARGS,
+                                        automatically_declare_parameters_from_overrides=True)
+        self.node.get_logger().info(repr(self.CLI_ARGS))
         self.executor = MultiThreadedExecutor()
         self.executor.add_node(self.node)
         self.executor.add_node(self.test_helper)

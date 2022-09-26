@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <gz/common/Console.hh>
 #include <gz/sim/World.hh>
@@ -64,6 +65,8 @@ public:
       rclcpp::Parameter(
         "use_sim_time",
         true));
+
+    this->set_params();
 
     node_ = std::shared_ptr<PCROSNode>(this, [](PCROSNode *) {});  // null deleter
     clock_ = this->get_clock();
@@ -112,6 +115,29 @@ private:
     range_finder_ = data.range_finder;
   }
 
+  void set_params()
+  {
+    this->declare_parameter("torque_constant", torque_policy_.Torque_constant);
+    torque_policy_.Torque_constant = this->get_parameter("torque_constant").as_double();
+
+    this->declare_parameter(
+      "n_spec", std::vector<double>(
+        torque_policy_.N_Spec.begin(),
+        torque_policy_.N_Spec.end()));
+    std::vector<double> temp_double_arr = this->get_parameter("n_spec").as_double_array();
+    torque_policy_.N_Spec.assign(temp_double_arr.begin(), temp_double_arr.end());
+
+    this->declare_parameter(
+      "torque_spec", std::vector<double>(
+        torque_policy_.Torque_Spec.begin(),
+        torque_policy_.Torque_Spec.end()));
+    temp_double_arr = this->get_parameter("torque_spec").as_double_array();
+    torque_policy_.Torque_Spec.assign(temp_double_arr.begin(), temp_double_arr.end());
+
+    torque_policy_.update_params();
+    RCLCPP_INFO_STREAM(rclcpp::get_logger(this->get_name()), torque_policy_);
+  }
+
   std::thread thread_executor_spin_;
   std::atomic<bool> stop_{false};
   rclcpp::Node::SharedPtr node_{nullptr};
@@ -137,8 +163,9 @@ protected:
     config.SetSdfFile("mbari_wec.sdf");
     config.SetUpdateRate(0.0);
 
-    fixture = std::make_unique<gz::sim::TestFixture>(config);
-    node = std::make_unique<PCROSNode>("test_pc_ros");
+    fixture = std::make_unique<ignition::gazebo::TestFixture>(config);
+    node = std::make_unique<PCROSNode>("pb_torque_controller");  // same name as example to grab
+                                                                 // params
 
     fixture->
     OnConfigure(
