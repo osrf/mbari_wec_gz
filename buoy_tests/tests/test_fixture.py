@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# If you compiled Gazebo from source you should modify your
+# If you compiled Gazebo Sim from source you should modify your
 # `PYTHONPATH`:
 #
 # export PYTHONPATH=$PYTHONPATH:<path to ws>/install/lib/python
