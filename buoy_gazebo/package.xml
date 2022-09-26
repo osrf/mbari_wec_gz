@@ -13,11 +13,13 @@
   <depend>buoy_description</depend>
   <depend>buoy_interfaces</depend>
   <depend>gz-sim7</depend>
+  <depend>rclcpp</depend>
   <depend>robot_state_publisher</depend>
   <depend>ros_ign_bridge</depend>
   <depend>ros_ign_gazebo</depend>
   <depend>rviz2</depend>
   <depend>sdformat_urdf</depend>
+  <depend>splinter_ros</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
