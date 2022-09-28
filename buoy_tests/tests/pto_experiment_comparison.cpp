@@ -166,7 +166,7 @@ TEST(BuoyTests, PTOExperimentComparison) {
 
   // Copy initial condition to solution data
   ResultsData.seconds.push_back(InputData.seconds.at(0));
-  ResultsData.PistonPos.push_back(InputData.PistonVel.at(0));
+  ResultsData.PistonPos.push_back(InputData.PistonPos.at(0));
   ResultsData.PistonVel.push_back(InputData.PistonVel.at(0));
   ResultsData.RPM.push_back(InputData.RPM.at(0));
   ResultsData.LowerHydPressure.push_back(InputData.LowerHydPressure.at(0));
@@ -270,7 +270,7 @@ TEST(BuoyTests, PTOExperimentComparison) {
 
   // Setup simulation server, this will call the post-update callbacks.
   // It also calls pre-update and update callbacks if those are being used.
-  fixture.Server()->Run(true, InputData.seconds.back() / 0.01,
+  fixture.Server()->Run(true, InputData.seconds.back() / 0.001,
                         false); // Hardcoded timestep that is set in sdf file
                                 // until I figure out how to get access...
 

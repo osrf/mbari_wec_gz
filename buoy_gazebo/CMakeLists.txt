@@ -100,14 +100,14 @@ endfunction()
 
 add_subdirectory(src)
 
-add_library(ElectroHydraulicState INTERFACE)
-target_include_directories(ElectroHydraulicState INTERFACE
+add_library(BuoyECMStateData INTERFACE)
+target_include_directories(BuoyECMStateData INTERFACE
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
   "$<INSTALL_INTERFACE:include>"
 )
 
-install(TARGETS ElectroHydraulicState
-  EXPORT export_ElectroHydraulicState
+install(TARGETS BuoyECMStateData
+  EXPORT export_BuoyECMStateData
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
@@ -124,7 +124,12 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ElectroHydraulicPTO
   FILES_MATCHING PATTERN "*.hpp"
 )
 
-ament_export_targets(export_ElectroHydraulicState)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PolytropicPneumaticSpring
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
+ament_export_targets(export_BuoyECMStateData)
 
 # Resources
 install(DIRECTORY
