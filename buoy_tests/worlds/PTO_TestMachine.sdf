@@ -1,8 +1,8 @@
 <sdf version="1.8">
     <world name="PTO_TestBench">
         <physics name="1ms" type="ignored">
-            <max_step_size>.001</max_step_size>
-            <real_time_factor>1.0</real_time_factor>
+            <max_step_size>.01</max_step_size>
+            <real_time_factor>10000.0</real_time_factor>
         </physics>
 
         <plugin filename="libignition-gazebo-physics-system.so" name="ignition::gazebo::systems::Physics">
@@ -197,21 +197,3 @@
 
     </world>
 </sdf>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -270,7 +270,7 @@ TEST(BuoyTests, PTOExperimentComparison) {
 
   // Setup simulation server, this will call the post-update callbacks.
   // It also calls pre-update and update callbacks if those are being used.
-  fixture.Server()->Run(true, InputData.seconds.back() / 0.001,
+  fixture.Server()->Run(true, InputData.seconds.back() / 0.01,
                         false); // Hardcoded timestep that is set in sdf file
                                 // until I figure out how to get access...
 
