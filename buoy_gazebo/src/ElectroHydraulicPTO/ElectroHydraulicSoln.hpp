@@ -82,11 +82,40 @@ private:
   static const std::vector<std::vector<double>> eff_v; // volumetric efficiency
   static const std::vector<std::vector<double>> eff_m; // mechanical efficiency
 
+  std::vector<std::vector<double>> d_eff_v_dN; // derivative of volumetric efficiency w.r.t. RPM
+  std::vector<std::vector<double>> d_eff_v_dP; // derivative of volumetric efficiency w.r.t. Pressure
+  std::vector<std::vector<double>> d_eff_m_dN; // derivative of mechanical efficiency w.r.t. RPM
+  std::vector<std::vector<double>> d_eff_m_dP; // derivative of mechanical efficiency w.r.t. Pressure
+
 public:
   ElectroHydraulicSoln()
       : Functor<double>(2, 2),
         // Set HydraulicMotor Volumetric & Mechanical Efficiency
-        hyd_eff_v(Neff, Peff, eff_v), hyd_eff_m(Neff, Peff, eff_m) {}
+        hyd_eff_v(Neff, Peff, eff_v), hyd_eff_m(Neff, Peff, eff_m),
+        d_eff_v_dN(eff_v),d_eff_v_dP(eff_v),d_eff_m_dN(eff_m),d_eff_m_dP(eff_m) {
+//Compute Jacobian
+
+for(int i = 0;i<Neff.size();i++)
+{
+for(int j = 0;j<Peff.size();j++)
+{
+if(i == 0) //First column
+{
+d_eff_v_DP(i) = (eff_v[i+1]-eff_v[i])/Peff[i+1]-Peff[i]
+
+}
+
+if(i == Peff.size()) //Last column
+
+
+
+d_eff_v_dN[i][j] = eff_v[i][j];
+}
+
+}
+
+
+        }
 
   // x[0] = RPM
   // x[1] = Pressure (psi)
@@ -260,5 +289,7 @@ const std::vector<std::vector<double>> ElectroHydraulicSoln::eff_m{
      0.9800, 0.9800, 0.9800, 0.9700, 0.9700, 0.9700, 0.9600, 0.9600,
      0.9500, 0.9500, 0.9400, 0.9300, 0.9300, 0.9000},
 };
+
+
 
 #endif // ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_

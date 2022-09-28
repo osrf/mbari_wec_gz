@@ -102,21 +102,24 @@ TEST(BuoyTests, PTOExperimentComparison) {
   // Maximum verbosity helps with debugging
   ignition::common::Console::SetVerbosity(0);
 
-  // Instantiate test fixture. It starts a server and provides hooks that we'll
-  // use to inspect the running simulation.
-  std::string sdf_filename("PTO_TestMachine.sdf");
-  std::cout << "Loading " << sdf_filename << std::endl;
-  ignition::gazebo::TestFixture fixture(sdf_filename);
-
-  int iterations{0};
-  ignition::gazebo::Entity jointEntity;
-
 	std::string buoy_tests_share("");
   try {
     buoy_tests_share = ament_index_cpp::get_package_share_directory("buoy_tests");
   } catch(ament_index_cpp::PackageNotFoundError err) {
   	std::cerr << "Could not find package share" << std::endl;
   }
+
+  // Instantiate test fixture. It starts a server and provides hooks that we'll
+  // use to inspect the running simulation.
+  std::string sdf_filename("PTO_TestMachine.sdf");
+  //std::cout << "Loading " << common::joinPaths(buoy_tests_share,"worlds",sdf_filename) << std::endl;
+  //ignition::gazebo::TestFixture fixture(common::joinPaths(buoy_tests_share,"worlds",sdf_filename));
+  std::cout << "Loading " << common::joinPaths(sdf_filename) << std::endl;
+  ignition::gazebo::TestFixture fixture(common::joinPaths(sdf_filename));
+
+  int iterations{0};
+  ignition::gazebo::Entity jointEntity;
+
   std::string inputdata_dirname(common::joinPaths(buoy_tests_share, "test_inputdata"));
 
   std::string inputdata_filename;
@@ -293,9 +296,9 @@ TEST(BuoyTests, PTOExperimentComparison) {
                  "correct.  Enter y/n"
               << std::endl;
 
-    system("stty raw");    // Set terminal to raw mode
+    //system("stty raw");    // Set terminal to raw mode
     char key = getchar();  // Wait for single character
-    system("stty cooked"); // Reset terminal to normal "cooked" mode
+    //system("stty cooked"); // Reset terminal to normal "cooked" mode
 
     if (key == 'y') {
       std::string outputdata_filename =
