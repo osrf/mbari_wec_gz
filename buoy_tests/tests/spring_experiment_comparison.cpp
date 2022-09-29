@@ -59,11 +59,6 @@ struct TestData {
 
   std::vector<double> seconds;
   std::vector<double> PistonPos;
-  std::vector<double> LowerSpringPressure;
-  std::vector<double> UpperSpringPressure;
-  std::vector<double> LowerSpringVolume;
-  std::vector<double> UpperSpringVolume;
-
   std::vector<double> PistonVel;
   std::vector<double> RPM;
   std::vector<double> LowerHydPressure;
@@ -74,6 +69,10 @@ struct TestData {
   std::vector<double> LoadCurr;
   std::vector<double> Scale;
   std::vector<double> Retract;
+  std::vector<double> LowerSpringPressure;
+  std::vector<double> UpperSpringPressure;
+  std::vector<double> LowerSpringVolume;
+  std::vector<double> UpperSpringVolume;
 
   std::vector<double> operator()(const int data_num) {
     std::vector<double> ret_value;
@@ -163,34 +162,18 @@ TEST(BuoyTests, SpringExperimentComparison)
   std::string header_line;
   if (testdata.is_open()) {
     testdata >> header_line;
-    if(EXP_Data) {
-      double data[14U];
-      while (testdata >> data[0U] >> data[1U] >> data[2U] >> data[3U] >> data[4U] >>
-        data[5U] >> data[6U] >> data[7U] >> data[8U] >> data[9U] >>
-        data[10U] >> data[11U] >> data[12U] >> data[13U])
-      {
-        InputData.seconds.push_back(data[0U]);
-        InputData.PistonPos.push_back(data[1U]);
-        InputData.PistonVel.push_back(data[2U]);
-        InputData.LowerSpringPressure.push_back(data[12U]);
-        InputData.UpperSpringPressure.push_back(data[13U]);
-        InputData.LowerSpringVolume.push_back((2.03 - 0.0254* data[1U]) * 0.0115 + 0.0523);
-        InputData.UpperSpringVolume.push_back(0.0254 * data[1U] * 0.0127 + 0.0266);
-      }
-    } else {
-      double data[16U];
-      while (testdata >> data[0U] >> data[1U] >> data[2U] >> data[3U] >> data[4U] >>
-        data[5U] >> data[6U] >> data[7U] >> data[8U] >> data[9U] >>
-        data[10U] >> data[11U] >> data[12U] >> data[13U] >> data[14U] >> data[15U])
-      {
-        InputData.seconds.push_back(data[0U]);
-        InputData.PistonPos.push_back(data[1U]);
-        InputData.PistonVel.push_back(data[2U]);
-        InputData.LowerSpringPressure.push_back(data[12U]);
-        InputData.UpperSpringPressure.push_back(data[13U]);
-        InputData.LowerSpringVolume.push_back(data[14U]);
-        InputData.UpperSpringVolume.push_back(data[15U]);
-      }
+    double data[14U];
+    while (testdata >> data[0U] >> data[1U] >> data[2U] >> data[3U] >> data[4U] >>
+      data[5U] >> data[6U] >> data[7U] >> data[8U] >> data[9U] >>
+      data[10U] >> data[11U] >> data[12U] >> data[13U])
+    {
+      InputData.seconds.push_back(data[0U]);
+      InputData.PistonPos.push_back(data[1U]);
+      InputData.PistonVel.push_back(data[2U]);
+      InputData.LowerSpringPressure.push_back(data[12U]);
+      InputData.UpperSpringPressure.push_back(data[13U]);
+      InputData.LowerSpringVolume.push_back((2.03 - 0.0254* data[1U]) * 0.0115 + 0.0523);
+      InputData.UpperSpringVolume.push_back(0.0254 * data[1U] * 0.0127 + 0.0266);
     }
     testdata.close();
   } else {
@@ -212,7 +195,7 @@ TEST(BuoyTests, SpringExperimentComparison)
   fixture
     // Use configure callback to get values at startup
     .OnConfigure(
-      [&jointEntity](const ignition::gazebo::Entity &_worldEntity,
+      [&InputData, &jointEntity](const ignition::gazebo::Entity &_worldEntity,
         const std::shared_ptr<const sdf::Element> & /*_sdf*/,
         ignition::gazebo::EntityComponentManager &_ecm,
         ignition::gazebo::EventManager & /*_eventMgr*/) {
@@ -220,7 +203,7 @@ TEST(BuoyTests, SpringExperimentComparison)
 
           Model model(world.ModelByName(_ecm, "PTO"));
           jointEntity = model.JointByName(_ecm, "HydraulicRam");
-          _ecm.SetComponentData<components::JointPositionReset>(jointEntity, {2.03 - 0.0254 * 2.909});
+          _ecm.SetComponentData<components::JointPositionReset>(jointEntity, {2.03 - 0.0254 * InputData.PistonPos.at(0)});
         }
     )
     .OnPreUpdate(
@@ -336,7 +319,7 @@ TEST(BuoyTests, SpringExperimentComparison)
       std::ofstream outputdata(
         common::joinPaths(inputdata_dirname, outputdata_filename));
       if (outputdata.is_open()) {
-        outputdata << header_line << ",LowerSpringVolume(cubic-m),UpperSpringVolume(cubic-m)" << std::endl;
+        outputdata << header_line << std::endl;
         std::cout << "Writing test results to " << outputdata_filename
           << std::endl;
         for (int i = 0; i < ResultsData.seconds.size(); i++) {
@@ -353,9 +336,7 @@ TEST(BuoyTests, SpringExperimentComparison)
             << 0.0 << "  "
             << 0.0 << "  "
             << ResultsData.LowerSpringPressure.at(i) << "  "
-            << ResultsData.UpperSpringPressure.at(i) << "  "
-            << ResultsData.LowerSpringVolume.at(i) << "  "
-            << ResultsData.UpperSpringVolume.at(i) << std::endl;
+            << ResultsData.UpperSpringPressure.at(i) << std::endl;
         }
       }
       outputdata.close();
@@ -367,7 +348,6 @@ TEST(BuoyTests, SpringExperimentComparison)
     double epsilon = 1.0;
     std::function<bool(const double &, const double &)> comparator =
       [&epsilon](const double &left, const double &right) { // Lambda function to compare 2 doubles
-          //  std::cout << i << "  " <<  left << "  " << right << "  "  <<fabs(left-right) << std::endl;
           if (fabs(left - right) < epsilon) {
             return true;
           } else {
@@ -375,14 +355,12 @@ TEST(BuoyTests, SpringExperimentComparison)
           }
         };
 
-    /*
-    epsilon = 1e-2;
-    if (!std::equal(InputData.PistonPos.begin(), InputData.PistonPos.end(),
-      ResultsData.PistonPos.begin(), comparator))
-    {
-      FAIL() << "PistonPos Test Failed";
-    }
-    */
+//    epsilon = 1e-1;
+//    if (!std::equal(InputData.PistonPos.begin(), InputData.PistonPos.end(),
+//      ResultsData.PistonPos.begin(), comparator))
+//    {
+//      FAIL() << "PistonPos Test Failed";
+//    }
 
     epsilon = 1e-2;
     if (!std::equal(InputData.LowerSpringPressure.begin(), InputData.LowerSpringPressure.end(),
