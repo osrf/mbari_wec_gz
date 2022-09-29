@@ -181,15 +181,11 @@ if(BUILD_TESTING)
     DESTINATION share/${PROJECT_NAME}
   )
 
-  install(CODE "execute_process( \
-    COMMAND ${CMAKE_COMMAND} -E create_symlink \
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_inputdata \
-    ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/test_inputdata \
-    )"
+  install(CODE "execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_inputdata
+    ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/test_inputdata)"
   )
-
-  # add_custom_target(TARGET link_test_inputdata POST_BUILD
-  #   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/test_inputdata ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/test_inputdata)
 
   ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
 

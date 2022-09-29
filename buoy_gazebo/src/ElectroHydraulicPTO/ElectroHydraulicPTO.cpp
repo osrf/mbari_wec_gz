@@ -253,8 +253,7 @@ void ElectroHydraulicPTO::PreUpdate(
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;
-  unsigned int seed{1U};
-  this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent;// + 0.001 * (rand_r(&seed) % 200 - 100);
+  this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent;
 
   static const double eff_e = 0.85;
   static const double RPM_TO_RAD_PER_SEC = 2.0 * M_PI / 60.0;
