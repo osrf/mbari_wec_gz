@@ -31,16 +31,15 @@
 #include <ignition/gazebo/components/JointVelocity.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
 
-#include <buoy_gazebo/PolytropicPneumaticSpring/SpringState.hpp>
-
 #include <gnuplot-iostream.h>
-
-#include <splinter_ros/splinter1d.hpp>
 
 #include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <buoy_gazebo/PolytropicPneumaticSpring/SpringState.hpp>
+#include <splinter_ros/splinter1d.hpp>
 
 
 struct TestData

@@ -22,7 +22,7 @@ def generate_launch_description():
     # Test fixture
     gazebo_test_fixture = launchNode(
         package='buoy_tests',
-        executable='pto_experiment_comparison',
+        executable='experiment_comparison',
         output='screen'
     )
 
