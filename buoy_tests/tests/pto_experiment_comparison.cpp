@@ -1,5 +1,4 @@
-// Copyright 2022 Open Source Robotics Foundation, Inc. and Monterey Bay
-// Aquarium Research Institute
+// Copyright 2022 Open Source Robotics Foundation, Inc. and Monterey Bay Aquarium Research Institute
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,44 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ament_index_cpp/get_package_prefix.hpp>
-#include <ament_index_cpp/get_package_share_directory.hpp>
-
+#include <gnuplot-iostream.h>
 #include <gtest/gtest.h>
 
+#include <ament_index_cpp/get_package_prefix.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicState.hpp>
 #include <ignition/common/Console.hh>
-#include <ignition/gazebo/config.hh>
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Server.hh>
 #include <ignition/gazebo/TestFixture.hh>
 #include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/World.hh>
-
-#include <cstring>
-
-#include <splinter_ros/splinter1d.hpp>
-
 #include <ignition/gazebo/components/JointForceCmd.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
 #include <ignition/gazebo/components/JointVelocity.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <ignition/gazebo/config.hh>
+#include <splinter_ros/splinter1d.hpp>
 
-#include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicState.hpp>
-
-#include <gnuplot-iostream.h>
-
-
-using namespace ignition;
-using namespace gazebo;
-using namespace systems;
+#include <cstring>
+#include <vector>
+#include <string>
+#include <memory>
 
 
 struct TestData
 {
-  const char * names[14] = {"seconds", "PistonPos", "PistonVel",
-    "RPM", "LowerHydPressure", "UpperHydPressure",
-    "V_Bus", "WindCurr", "BattCurr",
-    "LoadCurr", "Scale", "Retract", "LowerSpringPressure", "UpperSpringPressure"};
+  const char * names[14] = {"seconds",
+    "PistonPos",
+    "PistonVel",
+    "RPM",
+    "LowerHydPressure",
+    "UpperHydPressure",
+    "V_Bus",
+    "WindCurr",
+    "BattCurr",
+    "LoadCurr",
+    "Scale",
+    "Retract",
+    "LowerSpringPressure",
+    "UpperSpringPressure"};
   const char * units[14] = {"seconds", "inches", "in/sec", "RPM", "psi_g",
     "psi_g", "Volts", "Amps", "Amps", "Amps",
     "", "", "psi_a", "psi_a"};
@@ -110,56 +112,62 @@ struct TestData
 };
 
 TEST(BuoyTests, PTOExperimentComparison) {
-
   // Maximum verbosity helps with debugging
   ignition::common::Console::SetVerbosity(0);
+
+  std::string buoy_tests_share("");
+  try {
+    buoy_tests_share =
+      ament_index_cpp::get_package_share_directory("buoy_tests");
+  } catch (ament_index_cpp::PackageNotFoundError err) {
+    std::cerr << "Could not find package share" << std::endl;
+  }
 
   // Instantiate test fixture. It starts a server and provides hooks that we'll
   // use to inspect the running simulation.
   std::string sdf_filename("PTO_TestMachine.sdf");
-  std::cout << "Loading " << sdf_filename << std::endl;
-  ignition::gazebo::TestFixture fixture(sdf_filename);
+  // std::cout << "Loading " <<
+  // ignition::common::joinPaths(buoy_tests_share,"worlds",sdf_filename) << std::endl;
+  // ignition::gazebo::TestFixture
+  // fixture(ignition::common::joinPaths(buoy_tests_share,"worlds",sdf_filename));
+  std::cout << "Loading " << ignition::common::joinPaths(sdf_filename) << std::endl;
+  ignition::gazebo::TestFixture fixture(ignition::common::joinPaths(sdf_filename));
 
   int iterations{0};
   ignition::gazebo::Entity jointEntity;
 
-  std::string buoy_tests_share("");
-  try {
-    buoy_tests_share = ament_index_cpp::get_package_share_directory("buoy_tests");
-  } catch (ament_index_cpp::PackageNotFoundError err) {
-    std::cerr << "Could not find package share" << std::endl;
-  }
-  std::string inputdata_dirname(common::joinPaths(buoy_tests_share, "test_inputdata"));
+  std::string inputdata_dirname(
+    ignition::common::joinPaths(buoy_tests_share, "test_inputdata"));
 
   std::string inputdata_filename;
   std::string inputfilelist("TestInputFileList.txt");
   std::ifstream testfilelist(
-    common::joinPaths(inputdata_dirname, inputfilelist));
+    ignition::common::joinPaths(inputdata_dirname, inputfilelist));
 
   if (testfilelist.is_open()) {
     testfilelist >> inputdata_filename;
   } else {
-    FAIL() << common::joinPaths(inputdata_dirname, inputfilelist) <<
+    FAIL() << ignition::common::joinPaths(inputdata_dirname, inputfilelist) <<
       "Not Found";
   }
 
   bool EXP_Data = !inputdata_filename.compare(
     inputdata_filename.size() - 4, inputdata_filename.size(),
-    ".exp");   // Filenames with .exp denote raw experimental data
+    ".exp");  // Filenames with .exp denote raw experimental data
 
   // Read Test Data
   int NN;
   TestData InputData;
   TestData ResultsData;
   std::ifstream testdata(
-    common::joinPaths(inputdata_dirname, inputdata_filename));
+    ignition::common::joinPaths(inputdata_dirname, inputdata_filename));
   std::string header_line;
   if (testdata.is_open()) {
     testdata >> header_line;
     double data[14];
     while (testdata >> data[0] >> data[1] >> data[2] >> data[3] >> data[4] >>
-      data[5] >> data[6] >> data[7] >> data[8] >> data[9] >> data[10] >> data[11] >> data[12] >>
-      data[13])
+      data[5] >> data[6] >> data[7] >> data[8] >> data[9] >> data[10] >>
+      data[11] >> data[12] >> data[13])
     {
       InputData.seconds.push_back(data[0]);
       InputData.PistonPos.push_back(data[1]);
@@ -192,13 +200,18 @@ TEST(BuoyTests, PTOExperimentComparison) {
   ResultsData.LoadCurr.push_back(InputData.LoadCurr.at(0));
   ResultsData.Scale.push_back(InputData.Scale.at(0));
   ResultsData.Retract.push_back(InputData.Retract.at(0));
-  ResultsData.LowerSpringPressure.push_back(InputData.LowerSpringPressure.at(0));
-  ResultsData.UpperSpringPressure.push_back(InputData.UpperSpringPressure.at(0));
+  ResultsData.LowerSpringPressure.push_back(
+    InputData.LowerSpringPressure.at(0));
+  ResultsData.UpperSpringPressure.push_back(
+    InputData.UpperSpringPressure.at(0));
 
-  splinter_ros::Splinter1d PrescribedPos(InputData.seconds, InputData.PistonPos);
-  splinter_ros::Splinter1d PrescribedVel(InputData.seconds, InputData.PistonVel);
+  splinter_ros::Splinter1d PrescribedPos(InputData.seconds,
+    InputData.PistonPos);
+  splinter_ros::Splinter1d PrescribedVel(InputData.seconds,
+    InputData.PistonVel);
   splinter_ros::Splinter1d PrescribedScale(InputData.seconds, InputData.Scale);
-  splinter_ros::Splinter1d PrescribedRetract(InputData.seconds, InputData.Retract);
+  splinter_ros::Splinter1d PrescribedRetract(InputData.seconds,
+    InputData.Retract);
 
   fixture
   .
@@ -210,7 +223,7 @@ TEST(BuoyTests, PTOExperimentComparison) {
     ignition::gazebo::EventManager & /*_eventMgr*/) {
       ignition::gazebo::World world(_worldEntity);
 
-      Model model(world.ModelByName(_ecm, "PTO"));
+      ignition::gazebo::Model model(world.ModelByName(_ecm, "PTO"));
       jointEntity = model.JointByName(_ecm, "HydraulicRam");
     })
   .OnPreUpdate(
@@ -219,17 +232,17 @@ TEST(BuoyTests, PTOExperimentComparison) {
       ignition::gazebo::EntityComponentManager & _ecm) {
       auto SimTime = std::chrono::duration<double>(_info.simTime).count();
       double piston_vel = -0.0254 * PrescribedVel.eval(SimTime);
-      // Create new component for this entitiy in ECM (if it doesn't already
-      // exist)
+      // Create new component for this entitiy in ECM (if it doesn't
+      // already exist)
       auto joint_vel =
-      _ecm.Component<components::JointVelocityCmd>(jointEntity);
+      _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(jointEntity);
       if (joint_vel == nullptr) {
         _ecm.CreateComponent(
           jointEntity,
-          components::JointVelocityCmd(
-            {piston_vel}));                        // Create this iteration
+          ignition::gazebo::components::JointVelocityCmd(
+            {piston_vel}));  // Create this iteration
       } else {
-        *joint_vel = components::JointVelocityCmd({piston_vel});
+        *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_vel});
       }
     })
   .
@@ -244,9 +257,9 @@ TEST(BuoyTests, PTOExperimentComparison) {
       // _ecm.Component<ignition::gazebo::components::JointPosition>(jointEntity);
       // double x = prismaticJointPosComp->Data().at(0);
       double x =
-      0.0254 *
-      PrescribedPos.eval(SimTime);       // Interpolating from given data b/c having
-      // trouble getting joint position from ecm
+      0.0254 * PrescribedPos.eval(
+        SimTime);  // Interpolating from given data b/c having
+                   // trouble getting joint position from ecm
       auto prismaticJointVelComp =
       _ecm.Component<ignition::gazebo::components::JointVelocity>(
         jointEntity);
@@ -257,16 +270,14 @@ TEST(BuoyTests, PTOExperimentComparison) {
         jointEntity);
       if (PTO_State_comp != nullptr) {
         auto PTO_State = PTO_State_comp->Data();
-
         ResultsData.seconds.push_back(SimTime);
         ResultsData.PistonPos.push_back(x / 0.0254);
         ResultsData.PistonVel.push_back(-xdot / 0.0254);
         ResultsData.RPM.push_back(PTO_State.rpm);
-        if (PTO_State.diff_press >
-        0)       // Todo, diff_press isn't meant to be hydraulic forces, maybe
-                 // need to add some fields to PTO_State for items of interest
-                 // that aren't reported over CAN.
-        {
+        if (PTO_State.diff_press > 0) {
+          // Todo, diff_press isn't meant to be hydraulic forces,
+          // maybe need to add some fields to PTO_State for items
+          // of interest that aren't reported over CAN.
           ResultsData.LowerHydPressure.push_back(-PTO_State.diff_press);
           ResultsData.UpperHydPressure.push_back(0);
         } else {
@@ -290,11 +301,10 @@ TEST(BuoyTests, PTOExperimentComparison) {
   // It also calls pre-update and update callbacks if those are being used.
   fixture.Server()->Run(
     true, InputData.seconds.back() / 0.01,
-    false);                     // Hardcoded timestep that is set in sdf file
-                                // until I figure out how to get access...
+    false);  // Hardcoded timestep that is set in sdf file
+             // until I figure out how to get access...
 
-
-  if (EXP_Data) { // Plot data for user to decide if it's valid.
+  if (EXP_Data) {       // Plot data for user to decide if it's valid.
     for (int i = 1; i < 10; i++) {
       Gnuplot gp;
       gp << "set term X11 title  '" << InputData.names[i] << " Comparison'\n";
@@ -312,16 +322,16 @@ TEST(BuoyTests, PTOExperimentComparison) {
       "correct.  Enter y/n" <<
       std::endl;
 
-    system("stty raw");    // Set terminal to raw mode
-    char key = getchar();  // Wait for single character
-    system("stty cooked"); // Reset terminal to normal "cooked" mode
+    // system("stty raw");    // Set terminal to raw mode
+    char key = getchar();             // Wait for single character
+    // system("stty cooked"); // Reset terminal to normal "cooked" mode
 
     if (key == 'y') {
       std::string outputdata_filename =
         inputdata_filename.substr(0, inputdata_filename.size() - 4) + ".tst";
 
       std::ofstream outputdata(
-        common::joinPaths(inputdata_dirname, outputdata_filename));
+        ignition::common::joinPaths(inputdata_dirname, outputdata_filename));
       if (outputdata.is_open()) {
         outputdata << header_line << std::endl;
         std::cout << "Writing test results to " << outputdata_filename <<
@@ -347,12 +357,14 @@ TEST(BuoyTests, PTOExperimentComparison) {
     }
     FAIL() << "Running in manual mode with " << inputdata_filename <<
       " as input, can't pass this way";
-  } else { // Compare test results to input data and pass test if so.
-
+  } else {  // Compare test results to input data and pass test if so.
     double epsilon;
     std::function<bool(const double &, const double &)> comparator =
-      [&epsilon](const double & left, const double & right) { // Lambda function to compare 2 doubles
-        //  std::cout << i << "  " <<  left << "  " << right << "  "  <<fabs(left-right) << std::endl;
+      [&epsilon](
+      const double & left,
+      const double & right) {  // Lambda function to compare 2 doubles
+        //  std::cout << i << "  " <<  left << "  " << right << "  "
+        //  <<fabs(left-right) << std::endl;
         if (fabs(left - right) < epsilon) {
           return true;
         } else {
@@ -360,26 +372,28 @@ TEST(BuoyTests, PTOExperimentComparison) {
         }
       };
 
-
     epsilon = 1e-2;
     if (!std::equal(
         InputData.PistonVel.begin(), InputData.PistonVel.end(),
-        ResultsData.PistonVel.begin(), comparator))                                                                       // Clumsy if then else due to apparant lack of ASSERT_TRUE() macro
-    {
+        ResultsData.PistonVel.begin(),
+        comparator))  // Clumsy if then else due to apparant lack of
+    {                 // ASSERT_TRUE() macro
       FAIL() << "PistonVel Test Failed";
     }
 
-    epsilon = 1.0; // Accuracy of results in RPM is poor, seems to be due to sensitive behavior of nonlinear solver near zero RPM.
+    epsilon = 1.0;  // Accuracy of results in RPM is poor, seems to be due to
+                    // sensitive behavior of nonlinear solver near zero RPM.
     if (!std::equal(
-        InputData.RPM.begin(), InputData.RPM.end(), ResultsData.RPM.begin(),
-        comparator))
+        InputData.RPM.begin(), InputData.RPM.end(),
+        ResultsData.RPM.begin(), comparator))
     {
       FAIL() << "RPM Test Failed";
     }
 
     epsilon = 1e-2;
     if (!std::equal(
-        InputData.LowerHydPressure.begin(), InputData.LowerHydPressure.end(),
+        InputData.LowerHydPressure.begin(),
+        InputData.LowerHydPressure.end(),
         ResultsData.LowerHydPressure.begin(), comparator))
     {
       FAIL() << "LowerHydPressure Test Failed";
@@ -387,7 +401,8 @@ TEST(BuoyTests, PTOExperimentComparison) {
 
     epsilon = 1e-2;
     if (!std::equal(
-        InputData.UpperHydPressure.begin(), InputData.UpperHydPressure.end(),
+        InputData.UpperHydPressure.begin(),
+        InputData.UpperHydPressure.end(),
         ResultsData.UpperHydPressure.begin(), comparator))
     {
       FAIL() << "UpperHydPressure Test Failed";
@@ -395,8 +410,8 @@ TEST(BuoyTests, PTOExperimentComparison) {
 
     epsilon = 1e-2;
     if (!std::equal(
-        InputData.V_Bus.begin(), InputData.V_Bus.end(), ResultsData.V_Bus.begin(),
-        comparator))
+        InputData.V_Bus.begin(), InputData.V_Bus.end(),
+        ResultsData.V_Bus.begin(), comparator))
     {
       FAIL() << "V_Bus Test Failed";
     }
