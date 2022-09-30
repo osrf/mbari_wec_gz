@@ -71,7 +71,7 @@ def generate_launch_description():
         shell=True,
         condition=IfCondition(LaunchConfiguration('manual'))
     )
-    
+
     bridge = Node(package='ros_ign_bridge',
                   executable='parameter_bridge',
                   arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],

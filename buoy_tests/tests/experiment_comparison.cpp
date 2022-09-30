@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gnuplot-iostream.h>
 #include <gtest/gtest.h>
 
 #include <ignition/common/Console.hh>
@@ -28,9 +29,6 @@
 #include <ignition/gazebo/components/JointVelocity.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
 
-#include <gnuplot-iostream.h>
-#include <rclcpp/rclcpp.hpp>
-
 #include <algorithm>
 #include <cstring>
 #include <iostream>
@@ -43,28 +41,44 @@
 #include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicState.hpp>
 #include <buoy_gazebo/PolytropicPneumaticSpring/SpringState.hpp>
 
+#include <rclcpp/rclcpp.hpp>
+
 #include <splinter_ros/splinter1d.hpp>
 
 
-#define CompareData(DATA, EPSILON, TIMESTEP) \
-    epsilon = EPSILON; \
-    auto mismatch_ ## DATA = std::mismatch(InputData.DATA.begin(), InputData.DATA.end(), \
-      ResultsData.DATA.begin(), comparator); \
-    if (mismatch_ ## DATA.first != InputData.DATA.end()) \
-    { \
-      FAIL() << #DATA " Test Failed after [" \
-      << TIMESTEP * (mismatch_ ## DATA.first - InputData.DATA.begin()) << "] seconds"; \
-    }
+const double INCHES_TO_METERS{0.0254};
+
 
 struct TestData
 {
-  const char * names[16] = {"seconds", "PistonPos", "PistonVel",
+  enum Data
+  {
+    SECONDS = 0U,
+    PISTON_POS = 1U,
+    PISTON_VEL = 2U,
+    MOTOR_RPM = 3U,
+    LOWER_HYD_PRESSURE = 4U,
+    UPPER_HYD_PRESSURE = 5U,
+    V_BUS = 6U,
+    WIND_CURR = 7U,
+    BATT_CURR = 8U,
+    LOAD_CURR = 9U,
+    SCALE = 10U,
+    RETRACT = 11U,
+    LOWER_SPRING_PRESSURE = 12U,
+    UPPER_SPRING_PRESSURE = 13U,
+    LOWER_SPRING_VOLUME = 14U,
+    UPPER_SPRING_VOLUME = 15U,
+    NUM_VALUES = 16U
+  };
+
+  const char * names[16U] = {"seconds", "PistonPos", "PistonVel",
     "RPM", "LowerHydPressure", "UpperHydPressure",
     "V_Bus", "WindCurr", "BattCurr",
     "LoadCurr", "Scale", "Retract",
     "LowerSpringPressure", "UpperSpringPressure",
     "LowerSpringVolume", "UpperSpringVolume"};
-  const char * units[16] = {"seconds", "inches", "in/sec", "RPM", "psi_g",
+  const char * units[16U] = {"seconds", "inches", "in/sec", "RPM", "psi_g",
     "psi_g", "Volts", "Amps", "Amps", "Amps",
     "", "", "psi_a", "psi_a", "cubic m", "cubic m"};
 
@@ -85,7 +99,19 @@ struct TestData
   std::vector<double> LowerSpringVolume;
   std::vector<double> UpperSpringVolume;
 
-  std::vector<double> operator()(const int data_num)
+  double get_data_at(const int & data_num, const int & idx)
+  {
+    double ret_value = 0.0;
+    try {
+      std::vector<double> data = get_data(data_num);
+      ret_value = data.at(idx);
+    } catch (const std::out_of_range &) {
+      // pass
+    }
+    return ret_value;
+  }
+
+  std::vector<double> get_data(const int & data_num)
   {
     std::vector<double> ret_value;
 
@@ -151,11 +177,11 @@ protected:
   static std::string header_line;
   static bool manual_comparison;
   static std::shared_ptr<splinter_ros::Splinter1d> PrescribedVel;
-  static rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
-  static std::thread thread_executor_spin_;
-  static bool stop_;
   static int argc_;
   static char ** argv_;
+  static constexpr double stroke{2.03};
+  static constexpr double lower_area{0.0115}, lower_dead_volume{0.0523};
+  static constexpr double upper_area{0.0127}, upper_dead_volume{0.0266};
   std::unique_ptr<ignition::gazebo::TestFixture> fixture{nullptr};
   ignition::gazebo::Entity jointEntity{ignition::gazebo::kNullEntity};
   double epsilon{1e-2};
@@ -169,54 +195,70 @@ public:
   }
 
 protected:
+  bool CompareData(const int & data_num, const double & _epsilon, const double & timestep)
+  {
+    epsilon = _epsilon;  // for comparator
+    std::vector<double> idata = InputData.get_data(data_num);
+    std::vector<double> rdata = ResultsData.get_data(data_num);
+    auto mismatch = std::mismatch(idata.begin(), idata.end(), rdata.begin(), comparator);
+    if (mismatch.first != idata.end())
+    {
+      std::cerr << InputData.names[data_num] << " Test Failed after ["
+        << timestep * (mismatch.first - idata.begin()) << "] seconds with epsilon ["
+        << epsilon << "]" << std::endl;
+      return false;
+    }
+    return true;
+  }
+
   // runs once and is preserved for all `TEST_F`
   static void SetUpTestCase()
   {
     rclcpp::init(argc_, argv_);
     rclcpp::Node::SharedPtr param_node = std::make_shared<rclcpp::Node>("experiment_comparison");
-    executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
-    executor_->add_node(param_node);
-    stop_ = false;
-    auto spin = [&]()
-      {
-        while (rclcpp::ok() && !stop_) {
-          executor_->spin_once();
-        }
-      };
-    thread_executor_spin_ = std::thread(spin);
+    rclcpp::spin_some(param_node);
 
     param_node->declare_parameter("inputdata_filename", "");
     inputdata_filename = param_node->get_parameter("inputdata_filename").as_string();
     param_node->declare_parameter("manual_comparison", false);
     manual_comparison = param_node->get_parameter("manual_comparison").as_bool();
     std::cerr << "inputdata_filename: " << inputdata_filename << std::endl;
-    std::cerr << "manual_comparison: " << manual_comparison << std::endl;
+    std::cerr << "manual_comparison: "
+      << std::boolalpha << manual_comparison << std::noboolalpha
+      << std::endl;
+    rclcpp::shutdown();
 
     // Read Test Data
     std::ifstream testdata(inputdata_filename);
     if (testdata.is_open()) {
       testdata >> header_line;
       double data[14U];
-      while (testdata >> data[0U] >> data[1U] >> data[2U] >> data[3U] >> data[4U] >>
-        data[5U] >> data[6U] >> data[7U] >> data[8U] >> data[9U] >>
-        data[10U] >> data[11U] >> data[12U] >> data[13U])
+      while (testdata >> data[TestData::SECONDS] >> data[TestData::PISTON_POS] >>
+        data[TestData::PISTON_VEL] >> data[TestData::MOTOR_RPM] >>
+        data[TestData::LOWER_HYD_PRESSURE] >> data[TestData::UPPER_HYD_PRESSURE] >>
+        data[TestData::V_BUS] >> data[TestData::WIND_CURR] >> data[TestData::BATT_CURR] >>
+        data[TestData::LOAD_CURR] >> data[TestData::SCALE] >> data[TestData::RETRACT] >>
+        data[TestData::LOWER_SPRING_PRESSURE] >> data[TestData::UPPER_SPRING_PRESSURE])
       {
-        InputData.seconds.push_back(data[0]);
-        InputData.PistonPos.push_back(data[1]);
-        InputData.PistonVel.push_back(data[2]);
-        InputData.RPM.push_back(data[3]);
-        InputData.LowerHydPressure.push_back(data[4]);
-        InputData.UpperHydPressure.push_back(data[5]);
-        InputData.V_Bus.push_back(data[6]);
-        InputData.WindCurr.push_back(data[7]);
-        InputData.BattCurr.push_back(data[8]);
-        InputData.LoadCurr.push_back(data[9]);
-        InputData.Scale.push_back(data[10]);
-        InputData.Retract.push_back(data[11]);
-        InputData.LowerSpringPressure.push_back(data[12]);
-        InputData.UpperSpringPressure.push_back(data[13]);
-        InputData.LowerSpringVolume.push_back((2.03 - 0.0254 * data[1U]) * 0.0115 + 0.0523);
-        InputData.UpperSpringVolume.push_back(0.0254 * data[1U] * 0.0127 + 0.0266);
+        InputData.seconds.push_back(data[TestData::SECONDS]);
+        InputData.PistonPos.push_back(data[TestData::PISTON_POS]);
+        InputData.PistonVel.push_back(data[TestData::PISTON_VEL]);
+        InputData.RPM.push_back(data[TestData::MOTOR_RPM]);
+        InputData.LowerHydPressure.push_back(data[TestData::LOWER_HYD_PRESSURE]);
+        InputData.UpperHydPressure.push_back(data[TestData::UPPER_HYD_PRESSURE]);
+        InputData.V_Bus.push_back(data[TestData::V_BUS]);
+        InputData.WindCurr.push_back(data[TestData::WIND_CURR]);
+        InputData.BattCurr.push_back(data[TestData::BATT_CURR]);
+        InputData.LoadCurr.push_back(data[TestData::LOAD_CURR]);
+        InputData.Scale.push_back(data[TestData::SCALE]);
+        InputData.Retract.push_back(data[TestData::RETRACT]);
+        InputData.LowerSpringPressure.push_back(data[TestData::LOWER_SPRING_PRESSURE]);
+        InputData.UpperSpringPressure.push_back(data[TestData::UPPER_SPRING_PRESSURE]);
+        InputData.LowerSpringVolume.push_back(
+          (stroke - INCHES_TO_METERS * data[TestData::PISTON_POS]) *
+          lower_area + lower_dead_volume);
+        InputData.UpperSpringVolume.push_back(
+          INCHES_TO_METERS * data[TestData::PISTON_POS] * upper_area + upper_dead_volume);
       }
       testdata.close();
     } else {
@@ -248,16 +290,17 @@ protected:
   // runs before each `TEST_F`
   void SetUp() override
   {
-    std::function<bool(const double &, const double &)> comparator =
+    comparator =
       // Lambda function to compare 2 doubles
       [&](const double & left, const double & right) {
         if (fabs(left - right) < epsilon) {
           return true;
         } else {
+          std::cerr << "failure: " << left << " - " << right << " > " << epsilon << std::endl;
           return false;
         }
       };
-  
+
     // Skip debug messages to run faster
     ignition::common::Console::SetVerbosity(3);
 
@@ -279,10 +322,13 @@ protected:
           jointEntity = pto.JointByName(_ecm, "HydraulicRam");
 
           EXPECT_NE(ignition::gazebo::kNullEntity, jointEntity);
-          
+
+          std::cerr << "Initializing piston position to ["
+            << stroke - INCHES_TO_METERS * InputData.PistonPos.at(0)
+            << "] meters (or [" << InputData.PistonPos.at(0) << "] inches)" << std::endl;
           _ecm.SetComponentData<ignition::gazebo::components::JointPositionReset>(
             jointEntity,
-            {2.03 - 0.0254 * InputData.PistonPos.at(0)});
+            {stroke - INCHES_TO_METERS * InputData.PistonPos.at(0)});
         }).
       OnPreUpdate(
         [&](
@@ -291,7 +337,7 @@ protected:
         {
           auto SimTime = std::chrono::duration<double>(_info.simTime).count();
           double piston_vel =
-            -0.0254 *
+            -INCHES_TO_METERS *
             PrescribedVel->eval(SimTime,
               splinter_ros::FILL_VALUE,
               std::vector<double>(2U, 0.0));
@@ -322,7 +368,7 @@ protected:
             ResultsData.PistonVel.push_back(0.0);
           } else {
             double xdot = prismaticJointVelComp->Data().at(0);
-            ResultsData.PistonVel.push_back(-xdot / 0.0254);
+            ResultsData.PistonVel.push_back(-xdot / INCHES_TO_METERS);
           }
 
           auto SpringStateComp =
@@ -332,12 +378,13 @@ protected:
             auto SpringState = SpringStateComp->Data();
 
             ResultsData.seconds.push_back(SimTime);
-            ResultsData.PistonPos.push_back(SpringState.range_finder / 0.0254);
+            ResultsData.PistonPos.push_back(SpringState.range_finder / INCHES_TO_METERS);
             ResultsData.LowerSpringPressure.push_back(SpringState.lower_psi);
             ResultsData.UpperSpringPressure.push_back(SpringState.upper_psi);
             ResultsData.LowerSpringVolume.push_back(
-              (2.03 - SpringState.range_finder) * 0.0115 + 0.0523);
-            ResultsData.UpperSpringVolume.push_back(SpringState.range_finder * 0.0127 + 0.0266);
+              (stroke - SpringState.range_finder) * lower_area + lower_dead_volume);
+            ResultsData.UpperSpringVolume.push_back(
+              SpringState.range_finder * upper_area + upper_dead_volume);
           }
 
           auto PTO_State_comp =
@@ -370,14 +417,11 @@ protected:
   // runs after each `TEST_F`
   void TearDown() override
   {
-    
   }
 
   // runs once after all `TEST_F` have completed
   static void TearDownTestCase()
   {
-    stop_ = true;
-    rclcpp::shutdown();
     if (manual_comparison) {
       std::cout << "Please examine plots and determine if they are acceptably "
         "correct.  Enter y/n" << std::endl;
@@ -394,30 +438,17 @@ protected:
         if (outputdata.is_open()) {
           outputdata << header_line << std::endl;
           std::cout << "Writing [" << ResultsData.seconds.size() << "] test results to " << outputdata_filename << std::endl;
-          for (size_t i = 0U; i < ResultsData.seconds.size(); i++) {
-            outputdata << ResultsData.seconds.at(i) << "  " <<
-              ResultsData.PistonPos.at(i) << "  " <<
-              ResultsData.PistonVel.at(i) << "  " <<
-              
-              ResultsData.RPM.at(i) << "  " <<
-              ResultsData.LowerHydPressure.at(i) << "  " <<
-              ResultsData.UpperHydPressure.at(i) << "  " <<
-              ResultsData.V_Bus.at(i) << "  " <<
-              ResultsData.WindCurr.at(i) << "  " <<
-              ResultsData.BattCurr.at(i) << "  " <<
-              ResultsData.LoadCurr.at(i) << "  " <<
-              ResultsData.Scale.at(i) << "  " <<
-              ResultsData.Retract.at(i) << "  " <<
-              ResultsData.LowerSpringPressure.at(i) << "  " <<
-              ResultsData.UpperSpringPressure.at(i) << std::endl;
+          for (size_t idx = 0U; idx < ResultsData.seconds.size(); ++idx) {
+            for (size_t jdx = 0U; jdx <= TestData::UPPER_SPRING_PRESSURE; ++jdx) {
+              outputdata << ResultsData.get_data_at(jdx, idx) << " ";
+            }
+            outputdata << std::endl;
           }
         }
         outputdata.close();
       }
       FAIL() << "Running in manual mode with " << inputdata_filename <<
         " as input, can't pass this way";
-      std::string foo;
-      std::cin >> foo;
     }
   }
 };
@@ -428,19 +459,12 @@ std::string BuoyExperimentComparison::inputdata_filename{""};
 std::string BuoyExperimentComparison::header_line{""};
 bool BuoyExperimentComparison::manual_comparison{false};
 std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedVel{nullptr};
-rclcpp::executors::MultiThreadedExecutor::SharedPtr BuoyExperimentComparison::executor_{nullptr};
-std::thread BuoyExperimentComparison::thread_executor_spin_;
-bool BuoyExperimentComparison::stop_{false};
 int BuoyExperimentComparison::argc_;
 char ** BuoyExperimentComparison::argv_;
 
 
 TEST_F(BuoyExperimentComparison, Spring)
 {
-      //TODO: TESTS ARE DEPENDENT ON EACH OTHER STORING DATA AND WRITING TO FILE
-
-  // Setup simulation server, this will call the post-update callbacks.
-  // It also calls pre-update and update callbacks if those are being used.
   // Hardcoded timestep that is set in sdf file
   // until I figure out how to get access...
   double timestep(0.01);
@@ -451,8 +475,10 @@ TEST_F(BuoyExperimentComparison, Spring)
 
 
   if (manual_comparison) {  // Plot data for user to decide if it's valid.
-    std::vector<size_t> select_time_series{1U, 12U, 13U, 14U, 15U};
-    for (size_t i = 1U; i < 16U; i++) {
+    std::vector<size_t> select_time_series{TestData::PISTON_POS,
+      TestData::LOWER_SPRING_PRESSURE, TestData::UPPER_SPRING_PRESSURE,
+      TestData::LOWER_SPRING_VOLUME, TestData::UPPER_SPRING_VOLUME};
+    for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
       if (!std::binary_search(select_time_series.begin(), select_time_series.end(), i)) {
         continue;
       }
@@ -464,12 +490,13 @@ TEST_F(BuoyExperimentComparison, Spring)
       gp << "plot '-' w l title 'EXP " << InputData.names[i] <<
         "','-' w l title 'TEST " << InputData.names[i] << "'\n";
 
-      gp.send1d(boost::make_tuple(InputData.seconds, InputData(i)));
-      gp.send1d(boost::make_tuple(ResultsData.seconds, ResultsData(i)));
+      gp.send1d(boost::make_tuple(InputData.seconds, InputData.get_data(i)));
+      gp.send1d(boost::make_tuple(ResultsData.seconds, ResultsData.get_data(i)));
     }
 
-    std::vector<size_t> select_PV{12U, 13U};
-    for (size_t i = 1U; i < 16U; i++) {
+    std::vector<size_t> select_PV{TestData::LOWER_SPRING_PRESSURE,
+      TestData::UPPER_SPRING_PRESSURE};
+    for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
       if (!std::binary_search(select_PV.begin(), select_PV.end(), i)) {
         continue;
       }
@@ -482,15 +509,15 @@ TEST_F(BuoyExperimentComparison, Spring)
       gp << "plot '-' w l title 'EXP " <<
         "','-' w l title 'TEST " << "'\n";
 
-      gp.send1d(boost::make_tuple(InputData(i + 2U), InputData(i)));
-      gp.send1d(boost::make_tuple(ResultsData(i + 2U), ResultsData(i)));
+      gp.send1d(boost::make_tuple(InputData.get_data(i + 2U), InputData.get_data(i)));
+      gp.send1d(boost::make_tuple(ResultsData.get_data(i + 2U), ResultsData.get_data(i)));
     }
   } else {  // Compare test results to input data and pass test if so.
-    CompareData(PistonPos, 1e-2, timestep);
-    CompareData(LowerSpringPressure, 1e-2, timestep);
-    CompareData(UpperSpringPressure, 1e-2, timestep);
-    CompareData(LowerSpringVolume, 1e-2, timestep);
-    CompareData(UpperSpringVolume, 1e-2, timestep);
+    EXPECT_TRUE(CompareData(TestData::PISTON_POS, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::LOWER_SPRING_PRESSURE, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::UPPER_SPRING_PRESSURE, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::LOWER_SPRING_VOLUME, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::UPPER_SPRING_VOLUME, 1e-2, timestep));
   }
 }
 
