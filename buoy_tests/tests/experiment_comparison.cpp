@@ -182,8 +182,8 @@ protected:
   static constexpr double stroke{2.03};
   static constexpr double lower_area{0.0115}, lower_dead_volume{0.0523};
   static constexpr double upper_area{0.0127}, upper_dead_volume{0.0266};
-  std::unique_ptr<ignition::gazebo::TestFixture> fixture{nullptr};
-  ignition::gazebo::Entity jointEntity{ignition::gazebo::kNullEntity};
+  static ignition::gazebo::Entity jointEntity;
+  static constexpr double timestep{0.01};
   double epsilon{1e-2};
   std::function<bool(const double &, const double &)> comparator;
 
@@ -226,7 +226,6 @@ protected:
     std::cerr << "manual_comparison: "
       << std::boolalpha << manual_comparison << std::noboolalpha
       << std::endl;
-    rclcpp::shutdown();
 
     // Read Test Data
     std::ifstream testdata(inputdata_filename);
@@ -285,21 +284,6 @@ protected:
 
     PrescribedVel =
       std::make_shared<splinter_ros::Splinter1d>(InputData.seconds, InputData.PistonVel);
-  }
-
-  // runs before each `TEST_F`
-  void SetUp() override
-  {
-    comparator =
-      // Lambda function to compare 2 doubles
-      [&](const double & left, const double & right) {
-        if (fabs(left - right) < epsilon) {
-          return true;
-        } else {
-          std::cerr << "failure: " << left << " - " << right << " > " << epsilon << std::endl;
-          return false;
-        }
-      };
 
     // Skip debug messages to run faster
     ignition::common::Console::SetVerbosity(3);
@@ -308,8 +292,8 @@ protected:
     ignition::gazebo::ServerConfig config;
     config.SetSdfFile("TestMachine.sdf");
     config.SetUpdateRate(0.0);
-    fixture = std::make_unique<ignition::gazebo::TestFixture>(config);
-    fixture->
+    ignition::gazebo::TestFixture fixture(config);
+    fixture.
       OnConfigure(
         [&](
           const ignition::gazebo::Entity & _worldEntity,
@@ -340,7 +324,7 @@ protected:
             -INCHES_TO_METERS *
             PrescribedVel->eval(SimTime,
               splinter_ros::FILL_VALUE,
-              std::vector<double>(2U, 0.0));
+              std::vector<double>{0.0, 0.0});
           // Create new component for this entitiy in ECM (if it doesn't already
           // exist)
           auto joint_vel =
@@ -359,25 +343,40 @@ protected:
           const ignition::gazebo::UpdateInfo & _info,
           const ignition::gazebo::EntityComponentManager & _ecm)
         {
+          bool got_vel{false}, got_spring_state{false}, got_pto_state{false};
+
           auto SimTime = std::chrono::duration<double>(_info.simTime).count();
 
           auto prismaticJointVelComp =
           _ecm.Component<ignition::gazebo::components::JointVelocity>(
             jointEntity);
-          if (prismaticJointVelComp == nullptr || prismaticJointVelComp->Data().empty()) {
-            ResultsData.PistonVel.push_back(0.0);
-          } else {
-            double xdot = prismaticJointVelComp->Data().at(0);
-            ResultsData.PistonVel.push_back(-xdot / INCHES_TO_METERS);
+          if (prismaticJointVelComp != nullptr) {
+            if (!prismaticJointVelComp->Data().empty()) {
+              got_vel = true;
+            }
           }
 
           auto SpringStateComp =
           _ecm.Component<buoy_gazebo::components::SpringState>(
             jointEntity);
           if (SpringStateComp != nullptr) {
-            auto SpringState = SpringStateComp->Data();
+            got_spring_state = true;
+          }
 
+          auto PTO_State_comp =
+          _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
+            jointEntity);
+          if (PTO_State_comp != nullptr) {
+            got_pto_state = true;
+          }
+
+          if (got_vel && got_spring_state && got_pto_state) {
             ResultsData.seconds.push_back(SimTime);
+
+            double xdot = prismaticJointVelComp->Data().at(0);
+            ResultsData.PistonVel.push_back(-xdot / INCHES_TO_METERS);
+
+            auto SpringState = SpringStateComp->Data();
             ResultsData.PistonPos.push_back(SpringState.range_finder / INCHES_TO_METERS);
             ResultsData.LowerSpringPressure.push_back(SpringState.lower_psi);
             ResultsData.UpperSpringPressure.push_back(SpringState.upper_psi);
@@ -385,14 +384,8 @@ protected:
               (stroke - SpringState.range_finder) * lower_area + lower_dead_volume);
             ResultsData.UpperSpringVolume.push_back(
               SpringState.range_finder * upper_area + upper_dead_volume);
-          }
 
-          auto PTO_State_comp =
-          _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
-            jointEntity);
-          if (PTO_State_comp != nullptr) {
             auto PTO_State = PTO_State_comp->Data();
-
             ResultsData.RPM.push_back(PTO_State.rpm);
             // Todo, diff_press isn't meant to be hydraulic forces, maybe
             // need to add some fields to PTO_State for items of interest
@@ -412,6 +405,28 @@ protected:
           }
         }).
       Finalize();
+
+    // Hardcoded timestep that is set in sdf file
+    // until I figure out how to get access...
+    bool blocking(true), paused(false);
+    fixture.Server()->Run(
+      blocking, InputData.seconds.back() / timestep,
+      paused);
+  }
+
+  // runs before each `TEST_F`
+  void SetUp() override
+  {
+    comparator =
+      // Lambda function to compare 2 doubles
+      [&](const double & left, const double & right) {
+        if (fabs(left - right) < epsilon) {
+          return true;
+        } else {
+          std::cerr << "failure: " << left << " - " << right << " > " << epsilon << std::endl;
+          return false;
+        }
+      };
   }
 
   // runs after each `TEST_F`
@@ -422,6 +437,7 @@ protected:
   // runs once after all `TEST_F` have completed
   static void TearDownTestCase()
   {
+    rclcpp::shutdown();
     if (manual_comparison) {
       std::cout << "Please examine plots and determine if they are acceptably "
         "correct.  Enter y/n" << std::endl;
@@ -461,19 +477,11 @@ bool BuoyExperimentComparison::manual_comparison{false};
 std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedVel{nullptr};
 int BuoyExperimentComparison::argc_;
 char ** BuoyExperimentComparison::argv_;
+ignition::gazebo::Entity BuoyExperimentComparison::jointEntity{ignition::gazebo::kNullEntity};
 
 
 TEST_F(BuoyExperimentComparison, Spring)
 {
-  // Hardcoded timestep that is set in sdf file
-  // until I figure out how to get access...
-  double timestep(0.01);
-  bool blocking(true), paused(false);
-  fixture->Server()->Run(
-    blocking, InputData.seconds.back() / timestep,
-    paused);
-
-
   if (manual_comparison) {  // Plot data for user to decide if it's valid.
     std::vector<size_t> select_time_series{TestData::PISTON_POS,
       TestData::LOWER_SPRING_PRESSURE, TestData::UPPER_SPRING_PRESSURE,
@@ -521,10 +529,37 @@ TEST_F(BuoyExperimentComparison, Spring)
   }
 }
 
+TEST_F(BuoyExperimentComparison, PTO)
+{
+  if (manual_comparison) {  // Plot data for user to decide if it's valid.
+    for (size_t i = 1U; i <= TestData::LOAD_CURR; i++) {
+      Gnuplot gp;
+      gp << "set term X11 title  '" << InputData.names[i] << " Comparison'\n";
+      gp << "set grid\n";
+      gp << "set xlabel 'time (s)'\n";
+      gp << "set ylabel '" << InputData.units[i] << "'\n";
+      gp << "plot '-' w l title 'EXP " << InputData.names[i] <<
+        "','-' w l title 'TEST " << InputData.names[i] << "'\n";
+
+      gp.send1d(boost::make_tuple(InputData.seconds, InputData.get_data(i)));
+      gp.send1d(boost::make_tuple(ResultsData.seconds, ResultsData.get_data(i)));
+    }
+  } else {  // Compare test results to input data and pass test if so.
+    EXPECT_TRUE(CompareData(TestData::PISTON_VEL, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::MOTOR_RPM, 1.0, timestep));
+    EXPECT_TRUE(CompareData(TestData::LOWER_HYD_PRESSURE, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::UPPER_HYD_PRESSURE, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::V_BUS, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::WIND_CURR, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::BATT_CURR, 1e-2, timestep));
+    EXPECT_TRUE(CompareData(TestData::LOAD_CURR, 1e-2, timestep));
+  }
+}
+
 
 int main(int argc, char * argv[])
 {
   ::testing::InitGoogleTest(&argc, argv);
-  BuoyExperimentComparison::init(argc, argv);
+  BuoyExperimentComparison::init(argc, argv);  // pass args to rclcpp init
   return RUN_ALL_TESTS();
 }
