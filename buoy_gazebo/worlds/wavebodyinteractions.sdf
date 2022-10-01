@@ -22,13 +22,13 @@
         </light>
 
   <model name="MBARI_WEC">
-      <pose relative_to="world">0 0 -2.26 0.0 0.0 0.0</pose>
+      <pose relative_to="world">0 0 -2.46 0.0 0.0 0.0</pose>
 
     <self_collide>true</self_collide>
     <link name="Buoy">
-      <pose relative_to="__model__">0 0 0 0 0 0</pose>
+      <pose relative_to="__model__">0 0 0 .1 0 0</pose>
       <inertial>
-        <pose>0 0 2.0 0 0 0</pose>
+        <pose>0 0 2.46 0 0 0</pose>
         <!--<mass>1400</mass> -->
         <mass>1794</mass> 
         <inertia>

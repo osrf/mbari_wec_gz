@@ -285,7 +285,7 @@ void WaveBodyInteractions::PreUpdate(
   // Add contribution due to force offset from origin
   w_MEp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FEp);
   // baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp + w_MRp + w_MEp);
-  baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp, w_MBp - w_MRp);
+  baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp, w_MBp + w_MRp);
 
   std::cout << "ABCD " << SimTime << "  " << w_MBp[0] << "  " << w_MRp[0] << std::endl;
 
