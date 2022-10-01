@@ -53,7 +53,7 @@ def generate_launch_description():
             {'inputdata_filename': test_inputdata_tst},
             {'manual_comparison': False}
         ],
-        namespace="/experiment_comparison",
+        namespace='/experiment_comparison',
         condition=UnlessCondition(LaunchConfiguration('manual'))
     )
 
@@ -66,7 +66,7 @@ def generate_launch_description():
             {'inputdata_filename': test_inputdata_exp},
             {'manual_comparison': True}
         ],
-        namespace="/experiment_comparison",
+        namespace='/experiment_comparison',
         prefix=['x-terminal-emulator -e'],
         shell=True,
         condition=IfCondition(LaunchConfiguration('manual'))

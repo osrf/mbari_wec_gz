@@ -18,10 +18,9 @@ import unittest
 from ament_index_python.packages import get_package_share_directory
 
 import launch
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.conditions import IfCondition, UnlessCondition
+from launch.actions import IncludeLaunchDescription
+from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
 
 from launch_ros.actions import Node
 
@@ -42,7 +41,6 @@ def generate_test_description():
         }.items(),
     )
 
-
     return launch.LaunchDescription([
         experiment_comparison,
         launch_testing.util.KeepAliveProc(),
@@ -62,7 +60,6 @@ def find_proc(ld):
 
 
 class BuoyExperimentComparisonTest(unittest.TestCase):
-
 
     def test_termination(self, experiment_comparison, proc_info):
         proc_info.assertWaitForShutdown(

@@ -29,6 +29,13 @@
 #include <ignition/gazebo/components/JointVelocity.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
 
+#include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicState.hpp>
+#include <buoy_gazebo/PolytropicPneumaticSpring/SpringState.hpp>
+
+#include <rclcpp/rclcpp.hpp>
+
+#include <splinter_ros/splinter1d.hpp>
+
 #include <algorithm>
 #include <cstring>
 #include <iostream>
@@ -37,13 +44,6 @@
 #include <thread>
 #include <utility>
 #include <vector>
-
-#include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicState.hpp>
-#include <buoy_gazebo/PolytropicPneumaticSpring/SpringState.hpp>
-
-#include <rclcpp/rclcpp.hpp>
-
-#include <splinter_ros/splinter1d.hpp>
 
 
 const double INCHES_TO_METERS{0.0254};
@@ -201,11 +201,10 @@ protected:
     std::vector<double> idata = InputData.get_data(data_num);
     std::vector<double> rdata = ResultsData.get_data(data_num);
     auto mismatch = std::mismatch(idata.begin(), idata.end(), rdata.begin(), comparator);
-    if (mismatch.first != idata.end())
-    {
-      std::cerr << InputData.names[data_num] << " Test Failed after ["
-        << timestep * (mismatch.first - idata.begin()) << "] seconds with epsilon ["
-        << epsilon << "]" << std::endl;
+    if (mismatch.first != idata.end()) {
+      std::cerr << InputData.names[data_num] << " Test Failed after [" <<
+        timestep * (mismatch.first - idata.begin()) << "] seconds with epsilon [" <<
+        epsilon << "]" << std::endl;
       return false;
     }
     return true;
@@ -223,9 +222,9 @@ protected:
     param_node->declare_parameter("manual_comparison", false);
     manual_comparison = param_node->get_parameter("manual_comparison").as_bool();
     std::cerr << "inputdata_filename: " << inputdata_filename << std::endl;
-    std::cerr << "manual_comparison: "
-      << std::boolalpha << manual_comparison << std::noboolalpha
-      << std::endl;
+    std::cerr << "manual_comparison: " <<
+      std::boolalpha << manual_comparison << std::noboolalpha <<
+      std::endl;
 
     // Read Test Data
     std::ifstream testdata(inputdata_filename);
@@ -294,117 +293,117 @@ protected:
     config.SetUpdateRate(0.0);
     ignition::gazebo::TestFixture fixture(config);
     fixture.
-      OnConfigure(
-        [&](
-          const ignition::gazebo::Entity & _worldEntity,
-          const std::shared_ptr<const sdf::Element> &,
-          ignition::gazebo::EntityComponentManager & _ecm,
-          ignition::gazebo::EventManager &)
-        {
-          auto world = ignition::gazebo::World(_worldEntity);
-          ignition::gazebo::Model pto(world.ModelByName(_ecm, "PTO"));
-          jointEntity = pto.JointByName(_ecm, "HydraulicRam");
+    OnConfigure(
+      [&](
+        const ignition::gazebo::Entity & _worldEntity,
+        const std::shared_ptr<const sdf::Element> &,
+        ignition::gazebo::EntityComponentManager & _ecm,
+        ignition::gazebo::EventManager &)
+      {
+        auto world = ignition::gazebo::World(_worldEntity);
+        ignition::gazebo::Model pto(world.ModelByName(_ecm, "PTO"));
+        jointEntity = pto.JointByName(_ecm, "HydraulicRam");
 
-          EXPECT_NE(ignition::gazebo::kNullEntity, jointEntity);
+        EXPECT_NE(ignition::gazebo::kNullEntity, jointEntity);
 
-          std::cerr << "Initializing piston position to ["
-            << stroke - INCHES_TO_METERS * InputData.PistonPos.at(0)
-            << "] meters (or [" << InputData.PistonPos.at(0) << "] inches)" << std::endl;
-          _ecm.SetComponentData<ignition::gazebo::components::JointPositionReset>(
+        std::cerr << "Initializing piston position to [" <<
+          stroke - INCHES_TO_METERS * InputData.PistonPos.at(0) <<
+          "] meters (or [" << InputData.PistonPos.at(0) << "] inches)" << std::endl;
+        _ecm.SetComponentData<ignition::gazebo::components::JointPositionReset>(
+          jointEntity,
+          {stroke - INCHES_TO_METERS * InputData.PistonPos.at(0)});
+      }).
+    OnPreUpdate(
+      [&](
+        const ignition::gazebo::UpdateInfo & _info,
+        ignition::gazebo::EntityComponentManager & _ecm)
+      {
+        auto SimTime = std::chrono::duration<double>(_info.simTime).count();
+        double piston_vel =
+        -INCHES_TO_METERS *
+        PrescribedVel->eval(
+          SimTime,
+          splinter_ros::FILL_VALUE,
+          std::vector<double>{0.0, 0.0});
+        // Create new component for this entitiy in ECM (if it doesn't already
+        // exist)
+        auto joint_vel =
+        _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(jointEntity);
+        if (joint_vel == nullptr) {
+          _ecm.CreateComponent(
             jointEntity,
-            {stroke - INCHES_TO_METERS * InputData.PistonPos.at(0)});
-        }).
-      OnPreUpdate(
-        [&](
-          const ignition::gazebo::UpdateInfo & _info,
-          ignition::gazebo::EntityComponentManager & _ecm)
-        {
-          auto SimTime = std::chrono::duration<double>(_info.simTime).count();
-          double piston_vel =
-            -INCHES_TO_METERS *
-            PrescribedVel->eval(SimTime,
-              splinter_ros::FILL_VALUE,
-              std::vector<double>{0.0, 0.0});
-          // Create new component for this entitiy in ECM (if it doesn't already
-          // exist)
-          auto joint_vel =
-          _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(jointEntity);
-          if (joint_vel == nullptr) {
-            _ecm.CreateComponent(
-              jointEntity,
-              ignition::gazebo::components::JointVelocityCmd(
-                {piston_vel}));  // Create this iteration
+            ignition::gazebo::components::JointVelocityCmd(
+              {piston_vel}));    // Create this iteration
+        } else {
+          *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_vel});
+        }
+      }).
+    OnPostUpdate(
+      [&](
+        const ignition::gazebo::UpdateInfo & _info,
+        const ignition::gazebo::EntityComponentManager & _ecm)
+      {
+        bool got_vel{false}, got_spring_state{false}, got_pto_state{false};
+
+        auto SimTime = std::chrono::duration<double>(_info.simTime).count();
+
+        auto prismaticJointVelComp =
+        _ecm.Component<ignition::gazebo::components::JointVelocity>(
+          jointEntity);
+        if (prismaticJointVelComp != nullptr) {
+          if (!prismaticJointVelComp->Data().empty()) {
+            got_vel = true;
+          }
+        }
+
+        auto SpringStateComp =
+        _ecm.Component<buoy_gazebo::components::SpringState>(
+          jointEntity);
+        if (SpringStateComp != nullptr) {
+          got_spring_state = true;
+        }
+
+        auto PTO_State_comp =
+        _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
+          jointEntity);
+        if (PTO_State_comp != nullptr) {
+          got_pto_state = true;
+        }
+
+        if (got_vel && got_spring_state && got_pto_state) {
+          ResultsData.seconds.push_back(SimTime);
+
+          double xdot = prismaticJointVelComp->Data().at(0);
+          ResultsData.PistonVel.push_back(-xdot / INCHES_TO_METERS);
+
+          auto SpringState = SpringStateComp->Data();
+          ResultsData.PistonPos.push_back(SpringState.range_finder / INCHES_TO_METERS);
+          ResultsData.LowerSpringPressure.push_back(SpringState.lower_psi);
+          ResultsData.UpperSpringPressure.push_back(SpringState.upper_psi);
+          ResultsData.LowerSpringVolume.push_back(
+            (stroke - SpringState.range_finder) * lower_area + lower_dead_volume);
+          ResultsData.UpperSpringVolume.push_back(
+            SpringState.range_finder * upper_area + upper_dead_volume);
+
+          auto PTO_State = PTO_State_comp->Data();
+          ResultsData.RPM.push_back(PTO_State.rpm);
+          // Todo, diff_press isn't meant to be hydraulic forces, maybe
+          // need to add some fields to PTO_State for items of interest
+          // that aren't reported over CAN.
+          if (PTO_State.diff_press > 0.0) {
+            ResultsData.LowerHydPressure.push_back(-PTO_State.diff_press);
+            ResultsData.UpperHydPressure.push_back(0.0);
           } else {
-            *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_vel});
+            ResultsData.LowerHydPressure.push_back(0.0);
+            ResultsData.UpperHydPressure.push_back(-PTO_State.diff_press);
           }
-        }).
-      OnPostUpdate(
-        [&](
-          const ignition::gazebo::UpdateInfo & _info,
-          const ignition::gazebo::EntityComponentManager & _ecm)
-        {
-          bool got_vel{false}, got_spring_state{false}, got_pto_state{false};
-
-          auto SimTime = std::chrono::duration<double>(_info.simTime).count();
-
-          auto prismaticJointVelComp =
-          _ecm.Component<ignition::gazebo::components::JointVelocity>(
-            jointEntity);
-          if (prismaticJointVelComp != nullptr) {
-            if (!prismaticJointVelComp->Data().empty()) {
-              got_vel = true;
-            }
-          }
-
-          auto SpringStateComp =
-          _ecm.Component<buoy_gazebo::components::SpringState>(
-            jointEntity);
-          if (SpringStateComp != nullptr) {
-            got_spring_state = true;
-          }
-
-          auto PTO_State_comp =
-          _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
-            jointEntity);
-          if (PTO_State_comp != nullptr) {
-            got_pto_state = true;
-          }
-
-          if (got_vel && got_spring_state && got_pto_state) {
-            ResultsData.seconds.push_back(SimTime);
-
-            double xdot = prismaticJointVelComp->Data().at(0);
-            ResultsData.PistonVel.push_back(-xdot / INCHES_TO_METERS);
-
-            auto SpringState = SpringStateComp->Data();
-            ResultsData.PistonPos.push_back(SpringState.range_finder / INCHES_TO_METERS);
-            ResultsData.LowerSpringPressure.push_back(SpringState.lower_psi);
-            ResultsData.UpperSpringPressure.push_back(SpringState.upper_psi);
-            ResultsData.LowerSpringVolume.push_back(
-              (stroke - SpringState.range_finder) * lower_area + lower_dead_volume);
-            ResultsData.UpperSpringVolume.push_back(
-              SpringState.range_finder * upper_area + upper_dead_volume);
-
-            auto PTO_State = PTO_State_comp->Data();
-            ResultsData.RPM.push_back(PTO_State.rpm);
-            // Todo, diff_press isn't meant to be hydraulic forces, maybe
-            // need to add some fields to PTO_State for items of interest
-            // that aren't reported over CAN.
-            if (PTO_State.diff_press > 0.0)
-            {
-              ResultsData.LowerHydPressure.push_back(-PTO_State.diff_press);
-              ResultsData.UpperHydPressure.push_back(0.0);
-            } else {
-              ResultsData.LowerHydPressure.push_back(0.0);
-              ResultsData.UpperHydPressure.push_back(-PTO_State.diff_press);
-            }
-            ResultsData.V_Bus.push_back(PTO_State.voltage);
-            ResultsData.WindCurr.push_back(PTO_State.wcurrent);
-            ResultsData.BattCurr.push_back(PTO_State.bcurrent);
-            ResultsData.LoadCurr.push_back(PTO_State.loaddc);
-          }
-        }).
-      Finalize();
+          ResultsData.V_Bus.push_back(PTO_State.voltage);
+          ResultsData.WindCurr.push_back(PTO_State.wcurrent);
+          ResultsData.BattCurr.push_back(PTO_State.bcurrent);
+          ResultsData.LoadCurr.push_back(PTO_State.loaddc);
+        }
+      }).
+    Finalize();
 
     // Hardcoded timestep that is set in sdf file
     // until I figure out how to get access...
@@ -453,7 +452,8 @@ protected:
         std::ofstream outputdata(outputdata_filename);
         if (outputdata.is_open()) {
           outputdata << header_line << std::endl;
-          std::cout << "Writing [" << ResultsData.seconds.size() << "] test results to " << outputdata_filename << std::endl;
+          std::cout << "Writing [" << ResultsData.seconds.size() << "] test results to " <<
+            outputdata_filename << std::endl;
           for (size_t idx = 0U; idx < ResultsData.seconds.size(); ++idx) {
             for (size_t jdx = 0U; jdx <= TestData::UPPER_SPRING_PRESSURE; ++jdx) {
               outputdata << ResultsData.get_data_at(jdx, idx) << " ";
@@ -471,7 +471,9 @@ protected:
 
 TestData BuoyExperimentComparison::InputData;
 TestData BuoyExperimentComparison::ResultsData;
+// NOLINTNEXTLINE
 std::string BuoyExperimentComparison::inputdata_filename{""};
+// NOLINTNEXTLINE
 std::string BuoyExperimentComparison::header_line{""};
 bool BuoyExperimentComparison::manual_comparison{false};
 std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedVel{nullptr};
