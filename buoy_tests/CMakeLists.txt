@@ -134,28 +134,6 @@ if(BUILD_TESTING)
   ament_python_install_package(testing_utils)
 
   # Add gtests
-  buoy_add_gtest(no_inputs)
-
-  buoy_add_gtest(pto_experiment_comparison
-    BOOST_COMPONENTS
-      filesystem
-      iostreams
-      system
-    EXTRA_ROS_PKGS
-      ament_index_cpp
-      buoy_gazebo
-      splinter_ros)
-
-  buoy_add_gtest(spring_experiment_comparison
-    BOOST_COMPONENTS
-      filesystem
-      iostreams
-      system
-    EXTRA_ROS_PKGS
-      ament_index_cpp
-      buoy_gazebo
-      splinter_ros)
-
   buoy_add_gtest(experiment_comparison ROS LAUNCH_TEST
     BOOST_COMPONENTS
       filesystem
@@ -165,6 +143,7 @@ if(BUILD_TESTING)
       buoy_gazebo
       splinter_ros)
 
+  buoy_add_gtest(no_inputs)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
