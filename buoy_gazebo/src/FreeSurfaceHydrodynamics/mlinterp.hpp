@@ -22,31 +22,38 @@
  * SOFTWARE.
  */
 
-#ifndef MLINTERP_HPP
-#define MLINTERP_HPP
+#ifndef FREESURFACEHYDRODYNAMICS__MLINTERP_HPP_
+#define FREESURFACEHYDRODYNAMICS__MLINTERP_HPP_
 
 #include <cassert>
 #include <cstddef>
 #include <limits>
 
-namespace mlinterp {
+namespace mlinterp
+{
 
-namespace {
+namespace
+{
 
-template <typename T, typename...> struct helper {
-  template <typename Index> void run(const Index *, Index, Index *, T *) {}
+template<typename T, typename ...>
+struct helper
+{
+  template<typename Index>
+  void run(const Index *, Index, Index *, T *) {}
 };
 
-template <typename T, typename T1, typename T2, typename... Args>
-struct helper<T, T1, T2, Args...> : helper<T, Args...> {
-  const T *xd;
-  const T *xi;
+template<typename T, typename T1, typename T2, typename ... Args>
+struct helper<T, T1, T2, Args...>: helper<T, Args...>
+{
+  const T * xd;
+  const T * xi;
 
   helper(T1 xd, T2 xi, Args... args)
-      : helper<T, Args...>(args...), xd(xd), xi(xi) {}
+  : helper<T, Args...>(args ...), xd(xd), xi(xi) {}
 
-  template <typename Index>
-  void run(const Index *nd, Index n, Index *indices, T *weights) {
+  template<typename Index>
+  void run(const Index * nd, Index n, Index * indices, T * weights)
+  {
     // Must have at least one point per axis
     assert(*nd > 0);
 
@@ -84,16 +91,18 @@ struct helper<T, T1, T2, Args...> : helper<T, Args...> {
     *indices = mid;
     *weights = weight;
 
-    helper<T, Args...> &base = (*this);
+    helper<T, Args...> & base = (*this);
     base.run(nd + 1, n, indices + 1, weights + 1);
   }
 };
 
-} // namespace
+}  // namespace
 
-struct natord {
-  template <typename Index, Index Dimension>
-  static Index mux(const Index *nd, const Index *indices) {
+struct natord
+{
+  template<typename Index, Index Dimension>
+  static Index mux(const Index * nd, const Index * indices)
+  {
     Index index = 0, product = 1, i = Dimension - 1;
     while (true) {
       index += indices[i] * product;
@@ -106,9 +115,11 @@ struct natord {
   }
 };
 
-struct rnatord {
-  template <typename Index, Index Dimension>
-  static Index mux(const Index *nd, const Index *indices) {
+struct rnatord
+{
+  template<typename Index, Index Dimension>
+  static Index mux(const Index * nd, const Index * indices)
+  {
     Index index = 0, product = 1, i = 0;
     while (true) {
       index += indices[i] * product;
@@ -121,9 +132,11 @@ struct rnatord {
   }
 };
 
-template <typename Order = natord, typename... Args, typename T, typename Index>
-static void interp(const Index *nd, Index ni, const T *yd, T *yi,
-                   Args... args) {
+template<typename Order = natord, typename ... Args, typename T, typename Index>
+static void interp(
+  const Index * nd, Index ni, const T * yd, T * yi,
+  Args... args)
+{
   // Cannot have a negative number of points
   assert(ni >= 0);
 
@@ -135,7 +148,7 @@ static void interp(const Index *nd, Index ni, const T *yd, T *yi,
   constexpr Index Power = 1 << Dimension;
 
   // Unpack arguments
-  helper<T, Args...> h(args...);
+  helper<T, Args...> h(args ...);
 
   // Perform interpolation for each point
   Index indices[Dimension];
@@ -164,6 +177,6 @@ static void interp(const Index *nd, Index ni, const T *yd, T *yi,
   }
 }
 
-} // namespace mlinterp
+}  // namespace mlinterp
 
-#endif
+#endif // FREESURFACEHYDRODYNAMICS__MLINTERP_HPP_

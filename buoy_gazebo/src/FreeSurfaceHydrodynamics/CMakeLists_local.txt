@@ -3,13 +3,14 @@ cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
 project(WaveBodyInteractions)
 
 find_package(ignition-cmake2 REQUIRED)
-find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
-set(Boost_USE_STATIC_LIBS OFF) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
-set(Boost_INCLUDEDIR "/usr/include") # This didn't work, cmake insisted on using the non-existent /include directory, so I sym-linked /include to /usr/include and it worked, bad solution...
-find_package(Boost 1.71.0 COMPONENTS system iostreams filesystem) 
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+set(Boost_INCLUDEDIR "/usr/include") # This didn't work, cmake insisted on using the non-existent /include directory,
+  # so I sym-linked /include to /usr/include and it worked, bad solution...
+find_package(Boost 1.71.0 COMPONENTS system iostreams filesystem)
 
 
 #set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra")
@@ -20,15 +21,15 @@ find_package(ignition-gazebo6 REQUIRED)
 
 
 add_executable(Test_IncidentWave_Peters  Test_IncidentWave_Peters.cpp LinearIncidentWave.cpp)
-target_link_libraries (Test_IncidentWave_Peters Eigen3::Eigen)
+target_link_libraries(Test_IncidentWave_Peters Eigen3::Eigen)
 set_property(TARGET Test_IncidentWave_Peters PROPERTY CXX_STANDARD 17)
 
 add_executable(Test_IncidentWave  Test_IncidentWave.cpp LinearIncidentWave.cpp)
-target_link_libraries (Test_IncidentWave Eigen3::Eigen)
+target_link_libraries(Test_IncidentWave Eigen3::Eigen)
 set_property(TARGET Test_IncidentWave PROPERTY CXX_STANDARD 17)
 
 add_executable(Test_FS_Hydrodynamics Test_FS_Hydrodynamics.cpp FS_Hydrodynamics.cpp LinearIncidentWave.cpp)
-target_link_libraries (Test_FS_Hydrodynamics Eigen3::Eigen Boost::system Boost::iostreams Boost::filesystem)
+target_link_libraries(Test_FS_Hydrodynamics Eigen3::Eigen Boost::system Boost::iostreams Boost::filesystem)
 set_property(TARGET Test_FS_Hydrodynamics PROPERTY CXX_STANDARD 17)
 
 add_library(WaveBodyInteractions SHARED WaveBodyInteractions.cpp FS_Hydrodynamics.cpp LinearIncidentWave.cpp)
@@ -46,10 +47,9 @@ install(TARGETS WaveBodyInteractions DESTINATION /home/hamilton/buoy_ws/install/
 
 
 find_package(Doxygen)
-option(BUILD_DOCUMENTATION "Create and install the HTML based API        
-documentation (requires Doxygen)" ${DOXYGEN_FOUND})
+option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
 
-if (DOXYGEN_FOUND)
+if(DOXYGEN_FOUND)
     # set input and output files
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
     set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
@@ -64,7 +64,7 @@ if (DOXYGEN_FOUND)
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen"
         VERBATIM )
-else (DOXYGEN_FOUND)
+else()
   message("Doxygen need to be installed to generate the doxygen documentation")
-endif (DOXYGEN_FOUND)
+endif()
 

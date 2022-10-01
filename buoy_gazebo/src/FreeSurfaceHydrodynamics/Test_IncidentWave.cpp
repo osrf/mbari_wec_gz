@@ -13,7 +13,6 @@
 // limitations under the License.
 
 
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -22,22 +21,21 @@
 #include <Eigen/Dense>
 #include "LinearIncidentWave.hpp"
 
-using namespace Eigen;
-
 
 int main()
 {
   LinearIncidentWave Inc;
 
-  //Inc.SetToPiersonMoskowitzSpectrum(1, 0, 300);
-  //Inc.SetToPiersonMoskowitzSpectrum(6, 0);
-  Inc.SetToMonoChromatic(1, 12, 90*M_PI/180);
+  // Inc.SetToPiersonMoskowitzSpectrum(1, 0, 300);
+  // Inc.SetToPiersonMoskowitzSpectrum(6, 0);
+  Inc.SetToMonoChromatic(1, 12, 90 * M_PI / 180);
 
   std::cout << Inc << std::endl;
 
-for(double t = 0; t<600; t+=.1)
-   std::cout << t << "  " << Inc.eta(0,0,t) << "   " << Inc.etadot(0,0,t) << "  " << cos(2*M_PI*t/12) << std::endl;
+  for (double t = 0; t < 600; t += .1) {
+    std::cout << t << "  " << Inc.eta(0, 0, t) << "   " << Inc.etadot(0, 0, t) << "  " << cos(
+      2 * M_PI * t / 12) << std::endl;
+  }
 
   return 0;
 }
-

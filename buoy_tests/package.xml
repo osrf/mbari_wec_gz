@@ -15,12 +15,13 @@
 
   <test_depend>buoy_api_cpp</test_depend>
   <test_depend>buoy_api_py</test_depend>
-  <test_depend>buoy_examples</test_depend>
   <test_depend>buoy_gazebo</test_depend>
   <test_depend>buoy_interfaces</test_depend>
 
   <test_depend>rclcpp</test_depend>
   <test_depend>rclpy</test_depend>
+
+  <test_depend>splinter_ros</test_depend>
 
   <test_depend>python3-ignition-gazebo6</test_depend>
   <test_depend>ament_cmake_gtest</test_depend>
