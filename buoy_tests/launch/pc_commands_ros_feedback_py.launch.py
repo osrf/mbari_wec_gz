@@ -12,9 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import time
 
+from ament_index_python.packages import get_package_share_directory
+
 from buoy_api.examples.torque_controller import PBTorqueControlPolicy
+
+import numpy as np
 
 from testing_utils import BuoyPyTestAfterShutdown  # noqa F401 -- runs if imported
 from testing_utils import BuoyPyTests
@@ -25,10 +30,35 @@ def generate_test_description():
     return default_generate_test_description()
 
 
+config = os.path.join(
+    get_package_share_directory('buoy_api_py'),
+    'config',
+    'pb_torque_controller.yaml'
+    )
+
+
 class BuoyPCPyTest(BuoyPyTests):
+
+    NODE_NAME = 'pb_torque_controller'
+    CLI_ARGS = ['--ros-args', '--params-file', config]
+
+    def set_params(self, policy):
+        policy.Torque_constant = \
+            self.node.get_parameter('torque_constant').get_parameter_value().double_value
+
+        policy.N_Spec = \
+            np.array(self.node.get_parameter('n_spec').get_parameter_value().double_array_value)
+
+        policy.Torque_Spec = \
+            np.array(
+                self.node.get_parameter('torque_spec').get_parameter_value().double_array_value)
+
+        policy.update_params()
+        self.node.get_logger().info(str(policy))
 
     def test_pc_commands_ros(self, gazebo_test_fixture, proc_info):
         torque_policy_ = PBTorqueControlPolicy()
+        self.set_params(torque_policy_)
 
         time.sleep(0.5)
         clock = self.node.get_clock()
