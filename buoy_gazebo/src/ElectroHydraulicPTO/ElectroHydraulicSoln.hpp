@@ -234,6 +234,5 @@ const std::vector<std::vector<double>> ElectroHydraulicSoln::eff_m
   {0.9800, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800, 0.9700,
     0.9700, 0.9700, 0.9600, 0.9600, 0.9500, 0.9500, 0.9400, 0.9300, 0.9300, 0.9000}
 };
-*/
 
 #endif  // ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
