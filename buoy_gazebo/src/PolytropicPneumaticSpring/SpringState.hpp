@@ -47,8 +47,8 @@ struct SpringState
   float range_finder{0.0F};  // piston position in meters measured from fully retracted as
                              // reference. In buoy this is laser range finder at top of upper
                              // chamber (TODO(andermi) units)
-  float upper_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
-  float lower_psi{0.0F};  // pressure in PSI (TODO(andermi) units)
+  float upper_pressure{0.0F};
+  float lower_pressure{0.0F};
   buoy_utils::Status<SpringStatusBits> status;  // status of SpringController
 
   // Commands
@@ -59,8 +59,8 @@ struct SpringState
   {
     bool equal = this->load_cell == that.load_cell;
     equal &= fabs(this->range_finder - that.range_finder) < 1e-7F;
-    equal &= fabs(this->upper_psi - that.upper_psi) < 1e-7F;
-    equal &= fabs(this->lower_psi - that.lower_psi) < 1e-7F;
+    equal &= fabs(this->upper_pressure - that.upper_pressure) < 1e-7F;
+    equal &= fabs(this->lower_pressure - that.lower_pressure) < 1e-7F;
     equal &= this->status == that.status;
     return equal;
   }

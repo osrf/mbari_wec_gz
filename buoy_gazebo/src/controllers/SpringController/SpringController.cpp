@@ -633,8 +633,8 @@ void SpringController::PostUpdate(
   this->dataPtr->ros_->sc_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->ros_->sc_record_.header.stamp.nanosec = sec_nsec.second;
   this->dataPtr->ros_->sc_record_.range_finder = spring_state_comp->Data().range_finder;
-  this->dataPtr->ros_->sc_record_.upper_psi = spring_state_comp->Data().upper_psi;
-  this->dataPtr->ros_->sc_record_.lower_psi = spring_state_comp->Data().lower_psi;
+  this->dataPtr->ros_->sc_record_.upper_pressure = spring_state_comp->Data().upper_pressure;
+  this->dataPtr->ros_->sc_record_.lower_pressure = spring_state_comp->Data().lower_pressure;
 
   // Currently existing but unused fields by physical buoy -- the CTD sensor is not in service
   // this->dataPtr->sc_record_.epoch = spring_state_comp->Data().epoch_;
