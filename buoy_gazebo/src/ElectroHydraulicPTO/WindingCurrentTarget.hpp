@@ -54,6 +54,7 @@ public:
   double TorqueConstantNMPerAmp;  // N-m/Amp
   double TorqueConstantInLbPerAmp;  // in-lb/Amp
 
+  double RamPosition;
   double ScaleFactor;
   double RetractFactor;
   double UserCommandedCurrent{0.0};
@@ -75,6 +76,8 @@ public:
     this->ScaleFactor = DEFAULT_SCALE_FACTOR;
     this->RetractFactor = DEFAULT_RETRACT_FACTOR;
     this->BiasCurrent = DEFAULT_BIASCURRENT;
+
+    this->RamPosition = 0;  // Default to full retract, should be set before () operator is used.
   }
 
   double operator()(const double & N) const
@@ -96,9 +99,75 @@ public:
         I += BiasCurrent;
       }
     }
+
+// Enforce Min/Max
+//  - The winding current target is always constrained between +/- MAX_WINDCURRENTLIMIT
+//  - At high speeds, the winding current is further limited to force the system into
+//    a generating quadrant, eventually creating maximum resistance at or above 6000RPM.
+//    This maximum resistance forces the pressure relief valve open in the system, which
+//    reduces flow through the motor and keeps the speed from increasing further.
+//  - Except when in "permissive mode", the RPM at which the system is forced into a
+//    generating quadrant reduces as the piston nears the end.  This is effectively
+//    a soft stop that prevents a commanded current from slamming the piston into the stop.
+//
+//   -6000RPM                               ^  I                   5000RPM
+//       |                                  |                        |
+//       V                                  |                        V
+//    --------------------------------------|-------------------------  <- +35A
+//        \                                 |                         \
+//         \                                |                          \
+//          \            (generating)       |        (motoring)         \
+//           \                              |                            \
+//            \                             |                             \
+//             \                            |                              \
+// <---------------------------------------------------------------------------------------->
+//               \                          |                                \            RPM
+//                \                         |                                 \
+//                 \                        |                                  \
+//                  \     (motoring)        |        (generating)               \
+//                   \                      |                                    \
+//                    \                     |                                     \
+//            -35A ->  ---------------------|------------------------------------------
+//                     ^                    |                                      ^
+//                     |                    |                                      |
+//                 -5000RPM                 V                                   6000RPM
+
+    double AdjustedN = N;
+    if (fabs(N) >= 0) {  // Retracting
+      if (RamPosition < (STOP_RANGE - SC_RANGE_MIN)) {
+        AdjustedN += ((STOP_RANGE - SC_RANGE_MIN) - RamPosition) * MAX_RPM_ADJUSTMENT;
+      }
+      double CurrLim = -AdjustedN * 2 * MAX_WINDCURRENTLIMIT / 1000.0 + 385.0;  // Magic nums
+      if (I > CurrLim) {
+        I = CurrLim;
+      }
+    } else {  // Extending
+      if (RamPosition > (SC_RANGE_MAX - STOP_RANGE)) {
+        AdjustedN -= (RamPosition - (SC_RANGE_MAX - STOP_RANGE)) * MAX_RPM_ADJUSTMENT;
+      }
+      double CurrLim = -AdjustedN * 2 * MAX_WINDCURRENTLIMIT / 1000.0 - 385.0;  //  Magic nums
+      if (I < CurrLim) {
+        I = CurrLim;
+      }
+    }
+
+    if (I < -MAX_WINDCURRENTLIMIT) {
+      I = -MAX_WINDCURRENTLIMIT;
+    }
+    if (I > MAX_WINDCURRENTLIMIT) {
+      I = MAX_WINDCURRENTLIMIT;
+    }
+
+
     return I;
   }
 };
+
+#define SC_RANGE_MIN 0  // Inches
+#define SC_RANGE_MAX 80  // Inches
+#define STOP_RANGE 10  // Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
+// Max amount to modify RPM in determining WindingCurrentLimit near ends of stroke
+#define MAX_RPM_ADJUSTMENT 5000
 
 
 #endif  // ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
