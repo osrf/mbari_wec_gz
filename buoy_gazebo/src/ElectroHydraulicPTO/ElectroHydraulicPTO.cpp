@@ -193,6 +193,9 @@ void ElectroHydraulicPTO::PreUpdate(
   double xdot = prismaticJointVelComp->Data().at(0);
   this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
+  // Need to set to actual ram position for soft-stop at ends, mid-span for now
+  this->dataPtr->functor.I_Wind.RamPosition = 40.0;
+
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
   // but do include mechanical and volumetric efficiency of hydraulic motor.
