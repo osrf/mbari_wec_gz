@@ -497,8 +497,7 @@ void PolytropicPneumaticSpring::PreUpdate(
   const int dt_nano =
     static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count());
 
-  static const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
-  const double pressure_diff = (spring_state.lower_psi - spring_state.upper_psi) / PASCAL_TO_PSI;
+  const double pressure_diff = (spring_state.lower_pressure - spring_state.upper_pressure);
 
   if (this->dataPtr->config_->hysteresis) {
     if (spring_state.valve_command) {
@@ -543,9 +542,9 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   if (this->dataPtr->config_->is_upper) {
     spring_state.range_finder = x;
-    spring_state.upper_psi = PASCAL_TO_PSI * this->dataPtr->P;
+    spring_state.upper_pressure = this->dataPtr->P;
   } else {
-    spring_state.lower_psi = PASCAL_TO_PSI * this->dataPtr->P;
+    spring_state.lower_pressure = this->dataPtr->P;
   }
 
   _ecm.SetComponentData<buoy_gazebo::components::SpringState>(

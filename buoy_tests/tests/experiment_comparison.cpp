@@ -47,7 +47,7 @@
 
 
 const double INCHES_TO_METERS{0.0254};
-
+const double PASCAL_TO_PSI{1.450377e-4};
 
 struct TestData
 {
@@ -378,8 +378,8 @@ protected:
 
           auto SpringState = SpringStateComp->Data();
           ResultsData.PistonPos.push_back(SpringState.range_finder / INCHES_TO_METERS);
-          ResultsData.LowerSpringPressure.push_back(SpringState.lower_psi);
-          ResultsData.UpperSpringPressure.push_back(SpringState.upper_psi);
+          ResultsData.LowerSpringPressure.push_back(PASCAL_TO_PSI * SpringState.lower_pressure);
+          ResultsData.UpperSpringPressure.push_back(PASCAL_TO_PSI * SpringState.upper_pressure);
           ResultsData.LowerSpringVolume.push_back(
             (stroke - SpringState.range_finder) * lower_area + lower_dead_volume);
           ResultsData.UpperSpringVolume.push_back(
