@@ -138,6 +138,9 @@ void ElectroHydraulicPTO::Configure(
     this->dataPtr->VelMode = true;
   }
 
+  // Need to set to actual ram position for soft-stop at ends, mid-span for now
+  this->dataPtr->functor.I_Wind.RamPosition = 40.0;
+
   this->dataPtr->x.setConstant(2.0, 0.0);
 
   std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
@@ -173,7 +176,6 @@ void ElectroHydraulicPTO::PreUpdate(
       "s]. System may not work properly." << std::endl;
   }
 
-
   // Create joint velocity component for piston if one doesn't exist
   auto prismaticJointVelComp = _ecm.Component<ignition::gazebo::components::JointVelocity>(
     this->dataPtr->PrismaticJointEntity);
@@ -187,14 +189,27 @@ void ElectroHydraulicPTO::PreUpdate(
     return;
   }
 
+  // Create joint position component for piston if one doesn't exist
+  auto prismaticJointPosComp = _ecm.Component<ignition::gazebo::components::JointPosition>(
+    this->dataPtr->PrismaticJointEntity);
+  if (prismaticJointPosComp == nullptr) {
+    _ecm.CreateComponent(
+      this->dataPtr->PrismaticJointEntity, ignition::gazebo::components::JointPosition());
+  }
+  // We just created the joint velocity component, give one iteration for the
+  // physics system to update its size
+  if (prismaticJointPosComp == nullptr || prismaticJointPosComp->Data().empty()) {
+    return;
+  }
+
   // Retrieve Piston velocity, compute flow and provide as input to hydraulic solver.
   // TODO(anyone): Figure out if (0) for the index is always correct,
   // some OR code has a process of finding the index for this argument.
   double xdot = prismaticJointVelComp->Data().at(0);
   this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
-  // Need to set to actual ram position for soft-stop at ends, mid-span for now
-  this->dataPtr->functor.I_Wind.RamPosition = 40.0;
+  double x = prismaticJointVelComp->Data().at(0);
+  this->dataPtr->functor.I_Wind.RamPosition = 40.0;  //TODO(hamilton8415) x * 39.4;
 
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,

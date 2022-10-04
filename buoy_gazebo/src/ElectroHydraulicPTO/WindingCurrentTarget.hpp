@@ -38,11 +38,11 @@
 #define DEFAULT_BIASCURRENT 0.0  // Start with zero bias current
 #define MAX_BIASCURRENT 20.0  // Max allowable winding bias current Magnitude that can be applied
 #define MAX_WINDCURRENTLIMIT 35  // Winding Current Limit, Amps.  Limit on internal target
-#define SC_RANGE_MIN 0  // Inches
-#define SC_RANGE_MAX 80  // Inches
-#define STOP_RANGE 10  // Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
+#define SC_RANGE_MIN 0.0  // Inches
+#define SC_RANGE_MAX 80.0  // Inches
+#define STOP_RANGE 10.0  // Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
 // Max amount to modify RPM in determining WindingCurrentLimit near ends of stroke
-#define MAX_RPM_ADJUSTMENT 5000
+#define MAX_RPM_ADJUSTMENT 5000.0
 
 
 class WindingCurrentTarget
@@ -133,11 +133,11 @@ public:
 //                 -5000RPM                 V                                   6000RPM
 
     double AdjustedN = N;
-    if (fabs(N) >= 0) {  // Retracting
+    if (fabs(N) >= 0.0) {  // Retracting
       if (RamPosition < (STOP_RANGE - SC_RANGE_MIN)) {
         AdjustedN += ((STOP_RANGE - SC_RANGE_MIN) - RamPosition) * MAX_RPM_ADJUSTMENT;
       }
-      double CurrLim = -AdjustedN * 2 * MAX_WINDCURRENTLIMIT / 1000.0 + 385.0;  // Magic nums
+      double CurrLim = -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 + 385.0;  // Magic nums
       if (I > CurrLim) {
         I = CurrLim;
       }
@@ -145,7 +145,7 @@ public:
       if (RamPosition > (SC_RANGE_MAX - STOP_RANGE)) {
         AdjustedN -= (RamPosition - (SC_RANGE_MAX - STOP_RANGE)) * MAX_RPM_ADJUSTMENT;
       }
-      double CurrLim = -AdjustedN * 2 * MAX_WINDCURRENTLIMIT / 1000.0 - 385.0;  //  Magic nums
+      double CurrLim = -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 - 385.0;  //  Magic nums
       if (I < CurrLim) {
         I = CurrLim;
       }
@@ -162,12 +162,5 @@ public:
     return I;
   }
 };
-
-#define SC_RANGE_MIN 0  // Inches
-#define SC_RANGE_MAX 80  // Inches
-#define STOP_RANGE 10  // Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
-// Max amount to modify RPM in determining WindingCurrentLimit near ends of stroke
-#define MAX_RPM_ADJUSTMENT 5000
-
 
 #endif  // ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
