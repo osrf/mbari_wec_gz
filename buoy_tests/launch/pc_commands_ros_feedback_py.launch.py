@@ -184,8 +184,8 @@ class BuoyPCPyTest(BuoyPyTests):
             torque_policy_.winding_current_target(self.node.rpm_,
                                                   self.node.scale_,
                                                   self.node.retract_) + self.node.bias_curr_
-        self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.1)
-        self.assertLess(self.node.wind_curr_, expected_wind_curr + 0.1)
+        self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.2)
+        self.assertLess(self.node.wind_curr_, expected_wind_curr + 0.2)
 
         #############################################################
         # Bias Current

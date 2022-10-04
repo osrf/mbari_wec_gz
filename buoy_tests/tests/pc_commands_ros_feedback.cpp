@@ -342,8 +342,8 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     node->rpm_,
     node->scale_,
     node->retract_) + node->bias_curr_;
-  EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1);
-  EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1);
+  EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.2);
+  EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.2);
 
   ///////////////////////////////////////////
   // Bias Current
