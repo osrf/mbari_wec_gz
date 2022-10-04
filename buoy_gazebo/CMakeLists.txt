@@ -142,7 +142,7 @@ if(BUILD_TESTING)
       )
     endif()
     if(gz_add_test_ROS)
-      set(ROS_PKGS rclcpp ${gz_add_test_EXTRA_ROS_PKGS})
+      set(ROS_PKGS rclcpp splinter_ros ${gz_add_test_EXTRA_ROS_PKGS})
       foreach(PKG ${ROS_PKGS})
         find_package(${PKG} REQUIRED)
       endforeach()
@@ -167,6 +167,7 @@ if(BUILD_TESTING)
 
   # Add gtests
   gz_add_gtest(test_stopwatch ROS)
+  gz_add_gtest(test_hydraulic_pneumatic_friction ROS)
 
 endif()
 

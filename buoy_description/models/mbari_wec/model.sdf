@@ -62,5 +62,9 @@
     </plugin>
     <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
 
+    <plugin filename="HydraulicPneumaticFriction" name="buoy_gazebo::HydraulicPneumaticFriction">
+      <PrismaticJointName>HydraulicRam</PrismaticJointName>
+    </plugin>
+
   </model>
 </sdf>
