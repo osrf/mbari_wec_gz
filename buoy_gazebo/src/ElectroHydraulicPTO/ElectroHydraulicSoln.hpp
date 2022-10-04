@@ -112,7 +112,7 @@ public:
                                         //  relieves when lower pressure is higher
                                         //  than upper (resisting extension)
       QQ += (x[1U] - PressReliefSetPoint) * ReliefValveFlowPerPSI *
-        ReliefValveFlowPerPSI / SecondsPerMinute;
+        CubicInchesPerGallon / SecondsPerMinute;
     }
 
     fvec[0U] = x[0U] - eff_v * SecondsPerMinute * QQ / this->HydMotorDisp;
