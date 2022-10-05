@@ -16,6 +16,8 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(buoy_description REQUIRED)
+# find_package(buoy_interfaces REQUIRED)
+# find_package(rclcpp REQUIRED)
 
 find_package(ignition-cmake2 REQUIRED)
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
@@ -98,6 +100,36 @@ endfunction()
 
 add_subdirectory(src)
 
+add_library(BuoyECMStateData INTERFACE)
+target_include_directories(BuoyECMStateData INTERFACE
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
+  "$<INSTALL_INTERFACE:include>"
+)
+
+install(TARGETS BuoyECMStateData
+  EXPORT export_BuoyECMStateData
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib
+  INCLUDES DESTINATION include
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
+  DESTINATION include
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ElectroHydraulicPTO
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PolytropicPneumaticSpring
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
+ament_export_targets(export_BuoyECMStateData)
 
 # Resources
 install(DIRECTORY

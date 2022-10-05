@@ -20,7 +20,7 @@
       <is_upper>true</is_upper>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>49e-7</valve_absement>
-      <pump_absement>13e-8</pump_absement>
+      <pump_absement>18e-8</pump_absement>
       <pump_pressure>1.7e+6</pump_pressure>
       <stroke>2.03</stroke>
       <piston_area>0.0127</piston_area>
@@ -29,12 +29,12 @@
       <R_specific>0.2968</R_specific>
       <c_p>1.04</c_p>
       <hysteresis>true</hysteresis>
-      <n1>1.2371</n1>
-      <n2>1.2307</n2>
-      <x1>0.9790</x1>
-      <x2>1.1912</x2>
-      <P1>410291</P1>
-      <P2>410266</P2>
+      <n1>1.1725</n1>
+      <n2>1.2139</n2>
+      <x1>1.6159</x1>
+      <x2>1.8578</x2>
+      <P1>410152</P1>
+      <P2>410190</P2>
     </plugin>
 
     <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
@@ -44,7 +44,7 @@
       <is_upper>false</is_upper>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>49e-7</valve_absement>
-      <pump_absement>13e-8</pump_absement>
+      <pump_absement>18e-8</pump_absement>
       <pump_pressure>1.7e+6</pump_pressure>
       <stroke>2.03</stroke>
       <piston_area>0.0115</piston_area>
@@ -53,12 +53,12 @@
       <R_specific>0.2968</R_specific>
       <c_p>1.04</c_p>
       <hysteresis>true</hysteresis>
-      <n1>1.2327</n1>
-      <n2>1.2518</n2>
-      <x1>1.1958</x1>
-      <x2>1.3935</x2>
-      <P1>1212090</P1>
-      <P2>1212140</P2>
+      <n1>1.1967</n1>
+      <n2>1.1944</n2>
+      <x1>0.9695</x1>
+      <x2>1.1850</x2>
+      <P1>1212060</P1>
+      <P2>1212740</P2>
     </plugin>
     <!-- <debug_prescribed_velocity>true</debug_prescribed_velocity>-->
 
