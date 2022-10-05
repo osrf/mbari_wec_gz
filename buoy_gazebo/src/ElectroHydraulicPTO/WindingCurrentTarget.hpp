@@ -23,10 +23,6 @@
 #include <string>
 #include <vector>
 
-#include "splinter/datatable.h"
-#include "splinter/bspline.h"
-#include "splinter/bsplinebuilder.h"
-
 
 // Defines from Controller Firmware, behavior replicated here
 #define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current

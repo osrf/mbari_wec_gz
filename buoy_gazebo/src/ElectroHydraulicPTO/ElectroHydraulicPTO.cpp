@@ -29,7 +29,7 @@
 #include <ignition/plugin/Register.hh>
 #include <ignition/transport/Node.hh>
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <unsupported/Eigen/NonLinearOptimization>
 

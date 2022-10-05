@@ -15,10 +15,11 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
+// Interpolation library for efficiency maps
 #include <splinter_ros/splinter1d.hpp>
 #include <splinter_ros/splinter2d.hpp>
 
@@ -28,11 +29,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-// Interpolation library for efficiency maps
-#include "splinter/datatable.h"
-#include "splinter/bspline.h"
-#include "splinter/bsplinebuilder.h"
 
 #include "ElectroHydraulicState.hpp"
 #include "WindingCurrentTarget.hpp"
