@@ -209,7 +209,7 @@ void ElectroHydraulicPTO::PreUpdate(
   this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
   double x = prismaticJointVelComp->Data().at(0);
-  this->dataPtr->functor.I_Wind.RamPosition = 40.0;  //TODO(hamilton8415) x * 39.4;
+  this->dataPtr->functor.I_Wind.RamPosition = 40.0;  // TODO(hamilton8415) x * 39.4;
 
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
