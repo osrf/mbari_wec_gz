@@ -105,6 +105,8 @@ struct PolytropicPneumaticSpringConfig
 
   /// \brief Model interface
   ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
+
+  bool VelMode{false};
 };
 
 struct PolytropicPneumaticSpringPrivate
@@ -288,6 +290,8 @@ void PolytropicPneumaticSpring::Configure(
   config.c_p = SdfParamDouble(_sdf, "c_p", config.c_p);
   config.debug_prescribed_velocity = _sdf->Get<bool>(
     "debug_prescribed_velocity", false).first;
+  config.VelMode = _sdf->Get<bool>(
+    "VelMode", false).first;
   config.T0 = SdfParamDouble(_sdf, "T0", config.T0);
 
   config.hysteresis = _sdf->Get<bool>("hysteresis", false).first;
@@ -595,15 +599,19 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   static const bool debug_prescribed_velocity{this->dataPtr->config_->debug_prescribed_velocity};
   if (!debug_prescribed_velocity) {
-    auto forceComp =
-      _ecm.Component<ignition::gazebo::components::JointForceCmd>(
-      this->dataPtr->config_->jointEntity);
-    if (forceComp == nullptr) {
-      _ecm.CreateComponent(
-        this->dataPtr->config_->jointEntity,
-        ignition::gazebo::components::JointForceCmd({this->dataPtr->F}));
-    } else {
-      forceComp->Data()[0] += this->dataPtr->F;  // Add force to existing forces.
+    // Apply force if not in Velocity Mode, in which case a joint velocity is applied elsewhere
+    // (likely by a test Fixture)
+    if (!this->dataPtr->config_->VelMode) {
+      auto forceComp =
+        _ecm.Component<ignition::gazebo::components::JointForceCmd>(
+        this->dataPtr->config_->jointEntity);
+      if (forceComp == nullptr) {
+        _ecm.CreateComponent(
+          this->dataPtr->config_->jointEntity,
+          ignition::gazebo::components::JointForceCmd({this->dataPtr->F}));
+      } else {
+        forceComp->Data()[0] += this->dataPtr->F;  // Add force to existing forces.
+      }
     }
   } else {
     double period = 2.0;  // sec
