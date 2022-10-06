@@ -60,6 +60,7 @@ public:
   double UserCommandedCurrent{0.0};
   double BiasCurrent;
   mutable double I{0.0};
+  mutable double J_I{0.0};
   bool current_override_{false};
   bool bias_override_{false};
 
@@ -80,16 +81,34 @@ public:
     this->RamPosition = 0;  // Default to full retract, should be set before () operator is used.
   }
 
+  double df(const double & N) const
+  {
+    if (current_override_) {
+      J_I = 0.0;
+    } else {
+      J_I = this->DefaultDamping.evalJacobian(fabs(N), splinter_ros::USE_BOUNDS) *
+        this->ScaleFactor / this->TorqueConstantNMPerAmp;
+
+      if (N > 0.0) {
+        J_I *= -this->RetractFactor;
+      }
+    }
+
+    return J_I;
+  }
+
   double operator()(const double & N) const
   {
     if (current_override_) {
       I = UserCommandedCurrent;
     } else {
-      if (fabs(N) >= NSpec.back()) {
-        I = TorqueSpec.back() * this->ScaleFactor / this->TorqueConstantNMPerAmp;
-      } else {
-        I = this->DefaultDamping.eval(fabs(N)) * this->ScaleFactor / this->TorqueConstantNMPerAmp;
-      }
+      I = this->DefaultDamping.eval(
+        fabs(N),
+        splinter_ros::FILL_VALUE,
+        std::vector<double>{
+        TorqueSpec.front(),
+        TorqueSpec.back()}) *
+        this->ScaleFactor / this->TorqueConstantNMPerAmp;
 
       if (N > 0.0) {
         I *= -this->RetractFactor;
@@ -157,7 +176,6 @@ public:
     if (I > MAX_WINDCURRENTLIMIT) {
       I = MAX_WINDCURRENTLIMIT;
     }
-
 
     return I;
   }

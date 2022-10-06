@@ -257,7 +257,13 @@ void ElectroHydraulicPTO::PreUpdate(
 
   // Initial Guess based on perfect efficiency
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
-  const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
+
+  // solver.solveNumericalDiff will compute Jacobian numerically rather than obtain from user
+  // const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
+
+  // solver.solve will use functor `df` function to obtain Jacobian instead of
+  // computing numerically
+  const int solver_info = solver.solve(this->dataPtr->x);
 
 
   // Solve Electrical
