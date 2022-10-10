@@ -306,7 +306,7 @@ struct PowerControllerPrivate
         if (response->result.value == response->result.BAD_INPUT) {
           RCLCPP_WARN_STREAM(
             ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] PCWindCurrCommand out of bounds -- clipped between [" <<
+            "[ROS 2 Power Control] PCWindCurrCommand out of bounds -- clipped between [" <<
               services_->valid_wind_curr_range_.from_value << ", " <<
               services_->valid_wind_curr_range_.to_value << "] Amps");
         }
@@ -338,7 +338,7 @@ struct PowerControllerPrivate
         if (response->result.value == response->result.BAD_INPUT) {
           RCLCPP_WARN_STREAM(
             ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] PCScaleCommand out of bounds -- clipped between [" <<
+            "[ROS 2 Power Control] PCScaleCommand out of bounds -- clipped between [" <<
               services_->valid_scale_range_.from_value << ", " <<
               services_->valid_scale_range_.to_value << "]");
         }
@@ -370,7 +370,7 @@ struct PowerControllerPrivate
         if (response->result.value == response->result.BAD_INPUT) {
           RCLCPP_WARN_STREAM(
             ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] PCRetractCommand out of bounds -- clipped between [" <<
+            "[ROS 2 Power Control] PCRetractCommand out of bounds -- clipped between [" <<
               services_->valid_retract_range_.from_value << ", " <<
               services_->valid_retract_range_.to_value << "]");
         }
@@ -402,7 +402,7 @@ struct PowerControllerPrivate
         if (response->result.value == response->result.BAD_INPUT) {
           RCLCPP_WARN_STREAM(
             ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] PCBiasCurrCommand out of bounds -- clipped between [" <<
+            "[ROS 2 Power Control] PCBiasCurrCommand out of bounds -- clipped between [" <<
               services_->valid_bias_curr_range_.from_value << ", " <<
               services_->valid_bias_curr_range_.to_value << "]");
         }
@@ -586,9 +586,9 @@ void PowerController::Configure(
   // Make sure the controller is attached to a valid model
   auto model = ignition::gazebo::Model(_entity);
   if (!model.Valid(_ecm)) {
-    ignerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
+    ignerr << "[ROS 2 Power Control] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
-      "Please make sure that ROS 2 Spring Control is attached to a valid model." << std::endl;
+      "Please make sure that ROS 2 Power Control is attached to a valid model." << std::endl;
     return;
   }
 
@@ -623,7 +623,7 @@ void PowerController::Configure(
 
   RCLCPP_INFO_STREAM(
     this->dataPtr->ros_->node_->get_logger(),
-    "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm) << "]");
+    "[ROS 2 Power Control] Setting up controller for [" << model.Name(_ecm) << "]");
 
   // Publisher
   std::string topic = _sdf->Get<std::string>("topic", "power_data").first;
@@ -730,7 +730,7 @@ void PowerController::PostUpdate(
       this->dataPtr->jointEntity_,
       buoy_gazebo::components::ElectroHydraulicState().TypeId()))
   {
-    // Pneumatic Spring hasn't updated values yet
+    // ElectroHydraulicPTO hasn't updated values yet
     this->dataPtr->pto_data_valid_ = false;
     return;
   }
