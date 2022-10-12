@@ -52,6 +52,10 @@ set(GZ_SIM_VER ${ignition-gazebo6_VERSION_MAJOR})
 #
 # [ROS]: Signal that this plugin is ROS-enabled
 
+add_link_options(
+  "LINKER:-E"
+)
+
 function(gz_add_plugin plugin_name)
   set(options ROS)
   set(oneValueArgs)

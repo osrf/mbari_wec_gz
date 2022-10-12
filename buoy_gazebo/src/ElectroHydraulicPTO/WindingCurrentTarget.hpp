@@ -101,6 +101,7 @@ public:
   {
     if (current_override_) {
       I = UserCommandedCurrent;
+      // std::cerr << "User Commanded Current: [" << I << "]" << std::endl;
     } else {
       I = this->DefaultDamping.eval(
         fabs(N),

@@ -546,6 +546,33 @@ TEST_F(BuoyExperimentComparison, PTO)
       gp.send1d(boost::make_tuple(InputData.seconds, InputData.get_data(i)));
       gp.send1d(boost::make_tuple(ResultsData.seconds, ResultsData.get_data(i)));
     }
+
+    {
+    Gnuplot gp;
+    gp << "set term X11 title  '" << InputData.names[4] << " vs " << InputData.names[3] << " Comparison'\n";
+    gp << "set grid\n";
+    gp << "set xlabel '" << InputData.units[3] << "'\n";
+    gp << "set ylabel '" << InputData.units[4] << "'\n";
+    gp << "plot '-' w l title 'EXP " << InputData.names[4] <<
+      "','-' w l title 'TEST " << InputData.names[4] << "'\n";
+
+    gp.send1d(boost::make_tuple(InputData.get_data(3), InputData.get_data(4)));
+    gp.send1d(boost::make_tuple(ResultsData.get_data(3), ResultsData.get_data(4)));
+    }
+
+    {
+    Gnuplot gp;
+    gp << "set term X11 title  '" << InputData.names[5] << " vs " << InputData.names[3] << " Comparison'\n";
+    gp << "set grid\n";
+    gp << "set xlabel '" << InputData.units[3] << "'\n";
+    gp << "set ylabel '" << InputData.units[5] << "'\n";
+    gp << "plot '-' w l title 'EXP " << InputData.names[5] <<
+      "','-' w l title 'TEST " << InputData.names[5] << "'\n";
+
+    gp.send1d(boost::make_tuple(InputData.get_data(3), InputData.get_data(5)));
+    gp.send1d(boost::make_tuple(ResultsData.get_data(3), ResultsData.get_data(5)));
+    }
+
   } else {  // Compare test results to input data and pass test if so.
     EXPECT_TRUE(CompareData(TestData::PISTON_VEL, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::MOTOR_RPM, 1.0, timestep));

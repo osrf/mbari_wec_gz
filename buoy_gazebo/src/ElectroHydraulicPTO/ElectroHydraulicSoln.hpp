@@ -15,10 +15,11 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 
-#include <unsupported/Eigen/NonLinearOptimization>
-
+// #include <splinter_ros/common.hpp>  // linspace
 // Interpolation library for efficiency maps
-#include <splinter_ros/splinter2d.hpp>
+#include <splinter_ros/splinter1d.hpp>
+
+#include <unsupported/Eigen/NonLinearOptimization>
 
 #include <algorithm>
 #include <cmath>
@@ -59,10 +60,61 @@ struct Functor
   // const;
 };
 
+struct EffV
+{
+  EffV() = default;
+
+  std::vector<double> df(const double & rpm, const double & pressure) const
+  {
+    double sech_ = 1.0 / cosh(2e-6 * (rpm + 55.0) * (pressure - 5000.0));
+
+    // rpm
+    double dfdx0 = 2.667e-11 * (pressure - 74268.6) * (pressure - 5000.0) * sech_ * sech_;
+
+    // pressure
+    double dfdx1 = 1.333e-5 * tanh(2e-6 * (rpm + 55.0) * (pressure - 5000.0)) +
+      2.667e-11 * (rpm + 55.0) * (pressure - 74268.6) * sech_ * sech_;
+
+    return std::vector<double>{dfdx0, dfdx1};
+  }
+
+  double operator()(const double & rpm, const double & pressure) const
+  {
+    return std::max(0.5, (-1.333e-5 * pressure + 0.99) * tanh((-2e-6 * pressure + 0.01) * (rpm + 55.0)));
+  }
+};
+
+struct EffM
+{
+  EffM() = default;
+
+  std::vector<double> df(const double & rpm, const double & pressure) const
+  {
+    double sech_ = 1.0 / cosh(8e-8 * (rpm - 37500.0) * (pressure + 34.0));
+
+    // rpm
+    double dfdx0 = (4.2664e-13 * rpm - 7.84e-8) * (pressure + 34.0) * sech_ * sech_ -
+      5.333e-6 * tanh((-8e-8 * rpm + 0.003) * (pressure + 34.0));
+
+    // pressure
+    double dfdx1 = 4.2664e-13 * (rpm - 183761.0) * (rpm - 37500.0) * sech_ * sech_;
+
+    return std::vector<double>{dfdx0, dfdx1};
+  }
+
+  double operator()(const double & rpm, const double & pressure) const
+  {
+    if (pressure <= 10.0) {
+      return (2.5871e-14 * rpm + 7.9528e-9) * exp((-3.9e-6 * rpm + 1.25742) * pressure) + 0.1;
+    }
+    return std::max(0.1, (-5.333e-6 * rpm + 0.98) * tanh((-8e-8 * rpm + 0.003) * (pressure + 34.0)));
+  }
+};
+
 struct ElectroHydraulicSoln : Functor<double>
 {
 public:
-  const double PressReliefSetPoint = 2850;  // psi
+  const double PressReliefSetPoint = 2850.0;  // psi
   // ~50GPM/600psi ~= .33472 in^3/psi -> Relief valve flow
   // above setpoint, From SUN RPECLAN data sheet
   const double ReliefValveFlowPerPSI = 50.0 / 600.0;
@@ -85,42 +137,16 @@ private:
   static const std::vector<double> Eff_V;  // volumetric efficiency
   static const std::vector<double> Eff_M;  // mechanical efficiency
 
+  EffM effm;
+  EffV effv;
+
 public:
   ElectroHydraulicSoln()
   : Functor<double>(2, 2),
     // Set HydraulicMotor Volumetric & Mechanical Efficiency
     hyd_eff_v(Peff, Eff_V), hyd_eff_m(Neff, Eff_M) {}
-
-#if 0
-  int df(const Eigen::VectorXd & x, Eigen::MatrixXd & fjac) const
   {
-    const double rpm = fabs(x[0U]);
-    const double pressure = fabs(x[1U]);
-    const double eff_m =
-      this->hyd_eff_m.eval(rpm, splinter_ros::USE_BOUNDS);
-    const double eff_v =
-      this->hyd_eff_v.eval(pressure, splinter_ros::USE_BOUNDS);
-    const std::vector<double> J_eff_m =
-      this->hyd_eff_m.evalJacobian(rpm, splinter_ros::USE_BOUNDS);
-    const std::vector<double> J_eff_v =
-      this->hyd_eff_v.evalJacobian(pressure, splinter_ros::USE_BOUNDS);
-
-    const double I = this->I_Wind(x[0U]);
-    const double J_I = this->I_Wind.df(x[0U]);
-    const double T = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * I;
-    const double dTdx0 = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * J_I;
-
-    fjac(0, 0) = 1 - J_eff_v[0U] * SecondsPerMinute * this->Q / this->HydMotorDisp;  // df0/dx0
-    fjac(0, 1) = -J_eff_v[1U] * SecondsPerMinute * this->Q / this->HydMotorDisp;  // df0/dx1
-    fjac(1, 0) =
-      (-J_eff_m[0U] * T - eff_m * dTdx0) / (this->HydMotorDisp / (2.0 * M_PI));  // df1/dx0
-    fjac(1, 1) = 1 - J_eff_m[1U] * T / (this->HydMotorDisp / (2.0 * M_PI));  // df1/dx1
-
-    // std::cout << "Jacobian: " << fjac << std::endl;
-
-    return 0;
   }
-#endif
 
   // x[0] = RPM
   // x[1] = Pressure (psi)
@@ -139,19 +165,19 @@ public:
       1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(x[0U]);
 
     double QQ = this->Q;
-    if (x[1U] > PressReliefSetPoint) {  //  Pressure relief is a one wave valve,
-                                        //  relieves when lower pressure is higher
-                                        //  than upper (resisting extension)
+    if (x[1U] > PressReliefSetPoint) {  // Pressure relief is a one wave valve,
+                                        // relieves when lower pressure is higher
+                                        // than upper (resisting extension)
       QQ += (x[1U] - PressReliefSetPoint) * ReliefValveFlowPerPSI *
         CubicInchesPerGallon / SecondsPerMinute;
     }
 
-    if ((x[0U] > 0) - (-x[1U] < 0)) { //RPM and -deltaP have same sign
-      //std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
+    if ((x[0U] > 0) - (-x[1U] < 0)) { // RPM and -deltaP have same sign
+      // std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
       fvec[0U] = x[0U] - eff_v * SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     } else {
-      //std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
+      // std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
       fvec[0U] = eff_v * x[0U] - SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = eff_m * x[1U] - T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     }

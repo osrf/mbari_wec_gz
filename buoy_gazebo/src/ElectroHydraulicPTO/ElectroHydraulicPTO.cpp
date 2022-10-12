@@ -263,7 +263,9 @@ void ElectroHydraulicPTO::PreUpdate(
 
   // solver.solve will use functor `df` function to obtain Jacobian instead of
   // computing numerically
-  //const int solver_info = solver.solve(this->dataPtr->x);
+  // const int solver_info = solver.solve(this->dataPtr->x);
+  // std::cerr << "solver info: [" << solver_info << "]" << std::endl;
+  // std::cerr << "================================" << std::endl;
 
 
   // Solve Electrical
