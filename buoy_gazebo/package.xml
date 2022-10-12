@@ -19,7 +19,8 @@
   <depend>ros_ign_gazebo</depend>
   <depend>rviz2</depend>
   <depend>sdformat_urdf</depend>
-  <depend>splinter</depend>
+  <depend>splinter_ros</depend>
+  <depend>libgnuplot-iostream-dev</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

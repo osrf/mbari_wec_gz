@@ -29,7 +29,7 @@
 #include <ignition/plugin/Register.hh>
 #include <ignition/transport/Node.hh>
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
@@ -138,69 +138,15 @@ void ElectroHydraulicPTO::Configure(
     this->dataPtr->VelMode = true;
   }
 
-  this->dataPtr->x.setConstant(2.0, 0.0);
+  // Need to set to actual ram position for soft-stop at ends, mid-span for now
+  this->dataPtr->functor.I_Wind.RamPosition = 40.0;
 
+  this->dataPtr->x.setConstant(2.0, 0.0);
 
   std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
   pistonvel_pub = node.Advertise<ignition::msgs::Double>(pistonvel_topic);
   if (!pistonvel_pub) {
     ignerr << "Error advertising topic [" << pistonvel_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string rpm_topic = std::string("/rpm_") + PrismaticJointName;
-  rpm_pub = node.Advertise<ignition::msgs::Double>(rpm_topic);
-  if (!rpm_pub) {
-    ignerr << "Error advertising topic [" << rpm_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string deltaP_topic = std::string("/deltaP_") + PrismaticJointName;
-  deltaP_pub = node.Advertise<ignition::msgs::Double>(deltaP_topic);
-  if (!deltaP_pub) {
-    ignerr << "Error advertising topic [" << deltaP_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string targwindcurr_topic = std::string("/targwindcurr_") + PrismaticJointName;
-  targwindcurr_pub = node.Advertise<ignition::msgs::Double>(targwindcurr_topic);
-  if (!targwindcurr_pub) {
-    ignerr << "Error advertising topic [" << targwindcurr_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string windcurr_topic = std::string("/windcurr_") + PrismaticJointName;
-  windcurr_pub = node.Advertise<ignition::msgs::Double>(windcurr_topic);
-  if (!windcurr_pub) {
-    ignerr << "Error advertising topic [" << windcurr_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string battcurr_topic = std::string("/battcurr_") + PrismaticJointName;
-  battcurr_pub = node.Advertise<ignition::msgs::Double>(battcurr_topic);
-  if (!battcurr_pub) {
-    ignerr << "Error advertising topic [" << battcurr_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string loadcurr_topic = std::string("/loadcurr_") + PrismaticJointName;
-  loadcurr_pub = node.Advertise<ignition::msgs::Double>(loadcurr_topic);
-  if (!loadcurr_pub) {
-    ignerr << "Error advertising topic [" << loadcurr_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string scalefactor_topic = std::string("/scalefactor_") + PrismaticJointName;
-  scalefactor_pub = node.Advertise<ignition::msgs::Double>(scalefactor_topic);
-  if (!scalefactor_pub) {
-    ignerr << "Error advertising topic [" << scalefactor_topic << "]" << std::endl;
-    return;
-  }
-
-  std::string retractfactor_topic = std::string("/retractfactor_") + PrismaticJointName;
-  retractfactor_pub = node.Advertise<ignition::msgs::Double>(retractfactor_topic);
-  if (!retractfactor_pub) {
-    ignerr << "Error advertising topic [" << retractfactor_topic << "]" << std::endl;
     return;
   }
 }
@@ -230,7 +176,6 @@ void ElectroHydraulicPTO::PreUpdate(
       "s]. System may not work properly." << std::endl;
   }
 
-
   // Create joint velocity component for piston if one doesn't exist
   auto prismaticJointVelComp = _ecm.Component<ignition::gazebo::components::JointVelocity>(
     this->dataPtr->PrismaticJointEntity);
@@ -244,11 +189,27 @@ void ElectroHydraulicPTO::PreUpdate(
     return;
   }
 
+  // Create joint position component for piston if one doesn't exist
+  auto prismaticJointPosComp = _ecm.Component<ignition::gazebo::components::JointPosition>(
+    this->dataPtr->PrismaticJointEntity);
+  if (prismaticJointPosComp == nullptr) {
+    _ecm.CreateComponent(
+      this->dataPtr->PrismaticJointEntity, ignition::gazebo::components::JointPosition());
+  }
+  // We just created the joint velocity component, give one iteration for the
+  // physics system to update its size
+  if (prismaticJointPosComp == nullptr || prismaticJointPosComp->Data().empty()) {
+    return;
+  }
+
   // Retrieve Piston velocity, compute flow and provide as input to hydraulic solver.
   // TODO(anyone): Figure out if (0) for the index is always correct,
   // some OR code has a process of finding the index for this argument.
   double xdot = prismaticJointVelComp->Data().at(0);
   this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
+
+  double x = prismaticJointVelComp->Data().at(0);
+  this->dataPtr->functor.I_Wind.RamPosition = 40.0;  // TODO(hamilton8415) x * 39.4;
 
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
@@ -296,7 +257,13 @@ void ElectroHydraulicPTO::PreUpdate(
 
   // Initial Guess based on perfect efficiency
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
-  const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
+
+  // solver.solveNumericalDiff will compute Jacobian numerically rather than obtain from user
+  // const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
+
+  // solver.solve will use functor `df` function to obtain Jacobian instead of
+  // computing numerically
+  const int solver_info = solver.solve(this->dataPtr->x);
 
 
   // Solve Electrical
@@ -310,9 +277,7 @@ void ElectroHydraulicPTO::PreUpdate(
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;
-  unsigned int seed{1U};
-  this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent + 0.001 *
-    (rand_r(&seed) % 200 - 100);
+  this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent;
 
   static const double eff_e = 0.85;
   static const double RPM_TO_RAD_PER_SEC = 2.0 * M_PI / 60.0;
@@ -331,7 +296,6 @@ void ElectroHydraulicPTO::PreUpdate(
   // this happens when user commanded winding current is too large
   const double c = std::min(-P, neg_b_sq / four_a - 0.001 /* ensure discriminant > 0.0 */);
   // P = -c;
-  // std::cerr << "P limited: " << P << std::endl;
 
   const double sqrt_discriminant = sqrt(neg_b_sq - four_a * c);
   const double VBus1 = (neg_b + sqrt_discriminant) / two_a;
@@ -365,81 +329,16 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->PrismaticJointEntity,
     pto_state);
 
-
   auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
   ignition::msgs::Double pistonvel;
   pistonvel.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   pistonvel.set_data(xdot);
 
-  ignition::msgs::Double rpm;
-  rpm.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  rpm.set_data(N);
-
-  ignition::msgs::Double deltap;
-  deltap.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  deltap.set_data(deltaP);
-
-  ignition::msgs::Double targwindcurr;
-  targwindcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  targwindcurr.set_data(this->dataPtr->TargetWindingCurrent);
-
-  ignition::msgs::Double windcurr;
-  windcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  windcurr.set_data(this->dataPtr->WindingCurrent);
-
-  ignition::msgs::Double battcurr;
-  battcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  battcurr.set_data(I_Batt);
-
-  ignition::msgs::Double loadcurr;
-  loadcurr.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  loadcurr.set_data(I_Load);
-
-  ignition::msgs::Double scalefactor;
-  scalefactor.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  scalefactor.set_data(this->dataPtr->functor.I_Wind.ScaleFactor);
-
-  ignition::msgs::Double retractfactor;
-  retractfactor.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
-  retractfactor.set_data(this->dataPtr->functor.I_Wind.RetractFactor);
 
   if (!pistonvel_pub.Publish(pistonvel)) {
     ignerr << "could not publish pistonvel" << std::endl;
   }
-
-  if (!rpm_pub.Publish(rpm)) {
-    ignerr << "could not publish rpm" << std::endl;
-  }
-
-  if (!deltaP_pub.Publish(deltap)) {
-    ignerr << "could not publish deltaP" << std::endl;
-  }
-
-  if (!targwindcurr_pub.Publish(targwindcurr)) {
-    ignerr << "could not publish targwindcurr" << std::endl;
-  }
-
-  if (!windcurr_pub.Publish(windcurr)) {
-    ignerr << "could not publish windcurr" << std::endl;
-  }
-
-  if (!battcurr_pub.Publish(battcurr)) {
-    ignerr << "could not publish battcurr" << std::endl;
-  }
-
-  if (!loadcurr_pub.Publish(loadcurr)) {
-    ignerr << "could not publish loadcurr" << std::endl;
-  }
-
-  if (!scalefactor_pub.Publish(scalefactor)) {
-    ignerr << "could not publish scalefactor" << std::endl;
-  }
-
-  if (!retractfactor_pub.Publish(retractfactor)) {
-    ignerr << "could not publish retractfactor" << std::endl;
-  }
-
 
   // Apply force if not in Velocity Mode, in which case a joint velocity is applied elsewhere
   // (likely by a test Fixture)
