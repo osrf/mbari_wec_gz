@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ElectroHydraulicPTO.hpp"
+
 #include <ignition/common/Profiler.hh>
 #include <ignition/common/Console.hh>
 #include <ignition/gazebo/Types.hh>
@@ -29,19 +30,18 @@
 #include <ignition/plugin/Register.hh>
 #include <ignition/transport/Node.hh>
 
-#include <cstdio>
-
 #include <unsupported/Eigen/NonLinearOptimization>
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "ElectroHydraulicState.hpp"
 #include "ElectroHydraulicSoln.hpp"
+#include "ElectroHydraulicState.hpp"
 
 
 namespace buoy_gazebo

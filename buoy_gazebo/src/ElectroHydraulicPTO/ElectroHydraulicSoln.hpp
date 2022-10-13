@@ -80,7 +80,9 @@ struct EffV
 
   double operator()(const double & rpm, const double & pressure) const
   {
-    return std::max(0.5, (-1.333e-5 * pressure + 0.99) * tanh((-2e-6 * pressure + 0.01) * (rpm + 55.0)));
+    return std::max(
+      0.5,
+      (-1.333e-5 * pressure + 0.99) * tanh((-2e-6 * pressure + 0.01) * (rpm + 55.0)));
   }
 };
 
@@ -107,7 +109,9 @@ struct EffM
     if (pressure <= 10.0) {
       return (2.5871e-14 * rpm + 7.9528e-9) * exp((-3.9e-6 * rpm + 1.25742) * pressure) + 0.1;
     }
-    return std::max(0.1, (-5.333e-6 * rpm + 0.98) * tanh((-8e-8 * rpm + 0.003) * (pressure + 34.0)));
+    return std::max(
+      0.1,
+      (-5.333e-6 * rpm + 0.98) * tanh((-8e-8 * rpm + 0.003) * (pressure + 34.0)));
   }
 };
 
@@ -172,21 +176,12 @@ public:
         CubicInchesPerGallon / SecondsPerMinute;
     }
 
-<<<<<<< HEAD
     if ((x[0U] > 0) - (-x[1U] < 0)) { //RPM and -deltaP have same sign
       std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
       fvec[0U] = x[0U] - eff_v * SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     } else {
       std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
-=======
-    if ((x[0U] > 0) - (-x[1U] < 0)) { // RPM and -deltaP have same sign
-      // std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
-      fvec[0U] = x[0U] - eff_v * SecondsPerMinute * QQ / this->HydMotorDisp;
-      fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
-    } else {
-      // std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
->>>>>>> eb6e836ef5d6d0163373e14c9d8c6a3555cfb919
       fvec[0U] = eff_v * x[0U] - SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = eff_m * x[1U] - T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     }

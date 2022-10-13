@@ -636,29 +636,31 @@ TEST_F(BuoyExperimentComparison, PTO)
     }
 
     {
-    Gnuplot gp;
-    gp << "set term X11 title  '" << InputData.names[4] << " vs " << InputData.names[3] << " Comparison'\n";
-    gp << "set grid\n";
-    gp << "set xlabel '" << InputData.units[3] << "'\n";
-    gp << "set ylabel '" << InputData.units[4] << "'\n";
-    gp << "plot '-' w l title 'EXP " << InputData.names[4] <<
-      "','-' w l title 'TEST " << InputData.names[4] << "'\n";
+      Gnuplot gp;
+      gp << "set term X11 title  '" << InputData.names[4] << " vs " << InputData.names[3] <<
+        " Comparison'\n";
+      gp << "set grid\n";
+      gp << "set xlabel '" << InputData.units[3] << "'\n";
+      gp << "set ylabel '" << InputData.units[4] << "'\n";
+      gp << "plot '-' w l title 'EXP " << InputData.names[4] <<
+        "','-' w l title 'TEST " << InputData.names[4] << "'\n";
 
-    gp.send1d(boost::make_tuple(InputData.get_data(3), InputData.get_data(4)));
-    gp.send1d(boost::make_tuple(ResultsData.get_data(3), ResultsData.get_data(4)));
+      gp.send1d(boost::make_tuple(InputData.get_data(3), InputData.get_data(4)));
+      gp.send1d(boost::make_tuple(ResultsData.get_data(3), ResultsData.get_data(4)));
     }
 
     {
-    Gnuplot gp;
-    gp << "set term X11 title  '" << InputData.names[5] << " vs " << InputData.names[3] << " Comparison'\n";
-    gp << "set grid\n";
-    gp << "set xlabel '" << InputData.units[3] << "'\n";
-    gp << "set ylabel '" << InputData.units[5] << "'\n";
-    gp << "plot '-' w l title 'EXP " << InputData.names[5] <<
-      "','-' w l title 'TEST " << InputData.names[5] << "'\n";
+      Gnuplot gp;
+      gp << "set term X11 title  '" << InputData.names[5] << " vs " << InputData.names[3] <<
+        " Comparison'\n";
+      gp << "set grid\n";
+      gp << "set xlabel '" << InputData.units[3] << "'\n";
+      gp << "set ylabel '" << InputData.units[5] << "'\n";
+      gp << "plot '-' w l title 'EXP " << InputData.names[5] <<
+        "','-' w l title 'TEST " << InputData.names[5] << "'\n";
 
-    gp.send1d(boost::make_tuple(InputData.get_data(3), InputData.get_data(5)));
-    gp.send1d(boost::make_tuple(ResultsData.get_data(3), ResultsData.get_data(5)));
+      gp.send1d(boost::make_tuple(InputData.get_data(3), InputData.get_data(5)));
+      gp.send1d(boost::make_tuple(ResultsData.get_data(3), ResultsData.get_data(5)));
     }
 
   } else {  // Compare test results to input data and pass test if so.
