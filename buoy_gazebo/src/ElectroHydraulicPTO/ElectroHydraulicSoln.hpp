@@ -144,7 +144,7 @@ public:
   ElectroHydraulicSoln()
   : Functor<double>(2, 2),
     // Set HydraulicMotor Volumetric & Mechanical Efficiency
-    hyd_eff_v(Peff, Eff_V), hyd_eff_m(Neff, Eff_M) {}
+    hyd_eff_v(Peff, Eff_V), hyd_eff_m(Neff, Eff_M)
   {
   }
 
