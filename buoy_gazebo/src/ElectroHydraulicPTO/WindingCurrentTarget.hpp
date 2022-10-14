@@ -17,6 +17,7 @@
 
 #include <splinter_ros/splinter1d.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <memory>
@@ -37,7 +38,7 @@
 #define MIN_RETRACT_FACTOR 0.4
 #define DEFAULT_BIASCURRENT 0.0  // Start with zero bias current
 #define MAX_BIASCURRENT 20.0  // Max allowable winding bias current Magnitude that can be applied
-#define MAX_WINDCURRENTLIMIT 35  // Winding Current Limit, Amps.  Limit on internal target
+#define MAX_WINDCURRENTLIMIT 35.0  // Winding Current Limit, Amps.  Limit on internal target
 #define SC_RANGE_MIN 0.0  // Inches
 #define SC_RANGE_MAX 80.0  // Inches
 #define STOP_RANGE 10.0  // Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
@@ -45,20 +46,24 @@
 #define MAX_RPM_ADJUSTMENT 5000.0
 
 
+class WindingCurrentTarget;
+std::ostream & operator<<(std::ostream & os, const WindingCurrentTarget & policy);
+
+
 class WindingCurrentTarget
 {
 public:
   const std::vector<double> NSpec {0.0, 300.0, 600.0, 1000.0, 1700.0, 4400.0, 6790.0};  // RPM
   const std::vector<double> TorqueSpec {0.0, 0.0, 0.8, 2.9, 5.6, 9.8, 16.6};  // N-m
+  std::vector<double> ISpec;  // Amps
 
-  double TorqueConstantNMPerAmp;  // N-m/Amp
-  double TorqueConstantInLbPerAmp;  // in-lb/Amp
-
-  double RamPosition;
-  double ScaleFactor;
-  double RetractFactor;
+  double TorqueConstantNMPerAmp{TORQUE_CONSTANT};  // N-m/Amp
+  double TorqueConstantInLbPerAmp{TORQUE_CONSTANT * 8.851};  // in-lb/Amp
+  double RamPosition{0.0};
+  double ScaleFactor{DEFAULT_SCALE_FACTOR};
+  double RetractFactor{DEFAULT_RETRACT_FACTOR};
   double UserCommandedCurrent{0.0};
-  double BiasCurrent;
+  double BiasCurrent{DEFAULT_BIASCURRENT};
   mutable double I{0.0};
   mutable double J_I{0.0};
   bool current_override_{false};
@@ -66,19 +71,18 @@ public:
 
   splinter_ros::Splinter1d DefaultDamping;
 
-public:
   WindingCurrentTarget()
-  : DefaultDamping(NSpec, TorqueSpec)
+  : ISpec(TorqueSpec.size(), 0.0F),
+    DefaultDamping(NSpec, ISpec)
   {
-    // Set Electric Motor Torque Constant
-    this->TorqueConstantNMPerAmp = TORQUE_CONSTANT;  // N-m/Amp
-    this->TorqueConstantInLbPerAmp = this->TorqueConstantNMPerAmp * 8.851;  // in-lb/Amp
+    std::transform(
+      TorqueSpec.cbegin(), TorqueSpec.cend(),
+      ISpec.begin(),
+      [tc = TorqueConstantNMPerAmp](const double & ts) {return ts / tc;});
 
-    this->ScaleFactor = DEFAULT_SCALE_FACTOR;
-    this->RetractFactor = DEFAULT_RETRACT_FACTOR;
-    this->BiasCurrent = DEFAULT_BIASCURRENT;
+    DefaultDamping.update(NSpec, ISpec);
 
-    this->RamPosition = 0;  // Default to full retract, should be set before () operator is used.
+    std::cerr << *this << std::endl;
   }
 
   double df(const double & N) const
@@ -86,8 +90,8 @@ public:
     if (current_override_) {
       J_I = 0.0;
     } else {
-      J_I = this->DefaultDamping.evalJacobian(fabs(N), splinter_ros::USE_BOUNDS) *
-        this->ScaleFactor / this->TorqueConstantNMPerAmp;
+      J_I = this->DefaultDamping.evalJacobian(fabs(N), splinter_ros::USE_BOUNDS);
+      J_I *= this->ScaleFactor;
 
       if (N > 0.0) {
         J_I *= -this->RetractFactor;
@@ -103,13 +107,8 @@ public:
       I = UserCommandedCurrent;
       // std::cerr << "User Commanded Current: [" << I << "]" << std::endl;
     } else {
-      I = this->DefaultDamping.eval(
-        fabs(N),
-        splinter_ros::FILL_VALUE,
-        std::vector<double>{
-        TorqueSpec.front(),
-        TorqueSpec.back()}) *
-        this->ScaleFactor / this->TorqueConstantNMPerAmp;
+      I = this->DefaultDamping.eval(fabs(N), splinter_ros::USE_BOUNDS);
+      I *= this->ScaleFactor;
 
       if (N > 0.0) {
         I *= -this->RetractFactor;
@@ -118,6 +117,13 @@ public:
       if (bias_override_) {
         I += BiasCurrent;
       }
+
+      /*
+      std::cerr << "WindingCurrent: f(" << N << ", "
+        << this->ScaleFactor << ", "
+        << this->RetractFactor << ") = "
+        << I << std::endl;
+      */
     }
 
 // Enforce Min/Max
@@ -151,33 +157,57 @@ public:
 //                     ^                    |                                      ^
 //                     |                    |                                      |
 //                 -5000RPM                 V                                   6000RPM
+
     double AdjustedN = N;
     if (N >= 0.0) {  // Retracting
-      if (RamPosition < (STOP_RANGE - SC_RANGE_MIN)) {
-        AdjustedN += ((STOP_RANGE - SC_RANGE_MIN) - RamPosition) * MAX_RPM_ADJUSTMENT;
+      const double min_region = SC_RANGE_MIN + STOP_RANGE;
+      if (RamPosition < min_region) {
+        // boost RPM by fraction of max adjustment to limit current
+        AdjustedN += MAX_RPM_ADJUSTMENT * (min_region - RamPosition) / min_region;
       }
-      double CurrLim = -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 + 385.0;  // Magic nums
-      if (I > CurrLim) {
-        I = CurrLim;
-      }
+      const double CurrLim =
+        -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 + 385.0;  // Magic nums
+      I = std::min(I, CurrLim);
     } else {  // Extending
-      if (RamPosition > (SC_RANGE_MAX - STOP_RANGE)) {
-        AdjustedN -= (RamPosition - (SC_RANGE_MAX - STOP_RANGE)) * MAX_RPM_ADJUSTMENT;
+      const double max_region = SC_RANGE_MAX - STOP_RANGE;
+      if (RamPosition > max_region) {
+        // boost RPM by fraction of max adjustment to limit current
+        AdjustedN -= MAX_RPM_ADJUSTMENT * (RamPosition - max_region) / max_region;
       }
-      double CurrLim = -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 - 385.0;  //  Magic nums
-      if (I < CurrLim) {
-        I = CurrLim;
-      }
+      const double CurrLim =
+        -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 - 385.0;  // Magic nums
+      I = std::max(I, CurrLim);
     }
 
-    if (I < -MAX_WINDCURRENTLIMIT) {
-      I = -MAX_WINDCURRENTLIMIT;
-    }
-    if (I > MAX_WINDCURRENTLIMIT) {
-      I = MAX_WINDCURRENTLIMIT;
-    }
+    I = std::min(std::max(I, -MAX_WINDCURRENTLIMIT), MAX_WINDCURRENTLIMIT);
+
     return I;
   }
 };
+
+std::ostream & operator<<(std::ostream & os, const WindingCurrentTarget & policy)
+{
+  os << "WindingCurrentTarget Policy:" << std::endl;
+
+  os << "\tTorque_constant: " << policy.TorqueConstantNMPerAmp << std::endl;
+
+  os << "\tNSpec: " << std::flush;
+  std::copy(policy.NSpec.cbegin(), policy.NSpec.cend(), std::ostream_iterator<double>(os, ","));
+  os << "\b \b" << std::endl;
+
+  os << "\tTorqueSpec: " << std::flush;
+  std::copy(
+    policy.TorqueSpec.cbegin(),
+    policy.TorqueSpec.cend(),
+    std::ostream_iterator<double>(os, ","));
+  os << "\b \b" << std::endl;
+
+  os << "\tISpec: " << std::flush;
+  std::copy(policy.ISpec.cbegin(), policy.ISpec.cend(), std::ostream_iterator<double>(os, ","));
+  os << "\b \b" << std::endl;
+
+  return os;
+}
+
 
 #endif  // ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_

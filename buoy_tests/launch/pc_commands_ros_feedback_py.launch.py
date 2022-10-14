@@ -42,6 +42,51 @@ class BuoyPCPyTest(BuoyPyTests):
     NODE_NAME = 'pb_torque_controller'
     CLI_ARGS = ['--ros-args', '--params-file', config]
 
+    # Defines from Controller Firmware, behavior replicated here
+    TORQUE_CONSTANT = 0.438  # 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
+    CURRENT_CMD_RATELIMIT = 200  # A/second.  Set to zero to disable feature
+    TORQUE_CMD_TIMEOUT = 2  # Torque Command Timeut, in secs. Set to zero to disable timeout
+    BIAS_CMD_TIMEOUT = 10  # Bias Current Command Timeut, secs. Set to zero to disable timeout
+    DEFAULT_SCALE_FACTOR = 1.0  # -RPM on Kollemogen is +RPM here and extension
+    MAX_SCALE_FACTOR = 1.4
+    MIN_SCALE_FACTOR = 0.5
+    DEFAULT_RETRACT_FACTOR = 0.6
+    MAX_RETRACT_FACTOR = 1.0
+    MIN_RETRACT_FACTOR = 0.4
+    DEFAULT_BIASCURRENT = 0.0  # Start with zero bias current
+    MAX_BIASCURRENT = 20.0  # Max allowable winding bias current Magnitude that can be applied
+    MAX_WINDCURRENTLIMIT = 35.0  # Winding Current Limit, Amps.  Limit on internal target
+    SC_RANGE_MIN = 0.0  # Inches
+    SC_RANGE_MAX = 80.0  # Inches
+    STOP_RANGE = 10.0  # Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
+    # Max amount to modify RPM in determining WindingCurrentLimit near ends of stroke
+    MAX_RPM_ADJUSTMENT = 5000.0
+
+    def winding_current_limiter(self, I):
+        LimitedI = I
+        AdjustedN = self.node.rpm_
+        RamPosition = (self.SC_RANGE_MAX - (self.node.range_finder_ / 0.0254))
+        if self.node.rpm_ >= 0.0:  # Retracting
+            min_region = self.SC_RANGE_MIN + self.STOP_RANGE
+            if RamPosition < min_region:
+                # boost RPM by fraction of max adjustment to limit current
+                AdjustedN += \
+                    self.MAX_RPM_ADJUSTMENT * (min_region - RamPosition) / min_region
+            CurrLim = -AdjustedN * 2.0 * self.MAX_WINDCURRENTLIMIT / 1000.0 + 385.0  # Magic nums
+            LimitedI = min(LimitedI, CurrLim)
+        else:  # Extending
+            max_region = self.SC_RANGE_MAX - self.STOP_RANGE
+            if RamPosition > max_region:
+                # boost RPM by fraction of max adjustment to limit current
+                AdjustedN -= \
+                    self.MAX_RPM_ADJUSTMENT * (RamPosition - max_region) / max_region
+
+            CurrLim = -AdjustedN * 2.0 * self.MAX_WINDCURRENTLIMIT / 1000.0 - 385.0  # Magic nums
+            LimitedI = max(LimitedI, CurrLim)
+
+        LimitedI = min(max(LimitedI, -self.MAX_WINDCURRENTLIMIT), self.MAX_WINDCURRENTLIMIT)
+        return LimitedI
+
     def set_params(self, policy):
         policy.Torque_constant = \
             self.node.get_parameter('torque_constant').get_parameter_value().double_value
@@ -83,6 +128,7 @@ class BuoyPCPyTest(BuoyPyTests):
             torque_policy_.winding_current_target(self.node.rpm_,
                                                   self.node.scale_,
                                                   self.node.retract_) + self.node.bias_curr_
+        expected_wind_curr = self.winding_current_limiter(expected_wind_curr)
         self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.1)
         self.assertLess(self.node.wind_curr_, expected_wind_curr + 0.1)
 
@@ -184,6 +230,7 @@ class BuoyPCPyTest(BuoyPyTests):
             torque_policy_.winding_current_target(self.node.rpm_,
                                                   self.node.scale_,
                                                   self.node.retract_) + self.node.bias_curr_
+        expected_wind_curr = self.winding_current_limiter(expected_wind_curr)
         self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.2)
         self.assertLess(self.node.wind_curr_, expected_wind_curr + 0.2)
 
