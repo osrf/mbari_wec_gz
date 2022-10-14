@@ -69,18 +69,24 @@ struct TestData
     UPPER_SPRING_PRESSURE = 13U,
     LOWER_SPRING_VOLUME = 14U,
     UPPER_SPRING_VOLUME = 15U,
-    NUM_VALUES = 16U
+    TARG_CURR = 16U,
+    PC_STATUS = 17U,
+    TM_FORCE = 18U,
+    BIAS_CURR = 19U,
+    NUM_VALUES = 20U
   };
 
-  const char * names[16U] = {"seconds", "PistonPos", "PistonVel",
+  const char * names[TestData::NUM_VALUES] = {"seconds", "PistonPos", "PistonVel",
     "RPM", "LowerHydPressure", "UpperHydPressure",
     "V_Bus", "WindCurr", "BattCurr",
     "LoadCurr", "Scale", "Retract",
     "LowerSpringPressure", "UpperSpringPressure",
-    "LowerSpringVolume", "UpperSpringVolume"};
-  const char * units[16U] = {"seconds", "inches", "in/sec", "RPM", "psi_g",
+    "LowerSpringVolume", "UpperSpringVolume",
+    "TargCurr","PowerConverterStatus", 
+    "TestMachineForce","BiasCurr"};
+  const char * units[TestData::NUM_VALUES] = {"seconds", "inches", "in/sec", "RPM", "psi_g",
     "psi_g", "Volts", "Amps", "Amps", "Amps",
-    "", "", "psi_a", "psi_a", "cubic m", "cubic m"};
+    "", "", "psi_a", "psi_a", "cubic m", "cubic m", "Amps", "", "lbs","Amps"};
 
   std::vector<double> seconds;
   std::vector<double> PistonPos;
@@ -98,6 +104,10 @@ struct TestData
   std::vector<double> UpperSpringPressure;
   std::vector<double> LowerSpringVolume;
   std::vector<double> UpperSpringVolume;
+  std::vector<double> TargCurr;
+  std::vector<double> PowerConverterStatus;
+  std::vector<double> TestMachineForce;
+  std::vector<double> BiasCurr;
 
   double get_data_at(const int & data_num, const int & idx)
   {
@@ -163,6 +173,18 @@ struct TestData
     if (!strcmp(names[data_num], "UpperSpringVolume")) {
       ret_value = UpperSpringVolume;
     }
+    if (!strcmp(names[data_num], "TargCurr")) {
+      ret_value = TargCurr;
+    }
+    if (!strcmp(names[data_num], "PowerConverterStatus")) {
+      ret_value = PowerConverterStatus;
+    }
+    if (!strcmp(names[data_num], "TestMachineForce")) {
+      ret_value = TestMachineForce;
+    }
+    if (!strcmp(names[data_num], "BiasCurr")) {
+      ret_value = BiasCurr;
+    }
 
     return ret_value;
   }
@@ -177,6 +199,8 @@ protected:
   static std::string header_line;
   static bool manual_comparison;
   static std::shared_ptr<splinter_ros::Splinter1d> PrescribedVel;
+  static std::shared_ptr<splinter_ros::Splinter1d> PrescribedWindingCurrent;
+  static std::shared_ptr<splinter_ros::Splinter1d> PrescribedBiasCurrent;
   static int argc_;
   static char ** argv_;
   static constexpr double stroke{2.03};
@@ -227,16 +251,20 @@ protected:
       std::endl;
 
     // Read Test Data
+      std::cout << "opening: " << inputdata_filename << std::endl;
     std::ifstream testdata(inputdata_filename);
     if (testdata.is_open()) {
       testdata >> header_line;
-      double data[14U];
+      std::cout << "header = " << header_line << std::endl;
+      double data[TestData::NUM_VALUES];
       while (testdata >> data[TestData::SECONDS] >> data[TestData::PISTON_POS] >>
         data[TestData::PISTON_VEL] >> data[TestData::MOTOR_RPM] >>
         data[TestData::LOWER_HYD_PRESSURE] >> data[TestData::UPPER_HYD_PRESSURE] >>
         data[TestData::V_BUS] >> data[TestData::WIND_CURR] >> data[TestData::BATT_CURR] >>
         data[TestData::LOAD_CURR] >> data[TestData::SCALE] >> data[TestData::RETRACT] >>
-        data[TestData::LOWER_SPRING_PRESSURE] >> data[TestData::UPPER_SPRING_PRESSURE])
+        data[TestData::LOWER_SPRING_PRESSURE] >> data[TestData::UPPER_SPRING_PRESSURE] >>
+        data[TestData::TARG_CURR] >> data[TestData::PC_STATUS] >> data[TestData::TM_FORCE] >>
+        data[TestData::BIAS_CURR])
       {
         InputData.seconds.push_back(data[TestData::SECONDS]);
         InputData.PistonPos.push_back(data[TestData::PISTON_POS]);
@@ -257,6 +285,10 @@ protected:
           lower_area + lower_dead_volume);
         InputData.UpperSpringVolume.push_back(
           INCHES_TO_METERS * data[TestData::PISTON_POS] * upper_area + upper_dead_volume);
+        InputData.TargCurr.push_back(data[TestData::TARG_CURR]);
+        InputData.PowerConverterStatus.push_back(data[TestData::PC_STATUS]);
+        InputData.TestMachineForce.push_back(data[TestData::TM_FORCE]);
+        InputData.BiasCurr.push_back(data[TestData::BIAS_CURR]);
       }
       testdata.close();
     } else {
@@ -280,9 +312,17 @@ protected:
     ResultsData.UpperSpringPressure.push_back(InputData.UpperSpringPressure.at(0));
     ResultsData.LowerSpringVolume.push_back(InputData.LowerSpringVolume.at(0));
     ResultsData.UpperSpringVolume.push_back(InputData.UpperSpringVolume.at(0));
+    ResultsData.TargCurr.push_back(InputData.TargCurr.at(0));
+    ResultsData.PowerConverterStatus.push_back(InputData.PowerConverterStatus.at(0));
+    ResultsData.TestMachineForce.push_back(InputData.TestMachineForce.at(0));
+    ResultsData.BiasCurr.push_back(InputData.BiasCurr.at(0));
 
     PrescribedVel =
       std::make_shared<splinter_ros::Splinter1d>(InputData.seconds, InputData.PistonVel);
+    PrescribedWindingCurrent =
+      std::make_shared<splinter_ros::Splinter1d>(InputData.seconds, InputData.TargCurr);
+    PrescribedBiasCurrent =
+      std::make_shared<splinter_ros::Splinter1d>(InputData.seconds, InputData.BiasCurr);
 
     // Skip debug messages to run faster
     ignition::common::Console::SetVerbosity(3);
@@ -337,6 +377,28 @@ protected:
         } else {
           *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_vel});
         }
+
+  buoy_gazebo::ElectroHydraulicState pto_state;
+  if (_ecm.EntityHasComponentType(
+    jointEntity,
+      buoy_gazebo::components::ElectroHydraulicState().TypeId()))
+  {
+    auto pto_state_comp =
+      _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
+      jointEntity);
+
+    pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
+  }
+    //pto_state.torque_command = PrescribedWindingCurrent->eval(
+    //      SimTime, splinter_ros::FILL_VALUE, std::vector<double>{0.0, 0.0});
+    //pto_state.torque_command = true;
+    pto_state.bias_current_command = PrescribedBiasCurrent->eval(
+          SimTime, splinter_ros::FILL_VALUE, std::vector<double>{0.0, 0.0});
+    pto_state.bias_current_command = true;
+  _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
+    jointEntity, pto_state);
+
+
       }).
     OnPostUpdate(
       [&](
@@ -391,7 +453,7 @@ protected:
           // need to add some fields to PTO_State for items of interest
           // that aren't reported over CAN.
           if (PTO_State.diff_press > 0.0) {
-            ResultsData.LowerHydPressure.push_back(-PTO_State.diff_press);
+            ResultsData.LowerHydPressure.push_back(PTO_State.diff_press);
             ResultsData.UpperHydPressure.push_back(0.0);
           } else {
             ResultsData.LowerHydPressure.push_back(0.0);
@@ -401,6 +463,10 @@ protected:
           ResultsData.WindCurr.push_back(PTO_State.wcurrent);
           ResultsData.BattCurr.push_back(PTO_State.bcurrent);
           ResultsData.LoadCurr.push_back(PTO_State.loaddc);
+          ResultsData.TargCurr.push_back(PTO_State.target_a);
+          ResultsData.Scale.push_back(PTO_State.scale);
+          ResultsData.Retract.push_back(PTO_State.retract);
+          ResultsData.BiasCurr.push_back(PTO_State.bias_current);
         }
       }).
     Finalize();
@@ -409,7 +475,7 @@ protected:
     // until I figure out how to get access...
     bool blocking(true), paused(false);
     fixture.Server()->Run(
-      blocking, InputData.seconds.back() / timestep,
+      blocking, InputData.seconds.back() / timestep, 
       paused);
   }
 
@@ -477,6 +543,8 @@ std::string BuoyExperimentComparison::inputdata_filename{""};
 std::string BuoyExperimentComparison::header_line{""};
 bool BuoyExperimentComparison::manual_comparison{false};
 std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedVel{nullptr};
+std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedWindingCurrent{nullptr};
+std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedBiasCurrent{nullptr};
 int BuoyExperimentComparison::argc_;
 char ** BuoyExperimentComparison::argv_;
 ignition::gazebo::Entity BuoyExperimentComparison::jointEntity{ignition::gazebo::kNullEntity};
@@ -485,9 +553,12 @@ ignition::gazebo::Entity BuoyExperimentComparison::jointEntity{ignition::gazebo:
 TEST_F(BuoyExperimentComparison, Spring)
 {
   if (manual_comparison) {  // Plot data for user to decide if it's valid.
-    std::vector<size_t> select_time_series{TestData::PISTON_POS,
-      TestData::LOWER_SPRING_PRESSURE, TestData::UPPER_SPRING_PRESSURE,
-      TestData::LOWER_SPRING_VOLUME, TestData::UPPER_SPRING_VOLUME};
+    std::vector<size_t> select_time_series{
+      TestData::PISTON_POS,
+      TestData::LOWER_SPRING_PRESSURE, 
+      TestData::UPPER_SPRING_PRESSURE,
+      TestData::LOWER_SPRING_VOLUME, 
+      TestData::UPPER_SPRING_VOLUME};
     for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
       if (!std::binary_search(select_time_series.begin(), select_time_series.end(), i)) {
         continue;
@@ -504,7 +575,8 @@ TEST_F(BuoyExperimentComparison, Spring)
       gp.send1d(boost::make_tuple(ResultsData.seconds, ResultsData.get_data(i)));
     }
 
-    std::vector<size_t> select_PV{TestData::LOWER_SPRING_PRESSURE,
+    std::vector<size_t> select_PV{
+      TestData::LOWER_SPRING_PRESSURE,
       TestData::UPPER_SPRING_PRESSURE};
     for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
       if (!std::binary_search(select_PV.begin(), select_PV.end(), i)) {
@@ -534,7 +606,23 @@ TEST_F(BuoyExperimentComparison, Spring)
 TEST_F(BuoyExperimentComparison, PTO)
 {
   if (manual_comparison) {  // Plot data for user to decide if it's valid.
-    for (size_t i = 1U; i <= TestData::LOAD_CURR; i++) {
+    std::vector<size_t> select_time_series{
+      TestData::PISTON_POS,
+      TestData::MOTOR_RPM, 
+      TestData::LOWER_HYD_PRESSURE,
+      TestData::UPPER_HYD_PRESSURE, 
+      TestData::V_BUS, 
+      TestData::WIND_CURR, 
+      TestData::BATT_CURR, 
+      TestData::LOAD_CURR,
+      TestData::SCALE, 
+      TestData::RETRACT,
+      TestData::TARG_CURR,
+      TestData::BIAS_CURR}; 
+    for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
+      if (!std::binary_search(select_time_series.begin(), select_time_series.end(), i)) {
+        continue;
+      }
       Gnuplot gp;
       gp << "set term X11 title  '" << InputData.names[i] << " Comparison'\n";
       gp << "set grid\n";

@@ -150,9 +150,8 @@ public:
 //                     ^                    |                                      ^
 //                     |                    |                                      |
 //                 -5000RPM                 V                                   6000RPM
-
     double AdjustedN = N;
-    if (fabs(N) >= 0.0) {  // Retracting
+    if (N >= 0.0) {  // Retracting
       if (RamPosition < (STOP_RANGE - SC_RANGE_MIN)) {
         AdjustedN += ((STOP_RANGE - SC_RANGE_MIN) - RamPosition) * MAX_RPM_ADJUSTMENT;
       }
@@ -176,7 +175,6 @@ public:
     if (I > MAX_WINDCURRENTLIMIT) {
       I = MAX_WINDCURRENTLIMIT;
     }
-
     return I;
   }
 };

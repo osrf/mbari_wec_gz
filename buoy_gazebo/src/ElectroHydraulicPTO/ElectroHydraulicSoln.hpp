@@ -147,11 +147,11 @@ public:
     }
 
     if ((x[0U] > 0) - (-x[1U] < 0)) { //RPM and -deltaP have same sign
-      //std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
+      std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
       fvec[0U] = x[0U] - eff_v * SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     } else {
-      //std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
+      std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
       fvec[0U] = eff_v * x[0U] - SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = eff_m * x[1U] - T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     }
