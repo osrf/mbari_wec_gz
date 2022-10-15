@@ -21,22 +21,23 @@
 
 
 // NOLINTNEXTLINE
-class HydraulicPneumaticFrictionTest : public ::testing::Test
+class PTOFrictionTest : public ::testing::Test
 {
 public:
   const std::vector<double> speed;  // m/s
   const std::vector<double> force;  // N
   splinter_ros::Splinter1d friction_model;
 
-  HydraulicPneumaticFrictionTest()
-  :  speed{-0.4F, -0.2F, -0.1F, 0.0F, 0.1F, 0.2F, 0.3F, 0.4F},
-    force{1200.0F, 700.0F, 500.0F, 0.0F, -1000.0F, -1400.0F, -2100.0F, -2900.0F},
+  PTOFrictionTest()
+  :  speed{0.4F, 0.1F, -0.1F, -0.4F},
+    force{1200.0F, 700.0F, -1000.0F, -2900.0F},
     friction_model(speed, force)
   {
   }
 };
 
-TEST_F(HydraulicPneumaticFrictionTest, ModelAccuracy)
+TEST_F(PTOFrictionTest, ModelAccuracy)
 {
-  EXPECT_NEAR(1000.0, friction_model.eval(-0.3), 100.0);
+  EXPECT_NEAR(0.0, friction_model.eval(0.0, splinter_ros::USE_BOUNDS), 200.0);
+  EXPECT_NEAR(-2100.0, friction_model.eval(-0.3, splinter_ros::USE_BOUNDS), 200.0);
 }

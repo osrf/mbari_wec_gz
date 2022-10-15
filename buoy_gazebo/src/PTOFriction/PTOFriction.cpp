@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "HydraulicPneumaticFriction.hpp"
+#include "PTOFriction.hpp"
 #include <ignition/common/Profiler.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
@@ -33,7 +33,7 @@
 
 namespace buoy_gazebo
 {
-class HydraulicPneumaticFrictionPrivate
+class PTOFrictionPrivate
 {
 public:
   /// \brief Piston joint entity
@@ -49,24 +49,26 @@ public:
   const std::vector<double> meanFriction;  // N
 
   /// \brief Construct and approximation of friction model using linear spline
-  splinter_ros::Splinter1d hydraulic_pneumatic_friction;
+  splinter_ros::Splinter1d pto_friction_model;
 
-  HydraulicPneumaticFrictionPrivate()
-  : pistonSpeed{-0.4F, -0.3F, -0.2F, -0.1F, 0.0F, 0.1F, 0.2F, 0.3F, 0.4F},
-    meanFriction{1200.0F, 1000.0F, 700.0F, 500.0F, 0.0F, -1000.0F, -1400.0F, -2100.0F, -2900.0F},
-    hydraulic_pneumatic_friction(pistonSpeed, meanFriction)
+  const splinter_ros::FillMode & fill_mode = splinter_ros::USE_BOUNDS;
+
+  PTOFrictionPrivate()
+  : pistonSpeed{0.4F, 0.1F, -0.1F, -0.4F},
+    meanFriction{1200.0F, 700.0F, -1000.0F, -2900.0F},
+    pto_friction_model(pistonSpeed, meanFriction)
   {
   }
 };
 
 //////////////////////////////////////////////////
-HydraulicPneumaticFriction::HydraulicPneumaticFriction()
-: dataPtr(std::make_unique<HydraulicPneumaticFrictionPrivate>())
+PTOFriction::PTOFriction()
+: dataPtr(std::make_unique<PTOFrictionPrivate>())
 {
 }
 
 //////////////////////////////////////////////////
-void HydraulicPneumaticFriction::Configure(
+void PTOFriction::Configure(
   const ignition::gazebo::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
   ignition::gazebo::EntityComponentManager & _ecm,
@@ -74,7 +76,7 @@ void HydraulicPneumaticFriction::Configure(
 {
   this->dataPtr->model = ignition::gazebo::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
-    ignerr << "HydraulicPneumaticFriction plugin should be attached to a model entity. " <<
+    ignerr << "PTOFriction plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
   }
@@ -83,7 +85,7 @@ void HydraulicPneumaticFriction::Configure(
   // Get params from SDF for Prismatic Joint.
   auto PrismaticJointName = _sdf->Get<std::string>("PrismaticJointName");
   if (PrismaticJointName.empty()) {
-    ignerr << "HydraulicPneumaticFriction found an empty PrismaticJointName parameter. " <<
+    ignerr << "PTOFriction found an empty PrismaticJointName parameter. " <<
       "Failed to initialize.";
     return;
   }
@@ -94,17 +96,17 @@ void HydraulicPneumaticFriction::Configure(
     PrismaticJointName);
   if (this->dataPtr->PrismaticJointEntity == ignition::gazebo::kNullEntity) {
     ignerr << "Joint with name [" << PrismaticJointName << "] not found. " <<
-      "The HydraulicPneumaticFriction may not influence this joint.\n";
+      "The PTOFriction may not influence this joint.\n";
     return;
   }
 }
 
 //////////////////////////////////////////////////
-void HydraulicPneumaticFriction::PreUpdate(
+void PTOFriction::PreUpdate(
   const ignition::gazebo::UpdateInfo & _info,
   ignition::gazebo::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("HydraulicPneumaticFriction::PreUpdate");
+  IGN_PROFILE("PTOFriction::PreUpdate");
   // Nothing left to do if paused.
   if (_info.paused) {
     return;
@@ -132,7 +134,8 @@ void HydraulicPneumaticFriction::PreUpdate(
 
   // Interpolate the new friction force based on current joint velocity
   auto friction_force =
-    this->dataPtr->hydraulic_pneumatic_friction.eval(fabs(prismaticJointVelComp->Data().at(0)));
+    this->dataPtr->pto_friction_model.eval(
+    fabs(prismaticJointVelComp->Data().at(0)), this->dataPtr->fill_mode);
 
   // Create new component for applying force if it doesn't already exist
   auto forceComp = _ecm.Component<ignition::gazebo::components::JointForceCmd>(
@@ -149,7 +152,7 @@ void HydraulicPneumaticFriction::PreUpdate(
 }  // namespace buoy_gazebo
 
 IGNITION_ADD_PLUGIN(
-  buoy_gazebo::HydraulicPneumaticFriction,
+  buoy_gazebo::PTOFriction,
   ignition::gazebo::System,
-  buoy_gazebo::HydraulicPneumaticFriction::ISystemConfigure,
-  buoy_gazebo::HydraulicPneumaticFriction::ISystemPreUpdate);
+  buoy_gazebo::PTOFriction::ISystemConfigure,
+  buoy_gazebo::PTOFriction::ISystemPreUpdate);

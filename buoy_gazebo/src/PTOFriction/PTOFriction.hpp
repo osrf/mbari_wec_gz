@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HYDRAULICPNEUMATICFRICTION__HYDRAULICPNEUMATICFRICTION_HPP_
-#define HYDRAULICPNEUMATICFRICTION__HYDRAULICPNEUMATICFRICTION_HPP_
+#ifndef PTOFRICTION__PTOFRICTION_HPP_
+#define PTOFRICTION__PTOFRICTION_HPP_
 
 #include <ignition/gazebo/System.hh>
 
@@ -24,17 +24,17 @@
 namespace buoy_gazebo
 {
 // Forward declaration
-class HydraulicPneumaticFrictionPrivate;
-class HydraulicPneumaticFriction : public ignition::gazebo::System,
+class PTOFrictionPrivate;
+class PTOFriction : public ignition::gazebo::System,
   public ignition::gazebo::ISystemConfigure,
   public ignition::gazebo::ISystemPreUpdate
 {
 public:
   /// \brief Constructor
-  HydraulicPneumaticFriction();
+  PTOFriction();
 
   /// \brief Destructor
-  ~HydraulicPneumaticFriction() override = default;
+  ~PTOFriction() override = default;
 
   // Documentation inherited
   void Configure(
@@ -50,8 +50,8 @@ public:
 
 private:
   /// \brief Private data pointer
-  std::unique_ptr<HydraulicPneumaticFrictionPrivate> dataPtr;
+  std::unique_ptr<PTOFrictionPrivate> dataPtr;
 };
 }  // namespace buoy_gazebo
 
-#endif  // HYDRAULICPNEUMATICFRICTION__HYDRAULICPNEUMATICFRICTION_HPP_
+#endif  // PTOFRICTION__PTOFRICTION_HPP_

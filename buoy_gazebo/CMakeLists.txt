@@ -167,7 +167,7 @@ if(BUILD_TESTING)
 
   # Add gtests
   gz_add_gtest(test_stopwatch ROS)
-  gz_add_gtest(test_hydraulic_pneumatic_friction ROS)
+  gz_add_gtest(test_pto_friction ROS)
 
 endif()
 
