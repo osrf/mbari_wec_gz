@@ -15,9 +15,6 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 
-// #include <splinter_ros/common.hpp>  // linspace
-// Interpolation library for efficiency maps
-#include <splinter_ros/splinter1d.hpp>
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
@@ -28,6 +25,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+// Interpolation for efficiency maps
+#include "buoy_utils/Interp1d.hpp"
 
 #include "ElectroHydraulicState.hpp"
 #include "WindingCurrentTarget.hpp"
@@ -125,7 +125,7 @@ public:
   const double CubicInchesPerGallon = 231.0;
   const double SecondsPerMinute = 60.0;
 
-  splinter_ros::Splinter1d hyd_eff_v, hyd_eff_m;
+  buoy_utils::Interp1d hyd_eff_v, hyd_eff_m;
 
   // Class that computes Target Winding Current based on RPM, Scale Factor,
   // limits, etc..
@@ -161,8 +161,8 @@ public:
 
     const double rpm = fabs(x[0U]);
     const double pressure = fabs(x[1U]);
-    const double eff_m = this->hyd_eff_m.eval(rpm, splinter_ros::USE_BOUNDS);
-    const double eff_v = this->hyd_eff_v.eval(pressure, splinter_ros::USE_BOUNDS);
+    const double eff_m = this->hyd_eff_m.eval(rpm);
+    const double eff_v = this->hyd_eff_v.eval(pressure);
 
     // 1.375 fudge factor required to match experiments, not yet sure why.
     const double T_applied =
@@ -176,12 +176,12 @@ public:
         CubicInchesPerGallon / SecondsPerMinute;
     }
 
-    if ((x[0U] > 0) - (-x[1U] < 0)) { //RPM and -deltaP have same sign
-      std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
+    if ((x[0U] > 0) - (-x[1U] < 0)) {  // RPM and -deltaP have same sign
+      // std::cout << "motor quadrant" << x[0U] << "  " << x[1U] << std::endl;
       fvec[0U] = x[0U] - eff_v * SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     } else {
-      std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
+      // std::cout << "pump quadrant" << x[0U] << "  " << x[1U] << std::endl;
       fvec[0U] = eff_v * x[0U] - SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = eff_m * x[1U] - T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     }
@@ -202,7 +202,7 @@ const std::vector<double> ElectroHydraulicSoln::Neff{
 const std::vector<double> ElectroHydraulicSoln::Eff_V{
   1.0000, 0.8720, 0.9240, 0.9480, 0.9520, 0.9620, 0.9660, 0.9660,
   0.9720, 0.9760, 0.9760, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800,
-  0.9800, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800};
+  0.9800, 0.9800, 0.9800, 0.9800, 0.9800};
 
 const std::vector<double> ElectroHydraulicSoln::Eff_M{
   1.0, 0.9360, 0.9420, 0.9460, 0.9460, 0.9460, 0.9460, 0.9460,

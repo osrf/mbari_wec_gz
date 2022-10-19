@@ -269,13 +269,6 @@ void ElectroHydraulicPTO::PreUpdate(
 
 
   // Solve Electrical
-  // TODO(hamilton) temporary fix for NaN situation. Should make this more robust
-  // or at least parameterized.
-  // Problem: If I repeatedly smash the PC with a -30 Amp winding current command, this solution
-  // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
-  // to the max absolute rpm from the winding current interpolation
-  // (no extrapolation, default torque controller).
-  // const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;

@@ -34,7 +34,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <splinter_ros/splinter1d.hpp>
+#include <buoy_gazebo/buoy_utils/Interp1d.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -82,11 +82,11 @@ struct TestData
     "LoadCurr", "Scale", "Retract",
     "LowerSpringPressure", "UpperSpringPressure",
     "LowerSpringVolume", "UpperSpringVolume",
-    "TargCurr","PowerConverterStatus", 
-    "TestMachineForce","BiasCurr"};
+    "TargCurr", "PowerConverterStatus",
+    "TestMachineForce", "BiasCurr"};
   const char * units[TestData::NUM_VALUES] = {"seconds", "inches", "in/sec", "RPM", "psi_g",
     "psi_g", "Volts", "Amps", "Amps", "Amps",
-    "", "", "psi_a", "psi_a", "cubic m", "cubic m", "Amps", "", "lbs","Amps"};
+    "", "", "psi_a", "psi_a", "cubic m", "cubic m", "Amps", "", "lbs", "Amps"};
 
   std::vector<double> seconds;
   std::vector<double> PistonPos;
@@ -198,9 +198,9 @@ protected:
   static std::string inputdata_filename;
   static std::string header_line;
   static bool manual_comparison;
-  static std::shared_ptr<splinter_ros::Splinter1d> PrescribedVel;
-  static std::shared_ptr<splinter_ros::Splinter1d> PrescribedWindingCurrent;
-  static std::shared_ptr<splinter_ros::Splinter1d> PrescribedBiasCurrent;
+  static std::shared_ptr<buoy_utils::Interp1d> PrescribedVel;
+  static std::shared_ptr<buoy_utils::Interp1d> PrescribedWindingCurrent;
+  static std::shared_ptr<buoy_utils::Interp1d> PrescribedBiasCurrent;
   static int argc_;
   static char ** argv_;
   static constexpr double stroke{2.03};
@@ -251,7 +251,7 @@ protected:
       std::endl;
 
     // Read Test Data
-      std::cout << "opening: " << inputdata_filename << std::endl;
+    std::cout << "opening: " << inputdata_filename << std::endl;
     std::ifstream testdata(inputdata_filename);
     if (testdata.is_open()) {
       testdata >> header_line;
@@ -318,11 +318,11 @@ protected:
     ResultsData.BiasCurr.push_back(InputData.BiasCurr.at(0));
 
     PrescribedVel =
-      std::make_shared<splinter_ros::Splinter1d>(InputData.seconds, InputData.PistonVel);
+      std::make_shared<buoy_utils::Interp1d>(InputData.seconds, InputData.PistonVel);
     PrescribedWindingCurrent =
-      std::make_shared<splinter_ros::Splinter1d>(InputData.seconds, InputData.TargCurr);
+      std::make_shared<buoy_utils::Interp1d>(InputData.seconds, InputData.TargCurr);
     PrescribedBiasCurrent =
-      std::make_shared<splinter_ros::Splinter1d>(InputData.seconds, InputData.BiasCurr);
+      std::make_shared<buoy_utils::Interp1d>(InputData.seconds, InputData.BiasCurr);
 
     // Skip debug messages to run faster
     ignition::common::Console::SetVerbosity(3);
@@ -359,12 +359,7 @@ protected:
         ignition::gazebo::EntityComponentManager & _ecm)
       {
         auto SimTime = std::chrono::duration<double>(_info.simTime).count();
-        double piston_vel =
-        -INCHES_TO_METERS *
-        PrescribedVel->eval(
-          SimTime,
-          splinter_ros::FILL_VALUE,
-          std::vector<double>{0.0, 0.0});
+        double piston_vel = -INCHES_TO_METERS * PrescribedVel->eval(SimTime);
         // Create new component for this entitiy in ECM (if it doesn't already
         // exist)
         auto joint_vel =
@@ -378,27 +373,24 @@ protected:
           *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_vel});
         }
 
-  buoy_gazebo::ElectroHydraulicState pto_state;
-  if (_ecm.EntityHasComponentType(
-    jointEntity,
-      buoy_gazebo::components::ElectroHydraulicState().TypeId()))
-  {
-    auto pto_state_comp =
-      _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
-      jointEntity);
+        buoy_gazebo::ElectroHydraulicState pto_state;
+        if (_ecm.EntityHasComponentType(
+          jointEntity,
+          buoy_gazebo::components::ElectroHydraulicState().TypeId()))
+        {
+          auto pto_state_comp =
+          _ecm.Component<buoy_gazebo::components::ElectroHydraulicState>(
+            jointEntity);
 
-    pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
-  }
-    //pto_state.torque_command = PrescribedWindingCurrent->eval(
-    //      SimTime, splinter_ros::FILL_VALUE, std::vector<double>{0.0, 0.0});
-    //pto_state.torque_command = true;
-    pto_state.bias_current_command = PrescribedBiasCurrent->eval(
-          SimTime, splinter_ros::FILL_VALUE, std::vector<double>{0.0, 0.0});
-    pto_state.bias_current_command = true;
-  _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
-    jointEntity, pto_state);
-
-
+          pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
+        }
+        // pto_state.torque_command = PrescribedWindingCurrent->eval(
+        //      SimTime, buoy_utils::FILL_VALUE, std::vector<double>{0.0, 0.0});
+        // pto_state.torque_command = true;
+        pto_state.bias_current_command = PrescribedBiasCurrent->eval(SimTime);
+        pto_state.bias_current_command = true;
+        _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
+          jointEntity, pto_state);
       }).
     OnPostUpdate(
       [&](
@@ -475,7 +467,7 @@ protected:
     // until I figure out how to get access...
     bool blocking(true), paused(false);
     fixture.Server()->Run(
-      blocking, InputData.seconds.back() / timestep, 
+      blocking, InputData.seconds.back() / timestep,
       paused);
   }
 
@@ -542,9 +534,9 @@ std::string BuoyExperimentComparison::inputdata_filename{""};
 // NOLINTNEXTLINE
 std::string BuoyExperimentComparison::header_line{""};
 bool BuoyExperimentComparison::manual_comparison{false};
-std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedVel{nullptr};
-std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedWindingCurrent{nullptr};
-std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedBiasCurrent{nullptr};
+std::shared_ptr<buoy_utils::Interp1d> BuoyExperimentComparison::PrescribedVel{nullptr};
+std::shared_ptr<buoy_utils::Interp1d> BuoyExperimentComparison::PrescribedWindingCurrent{nullptr};
+std::shared_ptr<buoy_utils::Interp1d> BuoyExperimentComparison::PrescribedBiasCurrent{nullptr};
 int BuoyExperimentComparison::argc_;
 char ** BuoyExperimentComparison::argv_;
 ignition::gazebo::Entity BuoyExperimentComparison::jointEntity{ignition::gazebo::kNullEntity};
@@ -555,9 +547,9 @@ TEST_F(BuoyExperimentComparison, Spring)
   if (manual_comparison) {  // Plot data for user to decide if it's valid.
     std::vector<size_t> select_time_series{
       TestData::PISTON_POS,
-      TestData::LOWER_SPRING_PRESSURE, 
+      TestData::LOWER_SPRING_PRESSURE,
       TestData::UPPER_SPRING_PRESSURE,
-      TestData::LOWER_SPRING_VOLUME, 
+      TestData::LOWER_SPRING_VOLUME,
       TestData::UPPER_SPRING_VOLUME};
     for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
       if (!std::binary_search(select_time_series.begin(), select_time_series.end(), i)) {
@@ -608,17 +600,17 @@ TEST_F(BuoyExperimentComparison, PTO)
   if (manual_comparison) {  // Plot data for user to decide if it's valid.
     std::vector<size_t> select_time_series{
       TestData::PISTON_POS,
-      TestData::MOTOR_RPM, 
+      TestData::MOTOR_RPM,
       TestData::LOWER_HYD_PRESSURE,
-      TestData::UPPER_HYD_PRESSURE, 
-      TestData::V_BUS, 
-      TestData::WIND_CURR, 
-      TestData::BATT_CURR, 
+      TestData::UPPER_HYD_PRESSURE,
+      TestData::V_BUS,
+      TestData::WIND_CURR,
+      TestData::BATT_CURR,
       TestData::LOAD_CURR,
-      TestData::SCALE, 
+      TestData::SCALE,
       TestData::RETRACT,
       TestData::TARG_CURR,
-      TestData::BIAS_CURR}; 
+      TestData::BIAS_CURR};
     for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
       if (!std::binary_search(select_time_series.begin(), select_time_series.end(), i)) {
         continue;
