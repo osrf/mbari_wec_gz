@@ -15,7 +15,6 @@
 #ifndef ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 #define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 
-#include <splinter_ros/splinter1d.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -24,6 +23,7 @@
 #include <string>
 #include <vector>
 
+#include "JustInterp.hpp"
 
 // Defines from Controller Firmware, behavior replicated here
 #define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
@@ -69,7 +69,7 @@ public:
   bool current_override_{false};
   bool bias_override_{false};
 
-  splinter_ros::Splinter1d DefaultDamping;
+  JustInterp::LinearInterpolator<double> DefaultDamping;
 
   WindingCurrentTarget()
   : ISpec(TorqueSpec.size(), 0.0F),
@@ -80,11 +80,12 @@ public:
       ISpec.begin(),
       [tc = TorqueConstantNMPerAmp](const double & ts) {return ts / tc;});
 
-    DefaultDamping.update(NSpec, ISpec);
+    DefaultDamping.SetData(NSpec, ISpec);
 
     std::cerr << *this << std::endl;
   }
 
+#if 0
   double df(const double & N) const
   {
     if (current_override_) {
@@ -100,6 +101,7 @@ public:
 
     return J_I;
   }
+#endif 
 
   double operator()(const double & N) const
   {
@@ -107,7 +109,7 @@ public:
       I = UserCommandedCurrent;
       // std::cerr << "User Commanded Current: [" << I << "]" << std::endl;
     } else {
-      I = this->DefaultDamping.eval(fabs(N), splinter_ros::USE_BOUNDS);
+      I = this->DefaultDamping(fabs(N));
       I *= this->ScaleFactor;
 
       if (N > 0.0) {

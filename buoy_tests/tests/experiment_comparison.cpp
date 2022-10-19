@@ -243,6 +243,7 @@ protected:
 
     param_node->declare_parameter("inputdata_filename", "");
     inputdata_filename = param_node->get_parameter("inputdata_filename").as_string();
+   //inputdata_filename = "/home/hamilton/buoy_ws/src/buoy_sim/buoy_tests/test_inputdata/2022.01.28T16.46.31.exp";
     param_node->declare_parameter("manual_comparison", false);
     manual_comparison = param_node->get_parameter("manual_comparison").as_bool();
     std::cerr << "inputdata_filename: " << inputdata_filename << std::endl;
@@ -606,6 +607,7 @@ TEST_F(BuoyExperimentComparison, Spring)
 TEST_F(BuoyExperimentComparison, PTO)
 {
   if (manual_comparison) {  // Plot data for user to decide if it's valid.
+  // Make Plots versus time
     std::vector<size_t> select_time_series{
       TestData::PISTON_POS,
       TestData::MOTOR_RPM, 
@@ -634,35 +636,31 @@ TEST_F(BuoyExperimentComparison, PTO)
       gp.send1d(boost::make_tuple(InputData.seconds, InputData.get_data(i)));
       gp.send1d(boost::make_tuple(ResultsData.seconds, ResultsData.get_data(i)));
     }
-
-    {
+// Make Plots versus RPM
+    std::vector<size_t> select_series_vsRPM{
+      TestData::LOWER_HYD_PRESSURE,
+      TestData::UPPER_HYD_PRESSURE,
+      TestData::WIND_CURR,
+      TestData::TARG_CURR};
+    for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
+      std::cout << "i = "  << i << std::endl;
+      if (!std::binary_search(select_series_vsRPM.begin(), select_series_vsRPM.end(), i)) {
+        continue;
+      }
+      std::cout << "plotting: "  << InputData.names[i] << std::endl;
       Gnuplot gp;
-      gp << "set term X11 title  '" << InputData.names[4] << " vs " << InputData.names[3] <<
+      gp << "set term X11 title  '" 
+      << InputData.names[i] << " vs " << InputData.names[TestData::MOTOR_RPM] <<
         " Comparison'\n";
       gp << "set grid\n";
-      gp << "set xlabel '" << InputData.units[3] << "'\n";
-      gp << "set ylabel '" << InputData.units[4] << "'\n";
-      gp << "plot '-' w l title 'EXP " << InputData.names[4] <<
-        "','-' w l title 'TEST " << InputData.names[4] << "'\n";
+      gp << "set xlabel '" << InputData.units[TestData::MOTOR_RPM] << "'\n";
+      gp << "set ylabel '" << InputData.units[i] << "'\n";
+      gp << "plot '-' w l title 'EXP " << InputData.names[i] <<
+        "','-' w l title 'TEST " << InputData.names[i] << "'\n";
 
-      gp.send1d(boost::make_tuple(InputData.get_data(3), InputData.get_data(4)));
-      gp.send1d(boost::make_tuple(ResultsData.get_data(3), ResultsData.get_data(4)));
+      gp.send1d(boost::make_tuple(InputData.get_data(TestData::MOTOR_RPM), InputData.get_data(i)));
+      gp.send1d(boost::make_tuple(ResultsData.get_data(TestData::MOTOR_RPM), ResultsData.get_data(i)));
     }
-
-    {
-      Gnuplot gp;
-      gp << "set term X11 title  '" << InputData.names[5] << " vs " << InputData.names[3] <<
-        " Comparison'\n";
-      gp << "set grid\n";
-      gp << "set xlabel '" << InputData.units[3] << "'\n";
-      gp << "set ylabel '" << InputData.units[5] << "'\n";
-      gp << "plot '-' w l title 'EXP " << InputData.names[5] <<
-        "','-' w l title 'TEST " << InputData.names[5] << "'\n";
-
-      gp.send1d(boost::make_tuple(InputData.get_data(3), InputData.get_data(5)));
-      gp.send1d(boost::make_tuple(ResultsData.get_data(3), ResultsData.get_data(5)));
-    }
-
   } else {  // Compare test results to input data and pass test if so.
     EXPECT_TRUE(CompareData(TestData::PISTON_VEL, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::MOTOR_RPM, 1.0, timestep));

@@ -69,7 +69,11 @@ public:
 
   double WindingCurrent{0.0};
 
-  static constexpr double Ve{315.0};
+  static constexpr double Ve{298.0};
+  static constexpr double Ri{8.0};
+  static constexpr double I_BattMax{7.0};
+  static constexpr double MaxTargetVoltage{325.0};
+
 
   bool VelMode{false};
 
@@ -141,7 +145,8 @@ void ElectroHydraulicPTO::Configure(
   // Need to set to actual ram position for soft-stop at ends, mid-span for now
   this->dataPtr->functor.I_Wind.RamPosition = 40.0;
 
-  this->dataPtr->x.setConstant(2.0, 0.0);
+  this->dataPtr->x.setConstant(3, 0.0);
+  this->dataPtr->x[2] = this->dataPtr->Ve;
 
   std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
   pistonvel_pub = node.Advertise<ignition::msgs::Double>(pistonvel_topic);
@@ -208,8 +213,8 @@ void ElectroHydraulicPTO::PreUpdate(
   double xdot = prismaticJointVelComp->Data().at(0);
   this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
-  double x = prismaticJointVelComp->Data().at(0);
-  this->dataPtr->functor.I_Wind.RamPosition = (2.03 - x) * 39.4;
+  double PistonPos = prismaticJointVelComp->Data().at(0);
+  this->dataPtr->functor.I_Wind.RamPosition = 40; //(2.03 - PistonPos * 39.4;
 
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
@@ -255,6 +260,9 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->functor.I_Wind.BiasCurrent = DEFAULT_BIASCURRENT;
   }
 
+this->dataPtr->functor.VBattEMF = this->dataPtr->Ve;
+this->dataPtr->functor.Ri = this->dataPtr->Ri; //Ohms
+
   // Initial Guess based on perfect efficiency
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
 
@@ -278,42 +286,23 @@ void ElectroHydraulicPTO::PreUpdate(
   // const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
+  double VBus = this->dataPtr->x[2U];
+  VBus = std::min(VBus,this->dataPtr->MaxTargetVoltage);
   this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;
   this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent;
+  double BusPower = this->dataPtr->functor.BusPower;
 
-  static const double eff_e = 0.85;
-  static const double RPM_TO_RAD_PER_SEC = 2.0 * M_PI / 60.0;
-  static const double P_conv = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
-    RPM_TO_RAD_PER_SEC;
-  const double ShaftPower = P_conv * this->dataPtr->WindingCurrent * N;  // Watts
-  double P = eff_e * ShaftPower;
-  static const double Ri = 8.0;  // Ohms
-
-  static const double two_a = 2.0 / Ri;
-  static const double four_a = 2.0 * two_a;
-  static const double neg_b = this->dataPtr->Ve / Ri;
-  static const double neg_b_sq = neg_b * neg_b;
-
-  // TODO(hamilton) temporary fix for NaN's when discriminant < 0.0
-  // this happens when user commanded winding current is too large
-  const double c = std::min(-P, neg_b_sq / four_a - 0.001 /* ensure discriminant > 0.0 */);
-  // P = -c;
-
-  const double sqrt_discriminant = sqrt(neg_b_sq - four_a * c);
-  const double VBus1 = (neg_b + sqrt_discriminant) / two_a;
-  const double VBus2 = (neg_b - sqrt_discriminant) / two_a;
-
-  double VBus = VBus1 > VBus2 ? std::min(VBus1, 325.0) : std::min(VBus2, 325.0);
-
-  double I_Batt = (VBus - this->dataPtr->Ve) / Ri;
-  static const double I_BattMax = 7.0;
-
-  if (I_Batt > I_BattMax) {  // Need to limit charge current
-    I_Batt = I_BattMax;
-    VBus = this->dataPtr->Ve + Ri * I_BattMax;
+  double I_Batt = (VBus - this->dataPtr->Ve) / this->dataPtr->Ri;
+  if (I_Batt > this->dataPtr->I_BattMax) {  // Need to limit charge current
+    I_Batt = this->dataPtr->I_BattMax;
+    VBus = this->dataPtr->Ve + this->dataPtr->Ri * this->dataPtr->I_BattMax;
   }
-  const double I_Load = P / VBus - I_Batt;
 
+  double I_Load = 0.0;
+  if(BusPower > 0) {
+    std::cout << BusPower << "  " <<  VBus << "   " << I_Batt << std::endl;
+    I_Load = BusPower / VBus - I_Batt;
+}
 
   // Assign Values
   pto_state.rpm = N;

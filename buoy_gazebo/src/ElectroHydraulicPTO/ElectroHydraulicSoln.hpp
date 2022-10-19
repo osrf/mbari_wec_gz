@@ -15,9 +15,7 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 
-// #include <splinter_ros/common.hpp>  // linspace
-// Interpolation library for efficiency maps
-#include <splinter_ros/splinter1d.hpp>
+#include "JustInterp.hpp"
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
@@ -125,14 +123,18 @@ public:
   const double CubicInchesPerGallon = 231.0;
   const double SecondsPerMinute = 60.0;
 
-  splinter_ros::Splinter1d hyd_eff_v, hyd_eff_m;
+  JustInterp::LinearInterpolator<double> hyd_eff_v,hyd_eff_m;
+
 
   // Class that computes Target Winding Current based on RPM, Scale Factor,
   // limits, etc..
   mutable WindingCurrentTarget I_Wind;
+  mutable double BusPower; 
   double Q;
   /// \brief Pump/Motor Displacement per Revolution
   double HydMotorDisp;
+  double VBattEMF; //Battery internal EMF voltage
+  double Ri;  //Battery internal resistance
 
 private:
   static const std::vector<double> Peff;  // psi
@@ -141,12 +143,9 @@ private:
   static const std::vector<double> Eff_V;  // volumetric efficiency
   static const std::vector<double> Eff_M;  // mechanical efficiency
 
-  EffM effm;
-  EffV effv;
-
 public:
   ElectroHydraulicSoln()
-  : Functor<double>(2, 2),
+  : Functor<double>(3, 3),
     // Set HydraulicMotor Volumetric & Mechanical Efficiency
     hyd_eff_v(Peff, Eff_V), hyd_eff_m(Neff, Eff_M)
   {
@@ -154,20 +153,29 @@ public:
 
   // x[0] = RPM
   // x[1] = Pressure (psi)
+  // x[2] = Bus Voltage (Volts) 
   int operator()(const Eigen::VectorXd & x, Eigen::VectorXd & fvec) const
   {
     const int n = x.size();
+    std::cout << " n= " << n << std::endl;
     assert(fvec.size() == n);
 
     const double rpm = fabs(x[0U]);
     const double pressure = fabs(x[1U]);
-    const double eff_m = this->hyd_eff_m.eval(rpm, splinter_ros::USE_BOUNDS);
-    const double eff_v = this->hyd_eff_v.eval(pressure, splinter_ros::USE_BOUNDS);
+    const double eff_m = this->hyd_eff_m(rpm);
+    const double eff_v = this->hyd_eff_v(pressure);
 
+    double WindCurr = this->I_Wind(x[0U]);
     // 1.375 fudge factor required to match experiments, not yet sure why.
     const double T_applied =
-      1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(x[0U]);
+      1.375 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
 
+  static const double RPM_TO_RAD_PER_SEC = 2.0 * M_PI / 60.0;
+  static const double NM_PER_INLB = 0.112984829;
+  double ShaftMechPower = T_applied*NM_PER_INLB*x[0U]*RPM_TO_RAD_PER_SEC;
+  static const double eff_e = 0.85;
+  BusPower = -ShaftMechPower*eff_e;
+std::cout << "BusPower = " << BusPower << std::endl;
     double QQ = this->Q;
     if (x[1U] > PressReliefSetPoint) {  // Pressure relief is a one wave valve,
                                         // relieves when lower pressure is higher
@@ -177,14 +185,16 @@ public:
     }
 
     if ((x[0U] > 0) - (-x[1U] < 0)) { //RPM and -deltaP have same sign
-      std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
+      std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << "  " << x[2U] << std::endl;
       fvec[0U] = x[0U] - eff_v * SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     } else {
-      std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << std::endl;
+      std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << "  " << x[2U] << std::endl;
       fvec[0U] = eff_v * x[0U] - SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = eff_m * x[1U] - T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     }
+      fvec[2U] = BusPower-(x[2U]-VBattEMF)*x[2U]/this->Ri;
+
     return 0;
   }
 };
@@ -202,7 +212,7 @@ const std::vector<double> ElectroHydraulicSoln::Neff{
 const std::vector<double> ElectroHydraulicSoln::Eff_V{
   1.0000, 0.8720, 0.9240, 0.9480, 0.9520, 0.9620, 0.9660, 0.9660,
   0.9720, 0.9760, 0.9760, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800,
-  0.9800, 0.9800, 0.9800, 0.9800, 0.9800, 0.9800};
+  0.9800, 0.9800, 0.9800, 0.9800, 0.9800};
 
 const std::vector<double> ElectroHydraulicSoln::Eff_M{
   1.0, 0.9360, 0.9420, 0.9460, 0.9460, 0.9460, 0.9460, 0.9460,
