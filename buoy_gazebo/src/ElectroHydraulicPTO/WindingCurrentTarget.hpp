@@ -23,7 +23,8 @@
 #include <string>
 #include <vector>
 
-#include "JustInterp.hpp"
+#include "buoy_utils/Interp1d.hpp"
+
 
 // Defines from Controller Firmware, behavior replicated here
 #define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
@@ -69,7 +70,7 @@ public:
   bool current_override_{false};
   bool bias_override_{false};
 
-  JustInterp::LinearInterpolator<double> DefaultDamping;
+  buoy_utils::Interp1d DefaultDamping;
 
   WindingCurrentTarget()
   : ISpec(TorqueSpec.size(), 0.0F),
@@ -80,18 +81,18 @@ public:
       ISpec.begin(),
       [tc = TorqueConstantNMPerAmp](const double & ts) {return ts / tc;});
 
-    DefaultDamping.SetData(NSpec, ISpec);
+    DefaultDamping.update(NSpec, ISpec);
 
     std::cerr << *this << std::endl;
   }
 
-#if 0
+  /*
   double df(const double & N) const
   {
     if (current_override_) {
       J_I = 0.0;
     } else {
-      J_I = this->DefaultDamping.evalJacobian(fabs(N), splinter_ros::USE_BOUNDS);
+      J_I = this->DefaultDamping.evalJacobian(fabs(N));
       J_I *= this->ScaleFactor;
 
       if (N > 0.0) {
@@ -101,7 +102,7 @@ public:
 
     return J_I;
   }
-#endif 
+  */
 
   double operator()(const double & N) const
   {
@@ -109,7 +110,7 @@ public:
       I = UserCommandedCurrent;
       // std::cerr << "User Commanded Current: [" << I << "]" << std::endl;
     } else {
-      I = this->DefaultDamping(fabs(N));
+      I = this->DefaultDamping.eval(fabs(N));
       I *= this->ScaleFactor;
 
       if (N > 0.0) {

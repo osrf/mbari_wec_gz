@@ -15,7 +15,6 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 
-#include "JustInterp.hpp"
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
@@ -26,6 +25,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+// Interpolation for efficiency maps
+#include "buoy_utils/Interp1d.hpp"
 
 #include "ElectroHydraulicState.hpp"
 #include "WindingCurrentTarget.hpp"
@@ -58,60 +60,7 @@ struct Functor
   // const;
 };
 
-struct EffV
-{
-  EffV() = default;
 
-  std::vector<double> df(const double & rpm, const double & pressure) const
-  {
-    double sech_ = 1.0 / cosh(2e-6 * (rpm + 55.0) * (pressure - 5000.0));
-
-    // rpm
-    double dfdx0 = 2.667e-11 * (pressure - 74268.6) * (pressure - 5000.0) * sech_ * sech_;
-
-    // pressure
-    double dfdx1 = 1.333e-5 * tanh(2e-6 * (rpm + 55.0) * (pressure - 5000.0)) +
-      2.667e-11 * (rpm + 55.0) * (pressure - 74268.6) * sech_ * sech_;
-
-    return std::vector<double>{dfdx0, dfdx1};
-  }
-
-  double operator()(const double & rpm, const double & pressure) const
-  {
-    return std::max(
-      0.5,
-      (-1.333e-5 * pressure + 0.99) * tanh((-2e-6 * pressure + 0.01) * (rpm + 55.0)));
-  }
-};
-
-struct EffM
-{
-  EffM() = default;
-
-  std::vector<double> df(const double & rpm, const double & pressure) const
-  {
-    double sech_ = 1.0 / cosh(8e-8 * (rpm - 37500.0) * (pressure + 34.0));
-
-    // rpm
-    double dfdx0 = (4.2664e-13 * rpm - 7.84e-8) * (pressure + 34.0) * sech_ * sech_ -
-      5.333e-6 * tanh((-8e-8 * rpm + 0.003) * (pressure + 34.0));
-
-    // pressure
-    double dfdx1 = 4.2664e-13 * (rpm - 183761.0) * (rpm - 37500.0) * sech_ * sech_;
-
-    return std::vector<double>{dfdx0, dfdx1};
-  }
-
-  double operator()(const double & rpm, const double & pressure) const
-  {
-    if (pressure <= 10.0) {
-      return (2.5871e-14 * rpm + 7.9528e-9) * exp((-3.9e-6 * rpm + 1.25742) * pressure) + 0.1;
-    }
-    return std::max(
-      0.1,
-      (-5.333e-6 * rpm + 0.98) * tanh((-8e-8 * rpm + 0.003) * (pressure + 34.0)));
-  }
-};
 
 struct ElectroHydraulicSoln : Functor<double>
 {
@@ -123,8 +72,7 @@ public:
   const double CubicInchesPerGallon = 231.0;
   const double SecondsPerMinute = 60.0;
 
-  JustInterp::LinearInterpolator<double> hyd_eff_v,hyd_eff_m;
-
+  buoy_utils::Interp1d hyd_eff_v, hyd_eff_m;
 
   // Class that computes Target Winding Current based on RPM, Scale Factor,
   // limits, etc..
@@ -137,6 +85,9 @@ public:
   double Ri;  //Battery internal resistance
 
 private:
+  static constexpr double RPM_TO_RAD_PER_SEC{2.0 * M_PI / 60.0};
+  static constexpr double NM_PER_INLB{0.112984829};
+
   static const std::vector<double> Peff;  // psi
   static const std::vector<double> Neff;  // rpm
 
@@ -151,6 +102,34 @@ public:
   {
   }
 
+//Friction loss is characterized in 2022 PTO simulation paper
+// Friction loss is a function of RPM
+//  Units of power returned
+  double MotorDriveFrictionLoss(double N) const
+  {
+    double tau_c = 0.1;  //N-m
+    double k_v = .06/1000; // N-m/RPM
+    double k_th = 20;
+    return fabs((tau_c*tanh(2*M_PI*N/60/k_th)+k_v*N/1000)*N);
+  }
+
+//Switching Loss is from measurements as a function of bus voltage.
+// ~ 10% of Voltage in Watts...
+//  Units of power returned
+  double MotorDriveSwitchingLoss(double V) const
+  {
+    double k = 0.1;  //W/Volt  (magic units!)
+    return k*V;
+  }
+
+//Winding ISquaredR Losses,
+//  Units of power returned
+  double MotorDriveISquaredRLoss(double I) const
+  {
+    double R_w = 1.8;  //Ohms
+    return R_w*I*I;
+  }
+  
   // x[0] = RPM
   // x[1] = Pressure (psi)
   // x[2] = Bus Voltage (Volts) 
@@ -162,19 +141,19 @@ public:
 
     const double rpm = fabs(x[0U]);
     const double pressure = fabs(x[1U]);
-    const double eff_m = this->hyd_eff_m(rpm);
-    const double eff_v = this->hyd_eff_v(pressure);
+    const double eff_m = this->hyd_eff_m.eval(rpm);
+    const double eff_v = this->hyd_eff_v.eval(pressure);
 
     double WindCurr = this->I_Wind(x[0U]);
     // 1.375 fudge factor required to match experiments, not yet sure why.
     const double T_applied =
       1.375 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
 
-  static const double RPM_TO_RAD_PER_SEC = 2.0 * M_PI / 60.0;
-  static const double NM_PER_INLB = 0.112984829;
-  double ShaftMechPower = T_applied*NM_PER_INLB*x[0U]*RPM_TO_RAD_PER_SEC;
-  static const double eff_e = 0.85;
-  BusPower = -ShaftMechPower*eff_e;
+  double ShaftMechPower = -T_applied*NM_PER_INLB*x[0U]*RPM_TO_RAD_PER_SEC;
+  BusPower = ShaftMechPower-
+                (MotorDriveFrictionLoss(x[0U]) +
+                 MotorDriveSwitchingLoss(x[2U]) + 
+                 MotorDriveISquaredRLoss(WindCurr));
 std::cout << "BusPower = " << BusPower << std::endl;
     double QQ = this->Q;
     if (x[1U] > PressReliefSetPoint) {  // Pressure relief is a one wave valve,
@@ -218,5 +197,63 @@ const std::vector<double> ElectroHydraulicSoln::Eff_M{
   1.0, 0.9360, 0.9420, 0.9460, 0.9460, 0.9460, 0.9460, 0.9460,
   0.9460, 0.9460, 0.9460, 0.9500, 0.9500, 0.9500, 0.9500, 0.9400,
   0.9300, 0.9300, 0.9200, 0.9100, 0.9000, 0.8400};
+
+
+
+struct EffV
+{
+  EffV() = default;
+
+  std::vector<double> df(const double & rpm, const double & pressure) const
+  {
+    double sech_ = 1.0 / cosh(2e-6 * (rpm + 55.0) * (pressure - 5000.0));
+
+    // rpm
+    double dfdx0 = 2.667e-11 * (pressure - 74268.6) * (pressure - 5000.0) * sech_ * sech_;
+
+    // pressure
+    double dfdx1 = 1.333e-5 * tanh(2e-6 * (rpm + 55.0) * (pressure - 5000.0)) +
+      2.667e-11 * (rpm + 55.0) * (pressure - 74268.6) * sech_ * sech_;
+
+    return std::vector<double>{dfdx0, dfdx1};
+  }
+
+  double operator()(const double & rpm, const double & pressure) const
+  {
+    return std::max(
+      0.5,
+      (-1.333e-5 * pressure + 0.99) * tanh((-2e-6 * pressure + 0.01) * (rpm + 55.0)));
+  }
+};
+
+
+struct EffM
+{
+  EffM() = default;
+
+  std::vector<double> df(const double & rpm, const double & pressure) const
+  {
+    double sech_ = 1.0 / cosh(8e-8 * (rpm - 37500.0) * (pressure + 34.0));
+
+    // rpm
+    double dfdx0 = (4.2664e-13 * rpm - 7.84e-8) * (pressure + 34.0) * sech_ * sech_ -
+      5.333e-6 * tanh((-8e-8 * rpm + 0.003) * (pressure + 34.0));
+
+    // pressure
+    double dfdx1 = 4.2664e-13 * (rpm - 183761.0) * (rpm - 37500.0) * sech_ * sech_;
+
+    return std::vector<double>{dfdx0, dfdx1};
+  }
+
+  double operator()(const double & rpm, const double & pressure) const
+  {
+    if (pressure <= 10.0) {
+      return (2.5871e-14 * rpm + 7.9528e-9) * exp((-3.9e-6 * rpm + 1.25742) * pressure) + 0.1;
+    }
+    return std::max(
+      0.1,
+      (-5.333e-6 * rpm + 0.98) * tanh((-8e-8 * rpm + 0.003) * (pressure + 34.0)));
+  }
+};
 
 #endif  // ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_

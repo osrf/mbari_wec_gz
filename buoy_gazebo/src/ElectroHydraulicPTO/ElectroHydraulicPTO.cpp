@@ -74,6 +74,8 @@ public:
   static constexpr double I_BattMax{7.0};
   static constexpr double MaxTargetVoltage{325.0};
 
+  //Dummy compensator pressure for ROS messages, not simulated
+  static constexpr double CompensatorPressure{2.91}; 
 
   bool VelMode{false};
 
@@ -277,13 +279,6 @@ this->dataPtr->functor.Ri = this->dataPtr->Ri; //Ohms
 
 
   // Solve Electrical
-  // TODO(hamilton) temporary fix for NaN situation. Should make this more robust
-  // or at least parameterized.
-  // Problem: If I repeatedly smash the PC with a -30 Amp winding current command, this solution
-  // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
-  // to the max absolute rpm from the winding current interpolation
-  // (no extrapolation, default torque controller).
-  // const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   double VBus = this->dataPtr->x[2U];
@@ -309,7 +304,15 @@ this->dataPtr->functor.Ri = this->dataPtr->Ri; //Ohms
   pto_state.voltage = VBus;
   pto_state.bcurrent = I_Batt;
   pto_state.wcurrent = this->dataPtr->WindingCurrent;
-  pto_state.diff_press = deltaP;
+  pto_state.diff_press = this->dataPtr->CompensatorPressure;
+  if(deltaP >= 0){
+   pto_state.upper_hyd_press = deltaP;
+   pto_state.lower_hyd_press = 0.0;
+  }
+  else{
+   pto_state.upper_hyd_press = 0.0;
+   pto_state.lower_hyd_press = -deltaP;
+  }
   pto_state.bias_current = this->dataPtr->functor.I_Wind.BiasCurrent;
   pto_state.loaddc = I_Load;
   pto_state.scale = this->dataPtr->functor.I_Wind.ScaleFactor;

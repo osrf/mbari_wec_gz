@@ -52,10 +52,6 @@ set(GZ_SIM_VER ${ignition-gazebo6_VERSION_MAJOR})
 #
 # [ROS]: Signal that this plugin is ROS-enabled
 
-add_link_options(
-  "LINKER:-E"
-)
-
 function(gz_add_plugin plugin_name)
   set(options ROS)
   set(oneValueArgs)
@@ -119,6 +115,10 @@ install(TARGETS BuoyECMStateData
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
   DESTINATION include
   FILES_MATCHING PATTERN "*.hpp"
 )
@@ -135,6 +135,16 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PolytropicPneumaticSpring
 
 ament_export_targets(export_BuoyECMStateData)
 
+ament_export_targets(export_Interp1d HAS_LIBRARY_TARGET)
+install(TARGETS Interp1d
+  EXPORT export_Interp1d
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib
+  INCLUDES DESTINATION include
+)
+
+
 # Resources
 install(DIRECTORY
   worlds
@@ -147,63 +157,6 @@ install(DIRECTORY
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-
-  # GTest
-  find_package(ament_cmake_gtest REQUIRED)
-  ament_find_gtest()
-
-  # launch_testing
-  find_package(launch_testing_ament_cmake REQUIRED)
-
-  # Helper function to generate gtest
-  function(gz_add_gtest TEST_NAME)
-    set(
-      options
-        ROS
-        LAUNCH_TEST
-        GAZEBO
-    )
-    set(oneValueArgs)
-    set(multiValueArgs
-      EXTRA_ROS_PKGS)
-
-    cmake_parse_arguments(gz_add_test "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    ament_add_gtest_executable(${TEST_NAME}
-      test/${TEST_NAME}.cpp
-    )
-    if(gz_add_test_GAZEBO)
-      target_link_libraries(${TEST_NAME}
-        ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
-      )
-    endif()
-    if(gz_add_test_ROS)
-      set(ROS_PKGS rclcpp ${gz_add_test_EXTRA_ROS_PKGS})
-      foreach(PKG ${ROS_PKGS})
-        find_package(${PKG} REQUIRED)
-      endforeach()
-      ament_target_dependencies(${TEST_NAME} ${ROS_PKGS})
-    endif()
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(${TEST_NAME}
-      Stopwatch
-    )
-    install(
-      TARGETS ${TEST_NAME}
-      DESTINATION lib/${PROJECT_NAME}
-    )
-    if(gz_add_test_LAUNCH_TEST)
-      add_launch_test(test/launch/${TEST_NAME}.launch.py
-        TIMEOUT 300
-      )
-    else()
-      ament_add_gtest_test(${TEST_NAME})
-    endif()
-  endfunction()
-
-  # Add gtests
-  gz_add_gtest(test_stopwatch ROS)
-
 endif()
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
