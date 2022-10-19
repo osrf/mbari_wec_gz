@@ -115,6 +115,10 @@ install(TARGETS BuoyECMStateData
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
   DESTINATION include
   FILES_MATCHING PATTERN "*.hpp"
 )
@@ -130,6 +134,15 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PolytropicPneumaticSpring
 )
 
 ament_export_targets(export_BuoyECMStateData)
+
+ament_export_targets(export_Interp1d HAS_LIBRARY_TARGET)
+install(TARGETS Interp1d
+  EXPORT export_Interp1d
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib
+  INCLUDES DESTINATION include
+)
 
 # Resources
 install(DIRECTORY
