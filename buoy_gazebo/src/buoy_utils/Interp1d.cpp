@@ -52,6 +52,7 @@ Interp1d::table_t Interp1d::make_table(
   return table;
 }
 
+// static: one-shot eval with vector data
 double Interp1d::eval(
   const std::vector<double> & x_table,
   const std::vector<double> & y_table,
@@ -60,14 +61,22 @@ double Interp1d::eval(
   return Interp1d(x_table, y_table).eval(x_eval);
 }
 
+// static: one-shot eval with table data
 double Interp1d::eval(const Interp1d::table_t & table, const double & x)
 {
   return Interp1d(table).eval(x);
 }
 
+// operator version of eval with class instance
+double Interp1d::operator()(const double & x) const
+{
+  return this->eval(x);
+}
+
+// eval with class instance
 double Interp1d::eval(const double & x) const
 {
-  // use bounds of data table
+  // use bounds of data table and short-cut
   if (x <= table_.front().first) {
     return table_.front().second;
   } else if (x >= table_.back().first) {
@@ -82,7 +91,7 @@ double Interp1d::eval(const double & x) const
       (x <= latest_upper_edge_->first);
   }
 
-  // search for correct bin
+  // search for correct bin otherwise shortcut with same bin
   if (!x_in_latest_bin) {
     const double dummy_y{0.0};
     table_t::const_iterator citx =

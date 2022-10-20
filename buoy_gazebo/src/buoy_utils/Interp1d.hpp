@@ -35,11 +35,17 @@ public:
   void update(const std::vector<double> & x, const std::vector<double> & y);
 
   static table_t make_table(const std::vector<double> & x, const std::vector<double> & y);
+
+  // one-shot eval with vector data
   static double eval(
     const std::vector<double> & x_table,
     const std::vector<double> & y_table,
     const double & x_eval);
+  // one-shot eval with table data
   static double eval(const table_t & table, const double & x);
+  // operator version of eval with class instance
+  double operator()(const double & x) const;
+  // eval with class instance
   double eval(const double & x) const;
 
 private:
