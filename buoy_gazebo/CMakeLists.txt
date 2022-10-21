@@ -144,7 +144,6 @@ install(TARGETS Interp1d
   INCLUDES DESTINATION include
 )
 
-
 # Resources
 install(DIRECTORY
   worlds
