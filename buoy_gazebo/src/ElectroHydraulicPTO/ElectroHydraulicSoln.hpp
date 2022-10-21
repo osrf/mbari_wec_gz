@@ -61,7 +61,6 @@ struct Functor
 };
 
 
-
 struct ElectroHydraulicSoln : Functor<double>
 {
 public:
@@ -77,12 +76,12 @@ public:
   // Class that computes Target Winding Current based on RPM, Scale Factor,
   // limits, etc..
   mutable WindingCurrentTarget I_Wind;
-  mutable double BusPower; 
+  mutable double BusPower;
   double Q;
   /// \brief Pump/Motor Displacement per Revolution
   double HydMotorDisp;
-  double VBattEMF; //Battery internal EMF voltage
-  double Ri;  //Battery internal resistance
+  double VBattEMF;  // Battery internal EMF voltage
+  double Ri;  // Battery internal resistance
 
 private:
   static constexpr double RPM_TO_RAD_PER_SEC{2.0 * M_PI / 60.0};
@@ -102,37 +101,37 @@ public:
   {
   }
 
-//Friction loss is characterized in 2022 PTO simulation paper
-// Friction loss is a function of RPM
-//  Units of power returned
+  // Friction loss is characterized in 2022 PTO simulation paper
+  // Friction loss is a function of RPM
+  // Units of power returned
   double MotorDriveFrictionLoss(double N) const
   {
-    double tau_c = 0.1;  //N-m
-    double k_v = .06/1000; // N-m/RPM
+    double tau_c = 0.1;  // N-m
+    double k_v = .06 / 1000;  // N-m/RPM
     double k_th = 20;
-    return fabs((tau_c*tanh(2*M_PI*N/60/k_th)+k_v*N/1000)*N);
+    return fabs((tau_c * tanh(2 * M_PI * N / 60 / k_th) + k_v * N / 1000) * N);
   }
 
-//Switching Loss is from measurements as a function of bus voltage.
-// ~ 10% of Voltage in Watts...
-//  Units of power returned
+  // Switching Loss is from measurements as a function of bus voltage.
+  // ~ 10% of Voltage in Watts...
+  // Units of power returned
   double MotorDriveSwitchingLoss(double V) const
   {
-    double k = 0.1;  //W/Volt  (magic units!)
-    return k*V;
+    double k = 0.1;  // W/Volt  (magic units!)
+    return k * V;
   }
 
-//Winding ISquaredR Losses,
-//  Units of power returned
+  // Winding ISquaredR Losses,
+  // Units of power returned
   double MotorDriveISquaredRLoss(double I) const
   {
-    double R_w = 1.8;  //Ohms
-    return R_w*I*I;
+    double R_w = 1.8;  // Ohms
+    return R_w * I * I;
   }
-  
+
   // x[0] = RPM
   // x[1] = Pressure (psi)
-  // x[2] = Bus Voltage (Volts) 
+  // x[2] = Bus Voltage (Volts)
   int operator()(const Eigen::VectorXd & x, Eigen::VectorXd & fvec) const
   {
     const int n = x.size();
@@ -149,12 +148,12 @@ public:
     const double T_applied =
       1.375 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
 
-  double ShaftMechPower = -T_applied*NM_PER_INLB*x[0U]*RPM_TO_RAD_PER_SEC;
-  BusPower = ShaftMechPower-
-                (MotorDriveFrictionLoss(x[0U]) +
-                 MotorDriveSwitchingLoss(x[2U]) + 
-                 MotorDriveISquaredRLoss(WindCurr));
-std::cout << "BusPower = " << BusPower << std::endl;
+    double ShaftMechPower = -T_applied * NM_PER_INLB * x[0U] * RPM_TO_RAD_PER_SEC;
+    BusPower = ShaftMechPower -
+      (MotorDriveFrictionLoss(x[0U]) +
+      MotorDriveSwitchingLoss(x[2U]) +
+      MotorDriveISquaredRLoss(WindCurr));
+    std::cout << "BusPower = " << BusPower << std::endl;
     double QQ = this->Q;
     if (x[1U] > PressReliefSetPoint) {  // Pressure relief is a one wave valve,
                                         // relieves when lower pressure is higher
@@ -163,16 +162,16 @@ std::cout << "BusPower = " << BusPower << std::endl;
         CubicInchesPerGallon / SecondsPerMinute;
     }
 
-    if ((x[0U] > 0) - (-x[1U] < 0)) { //RPM and -deltaP have same sign
-      std::cout << "motor quadrant" << x[0U] << "  "  <<  x[1U] << "  " << x[2U] << std::endl;
+    if ((x[0U] > 0) - (-x[1U] < 0)) {  // RPM and -deltaP have same sign
+      std::cout << "motor quadrant" << x[0U] << "  " << x[1U] << "  " << x[2U] << std::endl;
       fvec[0U] = x[0U] - eff_v * SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     } else {
-      std::cout << "pump quadrant" << x[0U] << "  "  <<  x[1U] << "  " << x[2U] << std::endl;
+      std::cout << "pump quadrant" << x[0U] << "  " << x[1U] << "  " << x[2U] << std::endl;
       fvec[0U] = eff_v * x[0U] - SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = eff_m * x[1U] - T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     }
-      fvec[2U] = BusPower-(x[2U]-VBattEMF)*x[2U]/this->Ri;
+    fvec[2U] = BusPower - (x[2U] - VBattEMF) * x[2U] / this->Ri;
 
     return 0;
   }
@@ -197,7 +196,6 @@ const std::vector<double> ElectroHydraulicSoln::Eff_M{
   1.0, 0.9360, 0.9420, 0.9460, 0.9460, 0.9460, 0.9460, 0.9460,
   0.9460, 0.9460, 0.9460, 0.9500, 0.9500, 0.9500, 0.9500, 0.9400,
   0.9300, 0.9300, 0.9200, 0.9100, 0.9000, 0.8400};
-
 
 
 struct EffV
