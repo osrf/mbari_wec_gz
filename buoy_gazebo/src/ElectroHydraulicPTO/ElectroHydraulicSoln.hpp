@@ -135,7 +135,6 @@ public:
   int operator()(const Eigen::VectorXd & x, Eigen::VectorXd & fvec) const
   {
     const int n = x.size();
-    std::cout << " n= " << n << std::endl;
     assert(fvec.size() == n);
 
     const double rpm = fabs(x[0U]);
@@ -153,7 +152,6 @@ public:
       (MotorDriveFrictionLoss(x[0U]) +
       MotorDriveSwitchingLoss(x[2U]) +
       MotorDriveISquaredRLoss(WindCurr));
-    std::cout << "BusPower = " << BusPower << std::endl;
     double QQ = this->Q;
     if (x[1U] > PressReliefSetPoint) {  // Pressure relief is a one wave valve,
                                         // relieves when lower pressure is higher
@@ -163,11 +161,11 @@ public:
     }
 
     if ((x[0U] > 0) - (-x[1U] < 0)) {  // RPM and -deltaP have same sign
-      std::cout << "motor quadrant" << x[0U] << "  " << x[1U] << "  " << x[2U] << std::endl;
+      // std::cer << "motor quadrant" << x[0U] << "  " << x[1U] << "  " << x[2U] << std::endl;
       fvec[0U] = x[0U] - eff_v * SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = x[1U] - eff_m * T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     } else {
-      std::cout << "pump quadrant" << x[0U] << "  " << x[1U] << "  " << x[2U] << std::endl;
+      // std::cerr << "pump quadrant" << x[0U] << "  " << x[1U] << "  " << x[2U] << std::endl;
       fvec[0U] = eff_v * x[0U] - SecondsPerMinute * QQ / this->HydMotorDisp;
       fvec[1U] = eff_m * x[1U] - T_applied / (this->HydMotorDisp / (2.0 * M_PI));
     }

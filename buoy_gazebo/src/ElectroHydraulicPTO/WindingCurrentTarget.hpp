@@ -83,7 +83,6 @@ public:
 
     DefaultDamping.update(NSpec, ISpec);
 
-    std::cerr << *this << std::endl;
   }
 
   /*
@@ -108,7 +107,6 @@ public:
   {
     if (current_override_) {
       I = UserCommandedCurrent;
-      // std::cerr << "User Commanded Current: [" << I << "]" << std::endl;
     } else {
       I = this->DefaultDamping.eval(fabs(N));
       I *= this->ScaleFactor;
@@ -120,13 +118,12 @@ public:
       if (bias_override_) {
         I += BiasCurrent;
       }
-
-      /*
+/*
       std::cerr << "WindingCurrent: f(" << N << ", "
         << this->ScaleFactor << ", "
         << this->RetractFactor << ") = "
         << I << std::endl;
-      */
+*/
     }
 
 // Enforce Min/Max
@@ -160,7 +157,6 @@ public:
 //                     ^                    |                                      ^
 //                     |                    |                                      |
 //                 -5000RPM                 V                                   6000RPM
-
     double AdjustedN = N;
     if (N >= 0.0) {  // Retracting
       const double min_region = SC_RANGE_MIN + STOP_RANGE;
@@ -181,9 +177,8 @@ public:
         -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 - 385.0;  // Magic nums
       I = std::max(I, CurrLim);
     }
-
     I = std::min(std::max(I, -MAX_WINDCURRENTLIMIT), MAX_WINDCURRENTLIMIT);
-
+    //std::cerr << "ISet = " << I << std::endl;
     return I;
   }
 };

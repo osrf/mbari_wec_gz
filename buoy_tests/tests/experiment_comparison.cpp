@@ -67,12 +67,12 @@ struct TestData
     RETRACT = 11U,
     LOWER_SPRING_PRESSURE = 12U,
     UPPER_SPRING_PRESSURE = 13U,
-    LOWER_SPRING_VOLUME = 14U,
-    UPPER_SPRING_VOLUME = 15U,
-    TARG_CURR = 16U,
-    PC_STATUS = 17U,
-    TM_FORCE = 18U,
-    BIAS_CURR = 19U,
+    TARG_CURR = 14U,
+    PC_STATUS = 15U,
+    TM_FORCE = 16U,
+    BIAS_CURR = 17U,
+    LOWER_SPRING_VOLUME = 18U,
+    UPPER_SPRING_VOLUME = 19U,
     NUM_VALUES = 20U
   };
 
@@ -81,12 +81,12 @@ struct TestData
     "V_Bus", "WindCurr", "BattCurr",
     "LoadCurr", "Scale", "Retract",
     "LowerSpringPressure", "UpperSpringPressure",
-    "LowerSpringVolume", "UpperSpringVolume",
     "TargCurr", "PowerConverterStatus",
-    "TestMachineForce", "BiasCurr"};
+    "TestMachineForce", "BiasCurr",
+    "LowerSpringVolume", "UpperSpringVolume"};
   const char * units[TestData::NUM_VALUES] = {"seconds", "inches", "in/sec", "RPM", "psi_g",
     "psi_g", "Volts", "Amps", "Amps", "Amps",
-    "", "", "psi_a", "psi_a", "cubic m", "cubic m", "Amps", "", "lbs", "Amps"};
+    "", "", "psi_a", "psi_a", "Amps", "", "lbs", "Amps", "cubic m", "cubic m"};
 
   std::vector<double> seconds;
   std::vector<double> PistonPos;
@@ -102,12 +102,12 @@ struct TestData
   std::vector<double> Retract;
   std::vector<double> LowerSpringPressure;
   std::vector<double> UpperSpringPressure;
-  std::vector<double> LowerSpringVolume;
-  std::vector<double> UpperSpringVolume;
   std::vector<double> TargCurr;
   std::vector<double> PowerConverterStatus;
   std::vector<double> TestMachineForce;
   std::vector<double> BiasCurr;
+  std::vector<double> LowerSpringVolume;
+  std::vector<double> UpperSpringVolume;
 
   double get_data_at(const int & data_num, const int & idx)
   {
