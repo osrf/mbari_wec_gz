@@ -48,7 +48,10 @@ struct PolytropicPneumaticSpringConfig
   bool is_upper{false};
 
   /// \brief is hysteresis present in piston travel direction
-  bool hysteresis;
+  bool hysteresis{false};
+
+  /// \brief hysteresis velocity deadzone (m/s)
+  double vel_dz_lower{-0.1}, vel_dz_upper{0.1};
 
   /// \brief adiabatic index (gamma) == 1.4 for diatomic gas (e.g. N2)
   static constexpr double ADIABATIC_INDEX{1.4};
@@ -84,6 +87,12 @@ struct PolytropicPneumaticSpringConfig
 
   /// \brief initial Temp (K)
   double T0{283.15};
+
+  /// \brief coef of heat transfer (1/s)
+  double r{1.0};
+
+  /// \brief Temp of environment (seawater) (K)
+  double Tenv{283.15};
 
   /// \brief R (specific gas)
   double R{0.2968};
@@ -137,6 +146,8 @@ struct PolytropicPneumaticSpringPrivate
 
   /// \brief current rate of heat loss (Watts)
   double Q_rate{0.0};
+
+  bool from_upper{false};
 
   std::unique_ptr<const PolytropicPneumaticSpringConfig> config_{nullptr};
 };
@@ -233,6 +244,38 @@ void PolytropicPneumaticSpring::pumpOn(
   P2 = mRT0 / V2;
 }
 
+void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const int & dt_nano)
+{
+  // geometry: V = V_dead + A*x
+  this->dataPtr->V = this->dataPtr->config_->dead_volume + x * this->dataPtr->config_->piston_area;
+
+  // Newton's Law of Cooling (non-dimensionalized):
+  // Tdot = r*(T_env - T(t)) -> T[n] = dt*r*(Tenv - T[n-1]) + T[n-1] (using forward difference)
+  /*
+  if (this->dataPtr->config_->is_upper) {
+    std::cerr << "V=[" << this->dataPtr->V
+      << "] :: Tenv=[" << this->dataPtr->config_->Tenv
+      << "] :: T=[" << this->dataPtr->T << "]" << std::endl;
+  }
+  */
+  const double dt_sec = dt_nano * IGN_NANO_TO_SEC;
+  const double dT =
+    dt_sec * this->dataPtr->config_->r * (this->dataPtr->config_->Tenv - this->dataPtr->T);
+  this->dataPtr->T += dT;
+
+  // TODO(andermi) find Qdot (rate of heat transfer) from h, A, dT (Qdot = h*A*dT)
+  const double radius = 0.045;
+  const double A = (2.0 * this->dataPtr->config_->piston_area) * radius * x;
+  const double h = 11.3;  // (W/(m^2*K)) -- Water<->Mild Steel<->Gas
+  this->dataPtr->Q_rate = h * A * dT;
+
+  // Ideal Gas Law: P = (m*R)*T/V
+  this->dataPtr->P = this->dataPtr->config_->c * this->dataPtr->T / this->dataPtr->V;
+
+  // F = P*A
+  this->dataPtr->F = this->dataPtr->P * this->dataPtr->config_->piston_area;
+}
+
 //////////////////////////////////////////////////
 void PolytropicPneumaticSpring::computeForce(const double & x, const double & v)
 {
@@ -252,9 +295,12 @@ void PolytropicPneumaticSpring::computeForce(const double & x, const double & v)
     // Retrieved from https://ir.library.oregonstate.edu/downloads/ww72bf399
     // heat loss rate for polytropic idea gas:
     // dQ/dt = (1 - n/gamma)*(c_p/R)*P*A*dx/dt
+    // TODO(andermi) A != piston_area... it's the chamber surface area
+    const double r = 0.045;
+    const double A = (2.0 * this->dataPtr->config_->piston_area) * r * x;
     this->dataPtr->Q_rate =
       (1.0 - this->dataPtr->n / PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) * cp_R *
-      this->dataPtr->P * this->dataPtr->config_->piston_area * v;
+      this->dataPtr->P * A * v;
   }
 
   // F = P*A
@@ -293,8 +339,11 @@ void PolytropicPneumaticSpring::Configure(
   config.VelMode = _sdf->Get<bool>(
     "VelMode", false).first;
   config.T0 = SdfParamDouble(_sdf, "T0", config.T0);
+  config.r = SdfParamDouble(_sdf, "r", config.r);
 
   config.hysteresis = _sdf->Get<bool>("hysteresis", false).first;
+  config.vel_dz_lower = SdfParamDouble(_sdf, "velocity_deadzone_lower", config.vel_dz_lower);
+  config.vel_dz_upper = SdfParamDouble(_sdf, "velocity_deadzone_upper", config.vel_dz_upper);
   if (config.hysteresis) {
     config.n1 = SdfParamDouble(_sdf, "n1", PolytropicPneumaticSpringConfig::ADIABATIC_INDEX);
     config.n2 = SdfParamDouble(_sdf, "n2", PolytropicPneumaticSpringConfig::ADIABATIC_INDEX);
@@ -513,14 +562,20 @@ void PolytropicPneumaticSpring::PreUpdate(
         this->dataPtr->P2, this->dataPtr->config_->V2);
     }
 
-    if (v >= 0.0) {
+    if (v >= this->dataPtr->config_->vel_dz_upper) {
       this->dataPtr->n = this->dataPtr->config_->n1;
       this->dataPtr->V0 = this->dataPtr->config_->V1;
       this->dataPtr->P0 = this->dataPtr->P1;
-    } else {
+      computeForce(x, v);
+      this->dataPtr->from_upper = true;
+    } else if (v <= this->dataPtr->config_->vel_dz_lower) {
       this->dataPtr->n = this->dataPtr->config_->n2;
       this->dataPtr->V0 = this->dataPtr->config_->V2;
       this->dataPtr->P0 = this->dataPtr->P2;
+      computeForce(x, v);
+      this->dataPtr->from_upper = false;
+    } else {
+      computeLawOfCoolingForce(x, dt_nano);
     }
   } else {
     if (spring_state.valve_command) {
@@ -532,9 +587,14 @@ void PolytropicPneumaticSpring::PreUpdate(
         dt_nano,
         this->dataPtr->P0, this->dataPtr->V0);
     }
+
+    if (fabs(v) >= 0.1) {
+      computeForce(x, v);
+    } else {
+      computeLawOfCoolingForce(x, dt_nano);
+    }
   }
 
-  computeForce(x, v);
   if (this->dataPtr->config_->is_upper) {
     this->dataPtr->F *= -1.0;
   }

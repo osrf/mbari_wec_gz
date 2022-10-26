@@ -101,6 +101,7 @@ private:
     const int dt_nano,
     double & P1, const double & V1,
     double & P2, const double & V2);
+  void computeLawOfCoolingForce(const double & x, const int & dt_nano);
   void computeForce(const double & x, const double & v);
 
   ignition::transport::Node node;
