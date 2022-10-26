@@ -42,6 +42,7 @@
 
 #include "ElectroHydraulicSoln.hpp"
 #include "ElectroHydraulicState.hpp"
+#include "ElectroHydraulicLoss.hpp"
 
 
 namespace buoy_gazebo
@@ -232,6 +233,18 @@ void ElectroHydraulicPTO::PreUpdate(
     pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
   }
 
+  buoy_gazebo::ElectroHydraulicLoss pto_loss;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->PrismaticJointEntity,
+      buoy_gazebo::components::ElectroHydraulicLoss().TypeId()))
+  {
+    auto pto_loss_comp =
+      _ecm.Component<buoy_gazebo::components::ElectroHydraulicLoss>(
+      this->dataPtr->PrismaticJointEntity);
+
+    pto_loss = buoy_gazebo::ElectroHydraulicLoss(pto_loss_comp->Data());
+  }
+
   if (pto_state.scale_command) {
     this->dataPtr->functor.I_Wind.ScaleFactor = pto_state.scale_command.value();
   } else {
@@ -321,9 +334,21 @@ this->dataPtr->functor.Ri = this->dataPtr->Ri; //Ohms
   pto_state.retract = this->dataPtr->functor.I_Wind.RetractFactor;
   pto_state.target_a = this->dataPtr->functor.I_Wind.I;
 
+
+  pto_loss.hydraulic_motor_loss += 1.0;
+  pto_loss.relief_valve_loss += 2.0;
+  pto_loss.motor_drive_i2r_loss += 3.0;
+  pto_loss.motor_drive_switching_loss += 4.0;
+  pto_loss.motor_drive_friction_loss += 5.0;
+  pto_loss.battery_i2r_loss = I_Batt*I_Batt*this->dataPtr->Ri; 
+
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
     this->dataPtr->PrismaticJointEntity,
     pto_state);
+  
+  _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicLoss>(
+    this->dataPtr->PrismaticJointEntity,
+    pto_loss);
 
   auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
