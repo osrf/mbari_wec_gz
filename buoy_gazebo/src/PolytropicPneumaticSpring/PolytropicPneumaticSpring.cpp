@@ -147,8 +147,6 @@ struct PolytropicPneumaticSpringPrivate
   /// \brief current rate of heat loss (Watts)
   double Q_rate{0.0};
 
-  bool from_upper{false};
-
   std::unique_ptr<const PolytropicPneumaticSpringConfig> config_{nullptr};
 };
 
@@ -279,11 +277,12 @@ void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const
 //////////////////////////////////////////////////
 void PolytropicPneumaticSpring::computeForce(const double & x, const double & v)
 {
+  const double V0 = this->dataPtr->V;
+  const double P0 = this->dataPtr->P;
   // geometry: V = V_dead + A*x
   this->dataPtr->V = this->dataPtr->config_->dead_volume + x * this->dataPtr->config_->piston_area;
   // polytropic relationship: P = P0*(V0/V)^n
-  this->dataPtr->P = this->dataPtr->P0 *
-    pow(this->dataPtr->V0 / this->dataPtr->V, this->dataPtr->n);
+  this->dataPtr->P = P0 * pow(V0 / this->dataPtr->V, this->dataPtr->n);
   // Ideal Gas Law: T = P*V/(m*R)
   this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->config_->c;
 
@@ -293,7 +292,7 @@ void PolytropicPneumaticSpring::computeForce(const double & x, const double & v)
     // Rodrigues, M. J. (June 5, 2014). Heat Transfer During the Piston-Cylinder Expansion of a Gas
     // (Master's thesis, Oregon State University).
     // Retrieved from https://ir.library.oregonstate.edu/downloads/ww72bf399
-    // heat loss rate for polytropic idea gas:
+    // heat loss rate for polytropic ideal gas:
     // dQ/dt = (1 - n/gamma)*(c_p/R)*P*A*dx/dt
     // TODO(andermi) A != piston_area... it's the chamber surface area
     const double r = 0.045;
@@ -357,6 +356,7 @@ void PolytropicPneumaticSpring::Configure(
     this->dataPtr->n = config.n1;
     this->dataPtr->P1 = SdfParamDouble(_sdf, "P1", this->dataPtr->P1);
     this->dataPtr->P2 = SdfParamDouble(_sdf, "P2", this->dataPtr->P2);
+    this->dataPtr->P0 = this->dataPtr->P1;
     config.x1 = SdfParamDouble(_sdf, "x1", config.x1);
     config.x2 = SdfParamDouble(_sdf, "x2", config.x2);
 
@@ -392,6 +392,11 @@ void PolytropicPneumaticSpring::Configure(
     this->dataPtr->mass = config.c / config.R;
     igndbg << "mass: " << this->dataPtr->mass << std::endl;
   }
+
+  this->dataPtr->V = this->dataPtr->V0;
+  this->dataPtr->P = this->dataPtr->P0;
+  // Ideal Gas Law: T = P*V/(m*R)
+  this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / config.c;
 
   config.model = ignition::gazebo::Model(_entity);
   if (!config.model.Valid(_ecm)) {
@@ -567,13 +572,11 @@ void PolytropicPneumaticSpring::PreUpdate(
       this->dataPtr->V0 = this->dataPtr->config_->V1;
       this->dataPtr->P0 = this->dataPtr->P1;
       computeForce(x, v);
-      this->dataPtr->from_upper = true;
     } else if (v <= this->dataPtr->config_->vel_dz_lower) {
       this->dataPtr->n = this->dataPtr->config_->n2;
       this->dataPtr->V0 = this->dataPtr->config_->V2;
       this->dataPtr->P0 = this->dataPtr->P2;
       computeForce(x, v);
-      this->dataPtr->from_upper = false;
     } else {
       computeLawOfCoolingForce(x, dt_nano);
     }
