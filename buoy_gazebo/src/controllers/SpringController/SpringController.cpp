@@ -12,7 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "SpringController.hpp"
+
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/common/Profiler.hh>
+#include <gz/plugin/Register.hh>
 #include <gz/msgs/wrench.pb.h>
+#include <gz/transport/Node.hh>
+
+#include <rclcpp/rclcpp.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
+
+#include <ros_ign_gazebo/Stopwatch.hpp>
+
+#include <buoy_interfaces/msg/sc_record.hpp>
+#include <buoy_interfaces/srv/valve_command.hpp>
+#include <buoy_interfaces/srv/pump_command.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -21,21 +38,6 @@
 #include <string>
 #include <vector>
 
-#include <gz/sim/Model.hh>
-#include <gz/sim/Util.hh>
-#include <gz/sim/components/Name.hh>
-#include <gz/common/Profiler.hh>
-#include <gz/plugin/Register.hh>
-#include <gz/transport/Node.hh>
-
-#include <rclcpp/rclcpp.hpp>
-#include <rcl_interfaces/msg/parameter_descriptor.hpp>
-
-#include <buoy_interfaces/msg/sc_record.hpp>
-#include <buoy_interfaces/srv/valve_command.hpp>
-#include <buoy_interfaces/srv/pump_command.hpp>
-
-#include "buoy_utils/Stopwatch.hpp"
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 #include "SpringController.hpp"
 
@@ -66,7 +68,7 @@ struct SpringControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PumpCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PumpCommand::Response>)> pump_command_handler_;
 
-  buoy_utils::Stopwatch command_watch_;
+  ros_ign_gazebo::Stopwatch command_watch_;
   rclcpp::Duration command_duration_{0, 0U};
 
   std::atomic<bool> valve_command_{false}, pump_command_{false};

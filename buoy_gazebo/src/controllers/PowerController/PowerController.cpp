@@ -31,6 +31,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 
+#include <ros_ign_gazebo/Stopwatch.hpp>
+
 #include <buoy_interfaces/msg/pc_record.hpp>
 #include <buoy_interfaces/srv/pc_wind_curr_command.hpp>
 #include <buoy_interfaces/srv/pc_scale_command.hpp>
@@ -38,7 +40,13 @@
 #include <buoy_interfaces/srv/pc_bias_curr_command.hpp>
 #include <buoy_interfaces/msg/pb_command_response.hpp>
 
-#include "buoy_utils/Stopwatch.hpp"
+#include <algorithm>
+#include <chrono>
+#include <limits>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "ElectroHydraulicPTO/ElectroHydraulicState.hpp"
 #include "PowerController.hpp"
 
@@ -73,7 +81,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response>)> torque_command_handler_;
 
-  buoy_utils::Stopwatch torque_command_watch_;
+  ros_ign_gazebo::Stopwatch torque_command_watch_;
   rclcpp::Duration torque_command_duration_{0, 0U};
   static const rclcpp::Duration TORQUE_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_wind_curr_range_;
@@ -86,7 +94,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Response>)> scale_command_handler_;
 
-  buoy_utils::Stopwatch scale_command_watch_;
+  ros_ign_gazebo::Stopwatch scale_command_watch_;
   rclcpp::Duration scale_command_duration_{0, 0U};
   static const rclcpp::Duration SCALE_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_scale_range_;
@@ -100,7 +108,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Response>)> retract_command_handler_;
 
-  buoy_utils::Stopwatch retract_command_watch_;
+  ros_ign_gazebo::Stopwatch retract_command_watch_;
   rclcpp::Duration retract_command_duration_{0, 0U};
   static const rclcpp::Duration RETRACT_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_retract_range_;
@@ -114,7 +122,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response>)> bias_curr_command_handler_;
 
-  buoy_utils::Stopwatch bias_curr_command_watch_;
+  ros_ign_gazebo::Stopwatch bias_curr_command_watch_;
   rclcpp::Duration bias_curr_command_duration_{0, 0U};
   static const rclcpp::Duration BIAS_CURR_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_bias_curr_range_;
@@ -305,7 +313,7 @@ struct PowerControllerPrivate
         if (response->result.value == response->result.BAD_INPUT) {
           RCLCPP_WARN_STREAM(
             ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] PCWindCurrCommand out of bounds -- clipped between [" <<
+            "[ROS 2 Power Control] PCWindCurrCommand out of bounds -- clipped between [" <<
               services_->valid_wind_curr_range_.from_value << ", " <<
               services_->valid_wind_curr_range_.to_value << "] Amps");
         }
@@ -337,7 +345,7 @@ struct PowerControllerPrivate
         if (response->result.value == response->result.BAD_INPUT) {
           RCLCPP_WARN_STREAM(
             ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] PCScaleCommand out of bounds -- clipped between [" <<
+            "[ROS 2 Power Control] PCScaleCommand out of bounds -- clipped between [" <<
               services_->valid_scale_range_.from_value << ", " <<
               services_->valid_scale_range_.to_value << "]");
         }
@@ -369,7 +377,7 @@ struct PowerControllerPrivate
         if (response->result.value == response->result.BAD_INPUT) {
           RCLCPP_WARN_STREAM(
             ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] PCRetractCommand out of bounds -- clipped between [" <<
+            "[ROS 2 Power Control] PCRetractCommand out of bounds -- clipped between [" <<
               services_->valid_retract_range_.from_value << ", " <<
               services_->valid_retract_range_.to_value << "]");
         }
@@ -401,7 +409,7 @@ struct PowerControllerPrivate
         if (response->result.value == response->result.BAD_INPUT) {
           RCLCPP_WARN_STREAM(
             ros_->node_->get_logger(),
-            "[ROS 2 Spring Control] PCBiasCurrCommand out of bounds -- clipped between [" <<
+            "[ROS 2 Power Control] PCBiasCurrCommand out of bounds -- clipped between [" <<
               services_->valid_bias_curr_range_.from_value << ", " <<
               services_->valid_bias_curr_range_.to_value << "]");
         }
@@ -415,7 +423,7 @@ struct PowerControllerPrivate
   void manageCommandTimer(
     const std::string & command_name,
     buoy_utils::CommandTriState<> & command,
-    buoy_utils::Stopwatch & watch,
+    ros_ign_gazebo::Stopwatch & watch,
     const rclcpp::Duration & duration)
   {
     // override
@@ -480,7 +488,7 @@ struct PowerControllerPrivate
     std::atomic<bool> & services_command,
     std::atomic<bool> & new_command,
     const double & command_value,
-    buoy_utils::Stopwatch & watch,
+    ros_ign_gazebo::Stopwatch & watch,
     rclcpp::Duration & duration,
     const rclcpp::Duration & timeout)
   {
@@ -585,9 +593,9 @@ void PowerController::Configure(
   // Make sure the controller is attached to a valid model
   auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
-    gzerr << "[ROS 2 Spring Control] Failed to initialize because [" <<
+    gzerr << "[ROS 2 Power Control] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
-      "Please make sure that ROS 2 Spring Control is attached to a valid model." << std::endl;
+      "Please make sure that ROS 2 Power Control is attached to a valid model." << std::endl;
     return;
   }
 
@@ -622,7 +630,7 @@ void PowerController::Configure(
 
   RCLCPP_INFO_STREAM(
     this->dataPtr->ros_->node_->get_logger(),
-    "[ROS 2 Spring Control] Setting up controller for [" << model.Name(_ecm) << "]");
+    "[ROS 2 Power Control] Setting up controller for [" << model.Name(_ecm) << "]");
 
   // Publisher
   std::string topic = _sdf->Get<std::string>("topic", "power_data").first;
@@ -729,7 +737,7 @@ void PowerController::PostUpdate(
       this->dataPtr->jointEntity_,
       buoy_gazebo::components::ElectroHydraulicState().TypeId()))
   {
-    // Pneumatic Spring hasn't updated values yet
+    // ElectroHydraulicPTO hasn't updated values yet
     this->dataPtr->pto_data_valid_ = false;
     return;
   }
