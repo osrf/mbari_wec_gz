@@ -200,13 +200,13 @@
         <stroke>2.03</stroke>
         <piston_area>0.0127</piston_area>
         <dead_volume>0.0266</dead_volume>
-        <T0>265.0</T0>
-        <r>0.075</r>  <!-- coef of heat transfer -->
+        <T0>263.15</T0>
+        <r>0.1</r>  <!-- coef of heat transfer -->
         <R_specific>0.2968</R_specific>
         <c_p>1.04</c_p>
         <hysteresis>true</hysteresis>
         <velocity_deadzone_lower>-0.05</velocity_deadzone_lower>
-        <velocity_deadzone_upper>0.025</velocity_deadzone_upper>
+        <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
         <n1>1.1725</n1>
         <n2>1.2139</n2>
         <x1>1.6159</x1>
@@ -228,13 +228,13 @@
         <stroke>2.03</stroke>
         <piston_area>0.0115</piston_area>
         <dead_volume>0.0523</dead_volume>
-        <T0>283.15</T0>
-        <r>0.047</r>  <!-- coef of heat transfer -->
+        <T0>273.15</T0>
+        <r>0.1</r>  <!-- coef of heat transfer -->
         <R_specific>0.2968</R_specific>
         <c_p>1.04</c_p>
         <hysteresis>true</hysteresis>
-        <velocity_deadzone_lower>-0.025</velocity_deadzone_lower>
-        <velocity_deadzone_upper>0.075</velocity_deadzone_upper>
+        <velocity_deadzone_lower>-0.01</velocity_deadzone_lower>
+        <velocity_deadzone_upper>0.01</velocity_deadzone_upper>
         <n1>1.1967</n1>
         <n2>1.1944</n2>
         <x1>0.9695</x1>
