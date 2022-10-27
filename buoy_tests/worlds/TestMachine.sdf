@@ -188,6 +188,14 @@
         <publish_rate>10</publish_rate>
       </plugin>
 
+      <!-- When fitting Polytropic Spring data:
+               dead_volume: decrease ==> increase scale of overall pressure
+               T0: decrease ==> raise overall pressure, allows heating at low pressures
+               r: increase ==> steepness of thermal decay
+               deadzone lower/upper: deadband for thermal decay vs polytropic relation
+                                     shifts/scales pressure and flattens peaks
+      -->
+
       <!-- Upper Polytropic Spring plugin -->
       <plugin filename="PolytropicPneumaticSpring" name="buoy_gazebo::PolytropicPneumaticSpring">
         <JointName>HydraulicRam</JointName>
@@ -199,13 +207,13 @@
         <pump_pressure>1.7e+6</pump_pressure>
         <stroke>2.03</stroke>
         <piston_area>0.0127</piston_area>
-        <dead_volume>0.0266</dead_volume>
+        <dead_volume>0.0226</dead_volume>
         <T0>263.15</T0>
         <r>0.1</r>  <!-- coef of heat transfer -->
         <R_specific>0.2968</R_specific>
         <c_p>1.04</c_p>
         <hysteresis>true</hysteresis>
-        <velocity_deadzone_lower>-0.05</velocity_deadzone_lower>
+        <velocity_deadzone_lower>-0.1</velocity_deadzone_lower>
         <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
         <n1>1.1725</n1>
         <n2>1.2139</n2>
@@ -227,14 +235,14 @@
         <pump_pressure>1.7e+6</pump_pressure>
         <stroke>2.03</stroke>
         <piston_area>0.0115</piston_area>
-        <dead_volume>0.0523</dead_volume>
-        <T0>273.15</T0>
+        <dead_volume>0.0463</dead_volume>
+        <T0>283.15</T0>
         <r>0.1</r>  <!-- coef of heat transfer -->
         <R_specific>0.2968</R_specific>
         <c_p>1.04</c_p>
         <hysteresis>true</hysteresis>
         <velocity_deadzone_lower>-0.01</velocity_deadzone_lower>
-        <velocity_deadzone_upper>0.01</velocity_deadzone_upper>
+        <velocity_deadzone_upper>0.1</velocity_deadzone_upper>
         <n1>1.1967</n1>
         <n2>1.1944</n2>
         <x1>0.9695</x1>
