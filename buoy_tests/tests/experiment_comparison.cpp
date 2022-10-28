@@ -204,8 +204,8 @@ protected:
   static int argc_;
   static char ** argv_;
   static constexpr double stroke{2.03};
-  static constexpr double lower_area{0.0115}, lower_dead_volume{0.0523};
-  static constexpr double upper_area{0.0127}, upper_dead_volume{0.0266};
+  static constexpr double lower_area{0.0115}, lower_dead_volume{0.0463};
+  static constexpr double upper_area{0.0127}, upper_dead_volume{0.0226};
   static ignition::gazebo::Entity jointEntity;
   static constexpr double timestep{0.01};
   double epsilon{1e-2};

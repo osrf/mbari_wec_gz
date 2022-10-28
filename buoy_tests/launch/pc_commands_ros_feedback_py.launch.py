@@ -261,7 +261,7 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertLess(self.node.bias_curr_, bc + 0.1)
 
         # TODO(andermi) fix this comparison when motor mode is fixed
-        self.assertLess(self.node.range_finder_, 1.1)  # meters
+        self.assertLess(self.node.range_finder_, 2.03)  # meters
 
         self.test_helper.run(bias_curr_timeout_iterations - bias_curr_iterations +
                              feedbackCheckIterations)
