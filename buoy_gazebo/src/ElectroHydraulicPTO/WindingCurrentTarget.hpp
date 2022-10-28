@@ -82,7 +82,6 @@ public:
       [tc = TorqueConstantNMPerAmp](const double & ts) {return ts / tc;});
 
     DefaultDamping.update(NSpec, ISpec);
-
   }
 
   /*
@@ -118,12 +117,13 @@ public:
       if (bias_override_) {
         I += BiasCurrent;
       }
-/*
+
+      /*
       std::cerr << "WindingCurrent: f(" << N << ", "
         << this->ScaleFactor << ", "
         << this->RetractFactor << ") = "
         << I << std::endl;
-*/
+      */
     }
 
 // Enforce Min/Max
@@ -178,7 +178,7 @@ public:
       I = std::max(I, CurrLim);
     }
     I = std::min(std::max(I, -MAX_WINDCURRENTLIMIT), MAX_WINDCURRENTLIMIT);
-    //std::cerr << "ISet = " << I << std::endl;
+    // std::cerr << "ISet = " << I << std::endl;
     return I;
   }
 };

@@ -71,8 +71,8 @@ public:
   static constexpr double I_BattMax{7.0};
   static constexpr double MaxTargetVoltage{325.0};
 
-  //Dummy compensator pressure for ROS messages, not simulated
-  static constexpr double CompensatorPressure{2.91}; 
+  // Dummy compensator pressure for ROS messages, not simulated
+  static constexpr double CompensatorPressure{2.91};
 
   bool VelMode{false};
 
@@ -213,7 +213,7 @@ void ElectroHydraulicPTO::PreUpdate(
   this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
   double PistonPos = prismaticJointVelComp->Data().at(0);
-  this->dataPtr->functor.I_Wind.RamPosition = 40; //(2.03 - PistonPos * 39.4;
+  this->dataPtr->functor.I_Wind.RamPosition = 40;  // 2.03 - PistonPos * 39.4;
 
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
@@ -271,13 +271,13 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->functor.I_Wind.BiasCurrent = DEFAULT_BIASCURRENT;
   }
 
-this->dataPtr->functor.VBattEMF = this->dataPtr->Ve;
-this->dataPtr->functor.Ri = this->dataPtr->Ri; //Ohms
+  this->dataPtr->functor.VBattEMF = this->dataPtr->Ve;
+  this->dataPtr->functor.Ri = this->dataPtr->Ri;  // Ohms
 
-//Initial condition based on perfect efficiency
-//this->dataPtr->x[0] = 60.0*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
-//this->dataPtr->x[1] = 0;  // Need to add applied torque here
-//this->dataPtr->x[2] = this->dataPtr->Ve;
+  // Initial condition based on perfect efficiency
+  // this->dataPtr->x[0] = 60.0*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
+  // this->dataPtr->x[1] = 0;  // Need to add applied torque here
+  // this->dataPtr->x[2] = this->dataPtr->Ve;
 
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
   solver.parameters.xtol = 0.001;
@@ -294,12 +294,11 @@ this->dataPtr->functor.Ri = this->dataPtr->Ri; //Ohms
   // std::cerr << "================================" << std::endl;
 
 
-
   // Solve Electrical
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   double VBus = this->dataPtr->x[2U];
-  VBus = std::min(VBus,this->dataPtr->MaxTargetVoltage);
+  VBus = std::min(VBus, this->dataPtr->MaxTargetVoltage);
   double BusPower = this->dataPtr->functor.BusPower;
 
   double I_Batt = (VBus - this->dataPtr->Ve) / this->dataPtr->Ri;
@@ -309,10 +308,10 @@ this->dataPtr->functor.Ri = this->dataPtr->Ri; //Ohms
   }
 
   double I_Load = 0.0;
-  if(BusPower > 0) {
-  //  std::cout << BusPower << "  " <<  VBus << "   " << I_Batt << std::endl;
+  if (BusPower > 0) {
+    // std::cout << BusPower << "  " <<  VBus << "   " << I_Batt << std::endl;
     I_Load = BusPower / VBus - I_Batt;
-}
+  }
 
   // Assign Values
   pto_state.rpm = N;
@@ -320,13 +319,12 @@ this->dataPtr->functor.Ri = this->dataPtr->Ri; //Ohms
   pto_state.bcurrent = I_Batt;
   pto_state.wcurrent = this->dataPtr->functor.I_Wind.I;
   pto_state.diff_press = this->dataPtr->CompensatorPressure;
-  if(deltaP >= 0){
-   pto_state.upper_hyd_press = 0.0;
-   pto_state.lower_hyd_press = deltaP;
-  }
-  else{
-   pto_state.upper_hyd_press = -deltaP;
-   pto_state.lower_hyd_press = 0.0;
+  if (deltaP >= 0) {
+    pto_state.upper_hyd_press = 0.0;
+    pto_state.lower_hyd_press = deltaP;
+  } else {
+    pto_state.upper_hyd_press = -deltaP;
+    pto_state.lower_hyd_press = 0.0;
   }
   pto_state.bias_current = this->dataPtr->functor.I_Wind.BiasCurrent;
   pto_state.loaddc = I_Load;
@@ -340,12 +338,12 @@ this->dataPtr->functor.Ri = this->dataPtr->Ri; //Ohms
   pto_loss.motor_drive_i2r_loss += 3.0;
   pto_loss.motor_drive_switching_loss += 4.0;
   pto_loss.motor_drive_friction_loss += 5.0;
-  pto_loss.battery_i2r_loss = I_Batt*I_Batt*this->dataPtr->Ri; 
+  pto_loss.battery_i2r_loss = I_Batt * I_Batt * this->dataPtr->Ri;
 
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
     this->dataPtr->PrismaticJointEntity,
     pto_state);
-  
+
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicLoss>(
     this->dataPtr->PrismaticJointEntity,
     pto_loss);
