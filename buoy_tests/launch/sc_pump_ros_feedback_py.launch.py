@@ -67,7 +67,7 @@ class BuoySCPumpPyTest(BuoyPyTests):
         self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
         self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
 
-        # Now send Pump command to run for 60 seconds
+        # Now send Pump command to run for 1 minute
         self.node.send_pump_command(1.0)
         self.assertEqual(self.node.pump_future_.result().result.value,
                          self.node.pump_future_.result().result.OK)
@@ -143,4 +143,4 @@ class BuoySCPumpPyTest(BuoyPyTests):
         # TODO(anyone) remove once TestFixture is fixed upstream
         self.test_helper.stop()
 
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=60)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=600)
