@@ -140,8 +140,7 @@ if(BUILD_TESTING)
       iostreams
       system
     EXTRA_ROS_PKGS
-      buoy_gazebo
-      splinter_ros)
+      buoy_gazebo)
 
   buoy_add_gtest(no_inputs)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
