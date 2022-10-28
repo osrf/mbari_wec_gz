@@ -102,7 +102,7 @@ private:
     double & P1, const double & V1,
     double & P2, const double & V2);
   void computeLawOfCoolingForce(const double & x, const int & dt_nano);
-  void computeForce(const double & x, const double & v);
+  void computePolytropicForce(const double & x, const double & v);
 
   ignition::transport::Node node;
   ignition::transport::Node::Publisher force_pub, pressure_pub, volume_pub,

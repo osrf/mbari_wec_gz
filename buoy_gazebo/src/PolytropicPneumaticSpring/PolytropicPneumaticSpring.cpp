@@ -29,6 +29,7 @@
 
 #include <ignition/msgs/double.pb.h>
 
+#include <algorithm>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -200,9 +201,9 @@ void PolytropicPneumaticSpring::openValve(
   }
 
   // Ideal Gas Law
-  const double mRT0 = this->dataPtr->mass * this->dataPtr->config_->R * this->dataPtr->config_->T0;
-  P1 = mRT0 / V1;
-  P2 = mRT0 / V2;
+  const double mRT = this->dataPtr->mass * this->dataPtr->config_->R * this->dataPtr->T;
+  P1 = mRT / V1;
+  P2 = mRT / V2;
 }
 
 ////////////////////////////////////////////////
@@ -237,9 +238,9 @@ void PolytropicPneumaticSpring::pumpOn(
   }
 
   // Ideal Gas Law
-  const double mRT0 = this->dataPtr->mass * this->dataPtr->config_->R * this->dataPtr->config_->T0;
-  P1 = mRT0 / V1;
-  P2 = mRT0 / V2;
+  const double mRT = this->dataPtr->mass * this->dataPtr->config_->R * this->dataPtr->T;
+  P1 = mRT / V1;
+  P2 = mRT / V2;
 }
 
 void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const int & dt_nano)
@@ -249,13 +250,6 @@ void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const
 
   // Newton's Law of Cooling (non-dimensionalized):
   // Tdot = r*(T_env - T(t)) -> T[n] = dt*r*(Tenv - T[n-1]) + T[n-1] (using forward difference)
-  /*
-  if (this->dataPtr->config_->is_upper) {
-    std::cerr << "V=[" << this->dataPtr->V
-      << "] :: Tenv=[" << this->dataPtr->config_->Tenv
-      << "] :: T=[" << this->dataPtr->T << "]" << std::endl;
-  }
-  */
   const double dt_sec = dt_nano * IGN_NANO_TO_SEC;
   const double dT =
     dt_sec * this->dataPtr->config_->r * (this->dataPtr->config_->Tenv - this->dataPtr->T);
@@ -275,7 +269,7 @@ void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const
 }
 
 //////////////////////////////////////////////////
-void PolytropicPneumaticSpring::computeForce(const double & x, const double & v)
+void PolytropicPneumaticSpring::computePolytropicForce(const double & x, const double & v)
 {
   const double V0 = this->dataPtr->V;
   const double P0 = this->dataPtr->P;
@@ -548,53 +542,41 @@ void PolytropicPneumaticSpring::PreUpdate(
     v *= -1.0;
   }
 
+  x = std::min(std::max(x, 0.0), this->dataPtr->config_->stroke);
+
   const int dt_nano =
     static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count());
 
   static const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
   const double pressure_diff = (spring_state.lower_psi - spring_state.upper_psi) / PASCAL_TO_PSI;
 
-  if (this->dataPtr->config_->hysteresis) {
-    if (spring_state.valve_command) {
-      openValve(
-        dt_nano, pressure_diff,
-        this->dataPtr->P1, this->dataPtr->config_->V1,
-        this->dataPtr->P2, this->dataPtr->config_->V2);
-    } else if (spring_state.pump_command) {
-      pumpOn(
-        dt_nano,
-        this->dataPtr->P1, this->dataPtr->config_->V1,
-        this->dataPtr->P2, this->dataPtr->config_->V2);
-    }
+  if (spring_state.valve_command) {
+    openValve(
+      dt_nano, pressure_diff,
+      this->dataPtr->P, this->dataPtr->V);
+  } else if (spring_state.pump_command) {
+    pumpOn(
+      dt_nano,
+      this->dataPtr->P, this->dataPtr->V);
+  }
 
+  if (this->dataPtr->config_->hysteresis) {
     if (v >= this->dataPtr->config_->vel_dz_upper) {
       this->dataPtr->n = this->dataPtr->config_->n1;
-      this->dataPtr->V0 = this->dataPtr->config_->V1;
-      this->dataPtr->P0 = this->dataPtr->P1;
-      computeForce(x, v);
+      computePolytropicForce(x, v);
     } else if (v <= this->dataPtr->config_->vel_dz_lower) {
       this->dataPtr->n = this->dataPtr->config_->n2;
-      this->dataPtr->V0 = this->dataPtr->config_->V2;
-      this->dataPtr->P0 = this->dataPtr->P2;
-      computeForce(x, v);
+      computePolytropicForce(x, v);
     } else {
       computeLawOfCoolingForce(x, dt_nano);
     }
   } else {
-    if (spring_state.valve_command) {
-      openValve(
-        dt_nano, pressure_diff,
-        this->dataPtr->P0, this->dataPtr->V0);
-    } else if (spring_state.pump_command) {
-      pumpOn(
-        dt_nano,
-        this->dataPtr->P0, this->dataPtr->V0);
-    }
-
-    if (fabs(v) >= 0.1) {
-      computeForce(x, v);
-    } else {
+    if (this->dataPtr->config_->vel_dz_lower <= v &&
+      v <= this->dataPtr->config_->vel_dz_upper)
+    {
       computeLawOfCoolingForce(x, dt_nano);
+    } else {
+      computePolytropicForce(x, v);
     }
   }
 

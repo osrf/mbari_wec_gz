@@ -165,7 +165,7 @@ protected:
 //////////////////////////////////////////////////
 TEST_F(BuoySCTests, SCValveROS)
 {
-  int preCmdIterations{15000}, statusCheckIterations{1000}, postCmdIterations{5000};
+  int preCmdIterations{40000}, statusCheckIterations{1000}, postCmdIterations{5000};
 
   // Run simulation server and wait for piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
@@ -314,7 +314,7 @@ TEST_F(BuoySCTests, SCValveROS)
 //////////////////////////////////////////////////
 TEST_F(BuoySCTests, SCPumpROS)
 {
-  int preCmdIterations{15000}, statusCheckIterations{1000}, postCmdIterations{20000};
+  int preCmdIterations{40000}, statusCheckIterations{1000}, postCmdIterations{60000};
 
   // Run simulation server and allow piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
@@ -355,8 +355,8 @@ TEST_F(BuoySCTests, SCPumpROS)
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
   EXPECT_FALSE(static_cast<bool>(node->status_ & buoy_interfaces::msg::SCRecord::LR_FAULT));
 
-  // Now send Pump command to run for 20 seconds
-  node->pump_response_future_ = node->send_pump_command(20.0 / 60.0);
+  // Now send Pump command to run for 1 minute
+  node->pump_response_future_ = node->send_pump_command(1.0);
   ASSERT_TRUE(node->pump_response_future_.valid());
   node->pump_response_future_.wait();
   EXPECT_EQ(
@@ -441,15 +441,13 @@ TEST_F(BuoySCTests, SCPumpROS)
 
   EXPECT_GT(
     post_pump_range_finder,
-    pre_pump_range_finder - 2.2F /*inches per minute*/ * INCHES_TO_METERS *
-    20.0F /*seconds*/ * 1.0F /*minute*/ / 60.0F /*seconds*/) << \
-    "Piston should retract 2 inches/min for 20 seconds";
+    pre_pump_range_finder - 2.2F /*inches per minute*/ * INCHES_TO_METERS * 1.0F /*minute*/) << \
+    "Piston should retract 2 inches/min for 1 minute";
 
   EXPECT_LT(
     post_pump_range_finder,
-    pre_pump_range_finder - 1.8F /*inches per minute*/ * INCHES_TO_METERS *
-    20.0F /*seconds*/ * 1.0F /*minute*/ / 60.0F /*seconds*/) << \
-    "Piston should retract 2 inches/min for 20 seconds";
+    pre_pump_range_finder - 1.8F /*inches per minute*/ * INCHES_TO_METERS * 1.0F /*minute*/) << \
+    "Piston should retract 2 inches/min for 1 minute";
 
   // Stop spinning node
   node->stop();
