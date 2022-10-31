@@ -192,11 +192,11 @@ void ElectroHydraulicPTO::PreUpdate(
   }
 
   // Create joint position component for piston if one doesn't exist
-  auto prismaticJointPosComp = _ecm.Component<ignition::gazebo::components::JointPosition>(
+  auto prismaticJointPosComp = _ecm.Component<gz::sim::components::JointPosition>(
     this->dataPtr->PrismaticJointEntity);
   if (prismaticJointPosComp == nullptr) {
     _ecm.CreateComponent(
-      this->dataPtr->PrismaticJointEntity, ignition::gazebo::components::JointPosition());
+      this->dataPtr->PrismaticJointEntity, gz::sim::components::JointPosition());
   }
   // We just created the joint velocity component, give one iteration for the
   // physics system to update its size

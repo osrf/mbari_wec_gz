@@ -25,7 +25,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 
-#include <ros_ign_gazebo/Stopwatch.hpp>
+#include <ros_gz_sim/Stopwatch.hpp>
 
 #include <buoy_interfaces/msg/sc_record.hpp>
 #include <buoy_interfaces/srv/valve_command.hpp>
@@ -68,7 +68,7 @@ struct SpringControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PumpCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PumpCommand::Response>)> pump_command_handler_;
 
-  ros_ign_gazebo::Stopwatch command_watch_;
+  ros_gz_sim::Stopwatch command_watch_;
   rclcpp::Duration command_duration_{0, 0U};
 
   std::atomic<bool> valve_command_{false}, pump_command_{false};

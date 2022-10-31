@@ -249,7 +249,7 @@ void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const
 
   // Newton's Law of Cooling (non-dimensionalized):
   // Tdot = r*(T_env - T(t)) -> T[n] = dt*r*(Tenv - T[n-1]) + T[n-1] (using forward difference)
-  const double dt_sec = dt_nano * IGN_NANO_TO_SEC;
+  const double dt_sec = dt_nano * GZ_NANO_TO_SEC;
   const double dT =
     dt_sec * this->dataPtr->config_->r * (this->dataPtr->config_->Tenv - this->dataPtr->T);
   this->dataPtr->T += dT;
@@ -391,7 +391,7 @@ void PolytropicPneumaticSpring::Configure(
   // Ideal Gas Law: T = P*V/(m*R)
   this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / config.c;
 
-  config.model = ignition::gazebo::Model(_entity);
+  config.model = gz::sim::Model(_entity);
   if (!config.model.Valid(_ecm)) {
     gzerr << "PolytropicPneumaticSpring plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
