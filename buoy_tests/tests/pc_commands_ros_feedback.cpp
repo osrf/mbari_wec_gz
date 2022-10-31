@@ -376,7 +376,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_LT(node->bias_curr_, bc + 0.1F);
 
   // TODO(andermi) fix this comparison when motor mode is fixed
-  EXPECT_LT(node->range_finder_, 1.1);  // meters
+  EXPECT_LT(node->range_finder_, 2.03);  // meters
 
   // Let bias curr command timeout
   fixture->Server()->Run(

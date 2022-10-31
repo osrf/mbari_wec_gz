@@ -100,7 +100,8 @@ private:
     const int dt_nano,
     double & P1, const double & V1,
     double & P2, const double & V2);
-  void computeForce(const double & x, const double & v);
+  void computeLawOfCoolingForce(const double & x, const int & dt_nano);
+  void computePolytropicForce(const double & x, const double & v);
 
   gz::transport::Node node;
   gz::transport::Node::Publisher force_pub, pressure_pub, volume_pub,
