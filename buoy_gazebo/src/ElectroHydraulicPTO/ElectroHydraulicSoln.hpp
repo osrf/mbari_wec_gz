@@ -16,6 +16,9 @@
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 
 
+// Interpolation for efficiency maps
+#include <simple_interp/interp1d.hpp>
+
 #include <unsupported/Eigen/NonLinearOptimization>
 
 #include <algorithm>
@@ -25,9 +28,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-// Interpolation for efficiency maps
-#include "buoy_utils/Interp1d.hpp"
 
 #include "ElectroHydraulicState.hpp"
 #include "WindingCurrentTarget.hpp"
@@ -71,7 +71,7 @@ public:
   const double CubicInchesPerGallon = 231.0;
   const double SecondsPerMinute = 60.0;
 
-  buoy_utils::Interp1d hyd_eff_v, hyd_eff_m;
+  simple_interp::Interp1d hyd_eff_v, hyd_eff_m;
 
   // Class that computes Target Winding Current based on RPM, Scale Factor,
   // limits, etc..

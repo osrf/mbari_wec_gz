@@ -34,7 +34,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <buoy_gazebo/buoy_utils/Interp1d.hpp>
+#include <simple_interp/interp1d.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -198,9 +198,9 @@ protected:
   static std::string inputdata_filename;
   static std::string header_line;
   static bool manual_comparison;
-  static std::shared_ptr<buoy_utils::Interp1d> PrescribedVel;
-  static std::shared_ptr<buoy_utils::Interp1d> PrescribedWindingCurrent;
-  static std::shared_ptr<buoy_utils::Interp1d> PrescribedBiasCurrent;
+  static std::shared_ptr<simple_interp::Interp1d> PrescribedVel;
+  static std::shared_ptr<simple_interp::Interp1d> PrescribedWindingCurrent;
+  static std::shared_ptr<simple_interp::Interp1d> PrescribedBiasCurrent;
   static int argc_;
   static char ** argv_;
   static constexpr double stroke{2.03};
@@ -320,11 +320,11 @@ protected:
     ResultsData.BiasCurr.push_back(InputData.BiasCurr.at(0));
 
     PrescribedVel =
-      std::make_shared<buoy_utils::Interp1d>(InputData.seconds, InputData.PistonVel);
+      std::make_shared<simple_interp::Interp1d>(InputData.seconds, InputData.PistonVel);
     PrescribedWindingCurrent =
-      std::make_shared<buoy_utils::Interp1d>(InputData.seconds, InputData.TargCurr);
+      std::make_shared<simple_interp::Interp1d>(InputData.seconds, InputData.TargCurr);
     PrescribedBiasCurrent =
-      std::make_shared<buoy_utils::Interp1d>(InputData.seconds, InputData.BiasCurr);
+      std::make_shared<simple_interp::Interp1d>(InputData.seconds, InputData.BiasCurr);
 
     // Skip debug messages to run faster
     ignition::common::Console::SetVerbosity(3);
@@ -386,8 +386,7 @@ protected:
 
           pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
         }
-        // pto_state.torque_command = PrescribedWindingCurrent->eval(
-        //      SimTime, buoy_utils::FILL_VALUE, std::vector<double>{0.0, 0.0});
+        // pto_state.torque_command = PrescribedWindingCurrent->eval(SimTime);
         // pto_state.torque_command = true;
         pto_state.bias_current_command = PrescribedBiasCurrent->eval(SimTime);
         pto_state.bias_current_command = true;
@@ -528,9 +527,10 @@ std::string BuoyExperimentComparison::inputdata_filename{""};
 // NOLINTNEXTLINE
 std::string BuoyExperimentComparison::header_line{""};
 bool BuoyExperimentComparison::manual_comparison{false};
-std::shared_ptr<buoy_utils::Interp1d> BuoyExperimentComparison::PrescribedVel{nullptr};
-std::shared_ptr<buoy_utils::Interp1d> BuoyExperimentComparison::PrescribedWindingCurrent{nullptr};
-std::shared_ptr<buoy_utils::Interp1d> BuoyExperimentComparison::PrescribedBiasCurrent{nullptr};
+std::shared_ptr<simple_interp::Interp1d> BuoyExperimentComparison::PrescribedVel{nullptr};
+std::shared_ptr<simple_interp::Interp1d>
+BuoyExperimentComparison::PrescribedWindingCurrent{nullptr};
+std::shared_ptr<simple_interp::Interp1d> BuoyExperimentComparison::PrescribedBiasCurrent{nullptr};
 int BuoyExperimentComparison::argc_;
 char ** BuoyExperimentComparison::argv_;
 ignition::gazebo::Entity BuoyExperimentComparison::jointEntity{ignition::gazebo::kNullEntity};

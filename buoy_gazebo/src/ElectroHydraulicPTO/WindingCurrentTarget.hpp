@@ -16,14 +16,14 @@
 #define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 
 
+#include <simple_interp/interp1d.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "buoy_utils/Interp1d.hpp"
 
 
 // Defines from Controller Firmware, behavior replicated here
@@ -70,7 +70,7 @@ public:
   bool current_override_{false};
   bool bias_override_{false};
 
-  buoy_utils::Interp1d DefaultDamping;
+  simple_interp::Interp1d DefaultDamping;
 
   WindingCurrentTarget()
   : ISpec(TorqueSpec.size(), 0.0F),

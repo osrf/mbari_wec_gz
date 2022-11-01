@@ -3,8 +3,6 @@ gz_add_plugin(ElectroHydraulicPTO
     ElectroHydraulicPTO.cpp
   INCLUDE_DIRS
     ..
-  PUBLIC_LINK_LIBS
-    Interp1d
-#  EXTRA_ROS_PKGS
-#    splinter_ros
+  EXTRA_ROS_PKGS
+    simple_interp
 )
