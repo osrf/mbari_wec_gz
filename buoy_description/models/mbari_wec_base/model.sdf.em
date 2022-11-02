@@ -30,10 +30,20 @@ num_tether_bottom_links = 5
 # Heave cone
 heave_total_mass = 817
 trefoil_mass = 10
+heave_height = 1.65 # From STL mesh in Blender
 
-# Heave cone
-heave_total_mass = 817
-trefoil_mass = 10
+# Mooring
+# TODO(mabelzhang) get actual numbers or check these make sense
+mooring_radius = 0.025
+mooring_density = 3350 # kg/m^3
+mooring_length = 500
+
+num_mooring_links = 100
+
+# Anchor
+anchor_mass = 180 # 400 lb
+anchor_radius = 0.3
+anchor_height = 0.1
 
 ###################
 # Computed values #
@@ -74,6 +84,24 @@ def tether_joint_properties():
 # PTO
 pto_inner_radius = tether_radius + pto_gap
 pto_scale = pto_inner_radius / pto_stl_inner_radius
+
+# Mooring
+mooring_link_length = mooring_length / num_mooring_links
+
+def mooring_joint_properties():
+    """ Prints the <dynamics> and <limit> blocks for mooring joints. """
+    print("""
+        <dynamics>
+          <damping>1000.0</damping>
+          <friction>500</friction>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>1000</spring_stiffness>
+        </dynamics>
+        <limit>
+          <lower>-0.05</lower>
+          <upper>0.05</upper>
+        </limit>
+    """)
 }@
 <sdf version="1.8">
   <model name="MBARI_WEC_BASE">
@@ -378,6 +406,9 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         </geometry>
       </collision>
     </link>
+    <frame name="HeaveConeBottom" attached_to="HeaveCone">
+      <pose>0 0 -@(heave_height) 0 0 0</pose>
+    </frame>
 
     <link name="Trefoil">
       <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
@@ -461,6 +492,113 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         </limit>
         <xyz>0.0 0.0 1.0</xyz>
       </axis>
+    </joint>
+
+@[for link_index in range(num_mooring_links)]@
+    <link name="mooring_@(link_index)">
+      <pose relative_to="HeaveConeBottom">0 0 -@((link_index + 0.5) * mooring_link_length) 0 0 0</pose>
+      <!-- TODO(mabelzhang) Get actual numbers for mooring. Now using tether ones -->
+      <inertial>
+        <mass>@(tether_top_link_mm.mass())</mass>
+        <inertia>
+          <ixx>@(tether_top_link_mm.ixx())</ixx>
+          <iyy>@(tether_top_link_mm.iyy())</iyy>
+          <izz>@(tether_top_link_mm.izz())</izz>
+        </inertia>
+      </inertial>
+      <visual name="visual_mooring_@(link_index)">
+        <geometry>
+          <cylinder>
+            <radius>@(mooring_radius)</radius>
+            <length>@(mooring_link_length)</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 1 1 1</ambient>
+          <diffuse>0.1 1 1 1</diffuse>
+          <specular>0.1 1 1 1</specular>
+        </material>
+      </visual>
+      <collision name="collision">
+        <geometry>
+          <cylinder>
+            <radius>@(mooring_radius)</radius>
+            <length>@(mooring_link_length)</length>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <!-- TODO(mabelzhang) Tune these for seafloor -->
+              <mu>10</mu>
+              <mu2>10</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </link>
+
+    <joint name="mooring_joint_@(link_index)" type="universal">
+      <pose>0 0 @(mooring_link_length * 0.5) 0 0 0</pose>
+@[if link_index == 0]@
+      <parent>HeaveConeBottom</parent>
+@[else]@
+      <parent>mooring_@(link_index-1)</parent>
+@[end if]@
+      <child>mooring_@(link_index)</child>
+      <axis>
+        <xyz>1 0 0 </xyz>
+        @(mooring_joint_properties())
+      </axis>
+      <axis2>
+        <xyz>0 1 0 </xyz>
+        @(mooring_joint_properties())
+      </axis2>
+    </joint>
+@[end for]@
+
+    <link name="Anchor">
+      <pose relative_to="mooring_@(num_mooring_links-1)">0 0 -@(mooring_link_length * 0.5) 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <!-- TODO(mabelzhang) Get real values -->
+        <mass>@(anchor_mass)</mass>
+        <inertia>
+          <ixx>10</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>10</iyy>
+          <iyz>0</iyz>
+          <izz>19.9</izz>
+        </inertia>
+      </inertial>
+      <visual name="visual_Anchor">
+        <!-- TODO(mabelzhang) Get actual geometry -->
+        <geometry>
+          <cylinder>
+            <radius>@(anchor_radius)</radius>
+            <length>@(anchor_height)</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.1 0.1 0.1 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="MooringToAnchor" type="universal">
+      <parent>mooring_@(num_mooring_links-1)</parent>
+      <child>Anchor</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        @(mooring_joint_properties())
+      </axis>
+      <axis2>
+        <xyz>0 1 0</xyz>
+        @(mooring_joint_properties())
+      </axis2>
     </joint>
 
   </model>
