@@ -15,19 +15,19 @@
 #include <gnuplot-iostream.h>
 #include <gtest/gtest.h>
 
-#include <ignition/common/Console.hh>
-#include <ignition/gazebo/config.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Server.hh>
-#include <ignition/gazebo/TestFixture.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/World.hh>
+#include <gz/common/Console.hh>
+#include <gz/sim/config.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Server.hh>
+#include <gz/sim/TestFixture.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/World.hh>
 
-#include <ignition/gazebo/components/JointForceCmd.hh>
-#include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointPositionReset.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <gz/sim/components/JointForceCmd.hh>
+#include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointPositionReset.hh>
+#include <gz/sim/components/JointVelocity.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
 
 #include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicState.hpp>
 #include <buoy_gazebo/PolytropicPneumaticSpring/SpringState.hpp>
@@ -182,7 +182,7 @@ protected:
   static constexpr double stroke{2.03};
   static constexpr double lower_area{0.0115}, lower_dead_volume{0.0463};
   static constexpr double upper_area{0.0127}, upper_dead_volume{0.0226};
-  static ignition::gazebo::Entity jointEntity;
+  static gz::sim::Entity jointEntity;
   static constexpr double timestep{0.01};
   double epsilon{1e-2};
   std::function<bool(const double &, const double &)> comparator;
@@ -285,38 +285,38 @@ protected:
       std::make_shared<splinter_ros::Splinter1d>(InputData.seconds, InputData.PistonVel);
 
     // Skip debug messages to run faster
-    ignition::common::Console::SetVerbosity(3);
+    gz::common::Console::SetVerbosity(3);
 
     // Setup fixture
-    ignition::gazebo::ServerConfig config;
+    gz::sim::ServerConfig config;
     config.SetSdfFile("TestMachine.sdf");
     config.SetUpdateRate(0.0);
-    ignition::gazebo::TestFixture fixture(config);
+    gz::sim::TestFixture fixture(config);
     fixture.
     OnConfigure(
       [&](
-        const ignition::gazebo::Entity & _worldEntity,
+        const gz::sim::Entity & _worldEntity,
         const std::shared_ptr<const sdf::Element> &,
-        ignition::gazebo::EntityComponentManager & _ecm,
-        ignition::gazebo::EventManager &)
+        gz::sim::EntityComponentManager & _ecm,
+        gz::sim::EventManager &)
       {
-        auto world = ignition::gazebo::World(_worldEntity);
-        ignition::gazebo::Model pto(world.ModelByName(_ecm, "PTO"));
+        auto world = gz::sim::World(_worldEntity);
+        gz::sim::Model pto(world.ModelByName(_ecm, "PTO"));
         jointEntity = pto.JointByName(_ecm, "HydraulicRam");
 
-        EXPECT_NE(ignition::gazebo::kNullEntity, jointEntity);
+        EXPECT_NE(gz::sim::kNullEntity, jointEntity);
 
         std::cerr << "Initializing piston position to [" <<
           stroke - INCHES_TO_METERS * InputData.PistonPos.at(0) <<
           "] meters (or [" << InputData.PistonPos.at(0) << "] inches)" << std::endl;
-        _ecm.SetComponentData<ignition::gazebo::components::JointPositionReset>(
+        _ecm.SetComponentData<gz::sim::components::JointPositionReset>(
           jointEntity,
           {stroke - INCHES_TO_METERS * InputData.PistonPos.at(0)});
       }).
     OnPreUpdate(
       [&](
-        const ignition::gazebo::UpdateInfo & _info,
-        ignition::gazebo::EntityComponentManager & _ecm)
+        const gz::sim::UpdateInfo & _info,
+        gz::sim::EntityComponentManager & _ecm)
       {
         auto SimTime = std::chrono::duration<double>(_info.simTime).count();
         double piston_vel =
@@ -328,27 +328,27 @@ protected:
         // Create new component for this entitiy in ECM (if it doesn't already
         // exist)
         auto joint_vel =
-        _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(jointEntity);
+        _ecm.Component<gz::sim::components::JointVelocityCmd>(jointEntity);
         if (joint_vel == nullptr) {
           _ecm.CreateComponent(
             jointEntity,
-            ignition::gazebo::components::JointVelocityCmd(
+            gz::sim::components::JointVelocityCmd(
               {piston_vel}));    // Create this iteration
         } else {
-          *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_vel});
+          *joint_vel = gz::sim::components::JointVelocityCmd({piston_vel});
         }
       }).
     OnPostUpdate(
       [&](
-        const ignition::gazebo::UpdateInfo & _info,
-        const ignition::gazebo::EntityComponentManager & _ecm)
+        const gz::sim::UpdateInfo & _info,
+        const gz::sim::EntityComponentManager & _ecm)
       {
         bool got_vel{false}, got_spring_state{false}, got_pto_state{false};
 
         auto SimTime = std::chrono::duration<double>(_info.simTime).count();
 
         auto prismaticJointVelComp =
-        _ecm.Component<ignition::gazebo::components::JointVelocity>(
+        _ecm.Component<gz::sim::components::JointVelocity>(
           jointEntity);
         if (prismaticJointVelComp != nullptr) {
           if (!prismaticJointVelComp->Data().empty()) {
@@ -479,7 +479,7 @@ bool BuoyExperimentComparison::manual_comparison{false};
 std::shared_ptr<splinter_ros::Splinter1d> BuoyExperimentComparison::PrescribedVel{nullptr};
 int BuoyExperimentComparison::argc_;
 char ** BuoyExperimentComparison::argv_;
-ignition::gazebo::Entity BuoyExperimentComparison::jointEntity{ignition::gazebo::kNullEntity};
+gz::sim::Entity BuoyExperimentComparison::jointEntity{gz::sim::kNullEntity};
 
 
 TEST_F(BuoyExperimentComparison, Spring)

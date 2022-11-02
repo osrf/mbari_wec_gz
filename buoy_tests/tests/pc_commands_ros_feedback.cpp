@@ -163,7 +163,7 @@ protected:
     config.SetSdfFile("mbari_wec.sdf");
     config.SetUpdateRate(0.0);
 
-    fixture = std::make_unique<ignition::gazebo::TestFixture>(config);
+    fixture = std::make_unique<gz::sim::TestFixture>(config);
     node = std::make_unique<PCROSNode>("pb_torque_controller");  // same name as example to grab
                                                                  // params
 
