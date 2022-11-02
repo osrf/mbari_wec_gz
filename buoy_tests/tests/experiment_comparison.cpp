@@ -15,6 +15,15 @@
 #include <gnuplot-iostream.h>
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <cstring>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
+
 #include <gz/common/Console.hh>
 #include <gz/sim/config.hh>
 #include <gz/sim/Model.hh>
@@ -35,16 +44,6 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <splinter_ros/splinter1d.hpp>
-
-#include <algorithm>
-#include <cstring>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
-#include <utility>
-#include <vector>
-
 
 const double INCHES_TO_METERS{0.0254};
 
