@@ -25,6 +25,8 @@ cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
 wget https://raw.githubusercontent.com/osrf/buoy_entrypoint/main/buoy_all.yaml
 vcs import --skip-existing < buoy_all.yaml
 
+rm -rf buoy_examples
+
 rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
