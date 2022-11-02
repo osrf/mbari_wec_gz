@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ElectroHydraulicPTO.hpp"
+
 #include <ignition/common/Profiler.hh>
 #include <ignition/common/Console.hh>
 #include <ignition/gazebo/Types.hh>
@@ -29,19 +30,19 @@
 #include <ignition/plugin/Register.hh>
 #include <ignition/transport/Node.hh>
 
-#include <stdio.h>
-
 #include <unsupported/Eigen/NonLinearOptimization>
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "ElectroHydraulicState.hpp"
 #include "ElectroHydraulicSoln.hpp"
+#include "ElectroHydraulicState.hpp"
+#include "ElectroHydraulicLoss.hpp"
 
 
 namespace buoy_gazebo
@@ -65,11 +66,13 @@ public:
 
   Eigen::VectorXd x{};
 
-  double TargetWindingCurrent{0.0};
+  static constexpr double Ve{298.0};
+  static constexpr double Ri{8.0};
+  static constexpr double I_BattMax{7.0};
+  static constexpr double MaxTargetVoltage{325.0};
 
-  double WindingCurrent{0.0};
-
-  static constexpr double Ve{315.0};
+  // Dummy compensator pressure for ROS messages, not simulated
+  static constexpr double CompensatorPressure{2.91};
 
   bool VelMode{false};
 
@@ -141,7 +144,8 @@ void ElectroHydraulicPTO::Configure(
   // Need to set to actual ram position for soft-stop at ends, mid-span for now
   this->dataPtr->functor.I_Wind.RamPosition = 40.0;
 
-  this->dataPtr->x.setConstant(2.0, 0.0);
+  this->dataPtr->x.setConstant(3, 0.0);
+  this->dataPtr->x[2] = this->dataPtr->Ve;
 
   std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
   pistonvel_pub = node.Advertise<ignition::msgs::Double>(pistonvel_topic);
@@ -208,8 +212,8 @@ void ElectroHydraulicPTO::PreUpdate(
   double xdot = prismaticJointVelComp->Data().at(0);
   this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;  // inch^3/second
 
-  double x = prismaticJointVelComp->Data().at(0);
-  this->dataPtr->functor.I_Wind.RamPosition = 40.0;  // TODO(hamilton8415) x * 39.4;
+  double PistonPos = prismaticJointVelComp->Data().at(0);
+  this->dataPtr->functor.I_Wind.RamPosition = 40;  // 2.03 - PistonPos * 39.4;
 
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
@@ -227,6 +231,18 @@ void ElectroHydraulicPTO::PreUpdate(
       this->dataPtr->PrismaticJointEntity);
 
     pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
+  }
+
+  buoy_gazebo::ElectroHydraulicLoss pto_loss;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->PrismaticJointEntity,
+      buoy_gazebo::components::ElectroHydraulicLoss().TypeId()))
+  {
+    auto pto_loss_comp =
+      _ecm.Component<buoy_gazebo::components::ElectroHydraulicLoss>(
+      this->dataPtr->PrismaticJointEntity);
+
+    pto_loss = buoy_gazebo::ElectroHydraulicLoss(pto_loss_comp->Data());
   }
 
   if (pto_state.scale_command) {
@@ -255,73 +271,82 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->functor.I_Wind.BiasCurrent = DEFAULT_BIASCURRENT;
   }
 
-  // Initial Guess based on perfect efficiency
+  this->dataPtr->functor.VBattEMF = this->dataPtr->Ve;
+  this->dataPtr->functor.Ri = this->dataPtr->Ri;  // Ohms
+
+  // Initial condition based on perfect efficiency
+  // this->dataPtr->x[0] = 60.0*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
+  // this->dataPtr->x[1] = 0;  // Need to add applied torque here
+  // this->dataPtr->x[2] = this->dataPtr->Ve;
+
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
+  solver.parameters.xtol = 0.001;
+  // solver.solveNumericalDiff will compute Jacobian numerically rather than obtain from user
   const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
+  std::cerr << "solver info: [" << solver_info << "]" << std::endl;
+  std::cerr << "================================" << std::endl;
+  std::cerr << "================================" << std::endl;
+
+  // solver.solve will use functor `df` function to obtain Jacobian instead of
+  // computing numerically
+  // const int solver_info = solver.solve(this->dataPtr->x);
+  // std::cerr << "solver info: [" << solver_info << "]" << std::endl;
+  // std::cerr << "================================" << std::endl;
 
 
   // Solve Electrical
-  // TODO(hamilton) temporary fix for NaN situation. Should make this more robust
-  // or at least parameterized.
-  // Problem: If I repeatedly smash the PC with a -30 Amp winding current command, this solution
-  // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
-  // to the max absolute rpm from the winding current interpolation
-  // (no extrapolation, default torque controller).
-  // const double N = std::min(std::max(this->dataPtr->x[0U], -6790.0), 6790.0);
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
-  this->dataPtr->TargetWindingCurrent = this->dataPtr->functor.I_Wind.I;
-  this->dataPtr->WindingCurrent = this->dataPtr->TargetWindingCurrent;
+  double VBus = this->dataPtr->x[2U];
+  VBus = std::min(VBus, this->dataPtr->MaxTargetVoltage);
+  double BusPower = this->dataPtr->functor.BusPower;
 
-  static const double eff_e = 0.85;
-  static const double RPM_TO_RAD_PER_SEC = 2.0 * M_PI / 60.0;
-  static const double P_conv = -1.375 * this->dataPtr->functor.I_Wind.TorqueConstantNMPerAmp *
-    RPM_TO_RAD_PER_SEC;
-  const double ShaftPower = P_conv * this->dataPtr->WindingCurrent * N;  // Watts
-  double P = eff_e * ShaftPower;
-  static const double Ri = 8.0;  // Ohms
-
-  static const double two_a = 2.0 / Ri;
-  static const double four_a = 2.0 * two_a;
-  static const double neg_b = this->dataPtr->Ve / Ri;
-  static const double neg_b_sq = neg_b * neg_b;
-
-  // TODO(hamilton) temporary fix for NaN's when discriminant < 0.0
-  // this happens when user commanded winding current is too large
-  const double c = std::min(-P, neg_b_sq / four_a - 0.001 /* ensure discriminant > 0.0 */);
-  // P = -c;
-
-  const double sqrt_discriminant = sqrt(neg_b_sq - four_a * c);
-  const double VBus1 = (neg_b + sqrt_discriminant) / two_a;
-  const double VBus2 = (neg_b - sqrt_discriminant) / two_a;
-
-  double VBus = VBus1 > VBus2 ? std::min(VBus1, 325.0) : std::min(VBus2, 325.0);
-
-  double I_Batt = (VBus - this->dataPtr->Ve) / Ri;
-  static const double I_BattMax = 7.0;
-
-  if (I_Batt > I_BattMax) {  // Need to limit charge current
-    I_Batt = I_BattMax;
-    VBus = this->dataPtr->Ve + Ri * I_BattMax;
+  double I_Batt = (VBus - this->dataPtr->Ve) / this->dataPtr->Ri;
+  if (I_Batt > this->dataPtr->I_BattMax) {  // Need to limit charge current
+    I_Batt = this->dataPtr->I_BattMax;
+    VBus = this->dataPtr->Ve + this->dataPtr->Ri * this->dataPtr->I_BattMax;
   }
-  const double I_Load = P / VBus - I_Batt;
 
+  double I_Load = 0.0;
+  if (BusPower > 0) {
+    // std::cout << BusPower << "  " <<  VBus << "   " << I_Batt << std::endl;
+    I_Load = BusPower / VBus - I_Batt;
+  }
 
   // Assign Values
   pto_state.rpm = N;
   pto_state.voltage = VBus;
   pto_state.bcurrent = I_Batt;
-  pto_state.wcurrent = this->dataPtr->WindingCurrent;
-  pto_state.diff_press = deltaP;
+  pto_state.wcurrent = this->dataPtr->functor.I_Wind.I;
+  pto_state.diff_press = this->dataPtr->CompensatorPressure;
+  if (deltaP >= 0) {
+    pto_state.upper_hyd_press = 0.0;
+    pto_state.lower_hyd_press = deltaP;
+  } else {
+    pto_state.upper_hyd_press = -deltaP;
+    pto_state.lower_hyd_press = 0.0;
+  }
   pto_state.bias_current = this->dataPtr->functor.I_Wind.BiasCurrent;
   pto_state.loaddc = I_Load;
   pto_state.scale = this->dataPtr->functor.I_Wind.ScaleFactor;
   pto_state.retract = this->dataPtr->functor.I_Wind.RetractFactor;
-  pto_state.target_a = this->dataPtr->TargetWindingCurrent;
+  pto_state.target_a = this->dataPtr->functor.I_Wind.I;
+
+
+  pto_loss.hydraulic_motor_loss += 1.0;
+  pto_loss.relief_valve_loss += 2.0;
+  pto_loss.motor_drive_i2r_loss += 3.0;
+  pto_loss.motor_drive_switching_loss += 4.0;
+  pto_loss.motor_drive_friction_loss += 5.0;
+  pto_loss.battery_i2r_loss = I_Batt * I_Batt * this->dataPtr->Ri;
 
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
     this->dataPtr->PrismaticJointEntity,
     pto_state);
+
+  _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicLoss>(
+    this->dataPtr->PrismaticJointEntity,
+    pto_loss);
 
   auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
 
