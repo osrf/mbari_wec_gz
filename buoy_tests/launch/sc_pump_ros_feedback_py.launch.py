@@ -110,10 +110,10 @@ class BuoySCPumpPyTest(BuoyPyTests):
 
             if n % 2 == 1:
                 self.assertFalse(self.node.sc_status_ & SCRecord.PUMP_TOGGLE,
-                                 'SC Pump Toggle should be OFF')
+                        f'SC Pump Toggle should be OFF: (0x{self.node.sc_status_:x})')
             else:
                 self.assertTrue(self.node.sc_status_ & SCRecord.PUMP_TOGGLE,
-                                'SC Pump Toggle should be ON')
+                        f'SC Pump Toggle should be ON: (0x{self.node.sc_status_:x})')
 
         # Check that valve command fails (controller returns BUSY)
         self.node.send_valve_command(2)

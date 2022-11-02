@@ -26,7 +26,7 @@ import time
 import unittest
 
 from gz.common import set_verbosity
-from gz.sim import TestFixture, World, world_entity
+from gz.sim7 import TestFixture, World, world_entity
 
 import pytest
 
