@@ -3,7 +3,7 @@
   <world name="world_demo">
 
     <physics name="1ms" type="ignored">
-      <max_step_size>.01</max_step_size>
+      <max_step_size>.05</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
 
