@@ -20,22 +20,73 @@
 
 #include <Eigen/Dense>
 #include "LinearIncidentWave.hpp"
+#include "gnuplot-iostream.h"
 
 
 int main()
 {
-  LinearIncidentWave Inc;
+	LinearIncidentWave Inc;
 
-  // Inc.SetToPiersonMoskowitzSpectrum(1, 0, 300);
-  // Inc.SetToPiersonMoskowitzSpectrum(6, 0);
-  Inc.SetToMonoChromatic(1, 12, 90 * M_PI / 180);
+	// Inc.SetToPiersonMoskowitzSpectrum(1, 0, 300);
+	// Inc.SetToPiersonMoskowitzSpectrum(6, 0);
+	double A = 1;
+	double T = 12;
+	double phase = 0*M_PI/180;
+	double beta = 180*M_PI/180;
+	Inc.SetToMonoChromatic(A, T, phase, beta);
+  double k = pow(2*M_PI/T,2) / 9.81;
+	std::cout << Inc << std::endl;
 
-  std::cout << Inc << std::endl;
-
-  for (double t = 0; t < 600; t += .1) {
-    std::cout << t << "  " << Inc.eta(0, 0, t) << "   " << Inc.etadot(0, 0, t) << "  " << cos(
-      2 * M_PI * t / 12) << std::endl;
+{
+	std::vector<double> pts_t;
+	std::vector<double> pts_eta, pts_eta_true;
+// std::vector<double> pts_etadot, pts_etadot_true;
+  double x = 0;
+  double y = 0;
+  double xx = x*cos(beta)+y*sin(beta);
+	for (double t = 0; t < 4*T; t += .1) {
+		pts_t.push_back(t);
+		pts_eta.push_back(Inc.eta(x, y, t));
+		pts_eta_true.push_back(A*cos(k*xx-2*M_PI*t/T+phase));
   }
+	Gnuplot gp;
+	gp << "set term X11 title  'Incident Wave Elevation at Origin'\n";
+	gp << "set grid\n";
+	gp << "set xlabel 'time (s)'\n";
+	gp << "set ylabel '(m)'\n";
+	gp << "plot '-' w l title 'eta'" <<
+          ",'-' w l title 'eta\\_true'\n"; ;
+	gp.send1d(boost::make_tuple(pts_t, pts_eta));
+	gp.send1d(boost::make_tuple(pts_t, pts_eta_true));
+}
 
-  return 0;
+double dt =  .05*T;
+double y = 0;
+for(double t = 0; t <= 3*dt; t += dt)
+{
+	std::vector<double> pts_x;
+	std::vector<double> pts_eta, pts_eta_true;
+// std::vector<double> pts_etadot, pts_etadot_true;
+	for (double x = -1.5*2*M_PI/k; x < 1.5*2*M_PI/k; x += .1) {
+		pts_x.push_back(x);
+		pts_eta.push_back(Inc.eta(x, y, t));
+    double xx = x*cos(beta)+y*sin(beta);
+		pts_eta_true.push_back(A*cos(k*xx-2*M_PI*t/T+phase));
+  }
+  char time[10];
+        snprintf(time, sizeof(time), "%.2f", t);
+	Gnuplot gp;
+	gp << "set term X11 title  'Incident Wave Elevation at t = " << time << " s'\n";
+	gp << "set grid\n";
+	gp << "set xlabel '(m))'\n";
+	gp << "set ylabel '(m)'\n";
+	gp << "plot '-' w l title 'eta'" <<
+          ",'-' w l title 'eta\\_true'\n"; ;
+	gp.send1d(boost::make_tuple(pts_x, pts_eta));
+	gp.send1d(boost::make_tuple(pts_x, pts_eta_true));
+}
+
+
+
+	return 0;
 }

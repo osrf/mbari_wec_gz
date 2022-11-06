@@ -19,16 +19,11 @@ find_package(ignition-plugin1 REQUIRED COMPONENTS register)
 set(IGN_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
 find_package(ignition-gazebo6 REQUIRED)
 
-
-add_executable(Test_IncidentWave_Peters  Test_IncidentWave_Peters.cpp LinearIncidentWave.cpp)
-target_link_libraries(Test_IncidentWave_Peters Eigen3::Eigen)
-set_property(TARGET Test_IncidentWave_Peters PROPERTY CXX_STANDARD 17)
-
 add_executable(Test_IncidentWave  Test_IncidentWave.cpp LinearIncidentWave.cpp)
-target_link_libraries(Test_IncidentWave Eigen3::Eigen)
+target_link_libraries(Test_IncidentWave Eigen3::Eigen Boost::system Boost::iostreams Boost::filesystem)
 set_property(TARGET Test_IncidentWave PROPERTY CXX_STANDARD 17)
 
-add_executable(Test_FS_Hydrodynamics Test_FS_Hydrodynamics.cpp FS_Hydrodynamics.cpp LinearIncidentWave.cpp)
+add_executable(Test_FS_Hydrodynamics Test_FS_Hydrodynamics.cpp FS_Hydrodynamics.cpp LinearIncidentWave.cpp interp1d.cpp)
 target_link_libraries(Test_FS_Hydrodynamics Eigen3::Eigen Boost::system Boost::iostreams Boost::filesystem)
 set_property(TARGET Test_FS_Hydrodynamics PROPERTY CXX_STANDARD 17)
 

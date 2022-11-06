@@ -45,7 +45,7 @@ public:
   friend std::ostream & operator<<(std::ostream & out, const LinearIncidentWave & IncWave);
   void SetToPiersonMoskowitzSpectrum(double Hs, double beta);
   void SetToPiersonMoskowitzSpectrum(double Hs, double beta, int n_phases);
-  void SetToMonoChromatic(double A, double T, double beta);
+  void SetToMonoChromatic(double A, double T, double phase, double beta);
   double eta(double x, double y, double t);
   // Eigen::VectorXd eta(double x, double y, Eigen::VectorXd t);
   double etadot(double x, double y, double t);

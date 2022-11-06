@@ -65,7 +65,7 @@ void LinearIncidentWave::SetToPiersonMoskowitzSpectrum(double Hs, double beta, i
 }
 
 /// \brief Select single frequency wave
-void LinearIncidentWave::SetToMonoChromatic(double A, double T, double beta)
+void LinearIncidentWave::SetToMonoChromatic(double A, double T, double phase, double beta)
 {
   m_SpectrumType = WaveSpectrumType::MonoChromatic;
   m_Hs = 2 * A;
@@ -76,7 +76,7 @@ void LinearIncidentWave::SetToMonoChromatic(double A, double T, double beta)
   m_phases.resize(1);
   m_Spectrum.resize(1);
   m_A.resize(1);
-  m_phases(0) = 0;
+  m_phases(0) = phase;
   m_omega(0) = 2 * M_PI / T;
   m_k(0) = m_omega(0) * m_omega(0) / m_grav;
   m_A(0) = A;
@@ -141,18 +141,3 @@ double LinearIncidentWave::etadot(double x, double y, double t)
 
   return etadot;
 }
-
-#if 0
-Eigen::VectorXd LinearIncidentWave::etadot(double x, double y, Eigen::VectorXd t)
-{
-  double xx = x * cos(m_beta) + y * sin(m_beta);
-
-  double etadot = 0;
-  for (int i = 0; i < m_A.size(); i++) {
-    etadot = etadot + m_omega(i) * m_A(i) * sin(m_k(i) * xx - m_omega(i) * t + m_phases(i));
-  }
-
-  return etadot;
-}
-
-#endif

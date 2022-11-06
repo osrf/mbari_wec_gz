@@ -21,10 +21,7 @@
 
 #include <Eigen/Dense>
 #include "FS_Hydrodynamics.hpp"
-
-// #include "EtaFunctor.hpp"
 #include "LinearIncidentWave.hpp"
-// #include <boost/tuple/tuple.hpp>
 #include "gnuplot-iostream.h"
 
 int main()
@@ -42,31 +39,39 @@ int main()
   BuoyA5.SetTimestepSize(.01);
   BuoyA5.Plot_TD_Coeffs();
 
-#if 1  // Test Radiation Forces
   std::srand((unsigned)time(0));
   double A = .5;  // .5 + ((float)(std::rand() % 20) / 10);
-  double T = 8;  // 3.0 + (std::rand() % 9);
-  double tf = 3 * T;
+  double T = 4;  // 3.0 + (std::rand() % 9);
+  double tf = 2.0 * T;
   double omega = 2 * M_PI / T;
+  double phase = 20*M_PI/180;
+  double dt = 0.01;
+
+#if 1  // Test Radiation Forces
+// Note:  This computes the radiation forces for each mode of motion indivdually, so 
+// MemRadiation is called 6 times per timestep, once with each acceleration set non-zero
+// In use it will be called only once per time-step, with all acclerations set.
+{
   int first = 1;
   for (int i = 0; i < 6; i++) {  // i determines mode of motion.
     for (int j = 0; j < 6; j++) {  // j denotes direction of resulting force
       double am = BuoyA5.AddedMass(omega, i, j);
       double dmp = BuoyA5.Damping(omega, i, j);
-      double am_inf = BuoyA5.fd_X_inf_freq(i, j);
+      double am_inf = BuoyA5.fd_A_inf_freq(i, j);
 
       std::vector<double> pts_t, pts_F_TD, pts_F_FD;
       std::vector<double> pts_vel, pts_accel;
       double last_accel = 0;
       double F_max = -std::numeric_limits<double>::max();
       double F_min = std::numeric_limits<double>::max();
-      for (int k = 0; k < tf / BuoyA5.m_dt; k++) {
-        double tt = BuoyA5.m_dt * k;
+      BuoyA5.SetTimestepSize(dt);  // Reset timestep to re-initialize storage in BuoyA5 Class
+      for (int k = 0; k < tf / dt; k++) {
+        double tt = dt * k;
         pts_t.push_back(tt);
         // double pos = A * cos(omega * tt);  // Not needed, but handy to see...
-        double vel = -A * omega * sin(omega * tt);
+        double vel = -A * omega * sin(omega * tt+phase);
         pts_vel.push_back(vel);
-        double accel = -A * pow(omega, 2) * cos(omega * tt);
+        double accel = -A * pow(omega, 2) * cos(omega * tt + phase);
         pts_accel.push_back(accel);
         Eigen::VectorXd xddot(6);
         for (int n = 0; n < 6; n++) {
@@ -79,7 +84,7 @@ int main()
         pts_F_TD.push_back(am_inf * accel + MemForce(j));
         last_accel = accel;
         double FD_Force = am * accel + dmp * vel;
-        pts_F_FD.push_back(am * accel + dmp * vel);  // FD_Force);
+        pts_F_FD.push_back(FD_Force);
         if (FD_Force > F_max) {
           F_max = FD_Force;
         }
@@ -133,26 +138,21 @@ int main()
       }
     }
   }
+}
 #endif
 
-#if 0  // Test Exciting Forces
-  std::srand((unsigned)time(0));
-  double A = .5 + ((static_cast<float>)(std::rand() % 20) / 10);
-  double T = 3.0 + (std::rand() % 9);
-  double tf = 5 * T;
-  double omega = 2 * M_PI / T;
-
-  // Inc.SetToPiersonMoskowitzSpectrum(2*A, 0);
-  Inc.SetToMonoChromatic(2 * A, T, 0);
-  double XiRe, XiIm;
+#if 1  // Test Exciting Forces
+{
+  Inc.SetToMonoChromatic(2 * A, T, phase, 180*M_PI/180);
 
   for (int j = 0; j < 6; j++) {  // j denotes direction of resulting force
-    BuoyA5.WaveExcitingForceComponents(&XiRe, &XiIm, Inc.m_omega[0], j);
+    std::complex<double> Chi = BuoyA5.WaveExcitingForceComponents(Inc.m_omega[0], j);
     std::vector<double> pts_t, pts_F_TD, pts_F_FD, pts_eta;
-    for (int k = 0; k < tf / BuoyA5.m_dt; k++) {
-      double tt = BuoyA5.m_dt * k;
+    BuoyA5.SetTimestepSize(dt);
+    for (int k = 0; k < tf / dt; k++) {
+      double tt = dt * k;
       pts_t.push_back(tt);
-      pts_F_FD.push_back(Inc.m_A[0] * XiRe * cos(omega * tt) - Inc.m_A[0] * XiIm * sin(omega * tt));
+      pts_F_FD.push_back(Inc.m_A[0] * Chi.real() * cos(omega * tt + phase*cos(180*M_PI/180)) - Inc.m_A[0] * Chi.imag() * sin(omega * tt + phase*cos(180*M_PI/180)));
       pts_eta.push_back(Inc.eta(0, 0, tt));
       Eigen::VectorXd ExtForce(6);
       ExtForce = BuoyA5.ExcitingForce();
@@ -181,29 +181,22 @@ int main()
     }
     gp << "replot\n";
   }
+}
 #endif
 
-#if 0  // Test Buoyancy Forces
-  std::srand((unsigned)time(0));
-  double A = .5 + ((static_cast<float>)(std::rand() % 20) / 10);
-  double T = 6.0 + (std::rand() % 9);
-  double tf = T;
-  double omega = 2 * M_PI / T;
-
-
+#if 1  // Test Buoyancy Forces
+{
   for (int j = 0; j < 6; j++) {  // j denotes direction of resulting force
     std::vector<double> pts_t, pts_x, pts_F_B;
-    for (int k = 0; k < tf / BuoyA5.m_dt; k++) {
-      double tt = BuoyA5.m_dt * k;
+    for (int k = 0; k < tf / dt; k++) {
+      double tt = dt * k;
       pts_t.push_back(tt);
       Eigen::VectorXd x(6);
       x(0) = 0; x(1) = 0; x(2) = 0;x(3) = 0; x(4) = 0; x(5) = 0;
-      x(j) = A * cos(omega * tt);
+      x(j) = A * cos(omega * tt+phase);
       pts_x.push_back(x(j));
       Eigen::VectorXd BuoyancyForce(6);
       BuoyancyForce = BuoyA5.BuoyancyForce(x);
-      std::cout << "x = " << x.transpose() << std::endl;
-      std::cout << "F_B = " << BuoyancyForce.transpose() << std::endl << std::endl;
       pts_F_B.push_back(BuoyancyForce(j));
     }
     Gnuplot gp;
@@ -227,5 +220,22 @@ int main()
     }
     gp << "replot\n";
   }
+}
+#endif
+
+#if 1  //Test Motions
+{
+
+BuoyA5.SetMass(1400);
+Eigen::Matrix<double,3,3> I;
+ I <<  400,   0,   0, 
+         0, 400,   0,
+         0,   0, 200;
+BuoyA5.SetI(I);
+
+std::cout << "Complex Amplitudes" << std::endl;
+std::cout << BuoyA5.ComplexAmplitude(omega) << std::endl;
+
+}
 #endif
 }
