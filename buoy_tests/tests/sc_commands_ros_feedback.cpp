@@ -40,9 +40,8 @@ class SCROSNode final : public buoy_api::Interface<SCROSNode>
 {
 public:
   rclcpp::Clock::SharedPtr clock_{nullptr};
-
   float range_finder_{0.0F};
-  uint16_t status_{0U};
+  std::atomic<uint16_t> status_{0U};
 
   ValveServiceResponseFuture valve_response_future_;
   PumpServiceResponseFuture pump_response_future_;
