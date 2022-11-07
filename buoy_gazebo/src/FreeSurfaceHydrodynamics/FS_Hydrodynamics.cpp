@@ -601,13 +601,13 @@ void FS_HydroDynamics::SetWaterplane(double S, double S11, double S22)
 	this->S = S;
 	this->S11 = S11;
 	this->S22 = S22;
-  Compute_cij();
+	Compute_cij();
 }
 
 void FS_HydroDynamics::SetVolume(double V)
 {
 	this->Vol = V;
-  Compute_cij();
+	Compute_cij();
 }
 
 void FS_HydroDynamics::SetCOB(double x, double y, double z)
@@ -615,7 +615,7 @@ void FS_HydroDynamics::SetCOB(double x, double y, double z)
 	this->COB(0) = x;
 	this->COB(1) = y;
 	this->COB(2) = z;
-  Compute_cij();
+	Compute_cij();
 }
 
 void FS_HydroDynamics::SetCOG(double x, double y, double z)
@@ -751,7 +751,7 @@ Eigen::VectorXd FS_HydroDynamics::BuoyancyForce(Eigen::VectorXd x)
 	F_B(2) = this->m_rho * this->m_grav * this->Vol;
 	F_B(3) = this->m_rho * this->m_grav * this->Vol * this->COB(1);
 	F_B(4) = -this->m_rho * this->m_grav * this->Vol * this->COB(0);
-  F_B = F_B - this->c * x;
+	F_B = F_B - this->c * x;
 	return F_B;
 }
 
@@ -807,22 +807,17 @@ Eigen::VectorXd FS_HydroDynamics::RadiationForce(Eigen::VectorXd last_xddot)
 
 Eigen::Matrix<std::complex<double>, 6, 1> FS_HydroDynamics::ComplexAmplitude(double omega)
 {
-	//Eigen::Matrix<std::complex<double>, 6, 1>  Xi;
 	std::complex<double> i = {0,1};
 	auto A = AddedMass(omega);
 	auto B = Damping(omega);
 	auto Chi = WaveExcitingForceComponents(omega);
-	this->M.Zero();
-
-	Eigen::Matrix<std::complex<double>, 6, 6> C;
-	//C = -pow(omega,2)*(this->M + A) + i*omega*B + this->c;
-	C = -pow(omega,2)*(A) + i*omega*B;
-	std::cout << "C = " << C << std::endl << std::endl;
-	std::cout << "C' = " << C.inverse() << std::endl << std::endl;
-
-	std::cout << "M = " << this->M << std::endl << std::endl;
-	std::cout << "c = " << this->c << std::endl << std::endl;
-	return C.inverse()*Chi;
+//	Eigen::Matrix<std::complex<double>, 6, 6> C;
+//	C = -pow(omega,2)*(A+this->M) + i*omega*B + this->c;
+//	return C.inverse()*Chi;
+	Eigen::Matrix<std::complex<double>, 6, 1> Xi;
+	Xi.setZero();
+  Xi(2) = Chi(2)/(-pow(omega,2)*(A(2,2)+this->M(2,2)) + i*omega*B(2,2) + this->c(2,2));
+  return Xi;
 }
 
 
