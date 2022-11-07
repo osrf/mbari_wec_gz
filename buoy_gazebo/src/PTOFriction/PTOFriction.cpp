@@ -54,8 +54,8 @@ public:
   const splinter_ros::FillMode & fill_mode = splinter_ros::USE_BOUNDS;
 
   PTOFrictionPrivate()
-  : pistonSpeed{0.4F, 0.1F, -0.1F, -0.4F},
-    meanFriction{1200.0F, 700.0F, -1000.0F, -2900.0F},
+  : pistonSpeed{-5.0, -0.4, -0.1, -0.05, 0.0, 0.05, 0.1, 0.4, 5.0},
+    meanFriction{12750.0, 1200.0, 700.0, 400.0, 0.0, -750.0, -1000.0, -2900.0, -32033.0},
     pto_friction_model(pistonSpeed, meanFriction)
   {
   }
@@ -133,9 +133,11 @@ void PTOFriction::PreUpdate(
   }
 
   // Interpolate the new friction force based on current joint velocity
+  // Velocity sign flipped to account for the direction difference between
+  // sim and physical buoy
   auto friction_force =
     this->dataPtr->pto_friction_model.eval(
-    fabs(prismaticJointVelComp->Data().at(0)), this->dataPtr->fill_mode);
+    -prismaticJointVelComp->Data().at(0), this->dataPtr->fill_mode);
 
   // Create new component for applying force if it doesn't already exist
   auto forceComp = _ecm.Component<ignition::gazebo::components::JointForceCmd>(

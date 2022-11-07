@@ -29,8 +29,8 @@ public:
   splinter_ros::Splinter1d friction_model;
 
   PTOFrictionTest()
-  :  speed{0.4F, 0.1F, -0.1F, -0.4F},
-    force{1200.0F, 700.0F, -1000.0F, -2900.0F},
+  :  speed{-5.0, -0.4, -0.1, -0.05, 0.0, 0.05, 0.1, 5.0},
+    force{12750.0, 1200.0, 700.0, 400.0, 0.0, -750.0, -1000.0, -32033.0},
     friction_model(speed, force)
   {
   }
@@ -38,6 +38,10 @@ public:
 
 TEST_F(PTOFrictionTest, ModelAccuracy)
 {
-  EXPECT_NEAR(0.0, friction_model.eval(0.0, splinter_ros::USE_BOUNDS), 200.0);
-  EXPECT_NEAR(-2100.0, friction_model.eval(-0.3, splinter_ros::USE_BOUNDS), 200.0);
+  EXPECT_NEAR(0.0, friction_model.eval(0.0, splinter_ros::USE_BOUNDS), 0.05);
+  EXPECT_NEAR(700.0, friction_model.eval(-0.1, splinter_ros::USE_BOUNDS), 0.05);
+  EXPECT_NEAR(-1000.0, friction_model.eval(0.1, splinter_ros::USE_BOUNDS), 0.05);
+  EXPECT_NEAR(-2100.0, friction_model.eval(0.3, splinter_ros::USE_BOUNDS), 150.0);
+  EXPECT_NEAR(1000.0, friction_model.eval(-0.3, splinter_ros::USE_BOUNDS), 250.0);
+  EXPECT_NEAR(-2900.0, friction_model.eval(0.4, splinter_ros::USE_BOUNDS), 500.0);
 }
