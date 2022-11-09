@@ -33,7 +33,7 @@ class BuoySCValvePyTest(BuoyPyTests):
         self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
 
-        preCmdIterations = 15000
+        preCmdIterations = 40000
         statusCheckIterations = 1000
         postCmdIterations = 5000
 
