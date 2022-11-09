@@ -179,4 +179,4 @@ static void interp(
 
 }  // namespace mlinterp
 
-#endif // FREESURFACEHYDRODYNAMICS__MLINTERP_HPP_
+#endif  // FREESURFACEHYDRODYNAMICS__MLINTERP_HPP_

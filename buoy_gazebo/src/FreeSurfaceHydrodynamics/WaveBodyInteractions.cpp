@@ -138,7 +138,7 @@ void WaveBodyInteractions::Configure(
     "FreeSurfaceHydrodynamics/HydrodynamicCoeffs/BuoyA5";
   this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
-  // TODO (hamilton):  Need to get timestep size from ecm.
+  // TODO (anyone):  Need to get timestep size from ecm.
   this->dataPtr->FloatingBody.SetTimestepSize(.001);
 
   ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);

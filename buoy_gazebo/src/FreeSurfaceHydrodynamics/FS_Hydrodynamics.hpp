@@ -43,7 +43,7 @@ public:
   Eigen::Matrix<double, 6, 6> Damping(double omega);
 
   std::complex<double> WaveExcitingForceComponents(double omega, int j);
-  Eigen::Matrix<std::complex<double>,6,1> WaveExcitingForceComponents(double omega);
+  Eigen::Matrix<std::complex<double>, 6, 1> WaveExcitingForceComponents(double omega);
 
   void SetTimestepSize(double dt);
   double GetTimestepSize();
@@ -53,7 +53,7 @@ public:
   void SetCOG(double x, double y, double z);
   void SetVolume(double V);
   void SetMass(double m);
-  void SetI(Eigen::Matrix<double,3,3> I);
+  void SetI(Eigen::Matrix<double, 3, 3> I);
 
   Eigen::VectorXd BuoyancyForce(Eigen::VectorXd x);
   Eigen::VectorXd RadiationForce(Eigen::VectorXd last_xddot);
@@ -85,7 +85,7 @@ public:
   std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>> fd_Re_Chi;
   std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>> fd_Im_Chi;
 
-  Eigen::Matrix<double, 6, 6> c; //Hydrostatics that depend upon body position
+  Eigen::Matrix<double, 6, 6> c;  // Hydrostatics that depend upon body position
 
   // Time domain coefficients
   Eigen::VectorXd m_tau_rad;
@@ -132,13 +132,12 @@ public:
 
   /// \brief Center of gravity relative to water-plane coordinate system
   Eigen::Vector3d COG;
-  
+
   /// \brief Mass Matrix, required only for complex amplitude calculation
   Eigen::Matrix<double, 6, 6> M;
 
-  private:
+private:
   void Compute_cij(void);
-
 };
 
 #endif  // FREESURFACEHYDRODYNAMICS__FS_HYDRODYNAMICS_HPP_
