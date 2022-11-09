@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 
-#include <splinter_ros/splinter1d.hpp>
+#include <simple_interp/interp1d.hpp>
 
 #include <iostream>
 #include <memory>
@@ -49,9 +49,7 @@ public:
   const std::vector<double> meanFriction;  // N
 
   /// \brief Construct and approximation of friction model using linear spline
-  splinter_ros::Splinter1d pto_friction_model;
-
-  const splinter_ros::FillMode & fill_mode = splinter_ros::USE_BOUNDS;
+  simple_interp::Interp1d pto_friction_model;
 
   PTOFrictionPrivate()
   : pistonSpeed{-5.0, -0.4, -0.1, -0.05, 0.0, 0.05, 0.1, 0.4, 5.0},
@@ -137,7 +135,7 @@ void PTOFriction::PreUpdate(
   // sim and physical buoy
   auto friction_force =
     this->dataPtr->pto_friction_model.eval(
-    -prismaticJointVelComp->Data().at(0), this->dataPtr->fill_mode);
+    -prismaticJointVelComp->Data().at(0));
 
   // Create new component for applying force if it doesn't already exist
   auto forceComp = _ecm.Component<ignition::gazebo::components::JointForceCmd>(

@@ -4,5 +4,5 @@ gz_add_plugin(PTOFriction
   INCLUDE_DIRS
     ..
   EXTRA_ROS_PKGS
-    splinter_ros
+  simple_interp
 )

@@ -16,8 +16,6 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(buoy_description REQUIRED)
-# find_package(buoy_interfaces REQUIRED)
-# find_package(rclcpp REQUIRED)
 
 find_package(ignition-cmake2 REQUIRED)
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
@@ -115,10 +113,6 @@ install(TARGETS BuoyECMStateData
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
-  DESTINATION include/buoy_gazebo
-  FILES_MATCHING PATTERN "*.hpp"
-)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
   DESTINATION include
   FILES_MATCHING PATTERN "*.hpp"
 )
@@ -134,15 +128,6 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PolytropicPneumaticSpring
 )
 
 ament_export_targets(export_BuoyECMStateData)
-
-ament_export_targets(export_Interp1d HAS_LIBRARY_TARGET)
-install(TARGETS Interp1d
-  EXPORT export_Interp1d
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib
-  INCLUDES DESTINATION include
-)
 
 # Resources
 install(DIRECTORY
@@ -187,16 +172,13 @@ if(BUILD_TESTING)
       )
     endif()
     if(gz_add_test_ROS)
-      set(ROS_PKGS rclcpp splinter_ros ${gz_add_test_EXTRA_ROS_PKGS})
+      set(ROS_PKGS rclcpp ${gz_add_test_EXTRA_ROS_PKGS})
       foreach(PKG ${ROS_PKGS})
         find_package(${PKG} REQUIRED)
       endforeach()
       ament_target_dependencies(${TEST_NAME} ${ROS_PKGS})
     endif()
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(${TEST_NAME}
-      Stopwatch
-    )
     install(
       TARGETS ${TEST_NAME}
       DESTINATION lib/${PROJECT_NAME}
@@ -211,7 +193,6 @@ if(BUILD_TESTING)
   endfunction()
 
   # Add gtests
-  gz_add_gtest(test_stopwatch ROS)
   gz_add_gtest(test_pto_friction ROS)
 
 endif()
