@@ -29,6 +29,8 @@
 #include <string>
 
 #include "IncidentWave.hpp"
+#include "mlinterp.hpp"
+
 
 // Constructor    DefaultDamping(NSpec, ISpec);
 // Changing    DefaultDamping.update(NSpec, ISpec);
@@ -662,8 +664,9 @@ void FS_HydroDynamics::SetTimestepSize(double dt)
       if (nd > 0) {
         m_L_rad(i, j).resize(_n_rad_intpts);
         mlinterp::interp(
-          &nd, _n_rad_intpts, m_IR_sinint(i, j).data(),
-          m_L_rad(i, j).data(), m_tau_rad.data(), &(x_rad[0]));
+          &nd, _n_rad_intpts,
+           m_IR_sinint(i, j).data(), m_L_rad(i, j).data(),  //Output Axis
+           m_tau_rad.data(), &(x_rad[0])); // Input axis
       }
     }
   }
