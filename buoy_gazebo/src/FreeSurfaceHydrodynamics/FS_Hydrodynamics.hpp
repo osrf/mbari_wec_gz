@@ -14,11 +14,11 @@
 #ifndef FREESURFACEHYDRODYNAMICS__FS_HYDRODYNAMICS_HPP_
 #define FREESURFACEHYDRODYNAMICS__FS_HYDRODYNAMICS_HPP_
 
+#include <Eigen/Dense>
 #include <vector>
 #include <string>
 
 #include "IncidentWave.hpp"
-#include <Eigen/Dense>
 
 // Storage space for xddot and eta.
 //  Should be >2, larger takes more memory but there's less data shuffling

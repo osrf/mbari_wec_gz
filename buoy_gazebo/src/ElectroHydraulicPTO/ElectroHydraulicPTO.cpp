@@ -283,10 +283,13 @@ void ElectroHydraulicPTO::PreUpdate(
   solver.parameters.xtol = 0.001;
   // solver.solveNumericalDiff will compute Jacobian numerically rather than obtain from user
   const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
-  std::cerr << "solver info: [" << solver_info << "]" << std::endl;
-  std::cerr << "================================" << std::endl;
-  std::cerr << "================================" << std::endl;
-
+  if(solver_info != 1)
+  {
+  ignerr << "================================" << std::endl;
+  ignerr << "Error: solveNumericalDiff not converged in ElectroHydraulicPTO.cpp" << std::endl;
+  ignerr << "solver info: [" << solver_info << "]" << std::endl;
+  ignerr << "================================" << std::endl;
+  }
   // solver.solve will use functor `df` function to obtain Jacobian instead of
   // computing numerically
   // const int solver_info = solver.solve(this->dataPtr->x);
@@ -309,7 +312,6 @@ void ElectroHydraulicPTO::PreUpdate(
 
   double I_Load = 0.0;
   if (BusPower > 0) {
-    // std::cout << BusPower << "  " <<  VBus << "   " << I_Batt << std::endl;
     I_Load = BusPower / VBus - I_Batt;
   }
 

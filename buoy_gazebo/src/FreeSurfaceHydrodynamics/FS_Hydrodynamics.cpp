@@ -14,21 +14,21 @@
 
 #include "FS_Hydrodynamics.hpp"
 
+#include <gnuplot-iostream.h>
+
+//#include <simple_interp/interp1d.hpp>  // For use with colcon
+#include "interp1d.hpp"  // For use with local CMakeList.txt
+                           // -- Still need to figure how to reference files in buoy_msg
+
+#include <Eigen/Dense>
+
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <vector>
 #include <string>
 
-#include "gnuplot-iostream.h"
-//  #include <boost/tuple/tuple.hpp>
-
-
-#include <Eigen/Dense>
 #include "IncidentWave.hpp"
-#include "mlinterp.hpp"
-//#include "interp1d.hpp"  // For use with local CMakeList.txt -- Still need to figure how to reference files in buoy_msg
- #include <simple_interp/interp1d.hpp>  //For use with colcon
 
 // Constructor    DefaultDamping(NSpec, ISpec);
 // Changing    DefaultDamping.update(NSpec, ISpec);

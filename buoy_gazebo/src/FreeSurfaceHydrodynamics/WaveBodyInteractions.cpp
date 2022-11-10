@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdio.h>
+#include "WaveBodyInteractions.hpp"
 
-#include "ignition/gazebo/Link.hh"
-#include "ignition/gazebo/components/AngularAcceleration.hh"
-#include "ignition/gazebo/components/LinearAcceleration.hh"
-#include "ignition/gazebo/components/LinearVelocity.hh"
-#include "ignition/gazebo/components/Pose.hh"
-#include "ignition/gazebo/components/World.hh"
+#include <ignition/gazebo/Link.hh>
+#include <ignition/gazebo/components/AngularAcceleration.hh>
+#include <ignition/gazebo/components/LinearAcceleration.hh>
+#include <ignition/gazebo/components/LinearVelocity.hh>
+#include <ignition/gazebo/components/Pose.hh>
+#include <ignition/gazebo/components/World.hh>
 #include <ignition/common/Console.hh>
 #include <ignition/common/Profiler.hh>
 #include <ignition/gazebo/Model.hh>
@@ -35,15 +35,16 @@
 #include <ignition/msgs/double.pb.h>
 #include <ignition/plugin/Register.hh>
 #include <ignition/transport/Node.hh>
-#include "WaveBodyInteractions.hpp"
-#include "FS_Hydrodynamics.hpp"
-#include "LinearIncidentWave.hpp"
 
 #include <cmath>
+#include <cstdio>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include "FS_Hydrodynamics.hpp"
+#include "LinearIncidentWave.hpp"
 
 namespace buoy_gazebo
 {
@@ -138,7 +139,7 @@ void WaveBodyInteractions::Configure(
     "FreeSurfaceHydrodynamics/HydrodynamicCoeffs/BuoyA5";
   this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
-  // TODO (anyone):  Need to get timestep size from ecm.
+  // TODO(anyone):  Need to get timestep size from ecm.
   this->dataPtr->FloatingBody.SetTimestepSize(.001);
 
   ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);

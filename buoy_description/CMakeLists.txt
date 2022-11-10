@@ -28,6 +28,7 @@ endif()
 install(DIRECTORY
   models
   ${CMAKE_CURRENT_BINARY_DIR}/models
+  HydrodynamicCoeffs
   DESTINATION share/${PROJECT_NAME}/
 )
 

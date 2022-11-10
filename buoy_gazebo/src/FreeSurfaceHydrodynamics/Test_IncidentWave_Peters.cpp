@@ -13,12 +13,12 @@
 // limitations under the License.
 
 
+#include <Eigen/Dense>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <cstdlib>
 
-#include <Eigen/Dense>
 #include "LinearIncidentWave.hpp"
 
 

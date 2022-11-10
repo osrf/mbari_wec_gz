@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gnuplot-iostream.h>
 
+#include <Eigen/Dense>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <cstdlib>
 
-#include <Eigen/Dense>
 #include "LinearIncidentWave.hpp"
-#include "gnuplot-iostream.h"
 
 
 int main()

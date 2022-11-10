@@ -16,8 +16,8 @@
 #ifndef FREESURFACEHYDRODYNAMICS__LINEARINCIDENTWAVE_HPP_
 #define FREESURFACEHYDRODYNAMICS__LINEARINCIDENTWAVE_HPP_
 
-#include <vector>
 #include <Eigen/Dense>
+#include <vector>
 #include "IncidentWave.hpp"
 
 #define DEFAULT_N_PHASES 300

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gnuplot-iostream.h>
+#include <Eigen/Dense>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -19,10 +21,8 @@
 #include <ctime>
 #include <limits>
 
-#include <Eigen/Dense>
 #include "FS_Hydrodynamics.hpp"
 #include "LinearIncidentWave.hpp"
-#include "gnuplot-iostream.h"
 
 int main()
 {
@@ -270,7 +270,6 @@ int main()
       gp2 << "plot '-' w l \n";
       gp2.send1d(boost::make_tuple(pts_T, pts_ChiPh(j)));
     }
-
   }
 #endif
 }
