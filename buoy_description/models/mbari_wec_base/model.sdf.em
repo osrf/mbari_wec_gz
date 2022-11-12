@@ -33,12 +33,17 @@ trefoil_mass = 10
 heave_height = 1.65 # From STL mesh in Blender
 
 # Mooring
+seafloor_depth = 80
 # TODO(mabelzhang) get actual numbers or check these make sense
 mooring_radius = 0.025
 mooring_density = 3350 # kg/m^3
-mooring_length = 500
+mooring_length = seafloor_depth - 33 # Heave cone is at about -30 m
 
-num_mooring_links = 100
+num_mooring_links = 20
+
+# Chain to lie on seafloor
+chain_length = 20
+num_chain_links = 100  # Short links to allow chain to curve above seafloor
 
 # Anchor
 anchor_mass = 180 # 400 lb
@@ -87,6 +92,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
 
 # Mooring
 mooring_link_length = mooring_length / num_mooring_links
+chain_link_length = chain_length / num_chain_links
 
 def mooring_joint_properties():
     """ Prints the <dynamics> and <limit> blocks for mooring joints. """
@@ -494,6 +500,7 @@ def mooring_joint_properties():
       </axis>
     </joint>
 
+    <!-- begin mooring -->
 @[for link_index in range(num_mooring_links)]@
     <link name="mooring_@(link_index)">
       <pose relative_to="HeaveConeBottom">0 0 -@((link_index + 0.5) * mooring_link_length) 0 0 0</pose>
@@ -519,7 +526,7 @@ def mooring_joint_properties():
           <specular>0.1 1 1 1</specular>
         </material>
       </visual>
-      <collision name="collision">
+      <collision name="collision_mooring_@(link_index)">
         <geometry>
           <cylinder>
             <radius>@(mooring_radius)</radius>
@@ -557,8 +564,81 @@ def mooring_joint_properties():
     </joint>
 @[end for]@
 
+    <frame name="MooringBottom" attached_to="mooring_@(num_mooring_links-1)">
+      <pose>0 0 -@(mooring_link_length * 0.5) 0 0 0</pose>
+    </frame>
+    <!-- end mooring -->
+
+    <!-- begin chain -->
+@[for link_index in range(num_chain_links)]@
+    <link name="chain_@(link_index)">
+      <!-- Horizontal instead of vertical so does not go through seafloor.
+           Arbitrarily choose +x for direction. Gravity will naturally drop
+           chain to seafloor. -->
+      <pose relative_to="MooringBottom" degrees="true">@((link_index + 0.5) * chain_link_length) 0 0 0 90 0</pose>
+      <!-- TODO(mabelzhang) Get actual numbers for mooring. Now using tether ones -->
+      <inertial>
+        <mass>@(tether_top_link_mm.mass())</mass>
+        <inertia>
+          <ixx>@(tether_top_link_mm.ixx())</ixx>
+          <iyy>@(tether_top_link_mm.iyy())</iyy>
+          <izz>@(tether_top_link_mm.izz())</izz>
+        </inertia>
+      </inertial>
+      <visual name="visual_chain_@(link_index)">
+        <geometry>
+          <cylinder>
+            <radius>@(mooring_radius)</radius>
+            <length>@(chain_link_length)</length>
+          </cylinder>
+          <!--sphere>
+            <radius>@(mooring_radius)</radius>
+          </sphere-->
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 1 1</ambient>
+          <diffuse>0.1 0.1 1 1</diffuse>
+          <specular>0.1 0.1 1 1</specular>
+        </material>
+      </visual>
+      <collision name="collision_chain_@(link_index)">
+        <geometry>
+          <cylinder>
+            <radius>@(mooring_radius)</radius>
+            <length>@(chain_link_length)</length>
+          </cylinder>
+          <!--sphere>
+            <radius>@(mooring_radius)</radius>
+          </sphere-->
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <!-- TODO(mabelzhang) Tune these for seafloor -->
+              <mu>10</mu>
+              <mu2>10</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </link>
+
+    <joint name="chain_joint_@(link_index)" type="ball">
+      <!-- Place the joint at the end of a link, not the middle, to allow chain
+           to be in a continuous curve when bent. -->
+      <pose>0 0 -@(chain_link_length * 0.5) 0 0 0</pose>
+@[if link_index == 0]@
+      <parent>MooringBottom</parent>
+@[else]@
+      <parent>chain_@(link_index-1)</parent>
+@[end if]@
+      <child>chain_@(link_index)</child>
+    </joint>
+@[end for]@
+    <!-- end chain -->
+
     <link name="Anchor">
-      <pose relative_to="mooring_@(num_mooring_links-1)">0 0 -@(mooring_link_length * 0.5) 0 0 0</pose>
+      <pose relative_to="chain_@(num_chain_links-1)" degrees="true">0 0 @(0.5 * (chain_link_length + anchor_height)) 0 0 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <!-- TODO(mabelzhang) Get real values -->
@@ -586,19 +666,21 @@ def mooring_joint_properties():
           <specular>0.1 0.1 0.1 1</specular>
         </material>
       </visual>
+      <collision name="collision_Anchor">
+        <!-- TODO(mabelzhang) Get actual geometry -->
+        <geometry>
+          <cylinder>
+            <radius>@(anchor_radius)</radius>
+            <length>@(anchor_height)</length>
+          </cylinder>
+        </geometry>
+      </collision>
     </link>
 
-    <joint name="MooringToAnchor" type="universal">
-      <parent>mooring_@(num_mooring_links-1)</parent>
+    <joint name="ChainToAnchor" type="ball">
+      <pose>0 0 -@(0.5* anchor_height) 0 0 0</pose>
+      <parent>chain_@(num_chain_links-1)</parent>
       <child>Anchor</child>
-      <axis>
-        <xyz>1 0 0</xyz>
-        @(mooring_joint_properties())
-      </axis>
-      <axis2>
-        <xyz>0 1 0</xyz>
-        @(mooring_joint_properties())
-      </axis2>
     </joint>
 
   </model>
