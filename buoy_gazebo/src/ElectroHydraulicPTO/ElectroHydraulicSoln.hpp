@@ -134,6 +134,8 @@ public:
   // x[2] = Bus Voltage (Volts)
   int operator()(const Eigen::VectorXd & x, Eigen::VectorXd & fvec) const
   {
+
+//    std::cout << "In Soln(): " << x[0] << "  " << x[1] << "  "  << x[2] << std::endl;
     const int n = x.size();
     assert(fvec.size() == n);
 

@@ -117,13 +117,6 @@ public:
       if (bias_override_) {
         I += BiasCurrent;
       }
-
-      /*
-      std::cerr << "WindingCurrent: f(" << N << ", "
-        << this->ScaleFactor << ", "
-        << this->RetractFactor << ") = "
-        << I << std::endl;
-      */
     }
 
 // Enforce Min/Max
@@ -157,28 +150,32 @@ public:
 //                     ^                    |                                      ^
 //                     |                    |                                      |
 //                 -5000RPM                 V                                   6000RPM
-    double AdjustedN = N;
+    double AdjustedN = N;  // Postive RPM equals ram retraction
+    double x = RamPosition;
+    if(x > SC_RANGE_MAX)
+      x = SC_RANGE_MAX;
+    if(x < SC_RANGE_MIN)
+      x = SC_RANGE_MIN;
     if (N >= 0.0) {  // Retracting
       const double min_region = SC_RANGE_MIN + STOP_RANGE;
-      if (RamPosition < min_region) {
+      if (x < min_region) {
         // boost RPM by fraction of max adjustment to limit current
-        AdjustedN += MAX_RPM_ADJUSTMENT * (min_region - RamPosition) / min_region;
+        AdjustedN += MAX_RPM_ADJUSTMENT * (min_region - x) / STOP_RANGE;
       }
       const double CurrLim =
         -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 + 385.0;  // Magic nums
       I = std::min(I, CurrLim);
     } else {  // Extending
       const double max_region = SC_RANGE_MAX - STOP_RANGE;
-      if (RamPosition > max_region) {
+      if (x > max_region) {
         // boost RPM by fraction of max adjustment to limit current
-        AdjustedN -= MAX_RPM_ADJUSTMENT * (RamPosition - max_region) / max_region;
+        AdjustedN -= MAX_RPM_ADJUSTMENT * (x - max_region) / STOP_RANGE;
       }
       const double CurrLim =
         -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 - 385.0;  // Magic nums
       I = std::max(I, CurrLim);
     }
     I = std::min(std::max(I, -MAX_WINDCURRENTLIMIT), MAX_WINDCURRENTLIMIT);
-    // std::cerr << "ISet = " << I << std::endl;
     return I;
   }
 };
