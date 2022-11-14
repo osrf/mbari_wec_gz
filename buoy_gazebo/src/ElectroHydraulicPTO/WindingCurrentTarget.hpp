@@ -152,10 +152,12 @@ public:
 //                 -5000RPM                 V                                   6000RPM
     double AdjustedN = N;  // Postive RPM equals ram retraction
     double x = RamPosition;
-    if(x > SC_RANGE_MAX)
+    if (x > SC_RANGE_MAX) {
       x = SC_RANGE_MAX;
-    if(x < SC_RANGE_MIN)
+    }
+    if (x < SC_RANGE_MIN) {
       x = SC_RANGE_MIN;
+    }
     if (N >= 0.0) {  // Retracting
       const double min_region = SC_RANGE_MIN + STOP_RANGE;
       if (x < min_region) {
