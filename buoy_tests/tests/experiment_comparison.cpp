@@ -609,18 +609,6 @@ TEST_F(BuoyExperimentComparison, PTO)
 			TestData::RETRACT,
 			TestData::TARG_CURR,
 			TestData::BIAS_CURR};
-/* For Debug
-            for(int i = 0; i<InputData.seconds.size(); i++)
-            {
-                    if((InputData.seconds[i] > 358.0) && (InputData.seconds[i] < 360.0))
-                            std::cout << InputData.seconds[i] << "  " <<
-                                    InputData.RPM[i] << "  " << ResultsData.RPM[i] << "  " <<
-                                    InputData.PistonPos[i] << "  " << ResultsData.PistonPos[i] << "  " <<
-                                    InputData.PistonVel[i] << "  " << ResultsData.PistonVel[i] << "  " <<
-                                    InputData.BiasCurr[i] << "  " << ResultsData.BiasCurr[i] << "  " <<
-                                    std::endl;
-            }
- */
 
 		for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
 			if (!std::binary_search(select_time_series.begin(), select_time_series.end(), i)) {
@@ -667,7 +655,7 @@ TEST_F(BuoyExperimentComparison, PTO)
 		}
 	} else { // Compare test results to input data and pass test if so.
 		EXPECT_TRUE(CompareData(TestData::PISTON_VEL, 1e-2, timestep));
-		EXPECT_TRUE(CompareData(TestData::MOTOR_RPM, 1e-1, timestep));
+		EXPECT_TRUE(CompareData(TestData::MOTOR_RPM, 1e-2, timestep));
 		EXPECT_TRUE(CompareData(TestData::LOWER_HYD_PRESSURE, 1e-2, timestep));
 		EXPECT_TRUE(CompareData(TestData::UPPER_HYD_PRESSURE, 1e-2, timestep));
 		EXPECT_TRUE(CompareData(TestData::V_BUS, 1e-2, timestep));

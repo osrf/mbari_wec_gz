@@ -144,6 +144,10 @@ if(BUILD_TESTING)
       simple_interp)
 
   buoy_add_gtest(eh_solver
+    BOOST_COMPONENTS
+      filesystem
+      iostreams
+      system
     EXTRA_ROS_PKGS
       buoy_gazebo
       simple_interp)

@@ -50,6 +50,8 @@ namespace buoy_gazebo
 class ElectroHydraulicPTOPrivate
 {
 public:
+static constexpr double RPM_TO_RAD_PER_SEC{2.0 * M_PI / 60.0};
+static constexpr double NM_PER_INLB{0.112984829};
 /// \brief Piston joint entity
 ignition::gazebo::Entity PrismaticJointEntity{ignition::gazebo::kNullEntity};
 
@@ -67,7 +69,7 @@ ElectroHydraulicSoln functor{};
 Eigen::VectorXd x{};
 
 static constexpr double Ve{298.0};
-static constexpr double Ri{8.0};
+static constexpr double Ri{6.0};
 static constexpr double I_BattMax{7.0};
 static constexpr double MaxTargetVoltage{325.0};
 
@@ -274,18 +276,40 @@ void ElectroHydraulicPTO::PreUpdate(
 	this->dataPtr->functor.VBattEMF = this->dataPtr->Ve;
 	this->dataPtr->functor.Ri = this->dataPtr->Ri; // Ohms
 
+//See MINPACK documentation for detail son this solver
+// Parameters and defaults are (Scalar = double):
+//           : factor(Scalar(100.))
+//           , maxfev(1000)
+//           , xtol(std::sqrt(NumTraits<Scalar>::epsilon()))
+//           , nb_of_subdiagonals(-1)
+//           , nb_of_superdiagonals(-1)
+//           , epsfcn(Scalar(0.)) {}
 	Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
-	solver.parameters.xtol = 0.0000001;
-// Initial condition based on perfect efficiency
-	this->dataPtr->x[0U] = 60.0*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
-	if(this->dataPtr->x[0U] < -5900.0)
-		this->dataPtr->x[0U] = -5900;
+	solver.parameters.xtol = 0.0001;
+	solver.parameters.maxfev = 1000;
+	// solver.parameters.nb_of_subdiagonals = 1;
+	//solver.parameters.nb_of_superdiagonals = 1;
+	solver.diag.setConstant(3, 1.);
+	solver.diag[2] = .1;
+	solver.useExternalScaling = true;                 // Improves solution stability dramatically.
+//std::cout << "factor = " << solver.parameters.factor << std::endl;
+//std::cout << "epsfcn = " << solver.parameters.epsfcn << std::endl;
+
+	// Initial condition based on perfect efficiency
+	this->dataPtr->x[0] = 60.0*this->dataPtr->functor.Q/this->dataPtr->functor.HydMotorDisp;
 
 	double WindCurr = this->dataPtr->functor.I_Wind(this->dataPtr->x[0U]);
 	// 1.375 fudge factor required to match experiments, not yet sure why.
 	const double T_applied = 1.375 * this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp * WindCurr;
-	this->dataPtr->x[1U] = T_applied/(this->dataPtr->functor.HydMotorDisp/(2*M_PI));         // Need to add applied torque here
-	this->dataPtr->x[2U] = this->dataPtr->Ve;
+	this->dataPtr->x[1] = -T_applied/(this->dataPtr->functor.HydMotorDisp/(2*M_PI));
+
+	//Estimate VBus based on linearized battery
+	double PBus = -this->dataPtr->x[0]*this->dataPtr->RPM_TO_RAD_PER_SEC*
+	              T_applied*this->dataPtr->NM_PER_INLB;
+	this->dataPtr->x[2] = this->dataPtr->functor.Ri*PBus/this->dataPtr->Ve+this->dataPtr->Ve;
+
+
+    // solver.solveNumericalDiff will compute Jacobian numerically rather than obtain from user
 	const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
 	if(solver_info != 1)
 	{
@@ -294,13 +318,6 @@ void ElectroHydraulicPTO::PreUpdate(
 		std::cout << "solver info: [" << solver_info << "]" << std::endl;
 		std::cout << "=================================" << std::endl;
 	}
-
-	// solver.solve will use functor `df` function to obtain Jacobian instead of
-	// computing numerically
-	// const int solver_info = solver.solve(this->dataPtr->x);
-	// std::cerr << "solver info: [" << solver_info << "]" << std::endl;
-	// std::cerr << "================================" << std::endl;
-
 
 	// Solve Electrical
 	const double N = this->dataPtr->x[0U];
@@ -317,7 +334,6 @@ void ElectroHydraulicPTO::PreUpdate(
 
 	double I_Load = 0.0;
 	if (BusPower > 0) {
-		// std::cout << BusPower << "  " <<  VBus << "   " << I_Batt << std::endl;
 		I_Load = BusPower / VBus - I_Batt;
 	}
 
@@ -327,12 +343,12 @@ void ElectroHydraulicPTO::PreUpdate(
 	pto_state.bcurrent = I_Batt;
 	pto_state.wcurrent = this->dataPtr->functor.I_Wind.I;
 	pto_state.diff_press = this->dataPtr->CompensatorPressure;
-	if (deltaP >= 0) {
-		pto_state.upper_hyd_press = 0.0;
-		pto_state.lower_hyd_press = deltaP;
-	} else {
-		pto_state.upper_hyd_press = -deltaP;
+	if (deltaP >= 0) {  //Upper Pressure is > Lower Pressure
+		pto_state.upper_hyd_press = deltaP;
 		pto_state.lower_hyd_press = 0.0;
+	} else {
+		pto_state.upper_hyd_press = 0.0;
+		pto_state.lower_hyd_press = -deltaP;
 	}
 	pto_state.bias_current = this->dataPtr->functor.I_Wind.BiasCurrent;
 	pto_state.loaddc = I_Load;
@@ -370,7 +386,7 @@ void ElectroHydraulicPTO::PreUpdate(
 	// Apply force if not in Velocity Mode, in which case a joint velocity is applied elsewhere
 	// (likely by a test Fixture)
 	if (!this->dataPtr->VelMode) {
-		double piston_force = deltaP * this->dataPtr->PistonArea;
+		double piston_force = -deltaP * this->dataPtr->PistonArea;
 		// Create new component for this entitiy in ECM (if it doesn't already exist)
 		auto forceComp = _ecm.Component<ignition::gazebo::components::JointForceCmd>(
 			this->dataPtr->PrismaticJointEntity);
