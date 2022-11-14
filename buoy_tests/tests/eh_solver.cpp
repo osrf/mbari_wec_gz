@@ -130,7 +130,6 @@ TEST(EH_SOLVER, GENERATOR_MODE)
 		}
 		if(manual)
 		{
-#if 1
 			{
 				Gnuplot gp;
 				gp << "set term X11 title  'PistonVel = " << std::to_string(PistonVel) << " in/s'\n";
@@ -179,7 +178,6 @@ TEST(EH_SOLVER, GENERATOR_MODE)
 				gp.send1d(boost::make_tuple(pts_Icommand, pts_VBus_IC));
 				gp.send1d(boost::make_tuple(pts_Icommand, pts_VBus));
 			}
-    #endif
 			{
 				Gnuplot gp;
 				gp << "set term X11 title  'PistonVel = " << std::to_string(PistonVel) << " in/s'\n";
