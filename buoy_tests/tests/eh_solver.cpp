@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
+#include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicSoln.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <unsupported/Eigen/NonLinearOptimization>
 #include <gtest/gtest.h>
 #include <gnuplot-iostream.h>
 
 #include <cstring>
 #include <iostream>
-#include <unsupported/Eigen/NonLinearOptimization>
-
-#include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicSoln.hpp>
-#include <rclcpp/rclcpp.hpp>
-
-//#include <ElectroHydraulicState.hpp>
-//#include <ElectroHydraulicLoss.hpp>
+#include <memory>
+#include <vector>
 
 
 class EHSolver : public ::testing::Test
@@ -85,14 +84,12 @@ TEST_F(EHSolver, GENERATOR_MODE)
   functor.HydMotorDisp = HydMotorDisp;
 
   x.resize(3);
-  //x.setConstant(3, 0.0);
-  //x[2] = Ve;
 
   double PistonPos = 40;       // in
-  //functor.I_Wind.bias_override_ = true;
-  //functor.I_Wind.BiasCurrent = 20.0;
-//  for(double PistonVel  = -40; PistonVel <= 40; PistonVel += 1.0)// in^3
-//  for(double PistonVel  = 16; PistonVel <= 20.1; PistonVel += 2.0)// in^3
+  // functor.I_Wind.bias_override_ = true;
+  // functor.I_Wind.BiasCurrent = 20.0;
+  // for(double PistonVel  = -40; PistonVel <= 40; PistonVel += 1.0)// in^3
+  // for(double PistonVel  = 16; PistonVel <= 20.1; PistonVel += 2.0)// in^3
   double PistonVel = -10.0;
   {
     std::vector<double> pts_N, pts_N_IC;
@@ -114,7 +111,7 @@ TEST_F(EHSolver, GENERATOR_MODE)
       functor.I_Wind.current_override_ = true;
       functor.I_Wind.UserCommandedCurrent = WindCurrTarg;
 
-//See MINPACK documentation for detail son this solver
+// See MINPACK documentation for detail son this solver
 // Parameters and defaults are (Scalar = double):
 //           : factor(Scalar(100.))
 //           , maxfev(1000)
@@ -125,13 +122,9 @@ TEST_F(EHSolver, GENERATOR_MODE)
       Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(functor);
       solver.parameters.xtol = 0.0001;
       solver.parameters.maxfev = 1000;
-      // solver.parameters.nb_of_subdiagonals = 1;
-      //solver.parameters.nb_of_superdiagonals = 1;
       solver.diag.setConstant(3, 1.);
       solver.diag[2] = .1;
-      solver.useExternalScaling = true;                   // Improves solution stability dramatically.
-//std::cout << "factor = " << solver.parameters.factor << std::endl;
-//std::cout << "epsfcn = " << solver.parameters.epsfcn << std::endl;
+      solver.useExternalScaling = true;  // Improves solution stability dramatically.
 
       // Initial condition based on perfect efficiency
       x[0] = 60.0 * functor.Q / functor.HydMotorDisp;
@@ -142,7 +135,7 @@ TEST_F(EHSolver, GENERATOR_MODE)
       const double T_applied = 1.375 * functor.I_Wind.TorqueConstantInLbPerAmp * WindCurr;
       x[1] = -T_applied / (functor.HydMotorDisp / (2 * M_PI));
 
-      //Estimate VBus based on linearized battery
+      // Estimate VBus based on linearized battery
       double PBus = -x[0] * RPM_TO_RAD_PER_SEC * T_applied * NM_PER_INLB;
       x[2] = functor.Ri * PBus / Ve + Ve;
 
@@ -241,6 +234,6 @@ TEST_F(EHSolver, GENERATOR_MODE)
 int main(int argc, char * argv[])
 {
   ::testing::InitGoogleTest(&argc, argv);
-  EHSolver::init(argc, argv); // pass args to rclcpp init
+  EHSolver::init(argc, argv);  // pass args to rclcpp init
   return RUN_ALL_TESTS();
 }

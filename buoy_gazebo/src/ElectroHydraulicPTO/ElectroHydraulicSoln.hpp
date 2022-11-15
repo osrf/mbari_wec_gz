@@ -84,7 +84,7 @@ public:
   const double PressReliefSetPoint = 2850.0;       // psi
   // ~50GPM/600psi ~= .33472 in^3/psi -> Relief valve flow
   // above setpoint, From SUN RPECLAN data sheet
-  const double ReliefValveFlowPerPSI = 30.0 / 600.0;     //50.0 / 600.0;
+  const double ReliefValveFlowPerPSI = 30.0 / 600.0;
   const double CubicInchesPerGallon = 231.0;
   const double SecondsPerMinute = 60.0;
 
@@ -151,17 +151,15 @@ public:
   // x[2] = Bus Voltage (Volts)
   int operator()(const Eigen::VectorXd & x, Eigen::VectorXd & fvec) const
   {
-
-//    std::cout << "In Soln(): " << x[0] << "  " << x[1] << "  "  << x[2] << std::endl;
     const int n = x.size();
     assert(fvec.size() == n);
 
     const double rpm = fabs(x[0U]);
     const double pressure = fabs(x[1U]);
-    //const double eff_m = this->hyd_eff_m.eval(rpm);
-    //const double eff_v = this->hyd_eff_v.eval(pressure);
-    const double eff_m = 1.0 - (.1 / 6000.0) * rpm;
-    const double eff_v = 1.0 - (.1 / 3500.0) * pressure;
+    const double eff_m = this->hyd_eff_m.eval(rpm);
+    const double eff_v = this->hyd_eff_v.eval(pressure);
+    // const double eff_m = 1.0 - (.1 / 6000.0) * rpm;
+    // const double eff_v = 1.0 - (.1 / 3500.0) * pressure;
 
     double WindCurr = this->I_Wind(x[0U]);
     // 1.375 fudge factor required to match experiments, not yet sure why.
@@ -174,13 +172,13 @@ public:
       MotorDriveSwitchingLoss(x[2U]) +
       MotorDriveISquaredRLoss(WindCurr));
     double Q_Relief = 0;
-    if (x[1U] < -PressReliefSetPoint) {                  // Pressure relief is a one wave valve,
-      // relieves when lower pressure is higher
-      // than upper (resisting extension)
+    if (x[1U] < -PressReliefSetPoint) {  // Pressure relief is a one wave valve,
+                                         // relieves when lower pressure is higher
+                                         // than upper (resisting extension)
       Q_Relief = (x[1U] + PressReliefSetPoint) * ReliefValveFlowPerPSI *
         CubicInchesPerGallon / SecondsPerMinute;
     }
-//		Q_Relief = 0;
+// Q_Relief = 0;
     double Q_Motor = this->Q - Q_Relief;
     double Q = x[0U] * this->HydMotorDisp / SecondsPerMinute;
     double Q_Leak = (1.0 - eff_v) * std::max(fabs(Q_Motor), fabs(Q)) * sgn(x[1]);

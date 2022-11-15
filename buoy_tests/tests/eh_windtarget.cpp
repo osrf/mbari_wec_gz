@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
+#include <buoy_gazebo/ElectroHydraulicPTO/WindingCurrentTarget.hpp>
 #include <gnuplot-iostream.h>
 #include <gtest/gtest.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <cstring>
 #include <iostream>
-
-#include <buoy_gazebo/ElectroHydraulicPTO/WindingCurrentTarget.hpp>
-#include <rclcpp/rclcpp.hpp>
-
+#include <memory>
+#include <vector>
 
 class EHWindTarget : public ::testing::Test
 {
@@ -142,7 +143,7 @@ TEST_F(EHWindTarget, TORQUE_MODE)
       for (double I = -36.0; I <= 36.1; I += 2.0) {
         I_Wind.current_override_ = true;
         I_Wind.UserCommandedCurrent = I;
-        for (double N = -6500.0; N <= 6500.1; N += 500.0) {                    // RPM
+        for (double N = -6500.0; N <= 6500.1; N += 500.0) {  // RPM
           double WindCurr = I_Wind(N);
           pts_N.push_back(N);
           pts_Icommand.push_back(I);
@@ -172,6 +173,6 @@ TEST_F(EHWindTarget, TORQUE_MODE)
 int main(int argc, char * argv[])
 {
   ::testing::InitGoogleTest(&argc, argv);
-  EHWindTarget::init(argc, argv); // pass args to rclcpp init
+  EHWindTarget::init(argc, argv);  // pass args to rclcpp init
   return RUN_ALL_TESTS();
 }

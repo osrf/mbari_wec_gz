@@ -221,7 +221,7 @@ public:
 protected:
   bool CompareData(const int & data_num, const double & _epsilon, const double & timestep)
   {
-    epsilon = _epsilon; // for comparator
+    epsilon = _epsilon;  // for comparator
     std::vector<double> idata = InputData.get_data(data_num);
     std::vector<double> rdata = ResultsData.get_data(data_num);
     auto mismatch = std::mismatch(idata.begin(), idata.end(), rdata.begin(), comparator);
@@ -370,7 +370,7 @@ protected:
           _ecm.CreateComponent(
             jointEntity,
             ignition::gazebo::components::JointVelocityCmd(
-              {piston_vel})); // Create this iteration
+              {piston_vel}));  // Create this iteration
         } else {
           *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_vel});
         }
@@ -386,8 +386,8 @@ protected:
 
           pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
         }
-        //buoy_utils::Status<buoy_gazebo::PowerStatusBits> current_PC_State;
-        //current_PC_State.status = 0;  // Need to set this to most recent status and use
+        // buoy_utils::Status<buoy_gazebo::PowerStatusBits> current_PC_State;
+        // current_PC_State.status = 0;  // Need to set this to most recent status and use
         // pto_state.torque_command = PrescribedWindingCurrent->eval(SimTime);
         // pto_state.torque_command = true;
         pto_state.bias_current_command = PrescribedBiasCurrent->eval(SimTime);
@@ -494,9 +494,9 @@ protected:
       std::cout << "Please examine plots and determine if they are acceptably "
         "correct.  Enter y/n" << std::endl;
 
-      system("stty raw"); // Set terminal to raw mode
-      char key = getchar(); // Wait for single character
-      system("stty cooked"); // Reset terminal to normal "cooked" mode
+      system("stty raw");     // Set terminal to raw mode
+      char key = getchar();   // Wait for single character
+      system("stty cooked");  // Reset terminal to normal "cooked" mode
 
       if (key == 'y') {
         std::string outputdata_filename =
@@ -540,7 +540,7 @@ ignition::gazebo::Entity BuoyExperimentComparison::jointEntity{ignition::gazebo:
 
 TEST_F(BuoyExperimentComparison, Spring)
 {
-  if (manual_comparison) { // Plot data for user to decide if it's valid.
+  if (manual_comparison) {  // Plot data for user to decide if it's valid.
     std::vector<size_t> select_time_series{
       TestData::PISTON_POS,
       TestData::LOWER_SPRING_PRESSURE,
@@ -582,7 +582,7 @@ TEST_F(BuoyExperimentComparison, Spring)
       gp.send1d(boost::make_tuple(InputData.get_data(i + 2U), InputData.get_data(i)));
       gp.send1d(boost::make_tuple(ResultsData.get_data(i + 2U), ResultsData.get_data(i)));
     }
-  } else { // Compare test results to input data and pass test if so.
+  } else {  // Compare test results to input data and pass test if so.
     EXPECT_TRUE(CompareData(TestData::PISTON_POS, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::LOWER_SPRING_PRESSURE, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::UPPER_SPRING_PRESSURE, 1e-2, timestep));
@@ -653,7 +653,7 @@ TEST_F(BuoyExperimentComparison, PTO)
           ResultsData.get_data(TestData::MOTOR_RPM), ResultsData.get_data(
             i)));
     }
-  } else { // Compare test results to input data and pass test if so.
+  } else {  // Compare test results to input data and pass test if so.
     EXPECT_TRUE(CompareData(TestData::PISTON_VEL, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::MOTOR_RPM, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::LOWER_HYD_PRESSURE, 1e-2, timestep));
@@ -669,6 +669,6 @@ TEST_F(BuoyExperimentComparison, PTO)
 int main(int argc, char * argv[])
 {
   ::testing::InitGoogleTest(&argc, argv);
-  BuoyExperimentComparison::init(argc, argv); // pass args to rclcpp init
+  BuoyExperimentComparison::init(argc, argv);  // pass args to rclcpp init
   return RUN_ALL_TESTS();
 }
