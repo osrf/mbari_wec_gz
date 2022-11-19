@@ -29,13 +29,13 @@ def generate_launch_description():
     test_inputdata_exp = os.path.join(
         get_package_share_directory('buoy_tests'),
         'test_inputdata',
-        'FrictionIDMovesWithBiasCurr.exp'
+        '2022.01.28T16.46.31.exp'
     )
 
     test_inputdata_tst = os.path.join(
         get_package_share_directory('buoy_tests'),
         'test_inputdata',
-        'FrictionIDMovesWithBiasCurr.tst'
+        '2022.01.28T16.46.31.tst'
     )
 
     manual_comparison_arg = DeclareLaunchArgument(

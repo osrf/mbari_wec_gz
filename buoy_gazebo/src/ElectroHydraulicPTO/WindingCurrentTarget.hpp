@@ -15,7 +15,7 @@
 #ifndef ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 #define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 
-
+#include <buoy_utils/Constants.hpp>
 #include <simple_interp/interp1d.hpp>
 
 #include <algorithm>
@@ -60,7 +60,7 @@ public:
   std::vector<double> ISpec;  // Amps
 
   double TorqueConstantNMPerAmp{TORQUE_CONSTANT};  // N-m/Amp
-  double TorqueConstantInLbPerAmp{TORQUE_CONSTANT * 8.851};  // in-lb/Amp
+  double TorqueConstantInLbPerAmp{TORQUE_CONSTANT * buoy_utils::INLB_PER_NM};  // in-lb/Amp
   double RamPosition{0.0};
   double ScaleFactor{DEFAULT_SCALE_FACTOR};
   double RetractFactor{DEFAULT_RETRACT_FACTOR};
@@ -84,24 +84,6 @@ public:
 
     DefaultDamping.update(NSpec, ISpec);
   }
-
-  /*
-  double df(const double & N) const
-  {
-    if (current_override_) {
-      J_I = 0.0;
-    } else {
-      J_I = this->DefaultDamping.evalJacobian(fabs(N));
-      J_I *= this->ScaleFactor;
-
-      if (N > 0.0) {
-        J_I *= -this->RetractFactor;
-      }
-    }
-
-    return J_I;
-  }
-  */
 
   double operator()(const double & N) const
   {

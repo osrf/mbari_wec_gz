@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ElectroHydraulicPTO.hpp"
+#include <buoy_utils/Constants.hpp>
 
 #include <ignition/common/Profiler.hh>
 #include <ignition/common/Console.hh>
@@ -50,16 +51,11 @@ namespace buoy_gazebo
 class ElectroHydraulicPTOPrivate
 {
 public:
-  static constexpr double RPM_TO_RAD_PER_SEC{2.0 * M_PI / 60.0};
-  static constexpr double NM_PER_INLB{0.112984829};
 /// \brief Piston joint entity
   ignition::gazebo::Entity PrismaticJointEntity{ignition::gazebo::kNullEntity};
 
 /// \brief Piston area
   double PistonArea{1.0};
-
-/// \brief Rotor Inertia
-  double RotorInertia{1.0};
 
 /// \brief Model interface
   ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
@@ -68,9 +64,9 @@ public:
 
   Eigen::VectorXd x{};
 
-  static constexpr double Ve{298.0};
-  static constexpr double Ri{6.0};
-  static constexpr double I_BattMax{7.0};
+  static constexpr double Ve{300.0};
+  static constexpr double Ri{7.0};
+  static constexpr double I_BattChargeMax{7.0};
   static constexpr double MaxTargetVoltage{325.0};
 
 // Dummy compensator pressure for ROS messages, not simulated
@@ -133,11 +129,6 @@ void ElectroHydraulicPTO::Configure(
   } else {
     this->dataPtr->PistonArea = SdfParamDouble(_sdf, "PistonArea", this->dataPtr->PistonArea);
   }
-
-  // Default to Parker F11-5  0.30in^3/rev
-  static constexpr double PARKER_F11_5 = 0.30;       // in^3/rev
-  this->dataPtr->functor.HydMotorDisp = SdfParamDouble(_sdf, "HydMotorDisp", PARKER_F11_5);
-  this->dataPtr->RotorInertia = SdfParamDouble(_sdf, "RotorInertia", this->dataPtr->RotorInertia);
 
   if (_sdf->HasElement("VelMode")) {
     this->dataPtr->VelMode = true;
@@ -212,10 +203,11 @@ void ElectroHydraulicPTO::PreUpdate(
   // TODO(anyone): Figure out if (0) for the index is always correct,
   // some OR code has a process of finding the index for this argument.
   double xdot = prismaticJointVelComp->Data().at(0);
-  this->dataPtr->functor.Q = xdot * 39.4 * this->dataPtr->PistonArea;       // inch^3/second
+  this->dataPtr->functor.Q = xdot * buoy_utils::INCHES_PER_METER * this->dataPtr->PistonArea;
 
   double PistonPos = prismaticJointVelComp->Data().at(0);
-  this->dataPtr->functor.I_Wind.RamPosition = 40;       // 2.03 - PistonPos * 39.4;
+  // this->dataPtr->functor.I_Wind.RamPosition = 2.03 - PistonPos * buoy_utils::INCHES_PER_METER;
+  this->dataPtr->functor.I_Wind.RamPosition = 40;
 
   // Compute Resulting Rotor RPM and Force applied to Piston based on kinematics
   // and quasistatic forces.  These neglect oil compressibility and rotor inertia,
@@ -288,30 +280,47 @@ void ElectroHydraulicPTO::PreUpdate(
   solver.parameters.xtol = 0.0001;
   solver.parameters.maxfev = 1000;
   solver.diag.setConstant(3, 1.);
-  solver.useExternalScaling = true;  // Improves solution stability dramatically.
+  solver.useExternalScaling = true;       // Improves solution stability dramatically.
 
-  // Initial condition based on perfect efficiency
-  this->dataPtr->x[0] = 60.0 * this->dataPtr->functor.Q / this->dataPtr->functor.HydMotorDisp;
+  int solver_info;
+  int i_try;
+  for (i_try = 0; i_try < 4; i_try++) {
+    // Initial condition based on perfect efficiency
+    this->dataPtr->x[0] = buoy_utils::SecondsPerMinute * this->dataPtr->functor.Q /
+      this->dataPtr->functor.HydMotorDisp;
 
-  double WindCurr = this->dataPtr->functor.I_Wind(this->dataPtr->x[0U]);
-  // 1.375 fudge factor required to match experiments, not yet sure why.
-  const double T_applied = 1.375 * this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
-    WindCurr;
-  this->dataPtr->x[1] = -T_applied / (this->dataPtr->functor.HydMotorDisp / (2 * M_PI));
+    double WindCurr = this->dataPtr->functor.I_Wind(this->dataPtr->x[0U]);
+    // 1.375 fudge factor required to match experiments, not yet sure why.
+    const double T_applied = 1.375 * this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
+      WindCurr;
+    this->dataPtr->x[1] = -T_applied / (this->dataPtr->functor.HydMotorDisp / (2 * M_PI));
 
-  // Estimate VBus based on linearized battery
-  double PBus = -this->dataPtr->x[0] * this->dataPtr->RPM_TO_RAD_PER_SEC *
-    T_applied * this->dataPtr->NM_PER_INLB;
-  this->dataPtr->x[2] = this->dataPtr->functor.Ri * PBus / this->dataPtr->Ve + this->dataPtr->Ve;
+    // Estimate VBus based on linearized battery
+    double PBus = -this->dataPtr->x[0] * buoy_utils::RPM_TO_RAD_PER_SEC *
+      T_applied * buoy_utils::NM_PER_INLB;
+    this->dataPtr->x[2] = this->dataPtr->functor.Ri * PBus / this->dataPtr->Ve + this->dataPtr->Ve;
 
+    solver_info = solver.solveNumericalDiff(this->dataPtr->x);
+    if (solver_info == 1) {
+      break;                   // Solution found so continue
+    } else {
+      this->dataPtr->functor.Q *= 0.95;  // Reduce piston speed slightly and try again
+    }
+  }
 
-  // solver.solveNumericalDiff will compute Jacobian numerically rather than obtain from user
-  const int solver_info = solver.solveNumericalDiff(this->dataPtr->x);
+  if (i_try > 0) {
+    std::stringstream warning;
+    warning << "Warning: Reduced piston to achieve convergence" << std::endl;
+    igndbg << warning.str();
+  }
+
   if (solver_info != 1) {
-    std::cout << "=================================" << std::endl;
-    std::cout << "Warning: Numericals solver in ElectroHydraulicPTO did not converge" << std::endl;
-    std::cout << "solver info: [" << solver_info << "]" << std::endl;
-    std::cout << "=================================" << std::endl;
+    std::stringstream warning;
+    warning << "=================================" << std::endl;
+    warning << "Warning: Numericals solver in ElectroHydraulicPTO did not converge" << std::endl;
+    warning << "solver info: [" << solver_info << "]" << std::endl;
+    warning << "=================================" << std::endl;
+    igndbg << warning.str();
   }
 
   // Solve Electrical
@@ -322,9 +331,9 @@ void ElectroHydraulicPTO::PreUpdate(
   double BusPower = this->dataPtr->functor.BusPower;
 
   double I_Batt = (VBus - this->dataPtr->Ve) / this->dataPtr->Ri;
-  if (I_Batt > this->dataPtr->I_BattMax) {       // Need to limit charge current
-    I_Batt = this->dataPtr->I_BattMax;
-    VBus = this->dataPtr->Ve + this->dataPtr->Ri * this->dataPtr->I_BattMax;
+  if (I_Batt > this->dataPtr->I_BattChargeMax) {       // Need to limit charge current
+    I_Batt = this->dataPtr->I_BattChargeMax;
+    VBus = this->dataPtr->Ve + this->dataPtr->Ri * this->dataPtr->I_BattChargeMax;
   }
 
   double I_Load = 0.0;
@@ -338,7 +347,7 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_state.bcurrent = I_Batt;
   pto_state.wcurrent = this->dataPtr->functor.I_Wind.I;
   pto_state.diff_press = this->dataPtr->CompensatorPressure;
-  if (deltaP >= 0) {  // Upper Pressure is > Lower Pressure
+  if (deltaP >= 0) {       // Upper Pressure is > Lower Pressure
     pto_state.upper_hyd_press = deltaP;
     pto_state.lower_hyd_press = 0.0;
   } else {
@@ -390,7 +399,7 @@ void ElectroHydraulicPTO::PreUpdate(
         this->dataPtr->PrismaticJointEntity,
         ignition::gazebo::components::JointForceCmd({piston_force}));  // Create this iteration
     } else {
-      forceComp->Data()[0] += piston_force;  // Add force to existing forces.
+      forceComp->Data()[0] += piston_force;     // Add force to existing forces.
     }
   }
 }

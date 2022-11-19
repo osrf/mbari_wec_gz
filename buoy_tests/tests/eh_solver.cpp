@@ -14,6 +14,7 @@
 
 
 #include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicSoln.hpp>
+#include <buoy_utils/Constants.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <unsupported/Eigen/NonLinearOptimization>
 #include <gtest/gtest.h>
@@ -69,19 +70,15 @@ char ** EHSolver::argv_;
 //////////////////////////////////////////////////
 TEST_F(EHSolver, GENERATOR_MODE)
 {
-  static constexpr double RPM_TO_RAD_PER_SEC{2.0 * M_PI / 60.0};
-  static constexpr double NM_PER_INLB{0.112984829};
-  const double Ve = 320;       // Volts
-  const double Ri = 2;       // Ohms
-  const double PistonArea = 1.375;       // in^2
-  const double HydMotorDisp = 0.3;       // in^3
+  static constexpr double Ve = 320;       // Volts
+  static constexpr double Ri = 2;       // Ohms
+  static constexpr double PistonArea = 1.375;       // in^2
   double ScaleFactor = 0.6;
   double RetractFactor = 1.0;
   ElectroHydraulicSoln functor{};
   Eigen::VectorXd x{};
   functor.VBattEMF = Ve;
   functor.Ri = Ri;
-  functor.HydMotorDisp = HydMotorDisp;
 
   x.resize(3);
 
@@ -136,7 +133,8 @@ TEST_F(EHSolver, GENERATOR_MODE)
       x[1] = -T_applied / (functor.HydMotorDisp / (2 * M_PI));
 
       // Estimate VBus based on linearized battery
-      double PBus = -x[0] * RPM_TO_RAD_PER_SEC * T_applied * NM_PER_INLB;
+      double PBus = -x[0] * buoy_utils::RPM_TO_RAD_PER_SEC *
+        T_applied * buoy_utils::NM_PER_INLB;
       x[2] = functor.Ri * PBus / Ve + Ve;
 
       //    std::cout << "# " << PistonVel << "      " << WindCurrTarg << "   " << WindCurr
