@@ -37,8 +37,12 @@ int main()
   BuoyA5.SetCOB(0, 0, -.22);       // Set COB relative to waterplane coordinate system.
   BuoyA5.SetCOG(0, 0, -.24);       // Set COG relative to waterplane coordinate system.
   BuoyA5.SetVolume(buoy_mass / rho);
-  BuoyA5.ReadWAMITData_FD("HydrodynamicCoeffs/BuoyA5");
-  BuoyA5.ReadWAMITData_TD("HydrodynamicCoeffs/BuoyA5");
+
+  std::string HydrodynamicsBaseFilename =
+       "/home/hamilton/buoy_ws/src/buoy_sim/"
+       "buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+  BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
+  BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
   BuoyA5.Plot_FD_Coeffs();
   BuoyA5.SetTimestepSize(.01);
   BuoyA5.Plot_TD_Coeffs();

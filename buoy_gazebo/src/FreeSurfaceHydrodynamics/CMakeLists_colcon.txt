@@ -3,4 +3,6 @@ gz_add_plugin(WaveBodyInteractions
     WaveBodyInteractions.cpp
     FS_Hydrodynamics.cpp
     LinearIncidentWave.cpp
+  INCLUDE_DIRS
+    ..
 )
