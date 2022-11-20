@@ -41,7 +41,7 @@ public:
   }
 
 protected:
-  // runs once and is preserved for all `TEST_F`
+// runs once and is preserved for all `TEST_F`
   static void SetUpTestCase()
   {
     rclcpp::init(argc_, argv_);
@@ -87,8 +87,9 @@ TEST_F(EHSolver, GENERATOR_MODE)
   // functor.I_Wind.BiasCurrent = 20.0;
   // for(double PistonVel  = -40; PistonVel <= 40; PistonVel += 1.0)// in^3
   // for(double PistonVel  = 16; PistonVel <= 20.1; PistonVel += 2.0)// in^3
-  double PistonVel = -10.0;
+  double PistonVel = -18.0;
   {
+    std::vector<double> pts_Q, pts_Q_IC;
     std::vector<double> pts_N, pts_N_IC;
     std::vector<double> pts_deltaP, pts_deltaP_IC;
     std::vector<double> pts_VBus, pts_VBus_IC;
@@ -123,37 +124,56 @@ TEST_F(EHSolver, GENERATOR_MODE)
       solver.diag[2] = .1;
       solver.useExternalScaling = true;  // Improves solution stability dramatically.
 
-      // Initial condition based on perfect efficiency
-      x[0] = 60.0 * functor.Q / functor.HydMotorDisp;
+      int solver_info;
+      int i_try;
+      double WindCurr;
+      for (i_try = 0; i_try < 4; i_try++) {
+        // Initial condition based on perfect efficiency
+        x[0] = 60.0 * functor.Q / functor.HydMotorDisp;
 
-      double WindCurr = functor.I_Wind(x[0U]);
-      pts_Itarg_IC.push_back(WindCurr);
-      // 1.375 fudge factor required to match experiments, not yet sure why.
-      const double T_applied = 1.375 * functor.I_Wind.TorqueConstantInLbPerAmp * WindCurr;
-      x[1] = -T_applied / (functor.HydMotorDisp / (2 * M_PI));
+        WindCurr = functor.I_Wind(x[0U]);
+        // 1.375 fudge factor required to match experiments, not yet sure why.
+        const double T_applied = 1.375 * functor.I_Wind.TorqueConstantInLbPerAmp * WindCurr;
+        x[1] = -T_applied / (functor.HydMotorDisp / (2 * M_PI));
 
-      // Estimate VBus based on linearized battery
-      double PBus = -x[0] * buoy_utils::RPM_TO_RAD_PER_SEC *
-        T_applied * buoy_utils::NM_PER_INLB;
-      x[2] = functor.Ri * PBus / Ve + Ve;
+        // Estimate VBus based on linearized battery
+        double PBus = -x[0] * buoy_utils::RPM_TO_RAD_PER_SEC *
+          T_applied * buoy_utils::NM_PER_INLB;
+        x[2] = functor.Ri * PBus / Ve + Ve;
 
-      //    std::cout << "# " << PistonVel << "      " << WindCurrTarg << "   " << WindCurr
-      //              << "           " << x[0] << "  " << x[1] << "  ";// << x[2] << "      ";
-      pts_N_IC.push_back(x[0]);
-      pts_deltaP_IC.push_back(x[1]);
-      pts_VBus_IC.push_back(x[2]);
-      // solver.solveNumericalDiff will compute Jacobian numerically rather than obtain from user
-      const int solver_info = solver.solveNumericalDiff(x);
-      if (solver_info != 1) {
-        std::cout << "=================================" << std::endl;
-        std::cout << "Warning: Numericals solver in ElectroHydraulicPTO did not converge" <<
-          std::endl;
-        std::cout << "solver info: [" << solver_info << "]" << std::endl;
-        std::cout << "PistonVel = " << PistonVel << std::endl;
-        std::cout << "CommandedAmps = " << WindCurrTarg << std::endl;
-        std::cout << "=================================" << std::endl;
+        if (i_try == 0) {                        // Store just initial initial guess..
+          pts_Q_IC.push_back(functor.Q);
+          pts_Itarg_IC.push_back(WindCurr);
+          pts_N_IC.push_back(x[0]);
+          pts_deltaP_IC.push_back(x[1]);
+          pts_VBus_IC.push_back(x[2]);
+        }
+
+        solver_info = solver.solveNumericalDiff(x);
+        if (solver_info == 1) {
+          break;                 // Solution found so continue
+        } else {
+          functor.Q *= 0.95;     // Reduce piston speed slightly and try again
+        }
       }
 
+      if (i_try > 0) {
+        std::stringstream warning;
+        warning << "Warning: Reduced piston to achieve convergence" << std::endl;
+        igndbg << warning.str();
+      }
+
+      if (solver_info != 1) {
+        std::stringstream warning;
+        warning << "=================================" << std::endl;
+        warning << "Warning: Numericals solver in ElectroHydraulicPTO did not converge" <<
+          std::endl;
+        warning << "solver info: [" << solver_info << "]" << std::endl;
+        warning << "=================================" << std::endl;
+        igndbg << warning.str();
+      }
+
+      pts_Q.push_back(functor.Q);
       pts_N.push_back(x[0]);
       pts_deltaP.push_back(x[1]);
       pts_VBus.push_back(x[2]);
@@ -163,6 +183,18 @@ TEST_F(EHSolver, GENERATOR_MODE)
     }
 
     if (manual) {
+      {
+        Gnuplot gp;
+        gp << "set term X11 title  'PistonVel = " << std::to_string(PistonVel) << " in/s'\n";
+        gp << "set grid\n";
+        gp << "set xlabel 'Commanded Amps'\n";
+        gp << "set ylabel 'Q (in^3/s)'\n";
+        gp << "plot '-' w l title 'Q IC'" <<
+          ",'-' w l title 'Q'" <<
+          "\n";
+        gp.send1d(boost::make_tuple(pts_Icommand, pts_Q_IC));
+        gp.send1d(boost::make_tuple(pts_Icommand, pts_Q));
+      }
       {
         Gnuplot gp;
         gp << "set term X11 title  'PistonVel = " << std::to_string(PistonVel) << " in/s'\n";
@@ -232,6 +264,6 @@ TEST_F(EHSolver, GENERATOR_MODE)
 int main(int argc, char * argv[])
 {
   ::testing::InitGoogleTest(&argc, argv);
-  EHSolver::init(argc, argv);  // pass args to rclcpp init
+  EHSolver::init(argc, argv);       // pass args to rclcpp init
   return RUN_ALL_TESTS();
 }
