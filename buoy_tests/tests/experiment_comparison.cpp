@@ -234,7 +234,7 @@ protected:
     return true;
   }
 
-  // runs once and is preserved for all `TEST_F`
+// runs once and is preserved for all `TEST_F`
   static void SetUpTestCase()
   {
     rclcpp::init(argc_, argv_);
@@ -370,7 +370,7 @@ protected:
           _ecm.CreateComponent(
             jointEntity,
             ignition::gazebo::components::JointVelocityCmd(
-              {piston_vel}));    // Create this iteration
+              {piston_vel}));  // Create this iteration
         } else {
           *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_vel});
         }
@@ -386,6 +386,8 @@ protected:
 
           pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
         }
+        // buoy_utils::Status<buoy_gazebo::PowerStatusBits> current_PC_State;
+        // current_PC_State.status = 0;  // Need to set this to most recent status and use
         // pto_state.torque_command = PrescribedWindingCurrent->eval(SimTime);
         // pto_state.torque_command = true;
         pto_state.bias_current_command = PrescribedBiasCurrent->eval(SimTime);
@@ -506,7 +508,7 @@ protected:
           std::cout << "Writing [" << ResultsData.seconds.size() << "] test results to " <<
             outputdata_filename << std::endl;
           for (size_t idx = 0U; idx < ResultsData.seconds.size(); ++idx) {
-            for (size_t jdx = 0U; jdx <= TestData::UPPER_SPRING_PRESSURE; ++jdx) {
+            for (size_t jdx = 0U; jdx <= TestData::BIAS_CURR; ++jdx) {
               outputdata << ResultsData.get_data_at(jdx, idx) << " ";
             }
             outputdata << std::endl;
@@ -591,10 +593,11 @@ TEST_F(BuoyExperimentComparison, Spring)
 
 TEST_F(BuoyExperimentComparison, PTO)
 {
-  if (manual_comparison) {  // Plot data for user to decide if it's valid.
+  if (manual_comparison) {   // Plot data for user to decide if it's valid.
     // Make Plots versus time
     std::vector<size_t> select_time_series{
       TestData::PISTON_POS,
+      TestData::PISTON_VEL,
       TestData::MOTOR_RPM,
       TestData::LOWER_HYD_PRESSURE,
       TestData::UPPER_HYD_PRESSURE,
@@ -606,6 +609,7 @@ TEST_F(BuoyExperimentComparison, PTO)
       TestData::RETRACT,
       TestData::TARG_CURR,
       TestData::BIAS_CURR};
+
     for (size_t i = 1U; i < TestData::NUM_VALUES; i++) {
       if (!std::binary_search(select_time_series.begin(), select_time_series.end(), i)) {
         continue;
@@ -621,7 +625,7 @@ TEST_F(BuoyExperimentComparison, PTO)
       gp.send1d(boost::make_tuple(InputData.seconds, InputData.get_data(i)));
       gp.send1d(boost::make_tuple(ResultsData.seconds, ResultsData.get_data(i)));
     }
-// Make Plots versus RPM
+    // Make Plots versus RPM
     std::vector<size_t> select_series_vsRPM{
       TestData::LOWER_HYD_PRESSURE,
       TestData::UPPER_HYD_PRESSURE,
@@ -651,7 +655,7 @@ TEST_F(BuoyExperimentComparison, PTO)
     }
   } else {  // Compare test results to input data and pass test if so.
     EXPECT_TRUE(CompareData(TestData::PISTON_VEL, 1e-2, timestep));
-    EXPECT_TRUE(CompareData(TestData::MOTOR_RPM, 1.0, timestep));
+    EXPECT_TRUE(CompareData(TestData::MOTOR_RPM, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::LOWER_HYD_PRESSURE, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::UPPER_HYD_PRESSURE, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::V_BUS, 1e-2, timestep));

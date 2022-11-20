@@ -131,20 +131,21 @@ void WaveBodyInteractions::Configure(
 		return;
 	}
 
-	double A = 1.5; // .5 + ((float)(rand() % 20) / 10);
-	double T = 8; // 3.0 + (rand() % 9);
-	this->dataPtr->Inc.SetToPiersonMoskowitzSpectrum(2 * A, 0);
-	// this->dataPtr->Inc.SetToMonoChromatic(2 * A, T, 0);
+	double Hs = SdfParamDouble(_sdf, "Hs", 4.0);
+	double Tp = SdfParamDouble(_sdf, "Tp", -6.0);
+
+	if(Tp > 0)
+		this->dataPtr->Inc.SetToPiersonMoskowitzSpectrum(Hs, Tp, 0.0, 180.0);
+	else
+		this->dataPtr->Inc.SetToMonoChromatic(Hs/2.0, -Tp, 0.0, 180.0);
 
 	std::string HydrodynamicsBaseFilename =
-	  "/home/hamilton/buoy_ws/src/buoy_sim/"
+		"/home/hamilton/buoy_ws/src/buoy_sim/"
 		"buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
-//    "/home/hamilton/buoy_ws/src/buoy_sim/buoy_gazebo/src/"
-//    "FreeSurfaceHydrodynamics/HydrodynamicCoeffs/BuoyA5";
 	this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
 	this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
 	// TODO(anyone):  Need to get timestep size from ecm.
-	this->dataPtr->FloatingBody.SetTimestepSize(.001);
+	this->dataPtr->FloatingBody.SetTimestepSize(.01);
 
 	ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
 
@@ -287,10 +288,17 @@ void WaveBodyInteractions::PreUpdate(
 	std::cout << "Exciting: applied force = " << w_FEp << std::endl;
 	std::cout << "Exciting: applied moment = " << w_MEp << std::endl;
 
+	w_FEp[0] = 0.0;
+	w_FEp[1] = 0.0;
+//w_FEp[2] = 0.0;
+	w_MEp[0] = 0.0;
+	w_MEp[1] = 0.0;
+	w_MEp[2] = 0.0;
+
 	// Add contribution due to force offset from origin
 	w_MEp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FEp);
-	// baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp + w_MRp + w_MEp);
-	baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp, w_MBp + w_MRp);
+	baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp + w_MRp + w_MEp);
+//	baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp, w_MBp + w_MRp);
 
 	std::cout << "ABCD " << SimTime << "  " << w_MBp[0] << "  " << w_MRp[0] << std::endl;
 

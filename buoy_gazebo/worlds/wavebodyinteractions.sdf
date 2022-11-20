@@ -3,7 +3,7 @@
     <world name="world_demo">
 
         <physics name="1ms" type="ignored">
-            <max_step_size>.001</max_step_size>
+            <max_step_size>.01</max_step_size>
             <real_time_factor>1.0</real_time_factor>
         </physics>
 
@@ -26,7 +26,7 @@
 
     <self_collide>true</self_collide>
     <link name="Buoy">
-      <pose relative_to="__model__">0 0 0 .1 0 0</pose>
+      <pose relative_to="__model__">0 0 0.1 0 0 0</pose>
       <inertial>
         <pose>0 0 2.46 0 0 0</pose>
         <!--<mass>1400</mass> -->
@@ -76,6 +76,8 @@
      
     <plugin filename="WaveBodyInteractions" name="buoy_gazebo::WaveBodyInteractions">  
       <LinkName>Buoy</LinkName>
+      <Hs>2.0</Hs>
+      <Tp>-8.0<Tp>
       <WaterplaneOrigin_x>0</WaterplaneOrigin_x>  <!-- Waterplane origin relative to link origin -->
       <WaterplaneOrigin_y>0</WaterplaneOrigin_y>
       <WaterplaneOrigin_z>2.46</WaterplaneOrigin_z> 
