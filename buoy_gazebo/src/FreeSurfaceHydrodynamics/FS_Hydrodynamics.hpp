@@ -30,7 +30,6 @@ public:
   // FS_HydroDynamics();
   explicit FS_HydroDynamics(IncidentWave & IncWave);
   FS_HydroDynamics(IncidentWave & IncWave, double L, double g, double rho);
-  // void AssignIncidentWave(IncidentWave &IncWave);
   void ReadWAMITData_FD(std::string filenm);
   void ReadWAMITData_TD(std::string filenm);
   void Plot_FD_Coeffs();

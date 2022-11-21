@@ -22,6 +22,7 @@
 #include <fstream>
 #include <vector>
 #include <cstdlib>
+#include <memory>
 
 
 class IncidentWaveTarget : public ::testing::Test
@@ -127,7 +128,6 @@ TEST_F(IncidentWaveTarget, MONOCHROME)
     gp.send1d(boost::make_tuple(pts_x, pts_eta));
     gp.send1d(boost::make_tuple(pts_x, pts_eta_true));
   }
-
 }
 
 

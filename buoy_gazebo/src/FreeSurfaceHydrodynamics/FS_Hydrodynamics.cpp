@@ -13,12 +13,11 @@
 // limitations under the License.
 
 #include "FS_Hydrodynamics.hpp"
-
 #include <gnuplot-iostream.h>
 
-//#include <simple_interp/interp1d.hpp>  // For use with colcon
-#include "interp1d.hpp"  // For use with local CMakeList.txt
-                           // -- Still need to figure how to reference files in buoy_msg
+#include <simple_interp/interp1d.hpp>  // For use with colcon
+// #include "interp1d.hpp"  // For use with local CMakeList.txt
+// -- Still need to figure how to reference files in buoy_msg
 
 #include <Eigen/Dense>
 
@@ -77,12 +76,6 @@ FS_HydroDynamics::FS_HydroDynamics(
   this->M.setZero();
   this->c.setZero();
 }
-
-
-//  void FS_HydroDynamics::AssignIncidentWave(IncidentWave &IncWave)
-//  {
-//    _IncWave = IncWave);
-
 
 ///  \brief  Read frequency domain coefficients from WAMIT.
 ///
@@ -665,8 +658,8 @@ void FS_HydroDynamics::SetTimestepSize(double dt)
         m_L_rad(i, j).resize(_n_rad_intpts);
         mlinterp::interp(
           &nd, _n_rad_intpts,
-           m_IR_sinint(i, j).data(), m_L_rad(i, j).data(),  //Output Axis
-           m_tau_rad.data(), &(x_rad[0])); // Input axis
+          m_IR_sinint(i, j).data(), m_L_rad(i, j).data(),   // Output Axis
+          m_tau_rad.data(), &(x_rad[0]));  // Input axis
       }
     }
   }

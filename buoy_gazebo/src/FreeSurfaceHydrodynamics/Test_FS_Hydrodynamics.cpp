@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <limits>
+#include <string>
 
 #include "FS_Hydrodynamics.hpp"
 #include "LinearIncidentWave.hpp"
@@ -39,8 +40,8 @@ int main()
   BuoyA5.SetVolume(buoy_mass / rho);
 
   std::string HydrodynamicsBaseFilename =
-       "/home/hamilton/buoy_ws/src/buoy_sim/"
-       "buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+    "/home/hamilton/buoy_ws/src/buoy_sim/"
+    "buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
   BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
   BuoyA5.Plot_FD_Coeffs();
