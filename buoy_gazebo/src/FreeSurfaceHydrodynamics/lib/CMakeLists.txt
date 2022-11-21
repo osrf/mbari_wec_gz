@@ -11,7 +11,7 @@ set(Boost_INCLUDEDIR "/usr/include") # This didn't work, cmake insisted on using
   # so I sym-linked /include to /usr/include and it worked, bad solution...
 find_package(Boost 1.71.0 COMPONENTS system iostreams filesystem)
 
-add_library(FreeSurfaceHydrodynamics STATIC LinearIncidentWave.cpp FS_Hydrodynamics.cpp)
+add_library(FreeSurfaceHydrodynamics SHARED interp1d.cpp LinearIncidentWave.cpp FS_Hydrodynamics.cpp)
 target_link_libraries(FreeSurfaceHydrodynamics Eigen3::Eigen)
 set_property(TARGET FreeSurfaceHydrodynamics PROPERTY CXX_STANDARD 17)
 # target_compile_options(FreeSurfaceHydrodynamics PUBLIC "-DLOCAL_BUILD=1")
