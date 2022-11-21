@@ -15,8 +15,7 @@
 #include "FS_Hydrodynamics.hpp"
 #include <gnuplot-iostream.h>
 
-#include <simple_interp/interp1d.hpp>  // For use with colcon
-// #include "interp1d.hpp"  // For use with local CMakeList.txt
+#include "interp1d.hpp"  // For use with local CMakeList.txt
 // -- Still need to figure how to reference files in buoy_msg
 
 #include <Eigen/Dense>
