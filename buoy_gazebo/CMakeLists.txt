@@ -16,8 +16,6 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(buoy_description REQUIRED)
-# find_package(buoy_interfaces REQUIRED)
-# find_package(rclcpp REQUIRED)
 
 find_package(ignition-cmake2 REQUIRED)
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
@@ -114,10 +112,6 @@ install(TARGETS BuoyECMStateData
   INCLUDES DESTINATION include
 )
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
-  DESTINATION include/buoy_gazebo
-  FILES_MATCHING PATTERN "*.hpp"
-)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
   DESTINATION include
   FILES_MATCHING PATTERN "*.hpp"
