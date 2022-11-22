@@ -13,8 +13,8 @@
 // limitations under the License.
 
 
-#ifndef FREESURFACEHYDRODYNAMICS__INCIDENTWAVE_HPP_
-#define  FREESURFACEHYDRODYNAMICS__INCIDENTWAVE_HPP_
+#ifndef FREESURFACEHYDRODYNAMICS__LIB__INCIDENTWAVE_HPP_
+#define  FREESURFACEHYDRODYNAMICS__LIB__INCIDENTWAVE_HPP_
 
 /**
 \brief The IncidentWave class is a base class for Incident Wave implementations, which must at least provide eta(x,y,t)
@@ -27,4 +27,4 @@ public:
   virtual double eta(double x, double y, double t) = 0;
 };
 
-#endif  // FREESURFACEHYDRODYNAMICS__INCIDENTWAVE_HPP_
+#endif  // FREESURFACEHYDRODYNAMICS__LIB__INCIDENTWAVE_HPP_

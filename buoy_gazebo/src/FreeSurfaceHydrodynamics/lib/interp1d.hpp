@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FREESURFACEHYDRODYNAMICS__INTERP1D_HPP_
-#define FREESURFACEHYDRODYNAMICS__INTERP1D_HPP_
+#ifndef FREESURFACEHYDRODYNAMICS__LIB__INTERP1D_HPP_
+#define FREESURFACEHYDRODYNAMICS__LIB__INTERP1D_HPP_
 
 
 #include <vector>
@@ -55,4 +55,4 @@ private:
 };
 }  // namespace simple_interp
 
-#endif  // FREESURFACEHYDRODYNAMICS__INTERP1D_HPP_
+#endif  // FREESURFACEHYDRODYNAMICS__LIB__INTERP1D_HPP_

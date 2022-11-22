@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef FREESURFACEHYDRODYNAMICS__FS_HYDRODYNAMICS_HPP_
-#define FREESURFACEHYDRODYNAMICS__FS_HYDRODYNAMICS_HPP_
+#ifndef FREESURFACEHYDRODYNAMICS__LIB__FS_HYDRODYNAMICS_HPP_
+#define FREESURFACEHYDRODYNAMICS__LIB__FS_HYDRODYNAMICS_HPP_
 
 #include <Eigen/Dense>
 #include <vector>
@@ -88,20 +88,21 @@ public:
 
   // Time domain coefficients
   Eigen::VectorXd m_tau_rad;
-  Eigen::Matrix<Eigen::VectorXd, 6, 6> m_IR_cosint;
-  Eigen::Matrix<Eigen::VectorXd, 6, 6> m_IR_sinint;
+  std::array<std::array<Eigen::VectorXd, 6>, 6> m_IR_cosint;
+  std::array<std::array<Eigen::VectorXd, 6>, 6> m_IR_sinint;
 
   double m_dtau_exc;
   Eigen::VectorXd m_tau_exc;
-  Eigen::Matrix<Eigen::VectorXd, 6, 1> m_IR_exc;
+  std::array<Eigen::VectorXd, 6> m_IR_exc;
 
   // Vectors for numerical integration
   double m_dt = 0;
-  Eigen::Matrix<Eigen::VectorXd, 6, 6> m_L_rad;
-  Eigen::Matrix<Eigen::VectorXd, 6, 1> m_L_exc;
+  // Eigen::Matrix<Eigen::VectorXd, 6, 6> m_L_rad;
+  std::array<std::array<Eigen::VectorXd, 6>, 6> m_L_rad;
+  std::array<Eigen::VectorXd, 6> m_L_exc;
 
   // Storage for accelerations for each of 6 DOF
-  Eigen::Matrix<Eigen::VectorXd, 6, 1> m_xddot;
+  std::array<Eigen::VectorXd, 6> m_xddot;
 
   // Storage for wave-elevation at origin;
   Eigen::VectorXd _eta0;
@@ -139,4 +140,4 @@ private:
   void Compute_cij(void);
 };
 
-#endif  // FREESURFACEHYDRODYNAMICS__FS_HYDRODYNAMICS_HPP_
+#endif  // FREESURFACEHYDRODYNAMICS__LIB__FS_HYDRODYNAMICS_HPP_

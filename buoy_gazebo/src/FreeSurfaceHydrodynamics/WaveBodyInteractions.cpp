@@ -92,7 +92,7 @@ double SdfParamDouble(
 {
   return _sdf->Get<double>(_field, _default).first;
 }
-  LinearIncidentWave Inc2;
+LinearIncidentWave Inc2;
 
 //////////////////////////////////////////////////
 void WaveBodyInteractions::Configure(
@@ -133,7 +133,7 @@ void WaveBodyInteractions::Configure(
     this->dataPtr->Inc.SetToMonoChromatic(Hs / 2.0, -Tp, 0.0, 180.0);
   }
 
-    Inc2.SetToMonoChromatic(.1, 20.0, 0.0, 180.0);
+  Inc2.SetToMonoChromatic(.1, 20.0, 0.0, 180.0);
 // this->dataPtr->Inc = Inc2;
 
   std::string HydrodynamicsBaseFilename =
@@ -290,7 +290,6 @@ void WaveBodyInteractions::PreUpdate(
   w_MEp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FEp);
   baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp + w_MRp + w_MEp);
 // baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp, w_MBp + w_MRp);
-
 }
 
 //////////////////////////////////////////////////
@@ -325,16 +324,3 @@ IGNITION_ADD_PLUGIN(
   buoy_gazebo::WaveBodyInteractions::ISystemPreUpdate,
   buoy_gazebo::WaveBodyInteractions::ISystemUpdate,
   buoy_gazebo::WaveBodyInteractions::ISystemPostUpdate);
-
-/*
-   IGNITION_ADD_PLUGIN(
-      WaveBodyInteractions,
-      ignition::gazebo::System,
-      WaveBodyInteractions::ISystemConfigure,
-      WaveBodyInteractions::ISystemPreUpdate,
-      WaveBodyInteractions::ISystemUpdate,
-      WaveBodyInteractions::ISystemPostUpdate);
-
-   IGNITION_ADD_PLUGIN_ALIAS(WaveBodyInteractions,
-                            "ignition::gazebo::systems::WaveBodyInteractions")
- */

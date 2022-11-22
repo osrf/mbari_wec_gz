@@ -15,9 +15,6 @@
 #include "FS_Hydrodynamics.hpp"
 #include <gnuplot-iostream.h>
 
-#include "interp1d.hpp"  // For use with local CMakeList.txt
-// -- Still need to figure how to reference files in buoy_msg
-
 #include <Eigen/Dense>
 
 #include <cmath>
@@ -27,13 +24,8 @@
 #include <string>
 
 #include "IncidentWave.hpp"
+#include "interp1d.hpp"
 #include "mlinterp.hpp"
-
-
-// Constructor    DefaultDamping(NSpec, ISpec);
-// Changing    DefaultDamping.update(NSpec, ISpec);
-// Use: I = this->DefaultDamping.eval(fabs(N));
-// Use: I = this->DefaultDamping(fabs(N));
 
 
 const char * modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
@@ -234,19 +226,19 @@ void FS_HydroDynamics::ReadWAMITData_TD(std::string filenm)
     }
 
     for (int n = 0, k = 0; n < n_lines1; n++) {
-      if (m_IR_cosint(s1(n, 1) - 1, s1(n, 2) - 1).size() == 0) {
-        m_IR_cosint(s1(n, 1) - 1, s1(n, 2) - 1)
+      if (m_IR_cosint[s1(n, 1) - 1][s1(n, 2) - 1].size() == 0) {
+        m_IR_cosint[s1(n, 1) - 1][s1(n, 2) - 1]
         .resize(n_timesteps);                         // Set vector size once
-        m_IR_sinint(s1(n, 1) - 1, s1(n, 2) - 1)
+        m_IR_sinint[s1(n, 1) - 1][s1(n, 2) - 1]
         .resize(n_timesteps);                         // Set vector size once
       }
       if ((s1(n, 1) == s1(0, 1)) && (s1(n, 2) == s1(0, 2))) {
         k++;
       }
 
-      m_IR_cosint(s1(n, 1) - 1, s1(n, 2) - 1)(k - 1) =
+      m_IR_cosint[s1(n, 1) - 1][s1(n, 2) - 1](k - 1) =
         m_rho * s1(n, 3);                         // Fill in dataFill in data
-      m_IR_sinint(s1(n, 1) - 1, s1(n, 2) - 1)(k - 1) =
+      m_IR_sinint[s1(n, 1) - 1][s1(n, 2) - 1](k - 1) =
         m_rho * s1(n, 4);                         // Fill in dataFill in data
     }
   } else {
@@ -274,9 +266,9 @@ void FS_HydroDynamics::ReadWAMITData_TD(std::string filenm)
     m_dtau_exc = m_tau_exc(1) - m_tau_exc(0);
 
     for (int j = 0; j < 6; j++) {
-      m_IR_exc(j).resize(n_lines3);
+      m_IR_exc[j].resize(n_lines3);
       for (int k = 0; k < n_lines3; k++) {
-        m_IR_exc(j)(k) = m_rho * m_grav * s3(k, j + 1);
+        m_IR_exc[j](k) = m_rho * m_grav * s3(k, j + 1);
       }
     }
   } else {
@@ -404,14 +396,14 @@ void FS_HydroDynamics::Plot_TD_Coeffs()
     for (int j = i; j < 6; j++) {
       std::vector<double> pts_L, pts_L_sym;
       std::vector<double> pts_tau;
-      if (m_L_rad(i, j).size() >
+      if (m_L_rad[i][j].size() >
         0)                     // Check to see if impulse response functoin is nonzero.
       {
-        for (int k = 0; k < m_L_rad(i, j).size(); k++) {
+        for (int k = 0; k < m_L_rad[i][j].size(); k++) {
           pts_tau.push_back(m_dt * k);
-          pts_L.push_back(m_L_rad(i, j)[k]);
+          pts_L.push_back(m_L_rad[i][j][k]);
           if (i != j) {
-            pts_L_sym.push_back(m_L_rad(j, i)[k]);
+            pts_L_sym.push_back(m_L_rad[j][i](k));
           }
         }
 
@@ -443,12 +435,12 @@ void FS_HydroDynamics::Plot_TD_Coeffs()
   for (int j = 0; j < 6; j++) {
     std::vector<double> pts_Chi;
     std::vector<double> pts_tau;
-    for (int k = 0; k < m_L_exc(j).size(); k++) {
+    for (int k = 0; k < m_L_exc[j].size(); k++) {
       pts_tau.push_back(
-        m_dt * (k - m_L_exc(j).size() /
+        m_dt * (k - m_L_exc[j].size() /
         2));                                 // Have to recreate this as there's
                                              // no real reason to store...
-      pts_Chi.push_back(m_L_exc(j)[k]);
+      pts_Chi.push_back(m_L_exc[j](k));
     }
 
     Gnuplot gp;
@@ -652,19 +644,19 @@ void FS_HydroDynamics::SetTimestepSize(double dt)
 
   for (int i = 0; i < 6; i++) {
     for (int j = 0; j < 6; j++) {
-      int nd = m_IR_sinint(i, j).size();
+      int nd = m_IR_sinint[i][j].size();
       if (nd > 0) {
-        m_L_rad(i, j).resize(_n_rad_intpts);
+        m_L_rad[i][j].resize(_n_rad_intpts);
         mlinterp::interp(
           &nd, _n_rad_intpts,
-          m_IR_sinint(i, j).data(), m_L_rad(i, j).data(),   // Output Axis
+          m_IR_sinint[i][j].data(), m_L_rad[i][j].data(),   // Output Axis
           m_tau_rad.data(), &(x_rad[0]));  // Input axis
       }
     }
   }
 
   for (int i = 0; i < 6; i++) {
-    m_xddot(i).resize(
+    m_xddot[i].resize(
       STORAGE_MULTIPLIER *
       _n_rad_intpts);                   // Create storage for 5 times the length
   }
@@ -682,11 +674,11 @@ void FS_HydroDynamics::SetTimestepSize(double dt)
   }
 
   for (int j = 0; j < 6; j++) {
-    if (m_IR_exc(j).size() > 0) {
-      m_L_exc(j).resize(_n_exc_intpts);
-      int nd = m_IR_exc(j).size();
+    if (m_IR_exc[j].size() > 0) {
+      m_L_exc[j].resize(_n_exc_intpts);
+      int nd = m_IR_exc[j].size();
       mlinterp::interp(
-        &nd, _n_exc_intpts, m_IR_exc(j).data(), m_L_exc(j).data(),
+        &nd, _n_exc_intpts, m_IR_exc[j].data(), m_L_exc[j].data(),
         m_tau_exc.data(), &(x_exc[0]));
     }
   }
@@ -725,7 +717,7 @@ Eigen::VectorXd FS_HydroDynamics::ExcitingForce()
   // Compute convolution integrals, no need to adjust ends in trap rule since
   // integrand there is zero.
   for (int i = 0; i < 6; i++) {
-    ExctForces(i) = m_L_exc(i).dot(_eta0.segment(_exc_tstep_index, _n_exc_intpts));
+    ExctForces(i) = m_L_exc[i].dot(_eta0.segment(_exc_tstep_index, _n_exc_intpts));
   }
 
   // Increment timestep index and shift stored xddot data if needed.
@@ -762,10 +754,10 @@ Eigen::VectorXd FS_HydroDynamics::RadiationForce(Eigen::VectorXd last_xddot)
   // need to compute the convolution integrals the first time.
   if (_rad_tstep_index <= STORAGE_MULTIPLIER * _n_rad_intpts - 2) {
     for (int j = 0; j < 6; j++) {
-      m_xddot(j)(_rad_tstep_index) = 0;  // This is unknown at this timestep,
+      m_xddot[j](_rad_tstep_index) = 0;  // This is unknown at this timestep,
                                          // but can be set to zero since L_rad(tau = 0) = 0 always
-      if (_rad_tstep_index < m_xddot(j).size() - 1) {
-        m_xddot(j)(_rad_tstep_index + 1) =
+      if (_rad_tstep_index < m_xddot[j].size() - 1) {
+        m_xddot[j](_rad_tstep_index + 1) =
           last_xddot(j);                               // Store xddot from last timestep
       }
     }
@@ -773,16 +765,16 @@ Eigen::VectorXd FS_HydroDynamics::RadiationForce(Eigen::VectorXd last_xddot)
       for (int j = 0; j < 6;
         j++)                      // Sum up convolution integrals, no need to adjust ends in trap
       {                   // rule since integrand there is zero.
-        if (m_L_rad(i, j).size() > 0) {
-          int num_int_pts = m_xddot(j).size() - _rad_tstep_index;
+        if (m_L_rad[i][j].size() > 0) {
+          int num_int_pts = m_xddot[j].size() - _rad_tstep_index;
           if (num_int_pts > _n_rad_intpts) {  // Sufficiently into simulation that
                                               // entire IRF can be used.
             num_int_pts = _n_rad_intpts;
           }
           RadiationForces(i) +=
-            m_L_rad(i, j)
+            m_L_rad[i][j]
             .head(num_int_pts)
-            .dot(m_xddot(j).segment(_rad_tstep_index, num_int_pts));
+            .dot(m_xddot[j].segment(_rad_tstep_index, num_int_pts));
         }
       }
     }
@@ -793,7 +785,7 @@ Eigen::VectorXd FS_HydroDynamics::RadiationForce(Eigen::VectorXd last_xddot)
   if (_rad_tstep_index == 0) {       // At beginning of allocated storage.
     for (int j = 0; j < 6; j++) {             // Copy most recent xdddot data to end of
                                               // acceleration storage vector.
-      m_xddot(j).tail(_n_rad_intpts) = m_xddot(j).head(_n_rad_intpts);
+      m_xddot[j].tail(_n_rad_intpts) = m_xddot[j].head(_n_rad_intpts);
     }
     _rad_tstep_index = STORAGE_MULTIPLIER * _n_rad_intpts - _n_rad_intpts;
   }
