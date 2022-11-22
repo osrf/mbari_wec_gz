@@ -41,7 +41,7 @@ TEST_F(PTOFrictionTest, ModelAccuracy)
   EXPECT_NEAR(0.0, friction_model.eval(0.0), 0.05);
   EXPECT_NEAR(700.0, friction_model.eval(-0.1), 0.05);
   EXPECT_NEAR(-1000.0, friction_model.eval(0.1), 0.05);
-  EXPECT_NEAR(-2100.0, friction_model.eval(0.3), 150.0);
-  EXPECT_NEAR(1000.0, friction_model.eval(-0.3), 250.0);
-  EXPECT_NEAR(-2900.0, friction_model.eval(0.4), 500.0);
+  EXPECT_NEAR(-2100.0, friction_model.eval(0.3), 180.0);
+  EXPECT_NEAR(1000.0, friction_model.eval(-0.3), 50.0);
+  EXPECT_NEAR(-2900.0, friction_model.eval(0.4), 0.05);
 }
