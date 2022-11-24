@@ -49,9 +49,6 @@ int CountLines(std::string filenm)
   return count;
 }
 
-//  FS_HydroDynamics::FS_HydroDynamics()
-//    : m_L{1.0}, m_grav{9.81}, m_rho{1025} {}
-
 FS_HydroDynamics::FS_HydroDynamics(IncidentWave & IncWave)
 : _IncWave(IncWave), m_L{1.0}, m_grav{9.81}, m_rho{1025}
 {
@@ -731,6 +728,18 @@ Eigen::VectorXd FS_HydroDynamics::ExcitingForce()
   return ExctForces;
 }
 
+// Returns force and moment due to gravity in the body frame,
+//  as applied at the origin of water-plane.
+Eigen::VectorXd FS_HydroDynamics::GravityForce(Eigen::VectorXd x)
+{
+  Eigen::VectorXd F_G(6);
+  F_G.setZero();
+  F_G(2) = -this->m_grav * this->M(0, 0);
+  F_G(3) = -this->m_grav * this->M(0, 0) * this->COG(1);
+  F_G(4) = this->m_grav * this->M(0, 0) * this->COG(0);
+  return F_G;
+}
+
 // Returns linearized buoyancy force and moment in the body frame,
 //  as applied at the origin of water-plane.
 Eigen::VectorXd FS_HydroDynamics::BuoyancyForce(Eigen::VectorXd x)
@@ -825,4 +834,13 @@ std::ostream & operator<<(std::ostream & out, const FS_HydroDynamics & f)
   std::cout << "#inf freq fd_B = " << std::endl << f.fd_B[0] << std::endl;
 
   return out;       // return std::ostream so we can chain calls to operator<<
+}
+
+
+void FS_HydroDynamics::operator()(
+  const std::vector<double> & x, std::vector<double> & dxdt,
+  const double /* t */)
+{
+  dxdt[0] = x[1];
+  dxdt[1] = -x[0] - m_gam * x[1];
 }

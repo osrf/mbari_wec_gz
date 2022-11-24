@@ -27,6 +27,7 @@
 class FS_HydroDynamics
 {
 public:
+  double m_gam = 0.15;
   // FS_HydroDynamics();
   explicit FS_HydroDynamics(IncidentWave & IncWave);
   FS_HydroDynamics(IncidentWave & IncWave, double L, double g, double rho);
@@ -54,11 +55,15 @@ public:
   void SetMass(double m);
   void SetI(Eigen::Matrix<double, 3, 3> I);
 
+  void operator()(const std::vector<double> & x, std::vector<double> & dxdt, const double /* t */);
+
+  Eigen::VectorXd GravityForce(Eigen::VectorXd x);
   Eigen::VectorXd BuoyancyForce(Eigen::VectorXd x);
   Eigen::VectorXd RadiationForce(Eigen::VectorXd last_xddot);
   Eigen::VectorXd ExcitingForce();
 
   Eigen::Matrix<std::complex<double>, 6, 1> ComplexAmplitude(double omega);
+
 
   friend std::ostream &
   operator<<(std::ostream & out, const FS_HydroDynamics & f);
