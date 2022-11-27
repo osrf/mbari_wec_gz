@@ -125,7 +125,7 @@ void WaveBodyInteractions::Configure(
   }
 
   double Hs = SdfParamDouble(_sdf, "Hs", 2.0);
-  double Tp = SdfParamDouble(_sdf, "Tp", -5.0);
+  double Tp = SdfParamDouble(_sdf, "Tp", 8.);
 
   if (Tp > 0) {
     this->dataPtr->Inc.SetToPiersonMoskowitzSpectrum(Hs, Tp, 0.0, 180.0);
