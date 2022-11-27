@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#include <gnuplot-iostream.h>
-#include "gnuplot-iostream.h"
+#include <gnuplot-iostream.h>
 #include <Eigen/Dense>
 #include <boost/numeric/odeint.hpp>
 #include <unistd.h>
@@ -87,7 +86,7 @@ struct push_back_state_and_time
 int main(int argc, char ** argv)
 {
   {
-    std::string s = "pkill gnuplot_x11";
+    std::string s = "pkill gnuplot_qt";
     system(s.c_str());
   }
 

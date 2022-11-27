@@ -13,9 +13,7 @@
 // limitations under the License.
 
 #include "FS_Hydrodynamics.hpp"
-//#include <gnuplot-iostream.h>
-#include "gnuplot-iostream.h"
-
+#include <gnuplot-iostream.h>
 #include <Eigen/Dense>
 
 #include <cmath>
