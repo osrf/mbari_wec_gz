@@ -105,8 +105,8 @@ void FS_HydroDynamics::ReadWAMITData_FD(std::string filenm)
       if (s1(n * coeffPerFreqs, 0) == 0.0) {                   // Infinite frequency case
         for (int k = 0; k < coeffPerFreqs; k++) {
           int i = n * coeffPerFreqs + k;
-          this->fd_A_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
-          this->fd_B_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) =
+          this->fd_A_inf_freq.coeffRef(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
+          this->fd_B_inf_freq.coeffRef(s1(i, 1) - 1, s1(i, 2) - 1) =
           0;                               // m_rho * fd_am_dmp_omega(n) * s1(i, 4);
         }
       } else {
@@ -124,8 +124,8 @@ void FS_HydroDynamics::ReadWAMITData_FD(std::string filenm)
         B.setZero();
         for (int k = 0; k < coeffPerFreqs; k++) {
           int i = n * coeffPerFreqs + k;
-          A(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
-          B(s1(i, 1) - 1, s1(i, 2) - 1) =
+          A.coeffRef(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
+          B.coeffRef(s1(i, 1) - 1, s1(i, 2) - 1) =
             m_rho * fd_am_dmp_omega(nn) * s1(i, 4);
         }
         this->fd_A.push_back(A);
