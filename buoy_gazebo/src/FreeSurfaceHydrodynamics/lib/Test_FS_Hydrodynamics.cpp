@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <gnuplot-iostream.h>
+//#include <gnuplot-iostream.h>
+#include "gnuplot-iostream.h"
 #include <Eigen/Dense>
 #include <boost/numeric/odeint.hpp>
 #include <unistd.h>
@@ -140,7 +141,9 @@ int main(int argc, char ** argv)
   BuoyA5.SetMass(buoy_mass);
 
   std::string HydrodynamicsBaseFilename =
-    "/home/hamilton/buoy_ws/src/buoy_sim/"
+//    "/home/hamilton"
+    "/Users/hamilton/Documents"
+    "/buoy_ws/src/buoy_sim/"
     "buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
   BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
@@ -170,7 +173,7 @@ int main(int argc, char ** argv)
     snprintf(Amp, sizeof(Amp), "%.1f", A);
     char Per[10];
     snprintf(Per, sizeof(Per), "%.1f", Tp);
-    gp << "set term X11 title  'A = " << Amp << "m  T = " << Per << "s'\n";
+    gp << "set term qt title  'A = " << Amp << "m  T = " << Per << "s'\n";
     gp << "set grid\n";
     gp << "set xlabel 'time (s)'\n";
     gp << "plot '-' w l title 'Vel'" <<
@@ -225,7 +228,7 @@ int main(int argc, char ** argv)
           snprintf(Amp, sizeof(Amp), "%.1f", A);
           char Per[10];
           snprintf(Per, sizeof(Per), "%.1f", Tp);
-          gp << "set term X11 title 'Radiation Forces: " << modes[i] << " Motions, " << modes[j] <<
+          gp << "set term qt title 'Radiation Forces: " << modes[i] << " Motions, " << modes[j] <<
             " Forces:  A = " << Amp << "m  T = " << Per << "s  \n";
           gp << "set grid\n";
           gp << "set xlabel 'time (s)'\n";
@@ -273,7 +276,7 @@ int main(int argc, char ** argv)
         pts_F_TD.push_back(ExtForce(j));
       }
       Gnuplot gp;
-      gp << "set term X11 title  '" << modes[j] << " Exciting Forces'\n";
+      gp << "set term qt title  '" << modes[j] << " Exciting Forces'\n";
       gp << "set grid\n";
       gp << "set xlabel 'time (s)'\n";
       if (j < 3) {
@@ -311,7 +314,7 @@ int main(int argc, char ** argv)
         pts_F_B.push_back(BuoyancyForce(j));
       }
       Gnuplot gp;
-      gp << "set term X11 title  '" << modes[j] << " Buoyancy Forces'\n";
+      gp << "set term qt title  '" << modes[j] << " Buoyancy Forces'\n";
       gp << "set grid\n";
       gp << "set xlabel 'time (s)'\n";
       if (j < 3) {
@@ -347,7 +350,7 @@ int main(int argc, char ** argv)
         pts_F_G.push_back(GravityForce(j));
       }
       Gnuplot gp;
-      gp << "set term X11 title  '" << modes[j] << " Gravity Forces'\n";
+      gp << "set term qt title  '" << modes[j] << " Gravity Forces'\n";
       gp << "set grid\n";
       gp << "set xlabel 'time (s)'\n";
       if (j < 3) {
@@ -393,14 +396,14 @@ int main(int argc, char ** argv)
 
     for (int j = 0; j < 6; j++) {
       Gnuplot gp1;
-      gp1 << "set term X11 title  '" << modes[j] << " RAO Amplitude'\n";
+      gp1 << "set term qt title  '" << modes[j] << " RAO Amplitude'\n";
       gp1 << "set grid\n";
       gp1 << "set xlabel 'Wave Period (s)'\n";
       gp1 << "plot '-' w l \n";
       gp1.send1d(boost::make_tuple(pts_T, pts_ChiMod(j)));
 
       Gnuplot gp2;
-      gp2 << "set term X11 title  '" << modes[j] << " RAO Phase Angle (deg)'\n";
+      gp2 << "set term qt title  '" << modes[j] << " RAO Phase Angle (deg)'\n";
       gp2 << "set grid\n";
       gp2 << "set xlabel 'Wave Period (s)'\n";
       gp2 << "plot '-' w l \n";
@@ -436,7 +439,7 @@ int main(int argc, char ** argv)
     }
 
     Gnuplot gp;
-    gp << "set term X11 title  'Motion Output'\n";
+    gp << "set term qt title  'Motion Output'\n";
     gp << "set grid\n";
     gp << "set xlabel 't (s)'\n";
     gp << "plot '-' w l title 'x0'" <<

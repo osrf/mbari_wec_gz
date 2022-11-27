@@ -13,7 +13,8 @@
 // limitations under the License.
 
 #include "FS_Hydrodynamics.hpp"
-#include <gnuplot-iostream.h>
+//#include <gnuplot-iostream.h>
+#include "gnuplot-iostream.h"
 
 #include <Eigen/Dense>
 
@@ -105,8 +106,8 @@ void FS_HydroDynamics::ReadWAMITData_FD(std::string filenm)
       if (s1(n * coeffPerFreqs, 0) == 0.0) {                   // Infinite frequency case
         for (int k = 0; k < coeffPerFreqs; k++) {
           int i = n * coeffPerFreqs + k;
-          this->fd_A_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
-          this->fd_B_inf_freq(s1(i, 1) - 1, s1(i, 2) - 1) =
+          this->fd_A_inf_freq.coeffRef(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
+          this->fd_B_inf_freq.coeffRef(s1(i, 1) - 1, s1(i, 2) - 1) =
           0;                               // m_rho * fd_am_dmp_omega(n) * s1(i, 4);
         }
       } else {
@@ -124,8 +125,8 @@ void FS_HydroDynamics::ReadWAMITData_FD(std::string filenm)
         B.setZero();
         for (int k = 0; k < coeffPerFreqs; k++) {
           int i = n * coeffPerFreqs + k;
-          A(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
-          B(s1(i, 1) - 1, s1(i, 2) - 1) =
+          A.coeffRef(s1(i, 1) - 1, s1(i, 2) - 1) = m_rho * s1(i, 3);
+          B.coeffRef(s1(i, 1) - 1, s1(i, 2) - 1) =
             m_rho * fd_am_dmp_omega(nn) * s1(i, 4);
         }
         this->fd_A.push_back(A);
@@ -299,7 +300,7 @@ void FS_HydroDynamics::Plot_FD_Coeffs()
           Gnuplot gp;
 
           if (i == j) {
-            gp << "set term X11 title 'Added Mass and Damping (" << i + 1 << "," <<
+            gp << "set term qt title 'Added Mass and Damping (" << i + 1 << "," <<
               j + 1 << ")\n";
             gp << "set multiplot layout 2,1 rowsfirst \n";
             gp << "set grid\n";
@@ -317,7 +318,7 @@ void FS_HydroDynamics::Plot_FD_Coeffs()
               std::setprecision(2) << this->fd_B_inf_freq(i, j) << "'\n";
             gp.send1d(boost::make_tuple(pts_omega, pts_dmp));
           } else {
-            gp << "set term X11 title 'Added Mass and Damping (" << i + 1 << "," <<
+            gp << "set term qt title 'Added Mass and Damping (" << i + 1 << "," <<
               j + 1 << ") and (" << j + 1 << "," << i + 1 << ")\n";
             gp << "set multiplot layout 2,1 rowsfirst \n";
             gp << "set grid\n";
@@ -358,7 +359,7 @@ void FS_HydroDynamics::Plot_FD_Coeffs()
         pts_Pha_Chi.push_back(fd_Pha_Chi[i](k));
       }
       Gnuplot gp;
-      gp << "set term X11 title '" << modes[i] << "Exciting Forces'\n";
+      gp << "set term qt title '" << modes[i] << "Exciting Forces'\n";
       gp << "set multiplot layout 2,1 rowsfirst \n";
       gp << "set grid\n";
       gp << "set xlabel 'rad/sec'\n";
@@ -406,7 +407,7 @@ void FS_HydroDynamics::Plot_TD_Coeffs()
 
         Gnuplot gp;
         if (i == j) {
-          gp << "set term X11 title 'Radiation IRF (" << i + 1 << "," << j + 1 <<
+          gp << "set term qt title 'Radiation IRF (" << i + 1 << "," << j + 1 <<
             ")\n";
           gp << "set grid\n";
           gp << "plot '-' u 1:2 with lines title 'IRF(" << i + 1 << "," << j + 1 <<
@@ -415,7 +416,7 @@ void FS_HydroDynamics::Plot_TD_Coeffs()
           gp << "set xlabel 'sec'\n";
           gp << "set ylabel '-'\n";
         } else {
-          gp << "set term X11 title 'Radiation IRF (" << i + 1 << "," << j + 1 <<
+          gp << "set term qt title 'Radiation IRF (" << i + 1 << "," << j + 1 <<
             ") and (" << j + 1 << "," << i + 1 << ")\n";
           gp << "set grid\n";
           gp << "plot '-' w l title 'IRF(" << i + 1 << "," << j + 1 << ")" <<
@@ -441,7 +442,7 @@ void FS_HydroDynamics::Plot_TD_Coeffs()
     }
 
     Gnuplot gp;
-    gp << "set term X11 title '" << modes[j] << "Wave Exciting IRF '\n";
+    gp << "set term qt title '" << modes[j] << "Wave Exciting IRF '\n";
     gp << "set grid\n";
     gp << "plot '-' u 1:2 with lines title 'IRF(" << j + 1 << ")'\n";
     gp.send1d(boost::make_tuple(pts_tau, pts_Chi));

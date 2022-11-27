@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <gnuplot-iostream.h>
+//#include <gnuplot-iostream.h>
+#include "gnuplot-iostream.h"
 
 #include <Eigen/Dense>
 #include <iostream>
@@ -50,7 +51,7 @@ int main()
       pts_eta_true.push_back(A * cos(k * xx - 2 * M_PI * t / T + phase));
     }
     Gnuplot gp;
-    gp << "set term X11 title  'Incident Wave Elevation at Origin'\n";
+    gp << "set term qt title  'Incident Wave Elevation at Origin'\n";
     gp << "set grid\n";
     gp << "set xlabel 'time (s)'\n";
     gp << "set ylabel '(m)'\n";
@@ -75,7 +76,7 @@ int main()
     char time[10];
     snprintf(time, sizeof(time), "%.2f", t);
     Gnuplot gp;
-    gp << "set term X11 title  'Incident Wave Elevation at t = " << time << " s'\n";
+    gp << "set term qt title  'Incident Wave Elevation at t = " << time << " s'\n";
     gp << "set grid\n";
     gp << "set xlabel '(m))'\n";
     gp << "set ylabel '(m)'\n";
