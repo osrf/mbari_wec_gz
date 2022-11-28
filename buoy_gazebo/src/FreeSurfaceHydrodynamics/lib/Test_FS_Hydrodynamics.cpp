@@ -24,7 +24,6 @@
 #include <limits>
 #include <string>
 
-
 #include "FS_Hydrodynamics.hpp"
 #include "LinearIncidentWave.hpp"
 

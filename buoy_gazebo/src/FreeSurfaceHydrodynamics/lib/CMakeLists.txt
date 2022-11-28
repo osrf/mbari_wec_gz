@@ -4,8 +4,6 @@ project(WaveBodyInteractions)
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
-find_package(ament_index_cpp REQUIRED)
-
 set(BOOST_USE_STATIC_LIBS OFF)
 set(BOOST_USE_MULTITHREADED ON)
 set(BOOST_USE_STATIC_RUNTIME OFF)
