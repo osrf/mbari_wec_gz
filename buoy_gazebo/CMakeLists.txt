@@ -127,6 +127,11 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PolytropicPneumaticSpring
   FILES_MATCHING PATTERN "*.hpp"
 )
 
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PTOFriction
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
 ament_export_targets(export_BuoyECMStateData)
 
 # Resources
@@ -141,59 +146,6 @@ install(DIRECTORY
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-
-  # GTest
-  find_package(ament_cmake_gtest REQUIRED)
-  ament_find_gtest()
-
-  # launch_testing
-  find_package(launch_testing_ament_cmake REQUIRED)
-
-  # Helper function to generate gtest
-  function(gz_add_gtest TEST_NAME)
-    set(
-      options
-        ROS
-        LAUNCH_TEST
-        GAZEBO
-    )
-    set(oneValueArgs)
-    set(multiValueArgs
-      EXTRA_ROS_PKGS)
-
-    cmake_parse_arguments(gz_add_test "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    ament_add_gtest_executable(${TEST_NAME}
-      test/${TEST_NAME}.cpp
-    )
-    if(gz_add_test_GAZEBO)
-      target_link_libraries(${TEST_NAME}
-        ignition-gazebo${IGN_GAZEBO_VER}::ignition-gazebo${IGN_GAZEBO_VER}
-      )
-    endif()
-    if(gz_add_test_ROS)
-      set(ROS_PKGS rclcpp simple_interp ${gz_add_test_EXTRA_ROS_PKGS})
-      foreach(PKG ${ROS_PKGS})
-        find_package(${PKG} REQUIRED)
-      endforeach()
-      ament_target_dependencies(${TEST_NAME} ${ROS_PKGS})
-    endif()
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
-    install(
-      TARGETS ${TEST_NAME}
-      DESTINATION lib/${PROJECT_NAME}
-    )
-    if(gz_add_test_LAUNCH_TEST)
-      add_launch_test(test/launch/${TEST_NAME}.launch.py
-        TIMEOUT 300
-      )
-    else()
-      ament_add_gtest_test(${TEST_NAME})
-    endif()
-  endfunction()
-
-  # Add gtests
-  gz_add_gtest(test_pto_friction ROS)
 
 endif()
 

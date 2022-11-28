@@ -158,6 +158,10 @@ if(BUILD_TESTING)
   buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
 
+  buoy_add_gtest(test_pto_friction ROS
+    EXTRA_ROS_PKGS
+      buoy_gazebo
+      simple_interp)
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)
