@@ -140,8 +140,8 @@ int main(int argc, char ** argv)
   BuoyA5.SetMass(buoy_mass);
 
   std::string HydrodynamicsBaseFilename =
-//    "/home/hamilton"
-    "/Users/hamilton/Documents"
+    "/home/hamilton"
+//    "/Users/hamilton/Documents"
     "/buoy_ws/src/buoy_sim/"
     "buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
   BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);

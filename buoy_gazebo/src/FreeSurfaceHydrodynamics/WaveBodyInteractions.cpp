@@ -137,8 +137,9 @@ void WaveBodyInteractions::Configure(
 // this->dataPtr->Inc = Inc2;
 
   std::string HydrodynamicsBaseFilename =
-  //  "/Users/hamilton/Documents"
-    "/home/hamilton"
+  //  "/Users/hamilton/Documents/"
+    "/home/hamilton/"
+    "/buoy_ws/src/buoy_sim/"
     "buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
   this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
