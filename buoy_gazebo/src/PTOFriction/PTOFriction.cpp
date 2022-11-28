@@ -143,9 +143,9 @@ void PTOFriction::PreUpdate(
   if (forceComp == nullptr) {
     _ecm.CreateComponent(
       this->dataPtr->PrismaticJointEntity,
-      ignition::gazebo::components::JointForceCmd({friction_force}));  // Create this iteration
+      ignition::gazebo::components::JointForceCmd({-friction_force}));  // Create this iteration
   } else {
-    forceComp->Data()[0] += friction_force;  // Add friction to existing forces
+    forceComp->Data()[0] -= friction_force;  // Add friction to existing forces
   }
 }
 
