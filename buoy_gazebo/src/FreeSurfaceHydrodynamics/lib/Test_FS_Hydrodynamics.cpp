@@ -25,10 +25,10 @@
 #include <string>
 
 
-
 #include "FS_Hydrodynamics.hpp"
 #include "LinearIncidentWave.hpp"
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 /* The rhs of x' = f(x) defined as a class */
 class SingleModeMotionRHS
@@ -140,10 +140,9 @@ int main(int argc, char ** argv)
   BuoyA5.SetMass(buoy_mass);
 
   std::string HydrodynamicsBaseFilename =
-//    "/home/hamilton"
-    "/Users/hamilton/Documents"
-    "/buoy_ws/src/buoy_sim/"
-    "buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+    ament_index_cpp::get_package_share_directory("buoy_description")
+    + "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+
   BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
   BuoyA5.SetTimestepSize(.01);
