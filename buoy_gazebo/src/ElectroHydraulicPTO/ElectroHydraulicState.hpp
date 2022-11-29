@@ -56,6 +56,8 @@ struct ElectroHydraulicState
   float bcurrent{0.0F};
   float wcurrent{0.0F};
   float torque{0.0F};  // TODO(anyone) not set
+  float upper_hyd_press{0.0F};
+  float lower_hyd_press{0.0F};
   float diff_press{0.0F};
   float bias_current{0.0F};
   float loaddc{0.0F};
@@ -80,6 +82,8 @@ struct ElectroHydraulicState
     equal &= fabs(this->bcurrent - that.bcurrent) < 1e-7F;
     equal &= fabs(this->wcurrent - that.wcurrent) < 1e-7F;
     equal &= fabs(this->torque - that.torque) < 1e-7F;
+    equal &= fabs(this->upper_hyd_press - that.upper_hyd_press) < 1e-7F;
+    equal &= fabs(this->lower_hyd_press - that.lower_hyd_press) < 1e-7F;
     equal &= fabs(this->diff_press - that.diff_press) < 1e-7F;
     equal &= fabs(this->bias_current - that.bias_current) < 1e-7F;
     equal &= fabs(this->loaddc - that.loaddc) < 1e-7F;

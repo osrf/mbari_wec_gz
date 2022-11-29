@@ -137,17 +137,28 @@ if(BUILD_TESTING)
   # Add gtests
   buoy_add_gtest(experiment_comparison ROS LAUNCH_TEST
     BOOST_COMPONENTS
-      filesystem
       iostreams
-      system
     EXTRA_ROS_PKGS
       buoy_gazebo
-      splinter_ros)
+      simple_interp)
+
+  buoy_add_gtest(eh_solver ROS LAUNCH_TEST
+    BOOST_COMPONENTS
+      iostreams
+    EXTRA_ROS_PKGS
+      buoy_gazebo)
+
+  buoy_add_gtest(eh_windtarget ROS LAUNCH_TEST
+    BOOST_COMPONENTS
+      iostreams
+    EXTRA_ROS_PKGS
+      buoy_gazebo)
 
   buoy_add_gtest(no_inputs)
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
+
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)

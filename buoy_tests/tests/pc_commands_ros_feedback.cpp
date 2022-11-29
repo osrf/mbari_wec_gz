@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <memory>
 #include <string>
@@ -27,11 +28,31 @@
 #include <gz/sim/TestFixture.hh>
 #include <gz/transport/Node.hh>
 
-
 #include <buoy_api/interface.hpp>
 #include <buoy_api/examples/torque_control_policy.hpp>
 
 #include <buoy_interfaces/msg/pc_record.hpp>
+
+
+// Defines from Controller Firmware, behavior replicated here
+#define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
+#define CURRENT_CMD_RATELIMIT 200  // A/second.  Set to zero to disable feature
+#define TORQUE_CMD_TIMEOUT 2  // Torque Command Timeut, in secs. Set to zero to disable timeout
+#define BIAS_CMD_TIMEOUT 10  // Bias Current Command Timeut, secs. Set to zero to disable timeout
+#define DEFAULT_SCALE_FACTOR 1.0  // -RPM on Kollemogen is +RPM here and extension
+#define MAX_SCALE_FACTOR 1.4
+#define MIN_SCALE_FACTOR 0.5
+#define DEFAULT_RETRACT_FACTOR 0.6
+#define MAX_RETRACT_FACTOR 1.0
+#define MIN_RETRACT_FACTOR 0.4
+#define DEFAULT_BIASCURRENT 0.0  // Start with zero bias current
+#define MAX_BIASCURRENT 20.0  // Max allowable winding bias current Magnitude that can be applied
+#define MAX_WINDCURRENTLIMIT 35.0  // Winding Current Limit, Amps.  Limit on internal target
+#define SC_RANGE_MIN 0.0  // Inches
+#define SC_RANGE_MAX 80.0  // Inches
+#define STOP_RANGE 10.0  // Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
+// Max amount to modify RPM in determining WindingCurrentLimit near ends of stroke
+#define MAX_RPM_ADJUSTMENT 5000.0
 
 
 // NOLINTNEXTLINE
@@ -98,6 +119,35 @@ public:
     stop_ = true;
   }
 
+  double winding_current_limiter(const double & I)
+  {
+    double LimitedI = I;
+    double AdjustedN = rpm_;
+    const double RamPosition = (SC_RANGE_MAX - (range_finder_ / 0.0254));
+    if (rpm_ >= 0.0) {  // Retracting
+      const double min_region = SC_RANGE_MIN + STOP_RANGE;
+      if (RamPosition < min_region) {
+        // boost RPM by fraction of max adjustment to limit current
+        AdjustedN += MAX_RPM_ADJUSTMENT * (min_region - RamPosition) / min_region;
+      }
+      const double CurrLim =
+        -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 + 385.0;  // Magic nums
+      LimitedI = std::min(LimitedI, CurrLim);
+    } else {  // Extending
+      const double max_region = SC_RANGE_MAX - STOP_RANGE;
+      if (RamPosition > max_region) {
+        // boost RPM by fraction of max adjustment to limit current
+        AdjustedN -= MAX_RPM_ADJUSTMENT * (RamPosition - max_region) / max_region;
+      }
+      const double CurrLim =
+        -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 - 385.0;  // Magic nums
+      LimitedI = std::max(LimitedI, CurrLim);
+    }
+
+    LimitedI = std::min(std::max(LimitedI, -MAX_WINDCURRENTLIMIT), MAX_WINDCURRENTLIMIT);
+    return LimitedI;
+  }
+
 private:
   friend CRTP;  // syntactic sugar (see https://stackoverflow.com/a/58435857/9686600)
 
@@ -114,6 +164,7 @@ private:
   {
     range_finder_ = data.range_finder;
   }
+
 
   void set_params()
   {
@@ -236,6 +287,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     node->rpm_,
     node->scale_,
     node->retract_) + node->bias_curr_;
+  expected_wind_curr = node->winding_current_limiter(expected_wind_curr);
   EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1);
   EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1);
 
@@ -343,6 +395,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     node->rpm_,
     node->scale_,
     node->retract_) + node->bias_curr_;
+  expected_wind_curr = node->winding_current_limiter(expected_wind_curr);
   EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.2);
   EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.2);
 
