@@ -16,7 +16,7 @@
 #include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicSoln.hpp>
 #include <buoy_utils/Constants.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <unsupported/Eigen/NonLinearOptimization>
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
 #include <gtest/gtest.h>
 #include <gnuplot-iostream.h>
 

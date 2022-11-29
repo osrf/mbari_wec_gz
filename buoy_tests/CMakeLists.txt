@@ -137,20 +137,20 @@ if(BUILD_TESTING)
   # Add gtests
   buoy_add_gtest(experiment_comparison ROS LAUNCH_TEST
     BOOST_COMPONENTS
-      iostreams
+      iostreams system filesystem
     EXTRA_ROS_PKGS
       buoy_gazebo
       simple_interp)
 
   buoy_add_gtest(eh_solver ROS LAUNCH_TEST
     BOOST_COMPONENTS
-      iostreams
+      iostreams system filesystem
     EXTRA_ROS_PKGS
       buoy_gazebo)
 
   buoy_add_gtest(eh_windtarget ROS LAUNCH_TEST
     BOOST_COMPONENTS
-      iostreams
+      iostreams system filesystem
     EXTRA_ROS_PKGS
       buoy_gazebo)
 
