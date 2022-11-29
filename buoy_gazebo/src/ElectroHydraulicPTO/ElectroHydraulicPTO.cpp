@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
+
 #include <gz/msgs/double.pb.h>
 
 #include <algorithm>
@@ -43,7 +45,6 @@
 #include "ElectroHydraulicState.hpp"
 #include "ElectroHydraulicLoss.hpp"
 
-#include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
 namespace buoy_gazebo
 {

@@ -15,6 +15,8 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -22,8 +24,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-#include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
 // Interpolation for efficiency maps
 #include <simple_interp/interp1d.hpp>
