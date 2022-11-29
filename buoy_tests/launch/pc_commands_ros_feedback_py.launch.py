@@ -62,8 +62,8 @@ class BuoyPCPyTest(BuoyPyTests):
     # Max amount to modify RPM in determining WindingCurrentLimit near ends of stroke
     MAX_RPM_ADJUSTMENT = 5000.0
 
-    def winding_current_limiter(self, I):
-        LimitedI = I
+    def winding_current_limiter(self, current):
+        LimitedI = current
         AdjustedN = self.node.rpm_
         RamPosition = (self.SC_RANGE_MAX - (self.node.range_finder_ / 0.0254))
         if self.node.rpm_ >= 0.0:  # Retracting
