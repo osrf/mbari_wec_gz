@@ -101,9 +101,6 @@ struct PolytropicPneumaticSpringConfig
   /// \brief specific heat of gas under constant pressure (kJ/(kg K))
   double c_p{1.04};
 
-  /// \brief c=mR(specific) (Pa*m^3)/K
-  double c{0.0};
-
   /// \brief initial Volume (m^3)
   double V0{dead_volume}, V1{dead_volume}, V2{dead_volume};
 
@@ -129,6 +126,9 @@ struct PolytropicPneumaticSpringPrivate
 
   /// \brief mass of gas (kg)
   double mass{0.0};
+
+  /// \brief c=mR(specific) (Pa*m^3)/K
+  double c{0.0};
 
   /// \brief current Volume (m^3)
   double V{0.0266};
@@ -201,7 +201,8 @@ void PolytropicPneumaticSpring::openValve(
   }
 
   // Ideal Gas Law
-  const double mRT = this->dataPtr->mass * this->dataPtr->config_->R * this->dataPtr->T;
+  this->dataPtr->c = this->dataPtr->mass * this->dataPtr->config_->R;
+  const double mRT = this->dataPtr->c * this->dataPtr->T;
   P1 = mRT / V1;
   P2 = mRT / V2;
 }
@@ -238,7 +239,8 @@ void PolytropicPneumaticSpring::pumpOn(
   }
 
   // Ideal Gas Law
-  const double mRT = this->dataPtr->mass * this->dataPtr->config_->R * this->dataPtr->T;
+  this->dataPtr->c = this->dataPtr->mass * this->dataPtr->config_->R;
+  const double mRT = this->dataPtr->c * this->dataPtr->T;
   P1 = mRT / V1;
   P2 = mRT / V2;
 }
@@ -262,7 +264,7 @@ void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const
   this->dataPtr->Q_rate = h * A * dT;
 
   // Ideal Gas Law: P = (m*R)*T/V
-  this->dataPtr->P = this->dataPtr->config_->c * this->dataPtr->T / this->dataPtr->V;
+  this->dataPtr->P = this->dataPtr->c * this->dataPtr->T / this->dataPtr->V;
 
   // F = P*A
   this->dataPtr->F = this->dataPtr->P * this->dataPtr->config_->piston_area;
@@ -278,7 +280,7 @@ void PolytropicPneumaticSpring::computePolytropicForce(const double & x, const d
   // polytropic relationship: P = P0*(V0/V)^n
   this->dataPtr->P = P0 * pow(V0 / this->dataPtr->V, this->dataPtr->n);
   // Ideal Gas Law: T = P*V/(m*R)
-  this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->config_->c;
+  this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->c;
 
   // no heat loss if adiabatic
   static const double cp_R = this->dataPtr->config_->c_p / this->dataPtr->config_->R;
@@ -362,9 +364,9 @@ void PolytropicPneumaticSpring::Configure(
     igndbg << "V2: " << config.V2 << std::endl;
     this->dataPtr->V0 = config.V1;
 
-    config.c = this->dataPtr->P1 * config.V1 / config.T0;
-    igndbg << "c: " << config.c << std::endl;
-    this->dataPtr->mass = config.c / config.R;
+    this->dataPtr->c = this->dataPtr->P1 * config.V1 / config.T0;
+    igndbg << "c: " << this->dataPtr->c << std::endl;
+    this->dataPtr->mass = this->dataPtr->c / config.R;
     igndbg << "mass: " << this->dataPtr->mass << std::endl;
   } else {  // no hysteresis
     config.n0 = SdfParamDouble(_sdf, "n", PolytropicPneumaticSpringConfig::ADIABATIC_INDEX);
@@ -381,16 +383,16 @@ void PolytropicPneumaticSpring::Configure(
     this->dataPtr->V0 = config.V0;
 
     igndbg << "V0: " << config.V0 << std::endl;
-    config.c = this->dataPtr->P0 * config.V0 / config.T0;
-    igndbg << "c: " << config.c << std::endl;
-    this->dataPtr->mass = config.c / config.R;
+    this->dataPtr->c = this->dataPtr->P0 * config.V0 / config.T0;
+    igndbg << "c: " << this->dataPtr->c << std::endl;
+    this->dataPtr->mass = this->dataPtr->c / config.R;
     igndbg << "mass: " << this->dataPtr->mass << std::endl;
   }
 
   this->dataPtr->V = this->dataPtr->V0;
   this->dataPtr->P = this->dataPtr->P0;
   // Ideal Gas Law: T = P*V/(m*R)
-  this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / config.c;
+  this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->c;
 
   config.model = ignition::gazebo::Model(_entity);
   if (!config.model.Valid(_ecm)) {

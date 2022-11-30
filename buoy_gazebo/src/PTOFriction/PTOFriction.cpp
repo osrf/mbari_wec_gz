@@ -52,8 +52,10 @@ public:
   simple_interp::Interp1d pto_friction_model;
 
   PTOFrictionPrivate()
-  : pistonSpeed{-5.0, -0.4, -0.1, -0.05, 0.0, 0.05, 0.1, 0.4, 5.0},
-    meanFriction{12750.0, 1200.0, 700.0, 400.0, 0.0, -750.0, -1000.0, -2900.0, -32033.0},
+  : pistonSpeed{-5.0, -0.4, -0.1, -0.05, -0.01, 0.0,
+      0.01, 0.05, 0.1, 0.4, 5.0},
+    meanFriction{12750.0, 1200.0, 700.0, 400.0, 160.0, 0.0,
+      -550.0, -750.0, -1000.0, -2900.0, -32033.0},
     pto_friction_model(pistonSpeed, meanFriction)
   {
   }
@@ -131,10 +133,10 @@ void PTOFriction::PreUpdate(
   }
 
   // Interpolate the new friction force based on current joint velocity
-  // Velocity sign flipped to account for the direction difference between
+  // Velocity and Force sign flipped to account for the direction difference between
   // sim and physical buoy
-  auto friction_force =
-    this->dataPtr->pto_friction_model.eval(
+  double friction_force =
+    -this->dataPtr->pto_friction_model.eval(
     -prismaticJointVelComp->Data().at(0));
 
   // Create new component for applying force if it doesn't already exist
@@ -143,9 +145,9 @@ void PTOFriction::PreUpdate(
   if (forceComp == nullptr) {
     _ecm.CreateComponent(
       this->dataPtr->PrismaticJointEntity,
-      ignition::gazebo::components::JointForceCmd({-friction_force}));  // Create this iteration
+      ignition::gazebo::components::JointForceCmd({friction_force}));  // Create this iteration
   } else {
-    forceComp->Data()[0] -= friction_force;  // Add friction to existing forces
+    forceComp->Data()[0] += friction_force;  // Add friction to existing forces
   }
 }
 
