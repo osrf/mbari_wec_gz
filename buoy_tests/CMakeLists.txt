@@ -89,7 +89,7 @@ if(BUILD_TESTING)
 
     if(buoy_add_gtest_LAUNCH_TEST)
       add_launch_test(launch/${TEST_NAME}.launch.py
-        TIMEOUT 600
+        TIMEOUT 650
       )
     else()
       ament_add_gtest_test(${TEST_NAME})
@@ -127,7 +127,7 @@ if(BUILD_TESTING)
     endif()
 
     add_launch_test(launch/${PYTEST_NAME}_py.launch.py
-      TIMEOUT 600
+      TIMEOUT 650
     )
   endfunction()
 
