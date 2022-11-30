@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <world name="sinusoidal_piston">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- rely on world plugins from server.config -->
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="water_plane">
+      <static>true</static>
+      <link name="link">
+        <visual name="water_plane">
+          <geometry>
+            <plane>
+              <size>100 100</size>
+              <normal>0 0 1</normal>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0 0 1 0.5</ambient>
+            <diffuse>0 0 1 0.5</diffuse>
+            <specular>0 0 1 0.5</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="MBARI_WEC_SINUSOIDAL_PISTON">
+      <pose relative_to="world">0 0 -2 0 0 0</pose>
+
+      <include merge="true">
+        <uri>package://buoy_description/models/mbari_wec_ros</uri>
+      </include>
+
+      <plugin filename="SinusoidalPiston" name="buoy_gazebo::SinusoidalPiston">
+        <JointName>HydraulicRam</JointName>
+        <stroke>2.03</stroke>
+      </plugin>
+
+    </model>
+
+  </world>
+</sdf>

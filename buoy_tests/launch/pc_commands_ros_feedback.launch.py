@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import unittest
+
+from ament_index_python.packages import get_package_share_directory
 
 import launch
 import launch.actions
@@ -25,11 +28,18 @@ import launch_testing.actions
 
 def generate_test_description():
 
+    config = os.path.join(
+        get_package_share_directory('buoy_api_cpp'),
+        'config',
+        'pb_torque_controller.yaml'
+        )
+
     # Test fixture
     gazebo_test_fixture = Node(
         package='buoy_tests',
         executable='pc_commands_ros_feedback',
-        output='screen'
+        output='screen',
+        parameters=[config]
     )
 
     bridge = Node(package='ros_ign_bridge',
@@ -48,7 +58,7 @@ def generate_test_description():
 class PCCommandsROSTest(unittest.TestCase):
 
     def test_termination(self, gazebo_test_fixture, proc_info):
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=200)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=600)
 
 
 @launch_testing.post_shutdown_test()

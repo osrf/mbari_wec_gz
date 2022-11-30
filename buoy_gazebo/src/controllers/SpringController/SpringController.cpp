@@ -25,9 +25,11 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 
-#include <buoy_msgs/msg/sc_record.hpp>
-#include <buoy_msgs/srv/valve_command.hpp>
-#include <buoy_msgs/srv/pump_command.hpp>
+#include <ros_ign_gazebo/Stopwatch.hpp>
+
+#include <buoy_interfaces/msg/sc_record.hpp>
+#include <buoy_interfaces/srv/valve_command.hpp>
+#include <buoy_interfaces/srv/pump_command.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -36,7 +38,6 @@
 #include <string>
 #include <vector>
 
-#include "buoy_utils/StopwatchSimTime.hpp"
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 
 
@@ -51,23 +52,23 @@ struct SpringControllerROS2
   rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr parameter_handler_{nullptr};
   bool use_sim_time_{true};
 
-  rclcpp::Publisher<buoy_msgs::msg::SCRecord>::SharedPtr sc_pub_{nullptr};
+  rclcpp::Publisher<buoy_interfaces::msg::SCRecord>::SharedPtr sc_pub_{nullptr};
   std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
-  buoy_msgs::msg::SCRecord sc_record_;
+  buoy_interfaces::msg::SCRecord sc_record_;
   double pub_rate_hz_{10.0};
 };
 
 struct SpringControllerServices
 {
-  rclcpp::Service<buoy_msgs::srv::ValveCommand>::SharedPtr valve_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::ValveCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::ValveCommand::Response>)> valve_command_handler_;
+  rclcpp::Service<buoy_interfaces::srv::ValveCommand>::SharedPtr valve_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::ValveCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::ValveCommand::Response>)> valve_command_handler_;
 
-  rclcpp::Service<buoy_msgs::srv::PumpCommand>::SharedPtr pump_command_service_{nullptr};
-  std::function<void(std::shared_ptr<buoy_msgs::srv::PumpCommand::Request>,
-    std::shared_ptr<buoy_msgs::srv::PumpCommand::Response>)> pump_command_handler_;
+  rclcpp::Service<buoy_interfaces::srv::PumpCommand>::SharedPtr pump_command_service_{nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::PumpCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::PumpCommand::Response>)> pump_command_handler_;
 
-  buoy_utils::StopwatchSimTime command_watch_;
+  ros_ign_gazebo::Stopwatch command_watch_;
   rclcpp::Duration command_duration_{0, 0U};
 
   std::atomic<bool> valve_command_{false}, pump_command_{false};
@@ -173,8 +174,8 @@ struct SpringControllerPrivate
 
     // ValveCommand
     services_->valve_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::ValveCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::ValveCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::ValveCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::ValveCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
@@ -222,24 +223,24 @@ struct SpringControllerPrivate
         }
       };
     services_->valve_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::ValveCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::ValveCommand>(
       "valve_command",
       services_->valve_command_handler_);
 
     // PumpCommand
     services_->pump_command_handler_ =
-      [this](const std::shared_ptr<buoy_msgs::srv::PumpCommand::Request> request,
-        std::shared_ptr<buoy_msgs::srv::PumpCommand::Response> response)
+      [this](const std::shared_ptr<buoy_interfaces::srv::PumpCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::PumpCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
-          "[ROS 2 Spring Control] PumpCommand Received (" << request->duration_sec << "s)");
+          "[ROS 2 Spring Control] PumpCommand Received (" << request->duration_mins << " mins)");
 
         std::unique_lock lock(services_->command_mutex_);
         // if already running valve, don't allow pump
         // unless for some reason we need to turn pump off (shouldn't get in that state)
         if (services_->valve_command_) {
-          if (request->duration_sec != request->OFF) {
+          if (request->duration_mins != request->OFF) {
             response->result.value = response->result.BUSY;
 
             RCLCPP_ERROR_STREAM(
@@ -251,33 +252,33 @@ struct SpringControllerPrivate
           }
         }
 
-        if (request->duration_sec == request->OFF) {
+        if (request->duration_mins == request->OFF) {
           services_->command_duration_ = rclcpp::Duration(0, 0U);
           services_->pump_command_ = false;
           services_->new_pump_command_ = true;
         } else {
-          uint16_t duration_sec{request->duration_sec};
-          if (duration_sec > 20U) {
-            duration_sec = std::min(
-              std::max(duration_sec, static_cast<uint16_t>(1U)),
-              static_cast<uint16_t>(20U));
+          float duration_mins{request->duration_mins};
+          if (duration_mins > 10U) {
+            duration_mins = std::min(
+              std::max(duration_mins, static_cast<float>(10U)),
+              static_cast<float>(10U));
 
             response->result.value = response->result.BAD_INPUT;
 
             RCLCPP_WARN_STREAM(
               ros_->node_->get_logger(),
-              "[ROS 2 Spring Control] PumpCommand out of bounds -- clipped to 20s");
+              "[ROS 2 Spring Control] PumpCommand out of bounds -- clipped to 10mins");
           }
 
           services_->command_duration_ =
-            rclcpp::Duration::from_seconds(static_cast<double>(duration_sec));
+            rclcpp::Duration::from_seconds(static_cast<double>(duration_mins) * 60.0);
 
           services_->pump_command_ = true;
           services_->new_pump_command_ = true;
         }
       };
     services_->pump_command_service_ =
-      ros_->node_->create_service<buoy_msgs::srv::PumpCommand>(
+      ros_->node_->create_service<buoy_interfaces::srv::PumpCommand>(
       "pump_command",
       services_->pump_command_handler_);
   }
@@ -511,7 +512,7 @@ void SpringController::Configure(
   // Publisher
   std::string topic = _sdf->Get<std::string>("topic", "spring_data").first;
   this->dataPtr->ros_->sc_pub_ =
-    this->dataPtr->ros_->node_->create_publisher<buoy_msgs::msg::SCRecord>(topic, 10);
+    this->dataPtr->ros_->node_->create_publisher<buoy_interfaces::msg::SCRecord>(topic, 10);
 
   this->dataPtr->ros_->pub_rate_hz_ =
     _sdf->Get<double>("publish_rate", this->dataPtr->ros_->pub_rate_hz_).first;
@@ -534,7 +535,7 @@ void SpringController::Configure(
         // Only update and publish if not paused.
         if (this->dataPtr->paused_) {continue;}
 
-        buoy_msgs::msg::SCRecord sc_record;
+        buoy_interfaces::msg::SCRecord sc_record;
         // high prio data access
         std::unique_lock next(this->dataPtr->next_access_mutex_);
         std::unique_lock data(this->dataPtr->data_mutex_);

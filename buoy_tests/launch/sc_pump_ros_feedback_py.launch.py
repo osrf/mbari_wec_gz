@@ -14,7 +14,7 @@
 
 import time
 
-from buoy_msgs.msg import SCRecord
+from buoy_interfaces.msg import SCRecord
 
 from testing_utils import BuoyPyTestAfterShutdown  # noqa F401 -- runs if imported
 from testing_utils import BuoyPyTests
@@ -33,9 +33,9 @@ class BuoySCPumpPyTest(BuoyPyTests):
         self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
 
-        preCmdIterations = 15000
+        preCmdIterations = 40000
         statusCheckIterations = 1000
-        postCmdIterations = 20000
+        postCmdIterations = 60000
 
         # Run simulation server and allow piston to settle
         self.test_helper.run(preCmdIterations)
@@ -67,8 +67,8 @@ class BuoySCPumpPyTest(BuoyPyTests):
         self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
         self.assertFalse(self.node.sc_status_ & SCRecord.LR_FAULT)
 
-        # Now send Pump command to run for 20 seconds
-        self.node.send_pump_command(20)
+        # Now send Pump command to run for 1 minute
+        self.node.send_pump_command(1.0)
         self.assertEqual(self.node.pump_future_.result().result.value,
                          self.node.pump_future_.result().result.OK)
 
@@ -115,6 +115,11 @@ class BuoySCPumpPyTest(BuoyPyTests):
                 self.assertTrue(self.node.sc_status_ & SCRecord.PUMP_TOGGLE,
                                 'SC Pump Toggle should be ON')
 
+        # Check that valve command fails (controller returns BUSY)
+        self.node.send_valve_command(2)
+        self.assertEqual(self.node.valve_future_.result().result.value,
+                         self.node.valve_future_.result().result.BUSY)
+
         # Run to allow Pump command to finish
         self.test_helper.run(postCmdIterations)
         self.assertTrue(self.test_helper.run_status)
@@ -128,14 +133,14 @@ class BuoySCPumpPyTest(BuoyPyTests):
         post_pump_range_finder = self.node.range_finder_
 
         self.assertGreater(post_pump_range_finder,
-                           pre_pump_range_finder - 2.2 * 0.0254 * 20.0 / 60.0,
-                           'Piston should retract 2 inches/min for 20 seconds')
+                           pre_pump_range_finder - 2.2 * 0.0254,
+                           'Piston should retract 2 inches/min for 1 minute')
 
         self.assertLess(post_pump_range_finder,
-                        pre_pump_range_finder - 1.8 * 0.0254 * 20.0 / 60.0,
-                        'Piston should retract 2 inches/min for 20 seconds')
+                        pre_pump_range_finder - 1.8 * 0.0254,
+                        'Piston should retract 2 inches/min for 1 minute')
 
         # TODO(anyone) remove once TestFixture is fixed upstream
         self.test_helper.stop()
 
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=30)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=600)

@@ -15,8 +15,7 @@ else()
 endif()
 
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(buoy_msgs REQUIRED)
+find_package(buoy_description REQUIRED)
 
 find_package(ignition-cmake2 REQUIRED)
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
@@ -59,6 +58,7 @@ function(gz_add_plugin plugin_name)
     PUBLIC_LINK_LIBS
     PRIVATE_LINK_LIBS
     INCLUDE_DIRS
+    EXTRA_ROS_PKGS
   )
 
   cmake_parse_arguments(gz_add_plugin "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -76,7 +76,17 @@ function(gz_add_plugin plugin_name)
       ${gz_add_plugin_PRIVATE_LINK_LIBS}
   )
   if(gz_add_plugin_ROS)
-    ament_target_dependencies(${plugin_name} PUBLIC rclcpp buoy_msgs)
+    set(ROS_PKGS rclcpp buoy_interfaces)
+    foreach(PKG ${ROS_PKGS})
+      find_package(${PKG} REQUIRED)
+    endforeach()
+    ament_target_dependencies(${plugin_name} PUBLIC ${ROS_PKGS})
+  endif()
+  if(gz_add_plugin_EXTRA_ROS_PKGS)
+    foreach(EXTRA_PKG ${gz_add_plugin_EXTRA_ROS_PKGS})
+      find_package(${EXTRA_PKG} REQUIRED)
+    endforeach()
+    ament_target_dependencies(${plugin_name} PUBLIC ${gz_add_plugin_EXTRA_ROS_PKGS})
   endif()
   target_include_directories(${plugin_name}
       PUBLIC ${gz_add_plugin_INCLUDE_DIRS})
@@ -88,6 +98,36 @@ endfunction()
 
 add_subdirectory(src)
 
+add_library(BuoyECMStateData INTERFACE)
+target_include_directories(BuoyECMStateData INTERFACE
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
+  "$<INSTALL_INTERFACE:include>"
+)
+
+install(TARGETS BuoyECMStateData
+  EXPORT export_BuoyECMStateData
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib
+  INCLUDES DESTINATION include
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/buoy_utils
+  DESTINATION include
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ElectroHydraulicPTO
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PolytropicPneumaticSpring
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
+ament_export_targets(export_BuoyECMStateData)
 
 # Resources
 install(DIRECTORY

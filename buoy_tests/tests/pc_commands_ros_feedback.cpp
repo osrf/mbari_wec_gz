@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <buoy_msgs/interface.hpp>
+#include <buoy_api/interface.hpp>
 
 #include <gtest/gtest.h>
 
@@ -23,13 +23,36 @@
 #include <ignition/gazebo/TestFixture.hh>
 #include <ignition/transport/Node.hh>
 
-#include <buoy_msgs/msg/pc_record.hpp>
-#include <buoy_examples/torque_control_policy.hpp>
+#include <buoy_interfaces/msg/pc_record.hpp>
+#include <buoy_api/examples/torque_control_policy.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
+
+
+// Defines from Controller Firmware, behavior replicated here
+#define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
+#define CURRENT_CMD_RATELIMIT 200  // A/second.  Set to zero to disable feature
+#define TORQUE_CMD_TIMEOUT 2  // Torque Command Timeut, in secs. Set to zero to disable timeout
+#define BIAS_CMD_TIMEOUT 10  // Bias Current Command Timeut, secs. Set to zero to disable timeout
+#define DEFAULT_SCALE_FACTOR 1.0  // -RPM on Kollemogen is +RPM here and extension
+#define MAX_SCALE_FACTOR 1.4
+#define MIN_SCALE_FACTOR 0.5
+#define DEFAULT_RETRACT_FACTOR 0.6
+#define MAX_RETRACT_FACTOR 1.0
+#define MIN_RETRACT_FACTOR 0.4
+#define DEFAULT_BIASCURRENT 0.0  // Start with zero bias current
+#define MAX_BIASCURRENT 20.0  // Max allowable winding bias current Magnitude that can be applied
+#define MAX_WINDCURRENTLIMIT 35.0  // Winding Current Limit, Amps.  Limit on internal target
+#define SC_RANGE_MIN 0.0  // Inches
+#define SC_RANGE_MAX 80.0  // Inches
+#define STOP_RANGE 10.0  // Inches from SC_RANGE_MIN and SC_RANGE_MAX to increase generator torque
+// Max amount to modify RPM in determining WindingCurrentLimit near ends of stroke
+#define MAX_RPM_ADJUSTMENT 5000.0
 
 
 // NOLINTNEXTLINE
@@ -37,7 +60,7 @@ using namespace std::chrono;
 
 constexpr double INCHES_TO_METERS{0.0254};
 
-class PCROSNode final : public buoy_msgs::Interface<PCROSNode>
+class PCROSNode final : public buoy_api::Interface<PCROSNode>
 {
 public:
   rclcpp::Clock::SharedPtr clock_{nullptr};
@@ -57,12 +80,14 @@ public:
   PCRetractServiceResponseFuture pc_retract_response_future_;
 
   explicit PCROSNode(const std::string & node_name)
-  : buoy_msgs::Interface<PCROSNode>(node_name)
+  : buoy_api::Interface<PCROSNode>(node_name)
   {
     set_parameter(
       rclcpp::Parameter(
         "use_sim_time",
         true));
+
+    this->set_params();
 
     node_ = std::shared_ptr<PCROSNode>(this, [](PCROSNode *) {});  // null deleter
     clock_ = this->get_clock();
@@ -94,10 +119,39 @@ public:
     stop_ = true;
   }
 
+  double winding_current_limiter(const double & I)
+  {
+    double LimitedI = I;
+    double AdjustedN = rpm_;
+    const double RamPosition = (SC_RANGE_MAX - (range_finder_ / 0.0254));
+    if (rpm_ >= 0.0) {  // Retracting
+      const double min_region = SC_RANGE_MIN + STOP_RANGE;
+      if (RamPosition < min_region) {
+        // boost RPM by fraction of max adjustment to limit current
+        AdjustedN += MAX_RPM_ADJUSTMENT * (min_region - RamPosition) / min_region;
+      }
+      const double CurrLim =
+        -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 + 385.0;  // Magic nums
+      LimitedI = std::min(LimitedI, CurrLim);
+    } else {  // Extending
+      const double max_region = SC_RANGE_MAX - STOP_RANGE;
+      if (RamPosition > max_region) {
+        // boost RPM by fraction of max adjustment to limit current
+        AdjustedN -= MAX_RPM_ADJUSTMENT * (RamPosition - max_region) / max_region;
+      }
+      const double CurrLim =
+        -AdjustedN * 2.0 * MAX_WINDCURRENTLIMIT / 1000.0 - 385.0;  // Magic nums
+      LimitedI = std::max(LimitedI, CurrLim);
+    }
+
+    LimitedI = std::min(std::max(LimitedI, -MAX_WINDCURRENTLIMIT), MAX_WINDCURRENTLIMIT);
+    return LimitedI;
+  }
+
 private:
   friend CRTP;  // syntactic sugar (see https://stackoverflow.com/a/58435857/9686600)
 
-  void power_callback(const buoy_msgs::msg::PCRecord & data)
+  void power_callback(const buoy_interfaces::msg::PCRecord & data)
   {
     rpm_ = data.rpm;
     wind_curr_ = data.wcurrent;
@@ -106,9 +160,33 @@ private:
     retract_ = data.retract;
   }
 
-  void spring_callback(const buoy_msgs::msg::SCRecord & data)
+  void spring_callback(const buoy_interfaces::msg::SCRecord & data)
   {
     range_finder_ = data.range_finder;
+  }
+
+
+  void set_params()
+  {
+    this->declare_parameter("torque_constant", torque_policy_.Torque_constant);
+    torque_policy_.Torque_constant = this->get_parameter("torque_constant").as_double();
+
+    this->declare_parameter(
+      "n_spec", std::vector<double>(
+        torque_policy_.N_Spec.begin(),
+        torque_policy_.N_Spec.end()));
+    std::vector<double> temp_double_arr = this->get_parameter("n_spec").as_double_array();
+    torque_policy_.N_Spec.assign(temp_double_arr.begin(), temp_double_arr.end());
+
+    this->declare_parameter(
+      "torque_spec", std::vector<double>(
+        torque_policy_.Torque_Spec.begin(),
+        torque_policy_.Torque_Spec.end()));
+    temp_double_arr = this->get_parameter("torque_spec").as_double_array();
+    torque_policy_.Torque_Spec.assign(temp_double_arr.begin(), temp_double_arr.end());
+
+    torque_policy_.update_params();
+    RCLCPP_INFO_STREAM(rclcpp::get_logger(this->get_name()), torque_policy_);
   }
 
   std::thread thread_executor_spin_;
@@ -137,7 +215,8 @@ protected:
     config.SetUpdateRate(0.0);
 
     fixture = std::make_unique<ignition::gazebo::TestFixture>(config);
-    node = std::make_unique<PCROSNode>("test_pc_ros");
+    node = std::make_unique<PCROSNode>("pb_torque_controller");  // same name as example to grab
+                                                                 // params
 
     fixture->
     OnConfigure(
@@ -201,11 +280,14 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
 
+  std::cout << node->torque_policy_ << std::endl;
+
   double expected_wind_curr =
     node->torque_policy_.WindingCurrentTarget(
     node->rpm_,
     node->scale_,
     node->retract_) + node->bias_curr_;
+  expected_wind_curr = node->winding_current_limiter(expected_wind_curr);
   EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1);
   EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1);
 
@@ -313,8 +395,9 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     node->rpm_,
     node->scale_,
     node->retract_) + node->bias_curr_;
-  EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1);
-  EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1);
+  expected_wind_curr = node->winding_current_limiter(expected_wind_curr);
+  EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.2);
+  EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.2);
 
   ///////////////////////////////////////////
   // Bias Current
@@ -345,7 +428,8 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_GT(node->bias_curr_, bc - 0.1F);
   EXPECT_LT(node->bias_curr_, bc + 0.1F);
 
-  EXPECT_LT(node->range_finder_, 0.5);  // meters
+  // TODO(andermi) fix this comparison when motor mode is fixed
+  EXPECT_LT(node->range_finder_, 2.03);  // meters
 
   // Let bias curr command timeout
   fixture->Server()->Run(

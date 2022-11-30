@@ -15,21 +15,22 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 
-#include <stdio.h>
 
+// Interpolation for efficiency maps
+#include <simple_interp/interp1d.hpp>
+#include <buoy_utils/Constants.hpp>
 #include <unsupported/Eigen/NonLinearOptimization>
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "ElectroHydraulicState.hpp"
 #include "WindingCurrentTarget.hpp"
-
-// Interpolation library for efficiency maps
-#include "JustInterp/JustInterp.hpp"
 
 
 /////////////////////////////////////////////////////
@@ -38,14 +39,11 @@ template<typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
 struct Functor
 {
   typedef _Scalar Scalar;
-  enum
-  {
-    InputsAtCompileTime = NX,
-    ValuesAtCompileTime = NY
-  };
+  enum { InputsAtCompileTime = NX, ValuesAtCompileTime = NY };
   typedef Eigen::Matrix<Scalar, InputsAtCompileTime, 1> InputType;
   typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, 1> ValueType;
-  typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, InputsAtCompileTime> JacobianType;
+  typedef Eigen::Matrix<Scalar, ValuesAtCompileTime, InputsAtCompileTime>
+    JacobianType;
 
   const int m_inputs, m_values;
 
@@ -58,162 +56,167 @@ struct Functor
   {
   }
 
-  int inputs() const {return m_inputs;}
-  int values() const {return m_values;}
+  int inputs() const
+  {
+    return m_inputs;
+  }
+  int values() const
+  {
+    return m_values;
+  }
 
   // you should define that in the subclass :
-  // void operator() (const InputType& x, ValueType* v, JacobianType* _j=0) const;
+  // void operator() (const InputType& x, ValueType* v, JacobianType* _j=0)
+  // const;
 };
 
+
+int sgn(double v)
+{
+  if (v < 0) {return -1;}
+  if (v > 0) {return 1;}
+  return 0;
+}
 
 struct ElectroHydraulicSoln : Functor<double>
 {
 public:
-  JustInterp::TableInterpolator<double> hyd_eff_v;
-  JustInterp::TableInterpolator<double> hyd_eff_m;
-  JustInterp::LinearInterpolator<double> reliefValve;
-  // Class that computes Target Winding Current based on RPM, Scale Factor, limits, etc..
-  mutable WindingCurrentTarget I_Wind;
-  double Q;
+  static constexpr double PressReliefSetPoint{2850.0};       // psi
+  // ~50GPM/600psi ~= .33472 in^3/psi -> Relief valve flow
+  // above setpoint, From SUN RPECLAN data sheet
+  static constexpr double ReliefValveFlowPerPSI{30.0 / 600.0};
   /// \brief Pump/Motor Displacement per Revolution
-  double HydMotorDisp;
+  static constexpr double HydMotorDisp{0.30};  // Default to Parker F11-5  0.30in^3/rev
+
+  // Friction Loss Model constants
+  static constexpr double tau_c{.1};  // N-m
+  static constexpr double k_v{.05 / 1000.0};  // N-m/RPM
+  static constexpr double k_th{19.0};
+
+  // Switching Loss Model constants
+  static constexpr double k_switch{0.05};             // W/Volt
+
+  // Winding Resitance Loss Model constants
+  static constexpr double R_w{0.8};             // Ohms
+
+  double VBattEMF;       // Battery internal EMF voltage
+  double Ri;       // Battery internal resistance
+
+  simple_interp::Interp1d hyd_eff_v, hyd_eff_m;
+
+  // Class that computes Target Winding Current based on RPM, Scale Factor,
+  // limits, etc..
+  mutable WindingCurrentTarget I_Wind;
+  mutable double BusPower;
+  double Q;
 
 private:
-  // static constexpr double Pset{2000.0};  // 750;  // psi
-  // ~50GPM/600psi ~= .33472 in^3/psi -> From SUN RPECLAN data sheet
-  // static constexpr double QPerP{(50.0*241.0 / 60.0) / 600.0};
-  static const std::vector<double> Prelief;  // {0, Pset, Pset + 600.0};
-  static const std::vector<double> Qrelief;  // {0, 0, QPerP*6000.0};
+  static const std::vector<double> Peff;       // psi
+  static const std::vector<double> Neff;       // rpm
 
-  // psi
-  static const std::vector<double> Peff;
-
-  static const std::vector<std::vector<double>> Neff;
-  static const std::vector<std::vector<double>> eff_v;
-  static const std::vector<std::vector<double>> eff_m;
+  static const std::vector<double> Eff_V;       // volumetric efficiency
+  static const std::vector<double> Eff_M;       // mechanical efficiency
 
 public:
   ElectroHydraulicSoln()
-  : Functor<double>(2, 2),
-    // Set Pressure versus flow relationship for relief valve
-    reliefValve{Prelief, Qrelief},
-    // Set HydrualicMotor Volumetric Efficiency
-    hyd_eff_v{Peff, Neff, eff_v},
-    hyd_eff_m{Peff, Neff, eff_m}
+  : Functor<double>(3, 3),
+    // Set HydraulicMotor Volumetric & Mechanical Efficiency
+    hyd_eff_v(Peff, Eff_V), hyd_eff_m(Neff, Eff_M)
   {
+  }
+
+  // Friction loss is characterized in 2022 PTO simulation paper
+  // Friction loss is a function of RPM
+  // Units of power returned
+  double MotorDriveFrictionLoss(double N) const
+  {
+    return fabs(
+      (tau_c * tanh(2 * M_PI * N / buoy_utils::SecondsPerMinute / k_th) +
+      k_v * N / 1000.0) * N);
+  }
+
+  // Switching Loss is from measurements as a function of bus voltage.
+  // ~ 10% of Voltage in Watts...
+  // Units of power returned
+  double MotorDriveSwitchingLoss(double V) const
+  {
+    return k_switch * fabs(V);
+  }
+
+  // Winding ISquaredR Losses,
+  // Units of power returned
+  double MotorDriveISquaredRLoss(double I) const
+  {
+    return R_w * I * I;
   }
 
   // x[0] = RPM
   // x[1] = Pressure (psi)
+  // x[2] = Bus Voltage (Volts)
   int operator()(const Eigen::VectorXd & x, Eigen::VectorXd & fvec) const
   {
     const int n = x.size();
     assert(fvec.size() == n);
 
-    // TODO(hamilton) temporary fix for NaN situation. Should make this more robust
-    // or at least parameterized.
-    // Problem: If I repeatedly smash the PC with a -30 Amp winding current command, this solution
-    // becomes unstable and rpm/pressure reach NaN and gazebo crashes. I'm clipping it
-    // to the max absolute rpm from the winding current interpolation
-    // (no extrapolation, default torque controller).
-    const double rpm = std::min(std::max(x[0U], -6790.0), 6790.0);
-    const double eff_m = this->hyd_eff_m(fabs(x[1]), fabs(rpm));
-    const double eff_v = this->hyd_eff_v(fabs(x[1]), fabs(rpm));
+    const double rpm = fabs(x[0U]);
+    const double pressure = fabs(x[1U]);
+    const double eff_m = this->hyd_eff_m.eval(rpm);
+    const double eff_v = this->hyd_eff_v.eval(pressure);
+    // const double eff_m = 1.0 - (.1 / 6000.0) * rpm;
+    // const double eff_v = 1.0 - (.1 / 3500.0) * pressure;
 
+    double WindCurr = this->I_Wind(x[0U]);
     // 1.375 fudge factor required to match experiments, not yet sure why.
-    const double T_applied = 1.375 * this->I_Wind.TorqueConstantInLbPerAmp * this->I_Wind(rpm);
+    const double T_applied =
+      1.375 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
 
-    static constexpr double Pset = 2925;
-    double QQ = this->Q;
-    if (x[1] > Pset) {   // Extending
-      QQ += (x[1] - Pset) * (50 * 241 / 60) / 600;  // TODO(hamilton) magic numbers
+    double ShaftMechPower = T_applied * buoy_utils::NM_PER_INLB *
+      x[0U] * buoy_utils::RPM_TO_RAD_PER_SEC;
+    BusPower = -ShaftMechPower - (
+      MotorDriveFrictionLoss(x[0U]) +
+      MotorDriveSwitchingLoss(x[2U]) +
+      MotorDriveISquaredRLoss(WindCurr));
+    double Q_Relief = 0;
+    if (x[1U] < -PressReliefSetPoint) {  // Pressure relief is a one wave valve,
+                                         // relieves when lower pressure is higher
+                                         // than upper (resisting extension)
+      Q_Relief = (x[1U] + PressReliefSetPoint) * ReliefValveFlowPerPSI *
+        buoy_utils::CubicInchesPerGallon / buoy_utils::SecondsPerMinute;
     }
-    // QQ += this->reliefValve(x[1]);
+// Q_Relief = 0;
+    double Q_Motor = this->Q - Q_Relief;
+    double Q = x[0U] * this->HydMotorDisp / buoy_utils::SecondsPerMinute;
+    double Q_Leak = (1.0 - eff_v) * std::max(fabs(Q_Motor), fabs(Q)) * sgn(x[1]);
 
-    fvec[0] = x[0] - eff_v * 60.0 * QQ / this->HydMotorDisp;
-    fvec[1] = x[1] - eff_m * T_applied / (this->HydMotorDisp / (2 * M_PI));
+    double T_Fluid = x[1U] * this->HydMotorDisp / (2.0 * M_PI);
+    double T_Friction = -(1.0 - eff_m) * std::max(fabs(T_applied), fabs(T_Fluid)) * sgn(x[0]);
+
+    fvec[0U] = Q_Motor - Q_Leak - Q;
+    fvec[1U] = T_applied + T_Friction + T_Fluid;
+    fvec[2U] = BusPower - (x[2U] - VBattEMF) * x[2U] / this->Ri;
 
     return 0;
   }
 };
+const std::vector<double> ElectroHydraulicSoln::Peff{
+  0.0, 145.0, 290.0, 435.0, 580.0, 725.0, 870.0,
+  1015.0, 1160.0, 1305.0, 1450.0, 1595.0, 1740.0, 1885.0,
+  2030.0, 2175.0, 2320.0, 2465.0, 2610.0, 2755.0, 3500.0, 10000.0};
 
-// {0, Pset, Pset + 600.0};
-const std::vector<double> ElectroHydraulicSoln::Prelief{0.0, 2800.0, 3000.0};
-// {0, 0, QPerP*6000.0};
-const std::vector<double> ElectroHydraulicSoln::Qrelief{1.0, 1.0, 0.0};
+const std::vector<double> ElectroHydraulicSoln::Eff_V{
+  1.0000, 0.980, 0.97, 0.960, 0.9520, 0.950, 0.949, 0.9480,
+  0.9470, 0.946, 0.9450, 0.9440, 0.9430, 0.9420, 0.9410, 0.9400,
+  0.9390, 0.9380, 0.9370, 0.9350, 0.9100, .6000};
 
-const std::vector<double> ElectroHydraulicSoln::Peff
-{0, 145, 290, 435, 580, 725, 870, 1015, 1160, 1305, 1450, 2176, 2901};
 
-const std::vector<std::vector<double>> ElectroHydraulicSoln::Neff
-{
-  {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500,
-    4000, 4500, 5000, 5500, 6000, 15000},  // 0Mpa/0psi
-  {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500,
-    4000, 4500, 5000, 5500, 6000, 15000},  // 1Mpa/145psi
-  {0, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 15000},  // 2Mpa/290psi
-  {0, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 15000},  // 3Mpa/435psi
-  {0, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 15000},  // 4Mpa/580psi
-  {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500,
-    4000, 4500, 5000, 5500, 6000, 15000},  // 5Mpa/725psi
-  {0, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 15000},  // 6Mpa/870psi
-  {0, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 15000},  // 7Mpa/1015psi
-  {0, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 15000},  // 8Mpa/1160psi
-  {0, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 15000},  // 9Mpa/1305psi
-  {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500,
-    4000, 4500, 5000, 5500, 6000, 15000},  // 10Mpa/1450psi
-  {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500,
-    4000, 4500, 5000, 5500, 6000, 15000},  // 15Mpa/2176psi
-  {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 3500,
-    4000, 4500, 5000, 5500, 6000, 15000}  // 20Mpa/2901psi
-};
-const std::vector<std::vector<double>> ElectroHydraulicSoln::eff_v
-{
-  // {0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10,
-  //  0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10},  // 0Mpa/0psi
-  {0.97, 0.97, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.99, 0.99, 0.99, 0.99, 0.99,
-    0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99},  // 1Mpa/145psi
-  {0.97, 0.97, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.99, 0.99, 0.99, 0.99, 0.99,
-    0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99},  // 1Mpa/145psi
-  {0.98, 0.98, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99},  // 2Mpa/290psi
-  {0.98, 0.98, 0.98, 0.98, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99},  // 3Mpa/435psi
-  {0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99},  // 4Mpa/580psi
-  {0.90, 0.90, 0.94, 0.96, 0.96, 0.97, 0.97, 0.97, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98,
-    0.98, 0.98, 0.98, 0.99, 0.99, 0.99, 0.99},  // 5Mpa/725psi
-  {0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.99, 0.98},  // 6Mpa/870psi
-  {0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98},  // 7Mpa/1015psi
-  {0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98},  // 8Mpa/1160psi
-  {0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98},  // 9Mpa/1305psi
-  {0.83, 0.83, 0.90, 0.93, 0.94, 0.95, 0.96, 0.96, 0.96, 0.97, 0.97, 0.97, 0.98, 0.98, 0.98,
-    0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98},  // 10Mpa/1450psi
-  {0.77, 0.77, 0.87, 0.90, 0.92, 0.93, 0.94, 0.95, 0.95, 0.96, 0.96, 0.96, 0.96, 0.96, 0.96,
-    0.96, 0.96, 0.96, 0.96, 0.96, 0.96, 0.96},  // 15Mpa/2176psi
-  {0.72, 0.72, 0.83, 0.88, 0.90, 0.92, 0.93, 0.94, 0.94, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95,
-    0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95}  // 20Mpa/2901psi
-};
-const std::vector<std::vector<double>> ElectroHydraulicSoln::eff_m
-{
-  // {0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10,
-  //  0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10},  // 0Mpa/0psi
-  {0.60, 0.60, 0.61, 0.62, 0.63, 0.64, 0.65, 0.65, 0.66, 0.66, 0.67, 0.79, 0.79, 0.78, 0.77,
-    0.74, 0.71, 0.68, 0.64, 0.60, 0.55, 0.15},  // 1Mpa/145psi
-  {0.60, 0.60, 0.61, 0.62, 0.63, 0.64, 0.65, 0.65, 0.66, 0.66, 0.67, 0.79, 0.79, 0.78, 0.77,
-    0.74, 0.71, 0.68, 0.64, 0.60, 0.55, 0.15},  // 1Mpa/145psi
-  {0.84, 0.84, 0.84, 0.84, 0.82, 0.81, 0.78, 0.76, 0.73, 0.70, 0.66, 0.35},  // 2Mpa/290psi
-  {0.89, 0.89, 0.89, 0.89, 0.88, 0.87, 0.85, 0.84, 0.82, 0.80, 0.77, 0.55},  // 3Mpa/435psi
-  {0.92, 0.92, 0.92, 0.92, 0.91, 0.90, 0.89, 0.88, 0.86, 0.84, 0.83, 0.70},  // 4Mpa/580psi
-  {0.92, 0.92, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.94, 0.94, 0.93, 0.93,
-    0.92, 0.91, 0.90, 0.89, 0.87, 0.86, 0.80},  // 5Mpa/725psi
-  {0.95, 0.95, 0.95, 0.94, 0.94, 0.93, 0.92, 0.92, 0.91, 0.89, 0.88, 0.82},  // 6Mpa/870psi
-  {0.95, 0.95, 0.95, 0.95, 0.95, 0.94, 0.93, 0.93, 0.92, 0.91, 0.90, 0.84},  // 7Mpa/1015psi
-  {0.96, 0.96, 0.96, 0.96, 0.95, 0.95, 0.94, 0.94, 0.93, 0.92, 0.91, 0.85},  // 8Mpa/1160psi
-  {0.96, 0.96, 0.96, 0.96, 0.96, 0.95, 0.95, 0.94, 0.93, 0.93, 0.92, 0.86},  // 9Mpa/1305psi
-  {0.96, 0.96, 0.96, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97, 0.96,
-    0.96, 0.95, 0.95, 0.94, 0.93, 0.93, 0.88},  // 10Mpa/1450psi
-  {0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.97, 0.97, 0.97, 0.96,
-    0.96, 0.95, 0.95, 0.94, 0.93, 0.93, 0.89},  // 15Mpa/2176psi
-  {0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.98, 0.97, 0.97, 0.97, 0.96,
-    0.96, 0.95, 0.95, 0.94, 0.93, 0.93, 0.90}  // 20Mpa/2901psi
-};
+const std::vector<double> ElectroHydraulicSoln::Neff{
+  0.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0,
+  800.0, 900.0, 1000.0, 1500.0, 2000.0, 2500.0, 3000.0, 3500.0,
+  4000.0, 4500.0, 5000.0, 5500.0, 6000.0, 15000.0};
+
+const std::vector<double> ElectroHydraulicSoln::Eff_M{
+  1.0, 0.950, 0.9460, 0.9450, 0.9440, 0.9430, 0.9420, 0.9410,
+  0.9400, 0.9390, 0.9380, 0.9370, 0.9360, 0.9370, 0.9360, 0.9350,
+  0.9320, 0.9300, 0.9200, 0.9100, 0.9000, 0.8400};
 
 #endif  // ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_

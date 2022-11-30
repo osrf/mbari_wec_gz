@@ -25,6 +25,8 @@ cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
 wget https://raw.githubusercontent.com/osrf/buoy_entrypoint/main/buoy_all.yaml
 vcs import --skip-existing < buoy_all.yaml
 
+rm -rf buoy_examples
+
 rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
@@ -36,5 +38,5 @@ colcon build --packages-up-to buoy_tests --event-handlers console_direct+
 source $COLCON_WS/install/setup.bash
 
 # Test all buoy packages
-colcon test --packages-select-regex=buoy --event-handlers console_direct+
+colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+
 colcon test-result
