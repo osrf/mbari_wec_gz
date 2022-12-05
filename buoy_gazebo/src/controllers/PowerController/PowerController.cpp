@@ -433,7 +433,7 @@ struct PowerControllerPrivate
 
         watch.Start(true);
 
-      // stop overriding
+        // stop overriding
       } else {
         if (watch.ElapsedRunTime() >= duration) {
           watch.Stop();
