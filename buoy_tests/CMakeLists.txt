@@ -89,7 +89,7 @@ if(BUILD_TESTING)
 
     if(buoy_add_gtest_LAUNCH_TEST)
       add_launch_test(launch/${TEST_NAME}.launch.py
-        TIMEOUT 600
+        TIMEOUT 650
       )
     else()
       ament_add_gtest_test(${TEST_NAME})
@@ -127,7 +127,7 @@ if(BUILD_TESTING)
     endif()
 
     add_launch_test(launch/${PYTEST_NAME}_py.launch.py
-      TIMEOUT 600
+      TIMEOUT 650
     )
   endfunction()
 
@@ -160,6 +160,10 @@ if(BUILD_TESTING)
   buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
 
+  buoy_add_gtest(test_pto_friction ROS
+    EXTRA_ROS_PKGS
+      buoy_gazebo
+      simple_interp)
 
   # Add pytests
   buoy_add_pytest(no_inputs no_inputs)
