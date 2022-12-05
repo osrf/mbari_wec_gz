@@ -243,8 +243,10 @@ struct PowerControllerPrivate
 
     auto spin = [this]()
       {
+        rclcpp::Rate rate(50.0);
         while (rclcpp::ok() && !stop_) {
           ros_->executor_->spin_once();
+          rate.sleep();
         }
       };
     thread_executor_spin_ = std::thread(spin);
@@ -254,9 +256,6 @@ struct PowerControllerPrivate
     double command_value,
     const rcl_interfaces::msg::FloatingPointRange & valid_range,
     double & services_command_value,
-    // ros_ign_gazebo::Stopwatch & watch,
-    // rclcpp::Duration & duration,
-    // const rclcpp::Duration & timeout,
     std::atomic<bool> & services_command,
     std::atomic<bool> & new_command)
   {
@@ -280,8 +279,6 @@ struct PowerControllerPrivate
     }
 
     services_command_value = command_value;
-    // duration = !watch.Running() ? timeout : watch.ElapsedRunTime() + timeout;
-    // duration = timeout;
 
     services_command = true;
     new_command = true;
@@ -307,8 +304,6 @@ struct PowerControllerPrivate
           request->wind_curr,
           services_->valid_wind_curr_range_,
           services_->wind_curr_,
-          // services_->torque_command_duration_,
-          // PowerControllerServices::TORQUE_COMMAND_TIMEOUT,
           services_->torque_command_,
           services_->new_torque_command_);
 
@@ -339,8 +334,6 @@ struct PowerControllerPrivate
           request->scale,
           services_->valid_scale_range_,
           services_->scale_,
-          // services_->scale_command_duration_,
-          // PowerControllerServices::SCALE_COMMAND_TIMEOUT,
           services_->scale_command_,
           services_->new_scale_command_);
 
@@ -371,8 +364,6 @@ struct PowerControllerPrivate
           request->retract,
           services_->valid_retract_range_,
           services_->retract_,
-          // services_->retract_command_duration_,
-          // PowerControllerServices::RETRACT_COMMAND_TIMEOUT,
           services_->retract_command_,
           services_->new_retract_command_);
 
@@ -403,8 +394,6 @@ struct PowerControllerPrivate
           request->bias_curr,
           services_->valid_bias_curr_range_,
           services_->bias_curr_,
-          // services_->bias_curr_command_duration_,
-          // PowerControllerServices::BIAS_CURR_COMMAND_TIMEOUT,
           services_->bias_curr_command_,
           services_->new_bias_curr_command_);
 
@@ -444,7 +433,7 @@ struct PowerControllerPrivate
 
         watch.Start(true);
 
-        // stop overriding
+      // stop overriding
       } else {
         if (watch.ElapsedRunTime() >= duration) {
           watch.Stop();
