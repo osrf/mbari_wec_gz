@@ -33,7 +33,7 @@ class BuoySCValvePyTest(BuoyPyTests):
         self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
 
-        preCmdIterations = 40000
+        preCmdIterations = 45000
         statusCheckIterations = 1000
         postCmdIterations = 5000
 
@@ -135,11 +135,13 @@ class BuoySCValvePyTest(BuoyPyTests):
 
         self.assertGreater(post_valve_range_finder,
                            pre_valve_range_finder + 0.8 * 0.0254 * 5.0,
-                           'Piston should extend 1 inch/sec for 5 seconds')
+                           'Piston should extend 1 inch/sec for 5 seconds' +
+                           ' -- increase valve absement')
 
         self.assertLess(post_valve_range_finder,
                         pre_valve_range_finder + 1.2 * 0.0254 * 5.0,
-                        'Piston should extend 1 inch/sec for 5 seconds')
+                        'Piston should extend 1 inch/sec for 5 seconds' +
+                        ' -- decrease valve absement')
 
         # TODO(anyone) remove once TestFixture is fixed upstream
         self.test_helper.stop()
