@@ -124,7 +124,7 @@ void WaveBodyInteractions::Configure(
     return;
   }
 
-  double Hs = SdfParamDouble(_sdf, "Hs", 2.0);
+  double Hs = SdfParamDouble(_sdf, "Hs", 4.0);
   double Tp = SdfParamDouble(_sdf, "Tp", 8.);
 
   if (Tp > 0) {
