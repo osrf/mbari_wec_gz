@@ -94,7 +94,7 @@ public:
   static constexpr double k_th{19.0};
 
   // Switching Loss Model constants
-  static constexpr double k_switch{-1.1};             // W/Volt
+  static constexpr double k_switch{.05};             // W/Volt
 
   // Winding Resitance Loss Model constants
   static constexpr double R_w{0.8};             // Ohms

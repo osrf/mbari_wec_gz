@@ -126,7 +126,7 @@ void WaveBodyInteractions::Configure(
     return;
   }
 
-  double Hs = SdfParamDouble(_sdf, "Hs", 2.0);
+  double Hs = SdfParamDouble(_sdf, "Hs", 4.0);
   double Tp = SdfParamDouble(_sdf, "Tp", 8.);
 
   if (Tp > 0) {
@@ -141,8 +141,6 @@ void WaveBodyInteractions::Configure(
   std::string HydrodynamicsBaseFilename =
     ament_index_cpp::get_package_share_directory("buoy_description")
     + "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
-
-
   this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
   // TODO(anyone):  Need to get timestep size from ecm.
