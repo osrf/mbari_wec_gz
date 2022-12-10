@@ -24,11 +24,10 @@
 #include <limits>
 #include <string>
 
-
-
 #include "FS_Hydrodynamics.hpp"
 #include "LinearIncidentWave.hpp"
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 /* The rhs of x' = f(x) defined as a class */
 class SingleModeMotionRHS

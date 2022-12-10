@@ -45,6 +45,8 @@
 #include "FS_Hydrodynamics.hpp"
 #include "LinearIncidentWave.hpp"
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
+
 namespace buoy_gazebo
 {
 class WaveBodyInteractionsPrivate
@@ -137,10 +139,8 @@ void WaveBodyInteractions::Configure(
 // this->dataPtr->Inc = Inc2;
 
   std::string HydrodynamicsBaseFilename =
-  //  "/Users/hamilton/Documents/"
-    "/home/hamilton/"
-    "/buoy_ws/src/buoy_sim/"
-    "buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+    ament_index_cpp::get_package_share_directory("buoy_description")
+    + "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
   this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
   // TODO(anyone):  Need to get timestep size from ecm.
