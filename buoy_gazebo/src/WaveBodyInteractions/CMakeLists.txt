@@ -13,3 +13,4 @@ gz_add_plugin(WaveBodyInteractions
 )
 
 target_link_libraries(WaveBodyInteractions PUBLIC FreeSurfaceHydrodynamics ament_index_cpp::ament_index_cpp)
+
