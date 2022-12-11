@@ -39,14 +39,18 @@ public:
   double AddedMass(double omega, int i, int j);
   Eigen::Matrix<double, 6, 6> AddedMass(double omega);
 
-  double Damping(double omega, int i, int j);
-  Eigen::Matrix<double, 6, 6> Damping(double omega);
+  double RadiationDamping(double omega, int i, int j);
+  Eigen::Matrix<double, 6, 6> RadiationDamping(double omega);
 
   std::complex<double> WaveExcitingForceComponents(double omega, int j);
   Eigen::Matrix<std::complex<double>, 6, 1> WaveExcitingForceComponents(double omega);
 
   void SetTimestepSize(double dt);
   double GetTimestepSize();
+
+  void SetDampingCoeff(Eigen::VectorXd b);
+  void SetDragCoeff(Eigen::VectorXd Cd);
+  void SetProjectedArea(Eigen::VectorXd A);
 
   void SetWaterplane(double S, double S11, double S22);
   void SetCOB(double x, double y, double z);
@@ -57,12 +61,15 @@ public:
 
   void operator()(const std::vector<double> & x, std::vector<double> & dxdt, const double /* t */);
 
+  Eigen::VectorXd ViscousDragForce(Eigen::VectorXd xdot);
+  Eigen::VectorXd LinearDampingForce(Eigen::VectorXd xdot);
   Eigen::VectorXd GravityForce(Eigen::VectorXd x);
   Eigen::VectorXd BuoyancyForce(Eigen::VectorXd x);
   Eigen::VectorXd RadiationForce(Eigen::VectorXd last_xddot);
   Eigen::VectorXd ExcitingForce();
 
   Eigen::Matrix<std::complex<double>, 6, 1> ComplexAmplitude(double omega);
+  std::complex<double> ComplexAmplitude(double omega, int mode);
 
 
   friend std::ostream &
@@ -73,6 +80,11 @@ public:
   double m_L = 1;
   double m_grav = 9.81;
   double m_rho = 1025;
+
+  //Linear and Viscous Damping coefficients
+  Eigen::VectorXd m_b;
+  Eigen::VectorXd m_Cd;
+  Eigen::VectorXd m_A;
 
   // Frequency domain coefficients
   Eigen::VectorXd fd_am_dmp_tps;

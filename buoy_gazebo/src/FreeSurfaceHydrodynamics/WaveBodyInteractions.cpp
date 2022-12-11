@@ -169,18 +169,15 @@ void WaveBodyInteractions::Configure(
   double WaterplaneOrigin_z = SdfParamDouble(_sdf, "WaterplaneOrigin_z", 2.45);
   this->dataPtr->b_Pose_p.Set(WaterplaneOrigin_x, WaterplaneOrigin_y, WaterplaneOrigin_z, 0, 0, 0);
 
-/*
-   ignition::math::Pose3<double> w_Pose_b(0, 0, -2.45, 0, 0.1, 0);
-   ignition::math::Pose3<double> b_Pose_p(0, 0, 2.45, 0, 0, 0);
-   auto w_Pose_p = w_Pose_b * b_Pose_p;
-   std::cout << "POSETEST w_Pose_b = " << w_Pose_b << std::endl;
-   std::cout << "POSETEST b_Pose_p = " << b_Pose_p << std::endl;
-   std::cout << "POSETEST w_Pose_p = " << w_Pose_p << std::endl;
-   ignition::math::Vector3<double> p_X(0, 0, 0);
-   std::cout << "POSETEST p_X  = " << p_X << std::endl;
-   std::cout << "POSETEST b_X  = " << b_Pose_p.CoordPositionAdd(p_X) << std::endl;
-   std::cout << "POSETEST w_X  = " << w_Pose_p.CoordPositionAdd(p_X) << std::endl;
- */
+		Eigen::VectorXd b(6);
+		b(0) = 300.0;
+		b(1) = 300.0;
+		b(2) = 900.0;
+		b(3) = 400.0;
+		b(4) = 400.0;
+		b(5) = 100.0;
+		this->dataPtr->FloatingBody.SetDampingCoeff(b);
+
 }
 
 #define EPSILON 0.0000001;
@@ -219,6 +216,8 @@ void WaveBodyInteractions::PreUpdate(
   ignition::gazebo::Link baseLink(this->dataPtr->linkEntity);
   auto w_xddot = baseLink.WorldLinearAcceleration(_ecm);
   auto w_omegadot = baseLink.WorldAngularAcceleration(_ecm);
+  auto w_xdot = baseLink.WorldLinearVelocity(_ecm);
+  auto w_omega = baseLink.WorldAngularVelocity(_ecm);
 
   auto w_Pose_b = ignition::gazebo::worldPose(this->dataPtr->linkEntity, _ecm);
   auto w_Pose_p = w_Pose_b * this->dataPtr->b_Pose_p;
@@ -227,9 +226,13 @@ void WaveBodyInteractions::PreUpdate(
 
   ignition::math::Vector3<double> p_xddot = w_Pose_p.Rot().Inverse() * *w_xddot;
   ignition::math::Vector3<double> p_omegadot = w_Pose_p.Rot().Inverse() * *w_omegadot;
-
   std::cout << "w_omegadot = " << w_omegadot.value() << std::endl;
   std::cout << "p_omegadot = " << p_omegadot << std::endl;
+
+  ignition::math::Vector3<double> p_xdot = w_Pose_p.Rot().Inverse() * *w_xdot;
+  ignition::math::Vector3<double> p_omega = w_Pose_p.Rot().Inverse() * *w_omega;
+  std::cout << "w_xdot = " << w_xdot.value() << std::endl;
+  std::cout << "p_xdot = " << p_xdot << std::endl;
 
   Eigen::VectorXd x(6);
   x << w_Pose_p.X(), w_Pose_p.Y(), w_Pose_p.Z(), w_Pose_p.Roll(), w_Pose_p.Pitch(), w_Pose_p.Yaw();
@@ -268,6 +271,7 @@ void WaveBodyInteractions::PreUpdate(
   w_MRp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FRp);
   std::cout << "Radiation: applied moment = " << w_MRp << std::endl;
 
+// Compute Wave Exciting Force
   Eigen::VectorXd ExtForce(6);
   ExtForce = this->dataPtr->FloatingBody.ExcitingForce();
   std::cout << "Exciting Force = " << ExtForce.transpose() << std::endl;
@@ -280,18 +284,33 @@ void WaveBodyInteractions::PreUpdate(
 
   std::cout << "Exciting: applied force = " << w_FEp << std::endl;
   std::cout << "Exciting: applied moment = " << w_MEp << std::endl;
-
-  w_FEp[0] = 0.0;
-  w_FEp[1] = 0.0;
+//  w_FEp[0] = 0.0;
+//  w_FEp[1] = 0.0;
 // w_FEp[2] = 0.0;
-  w_MEp[0] = 0.0;
-  w_MEp[1] = 0.0;
-  w_MEp[2] = 0.0;
-
+//  w_MEp[0] = 0.0;
+//  w_MEp[1] = 0.0;
+//  w_MEp[2] = 0.0;
   // Add contribution due to force offset from origin
   w_MEp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FEp);
-  baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp + w_MRp + w_MEp);
-// baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp, w_MBp + w_MRp);
+
+// Compute Linear Drag
+	Eigen::VectorXd vel(6);
+  vel << p_xdot.X(), p_xdot.Y(), p_xdot.Z(), p_omega.X(), p_omega.Y(), p_omega.Z();
+	Eigen::VectorXd LinDampingForce(6);
+	LinDampingForce = this->dataPtr->FloatingBody.LinearDampingForce(vel);
+  ignition::math::Vector3d w_FLDp(LinDampingForce(0), LinDampingForce(1), LinDampingForce(2));
+  // Needs to be adjusted for yaw only
+  ignition::math::Vector3d w_MLDp(
+    1 * (cos(x(5)) * LinDampingForce(3) - sin(x(5)) * LinDampingForce(4)),
+    1 * (sin(x(5)) * LinDampingForce(3) + cos(x(5)) * LinDampingForce(4)),
+    LinDampingForce(5));             // Needs to be adjusted for yaw only
+  std::cout << "Linear Damping: applied force = " << w_FLDp << std::endl;
+  std::cout << "Linear Damping: applied moment = " << w_MLDp << std::endl;
+  // Add contribution due to force offset from origin
+  w_MLDp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FLDp);
+
+
+  baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp + w_FLDp, w_MBp + w_MRp + w_MEp + w_MLDp);
 }
 
 //////////////////////////////////////////////////

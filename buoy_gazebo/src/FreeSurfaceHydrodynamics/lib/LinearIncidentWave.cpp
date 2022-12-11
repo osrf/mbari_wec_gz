@@ -69,6 +69,7 @@ void LinearIncidentWave::SetToPiersonMoskowitzSpectrum(
 /// \brief Select single frequency wave
 void LinearIncidentWave::SetToMonoChromatic(double A, double T, double phase, double beta)
 {
+  std::cout << "Mono A = " << A << std::endl;
   m_SpectrumType = WaveSpectrumType::MonoChromatic;
   m_Hs = 2 * A;
   m_Tp = T;

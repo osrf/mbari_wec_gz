@@ -26,7 +26,7 @@ int main()
 {
   {
     std::string s = "pkill gnuplot_qt";
-    system(s.c_str());
+    int ret = system(s.c_str());
   }
 
   LinearIncidentWave Inc;
