@@ -48,9 +48,9 @@ public:
   void SetTimestepSize(double dt);
   double GetTimestepSize();
 
-  void SetDampingCoeff(Eigen::VectorXd b);
-  void SetDragCoeff(Eigen::VectorXd Cd);
-  void SetProjectedArea(Eigen::VectorXd A);
+  void SetDampingCoeffs(Eigen::VectorXd b);
+  void SetDragCoeffs(Eigen::VectorXd Cd);
+  void SetAreas(Eigen::VectorXd A);
 
   void SetWaterplane(double S, double S11, double S22);
   void SetCOB(double x, double y, double z);
@@ -84,7 +84,7 @@ public:
   //Linear and Viscous Damping coefficients
   Eigen::VectorXd m_b;
   Eigen::VectorXd m_Cd;
-  Eigen::VectorXd m_A;
+  Eigen::VectorXd m_Area;
 
   // Frequency domain coefficients
   Eigen::VectorXd fd_am_dmp_tps;

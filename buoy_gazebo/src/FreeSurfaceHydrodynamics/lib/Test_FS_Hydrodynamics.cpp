@@ -145,11 +145,7 @@ int main(int argc, char ** argv)
 	BuoyA5.SetVolume(buoy_mass / rho);
 	BuoyA5.SetMass(buoy_mass);
 
-	std::string HydrodynamicsBaseFilename =
-		"../test_hydrodynamic_coeffs/BuoyA5";
-//		"/home/hamilton"
-//		"/buoy_ws/src/buoy_sim/"
-//		"buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+	std::string HydrodynamicsBaseFilename = "../test_hydrodynamic_coeffs/BuoyA5";
 	BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
 	BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
 	BuoyA5.SetTimestepSize(dt);
@@ -392,7 +388,7 @@ int main(int argc, char ** argv)
 		b(3) = 400.0;
 		b(4) = 400.0;
 		b(5) = 100.0;
-		BuoyA5.SetDampingCoeff(b);
+		BuoyA5.SetDampingCoeffs(b);
 
 
 		std::vector<double> pts_T;

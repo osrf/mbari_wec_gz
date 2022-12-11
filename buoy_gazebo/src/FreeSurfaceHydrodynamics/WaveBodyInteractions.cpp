@@ -176,7 +176,26 @@ void WaveBodyInteractions::Configure(
 		b(3) = 400.0;
 		b(4) = 400.0;
 		b(5) = 100.0;
-		this->dataPtr->FloatingBody.SetDampingCoeff(b);
+		this->dataPtr->FloatingBody.SetDampingCoeffs(b);
+
+		Eigen::VectorXd Cd(6);
+		Cd(0) = .5;
+		Cd(1) = .5;
+	  Cd(2) = .5;
+		Cd(3) = .5;
+		Cd(4) = .5;
+		Cd(5) = .1;
+		this->dataPtr->FloatingBody.SetDragCoeffs(Cd);
+
+		Eigen::VectorXd Area(6);
+		Area(0) = 5.0;
+		Area(1) = 2.0;
+		Area(2) = 2.0;
+		Area(3) = 1.0;
+		Area(4) = 1.0;
+		Area(5) = 1.0;
+		this->dataPtr->FloatingBody.SetAreas(Area);
+
 
 }
 
@@ -293,9 +312,10 @@ void WaveBodyInteractions::PreUpdate(
   // Add contribution due to force offset from origin
   w_MEp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FEp);
 
-// Compute Linear Drag
 	Eigen::VectorXd vel(6);
   vel << p_xdot.X(), p_xdot.Y(), p_xdot.Z(), p_omega.X(), p_omega.Y(), p_omega.Z();
+#if 0
+// Compute Linear Drag
 	Eigen::VectorXd LinDampingForce(6);
 	LinDampingForce = this->dataPtr->FloatingBody.LinearDampingForce(vel);
   ignition::math::Vector3d w_FLDp(LinDampingForce(0), LinDampingForce(1), LinDampingForce(2));
@@ -308,9 +328,23 @@ void WaveBodyInteractions::PreUpdate(
   std::cout << "Linear Damping: applied moment = " << w_MLDp << std::endl;
   // Add contribution due to force offset from origin
   w_MLDp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FLDp);
+#endif
 
+// Compute Viscous Drag (quadratic)
+	Eigen::VectorXd DragForce(6);
+	DragForce = this->dataPtr->FloatingBody.ViscousDragForce(vel);
+  ignition::math::Vector3d w_FVDp(DragForce(0), DragForce(1), DragForce(2));
+  // Needs to be adjusted for yaw only
+  ignition::math::Vector3d w_MVDp(
+    1 * (cos(x(5)) * DragForce(3) - sin(x(5)) * DragForce(4)),
+    1 * (sin(x(5)) * DragForce(3) + cos(x(5)) * DragForce(4)),
+    DragForce(5));             // Needs to be adjusted for yaw only
+  std::cout << "Viscous Drag: applied force = " << w_FVDp << std::endl;
+  std::cout << "Viscous Drag: applied moment = " << w_MVDp << std::endl;
+  // Add contribution due to force offset from origin
+  w_MVDp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FVDp);
 
-  baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp + w_FLDp, w_MBp + w_MRp + w_MEp + w_MLDp);
+  baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp + w_FVDp, w_MBp + w_MRp + w_MEp + w_MVDp);
 }
 
 //////////////////////////////////////////////////

@@ -55,7 +55,7 @@ FS_HydroDynamics::FS_HydroDynamics(IncidentWave & IncWave)
 	this->c.setZero();
   this->m_b.setZero();
   this->m_Cd.setZero();
-  this->m_A.setZero();
+  this->m_Area.setZero();
 }
 
 FS_HydroDynamics::FS_HydroDynamics(
@@ -67,7 +67,7 @@ FS_HydroDynamics::FS_HydroDynamics(
 	this->c.setZero();
   this->m_b.setZero();
   this->m_Cd.setZero();
-  this->m_A.setZero();
+  this->m_Area.setZero();
 }
 
 ///  \brief  Read frequency domain coefficients from WAMIT.
@@ -627,21 +627,28 @@ void FS_HydroDynamics::SetI(Eigen::Matrix<double, 3, 3> I)
 	this->M.block<3, 3>(3, 3) = I;
 }
 
-void FS_HydroDynamics::SetDampingCoeff(Eigen::VectorXd b)
+void FS_HydroDynamics::SetDampingCoeffs(Eigen::VectorXd b)
 {
 	if(b.size() == 6)
 		m_b = b;
 	else
-		std::cerr << "SetDampingCoeff:  Supplied damping vector is the wrong size" << std::endl;
+		std::cerr << "SetDampingCoeffs:  Supplied damping vector is the wrong size" << std::endl;
 }
 
-void FS_HydroDynamics::SetDragCoeff(Eigen::VectorXd Cd)
+void FS_HydroDynamics::SetDragCoeffs(Eigen::VectorXd Cd)
 {
-
+	if(Cd.size() == 6)
+		m_Cd = Cd;
+	else
+		std::cerr << "SetDragCoeffs:  Supplied drag coefficient vector is the wrong size" << std::endl;
 }
-void FS_HydroDynamics::SetProjectedArea(Eigen::VectorXd A)
-{
 
+void FS_HydroDynamics::SetAreas(Eigen::VectorXd Area)
+{
+	if(Area.size() == 6)
+		m_Area = Area;
+	else
+		std::cerr << "SetAreas:  Supplied area vector is the wrong size" << std::endl;
 }
 
 
@@ -752,12 +759,21 @@ Eigen::VectorXd FS_HydroDynamics::ExcitingForce()
 }
 
 
-// Returns force and moment due to gravity in the body frame,
+// Returns force and moment due to linear in the body frame,
 //  as applied at the origin of water-plane.
 Eigen::VectorXd FS_HydroDynamics::LinearDampingForce(Eigen::VectorXd xdot)
 {
 	Eigen::VectorXd F_D(6);
 	F_D = -this->m_b.cwiseProduct(xdot);
+	return F_D;
+}
+
+// Returns force and moment due to viscous drag in the body frame,
+//  as applied at the origin of water-plane.
+Eigen::VectorXd FS_HydroDynamics::ViscousDragForce(Eigen::VectorXd xdot)
+{
+	Eigen::VectorXd F_D(6);
+	F_D = -0.5*m_rho*m_Cd.cwiseProduct(m_Area.cwiseProduct(xdot)).cwiseProduct(xdot.cwiseAbs());
 	return F_D;
 }
 
