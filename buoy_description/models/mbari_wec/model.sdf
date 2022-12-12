@@ -80,12 +80,15 @@
       <S11>1.37</S11>
       <S22>1.37</S22>
     </plugin>
-    
+
     <!--
+    <plugin filename="IncidentWaves" name="buoy_gazebo::IncidentWaves">  
+	    </plugin>
+    -->
+    
     <plugin filename="PTOFriction" name="buoy_gazebo::PTOFriction">
       <PrismaticJointName>HydraulicRam</PrismaticJointName>
     </plugin>
-    -->
 
   </model>
 </sdf>

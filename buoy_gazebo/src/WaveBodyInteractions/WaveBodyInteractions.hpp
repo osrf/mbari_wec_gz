@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FREESURFACEHYDRODYNAMICS__WAVEBODYINTERACTIONS_HPP_
-#define FREESURFACEHYDRODYNAMICS__WAVEBODYINTERACTIONS_HPP_
+#ifndef WAVEBODYINTERACTIONS__WAVEBODYINTERACTIONS_HPP_
+#define WAVEBODYINTERACTIONS__WAVEBODYINTERACTIONS_HPP_
 
 #include <optional>
 
@@ -90,4 +90,4 @@ private:
   std::unique_ptr<WaveBodyInteractionsPrivate> dataPtr;
 };
 }  // namespace buoy_gazebo
-#endif  // FREESURFACEHYDRODYNAMICS__WAVEBODYINTERACTIONS_HPP_
+#endif  // WAVEBODYINTERACTIONS__WAVEBODYINTERACTIONS_HPP_
