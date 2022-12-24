@@ -123,7 +123,7 @@ struct PowerControllerServices
   std::atomic<bool> bias_curr_command_{false};
   std::atomic<bool> new_bias_curr_command_{false};
 
-  std::mutex command_mutex_;
+  std::mutex command_mutex_, next_access_mutex_, low_prio_mutex_;
 };
 const rclcpp::Duration PowerControllerServices::TORQUE_COMMAND_TIMEOUT{2, 0U};
 const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_wind_curr_range_ =
@@ -243,8 +243,10 @@ struct PowerControllerPrivate
 
     auto spin = [this]()
       {
+        rclcpp::Rate rate(50.0);
         while (rclcpp::ok() && !stop_) {
           ros_->executor_->spin_once();
+          rate.sleep();
         }
       };
     thread_executor_spin_ = std::thread(spin);
@@ -254,13 +256,16 @@ struct PowerControllerPrivate
     double command_value,
     const rcl_interfaces::msg::FloatingPointRange & valid_range,
     double & services_command_value,
-    rclcpp::Duration & duration,
-    const rclcpp::Duration & timeout,
     std::atomic<bool> & services_command,
     std::atomic<bool> & new_command)
   {
     int8_t result = buoy_interfaces::msg::PBCommandResponse::OK;
-    std::unique_lock lock(services_->command_mutex_);
+
+    // high priority cmd access
+    std::unique_lock next_lock(services_->next_access_mutex_);
+    std::unique_lock cmd_lock(services_->command_mutex_);
+    next_lock.unlock();
+
     if (valid_range.from_value > command_value ||
       command_value > valid_range.to_value)
     {
@@ -274,10 +279,11 @@ struct PowerControllerPrivate
     }
 
     services_command_value = command_value;
-    duration = timeout;
 
     services_command = true;
     new_command = true;
+
+    cmd_lock.unlock();
 
     return result;
   }
@@ -298,8 +304,6 @@ struct PowerControllerPrivate
           request->wind_curr,
           services_->valid_wind_curr_range_,
           services_->wind_curr_,
-          services_->torque_command_duration_,
-          PowerControllerServices::TORQUE_COMMAND_TIMEOUT,
           services_->torque_command_,
           services_->new_torque_command_);
 
@@ -330,8 +334,6 @@ struct PowerControllerPrivate
           request->scale,
           services_->valid_scale_range_,
           services_->scale_,
-          services_->scale_command_duration_,
-          PowerControllerServices::SCALE_COMMAND_TIMEOUT,
           services_->scale_command_,
           services_->new_scale_command_);
 
@@ -362,8 +364,6 @@ struct PowerControllerPrivate
           request->retract,
           services_->valid_retract_range_,
           services_->retract_,
-          services_->retract_command_duration_,
-          PowerControllerServices::RETRACT_COMMAND_TIMEOUT,
           services_->retract_command_,
           services_->new_retract_command_);
 
@@ -394,8 +394,6 @@ struct PowerControllerPrivate
           request->bias_curr,
           services_->valid_bias_curr_range_,
           services_->bias_curr_,
-          services_->bias_curr_command_duration_,
-          PowerControllerServices::BIAS_CURR_COMMAND_TIMEOUT,
           services_->bias_curr_command_,
           services_->new_bias_curr_command_);
 
@@ -419,6 +417,12 @@ struct PowerControllerPrivate
     ros_ign_gazebo::Stopwatch & watch,
     const rclcpp::Duration & duration)
   {
+    // low priority cmd access
+    std::unique_lock low_prio_lock(services_->low_prio_mutex_);
+    std::unique_lock next_lock(services_->next_access_mutex_);
+    std::unique_lock cmd_lock(services_->command_mutex_);
+    next_lock.unlock();
+
     // override
     if (command) {
       if (!watch.Running()) {
@@ -442,6 +446,7 @@ struct PowerControllerPrivate
         }
       }
     }
+    cmd_lock.unlock();
   }
 
   void manageCommandTimers(ElectroHydraulicState & state)
@@ -485,8 +490,13 @@ struct PowerControllerPrivate
     rclcpp::Duration & duration,
     const rclcpp::Duration & timeout)
   {
+    // low priority cmd access
+    std::unique_lock low_prio_lock(services_->low_prio_mutex_);
+    std::unique_lock next_lock(services_->next_access_mutex_);
+    std::unique_lock cmd_lock(services_->command_mutex_);
+    next_lock.unlock();
+
     if (command.isFinished()) {
-      std::unique_lock lock(services_->command_mutex_);
       services_command = false;
       duration = rclcpp::Duration(0, 0U);
       watch.Reset();
@@ -494,7 +504,6 @@ struct PowerControllerPrivate
     }
 
     if (new_command) {
-      std::unique_lock lock(services_->command_mutex_);
       if (services_command) {
         if (command) {
           command = command_value;
@@ -506,12 +515,14 @@ struct PowerControllerPrivate
               duration.seconds() << "s)");
         } else {
           command = command_value;
+          duration = timeout;
         }
       } else {
         command = services_command;
       }
       new_command = false;
     }
+    cmd_lock.unlock();
   }
 
   void manageCommandStates(ElectroHydraulicState & state)
