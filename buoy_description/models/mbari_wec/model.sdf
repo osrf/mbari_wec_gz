@@ -71,5 +71,9 @@
       <PrismaticJointName>HydraulicRam</PrismaticJointName>
     </plugin>
 
+    <plugin filename="MooringForce" name="buoy_gazebo::MooringForce">
+      <anchor_position>20 0 -77</anchor_position>
+    </plugin>
+
   </model>
 </sdf>
