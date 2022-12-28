@@ -15,9 +15,9 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSTATE_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSTATE_HPP_
 
-#include <ignition/gazebo/components/Factory.hh>
-#include <ignition/gazebo/components/Component.hh>
-#include <ignition/gazebo/config.hh>
+#include <gz/sim/components/Factory.hh>
+#include <gz/sim/components/Component.hh>
+#include <gz/sim/config.hh>
 
 #include <buoy_utils/CommandTriState.hpp>
 #include <buoy_utils/Status.hpp>
@@ -102,9 +102,9 @@ namespace components
 /// \brief State data as component for power commands and feedback from sensors for PCRecord
 /// message in ROS2
 using ElectroHydraulicState =
-  ignition::gazebo::components::Component<buoy_gazebo::ElectroHydraulicState,
+  gz::sim::components::Component<buoy_gazebo::ElectroHydraulicState,
     class ElectroHydraulicStateTag>;
-IGN_GAZEBO_REGISTER_COMPONENT(
+GZ_SIM_REGISTER_COMPONENT(
   "buoy_gazebo.components.ElectroHydraulicState",
   ElectroHydraulicState)
 }  // namespace components

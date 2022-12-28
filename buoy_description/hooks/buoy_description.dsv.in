@@ -1,2 +1,2 @@
-prepend-non-duplicate;IGN_GAZEBO_RESOURCE_PATH;share
-prepend-non-duplicate;IGN_GAZEBO_RESOURCE_PATH;share/buoy_description/models
+prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;share
+prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;share/buoy_description/models

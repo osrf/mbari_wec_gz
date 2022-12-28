@@ -72,9 +72,9 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('manual'))
     )
 
-    bridge = Node(package='ros_ign_bridge',
+    bridge = Node(package='ros_gz_bridge',
                   executable='parameter_bridge',
-                  arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+                  arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                   output='screen')
 
     return launch.LaunchDescription([

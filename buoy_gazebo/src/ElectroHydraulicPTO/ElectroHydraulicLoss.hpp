@@ -15,9 +15,11 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICLOSS_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICLOSS_HPP_
 
-#include <ignition/gazebo/components/Factory.hh>
-#include <ignition/gazebo/components/Component.hh>
-#include <ignition/gazebo/config.hh>
+
+#include <cmath>
+#include <gz/sim/components/Factory.hh>
+#include <gz/sim/components/Component.hh>
+#include <gz/sim/config.hh>
 
 
 namespace buoy_gazebo
@@ -49,9 +51,9 @@ namespace components
 {
 /// \brief State data as component for reporting via ROS2
 using ElectroHydraulicLoss =
-  ignition::gazebo::components::Component<buoy_gazebo::ElectroHydraulicLoss,
+  gz::sim::components::Component<buoy_gazebo::ElectroHydraulicLoss,
     class ElectroHydraulicLossTag>;
-IGN_GAZEBO_REGISTER_COMPONENT(
+GZ_SIM_REGISTER_COMPONENT(
   "buoy_gazebo.components.ElectroHydraulicLoss",
   ElectroHydraulicLoss)
 }  // namespace components

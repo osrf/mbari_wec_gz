@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-#include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicSoln.hpp>
-#include <buoy_utils/Constants.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <unsupported/Eigen/NonLinearOptimization>
 #include <gtest/gtest.h>
 #include <gnuplot-iostream.h>
+
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <vector>
 
+#include <buoy_gazebo/ElectroHydraulicPTO/ElectroHydraulicSoln.hpp>
+#include <buoy_utils/Constants.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 class EHSolver : public ::testing::Test
 {

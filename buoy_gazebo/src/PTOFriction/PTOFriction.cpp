@@ -13,13 +13,13 @@
 // limitations under the License.
 
 #include "PTOFriction.hpp"
-#include <ignition/common/Profiler.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
-#include <ignition/gazebo/components/JointForceCmd.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/plugin/Register.hh>
+#include <gz/common/Profiler.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
+#include <gz/sim/components/JointForceCmd.hh>
+#include <gz/sim/components/JointVelocity.hh>
+#include <gz/sim/Model.hh>
+#include <gz/plugin/Register.hh>
 
 #include <stdio.h>
 
@@ -37,10 +37,10 @@ class PTOFrictionPrivate
 {
 public:
   /// \brief Piston joint entity
-  ignition::gazebo::Entity PrismaticJointEntity{ignition::gazebo::kNullEntity};
+  gz::sim::Entity PrismaticJointEntity{gz::sim::kNullEntity};
 
   /// \brief Model interface
-  ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
+  gz::sim::Model model{gz::sim::kNullEntity};
 
   /// \brief Piston velocity
   const std::vector<double> pistonSpeed;  // m/s
@@ -69,12 +69,12 @@ PTOFriction::PTOFriction()
 
 //////////////////////////////////////////////////
 void PTOFriction::Configure(
-  const ignition::gazebo::Entity & _entity,
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  ignition::gazebo::EntityComponentManager & _ecm,
-  ignition::gazebo::EventManager & /*_eventMgr*/)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager & /*_eventMgr*/)
 {
-  this->dataPtr->model = ignition::gazebo::Model(_entity);
+  this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
     ignerr << "PTOFriction plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
@@ -94,7 +94,7 @@ void PTOFriction::Configure(
   this->dataPtr->PrismaticJointEntity = this->dataPtr->model.JointByName(
     _ecm,
     PrismaticJointName);
-  if (this->dataPtr->PrismaticJointEntity == ignition::gazebo::kNullEntity) {
+  if (this->dataPtr->PrismaticJointEntity == gz::sim::kNullEntity) {
     ignerr << "Joint with name [" << PrismaticJointName << "] not found. " <<
       "The PTOFriction may not influence this joint.\n";
     return;
@@ -103,8 +103,8 @@ void PTOFriction::Configure(
 
 //////////////////////////////////////////////////
 void PTOFriction::PreUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  gz::sim::EntityComponentManager & _ecm)
 {
   IGN_PROFILE("PTOFriction::PreUpdate");
   // Nothing left to do if paused.
@@ -115,16 +115,16 @@ void PTOFriction::PreUpdate(
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
 
   // If the joints haven't been identified yet, the plugin is disabled
-  if (this->dataPtr->PrismaticJointEntity == ignition::gazebo::kNullEntity) {
+  if (this->dataPtr->PrismaticJointEntity == gz::sim::kNullEntity) {
     return;
   }
 
   // Create joint velocity component for piston if one doesn't exist
-  auto prismaticJointVelComp = _ecm.Component<ignition::gazebo::components::JointVelocity>(
+  auto prismaticJointVelComp = _ecm.Component<gz::sim::components::JointVelocity>(
     this->dataPtr->PrismaticJointEntity);
   if (prismaticJointVelComp == nullptr) {
     _ecm.CreateComponent(
-      this->dataPtr->PrismaticJointEntity, ignition::gazebo::components::JointVelocity());
+      this->dataPtr->PrismaticJointEntity, gz::sim::components::JointVelocity());
   }
   // We just created the joint velocity component, give one iteration for the
   // physics system to update its size
@@ -140,12 +140,12 @@ void PTOFriction::PreUpdate(
     -prismaticJointVelComp->Data().at(0));
 
   // Create new component for applying force if it doesn't already exist
-  auto forceComp = _ecm.Component<ignition::gazebo::components::JointForceCmd>(
+  auto forceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
     this->dataPtr->PrismaticJointEntity);
   if (forceComp == nullptr) {
     _ecm.CreateComponent(
       this->dataPtr->PrismaticJointEntity,
-      ignition::gazebo::components::JointForceCmd({friction_force}));  // Create this iteration
+      gz::sim::components::JointForceCmd({friction_force}));  // Create this iteration
   } else {
     forceComp->Data()[0] += friction_force;  // Add friction to existing forces
   }
@@ -155,6 +155,6 @@ void PTOFriction::PreUpdate(
 
 IGNITION_ADD_PLUGIN(
   buoy_gazebo::PTOFriction,
-  ignition::gazebo::System,
+  gz::sim::System,
   buoy_gazebo::PTOFriction::ISystemConfigure,
   buoy_gazebo::PTOFriction::ISystemPreUpdate);

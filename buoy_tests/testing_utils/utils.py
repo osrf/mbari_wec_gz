@@ -21,8 +21,8 @@ from buoy_api import Interface
 from buoy_tests.srv import RunServer
 
 # TODO(anyone) Put back when fixed upstream
-# from ignition.common import set_verbosity
-# from ignition.gazebo import TestFixture
+# from gz.common import set_verbosity
+# from gz.sim import TestFixture
 
 import launch
 import launch.actions
@@ -49,9 +49,9 @@ def default_generate_test_description(server='fixture_server'):
         output='screen'
     )
 
-    bridge = launchNode(package='ros_ign_bridge',
+    bridge = launchNode(package='ros_gz_bridge',
                         executable='parameter_bridge',
-                        arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+                        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                         output='screen')
 
     return launch.LaunchDescription([
