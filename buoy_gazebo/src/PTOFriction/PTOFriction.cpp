@@ -106,7 +106,7 @@ void PTOFriction::PreUpdate(
   const gz::sim::UpdateInfo & _info,
   gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("PTOFriction::PreUpdate");
+  GZ_PROFILE("PTOFriction::PreUpdate");
   // Nothing left to do if paused.
   if (_info.paused) {
     return;
@@ -153,7 +153,7 @@ void PTOFriction::PreUpdate(
 
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::PTOFriction,
   gz::sim::System,
   buoy_gazebo::PTOFriction::ISystemConfigure,

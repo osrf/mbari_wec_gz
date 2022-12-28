@@ -17,8 +17,8 @@
 
 #include <optional>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/transport.hh>
+#include <gz/sim/System.hh>
+#include <gz/transport.hh>
 #include <memory>
 
 namespace buoy_gazebo
@@ -27,7 +27,7 @@ namespace buoy_gazebo
 class WaveBodyInteractionsPrivate;
 
 /// \brief To use, several parameters are required.
-/// Two ignition gazebo joints that are either prismatic or continous with 1DOF each,
+/// Two gazebo sim joints that are either prismatic or continous with 1DOF each,
 /// a desciption of the connectoins between actuator (joints),
 /// and an oil characteristic specification.
 ///
@@ -47,11 +47,11 @@ class WaveBodyInteractionsPrivate;
 ///   For each actuator of revolute type, the following nested tags are required:
 ///
 ///     <Displacement>  Displacement per revolution of rotary pump/motor.
-class WaveBodyInteractions : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPreUpdate,
-  public ignition::gazebo::ISystemUpdate,
-  public ignition::gazebo::ISystemPostUpdate
+class WaveBodyInteractions : public gz::sim::System,
+  public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPreUpdate,
+  public gz::sim::ISystemUpdate,
+  public gz::sim::ISystemPostUpdate
 {
 public:
   /// \brief Constructor
@@ -62,29 +62,29 @@ public:
 
   // Documentation inherited
   void Configure(
-    const ignition::gazebo::Entity & _entity,
+    const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager & _eventMgr) override;
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager & _eventMgr) override;
 
   // Documentation inherited
   void PreUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    gz::sim::EntityComponentManager & _ecm) override;
 
   // Documentation inherited
   void Update(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    gz::sim::EntityComponentManager & _ecm) override;
 
   // Documentation inherited
   void PostUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    const ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    const gz::sim::EntityComponentManager & _ecm) override;
 
 private:
-  ignition::transport::Node node;
-  ignition::transport::Node::Publisher pistonvel_pub;
+  gz::transport::Node node;
+  gz::transport::Node::Publisher pistonvel_pub;
 
   /// \brief Private data pointer
   std::unique_ptr<WaveBodyInteractionsPrivate> dataPtr;
