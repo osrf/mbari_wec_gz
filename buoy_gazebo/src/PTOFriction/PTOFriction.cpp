@@ -12,7 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "PTOFriction.hpp"
+#include <stdio.h>
+#include <memory>
+#include <string>
+#include <vector>
+#include <iostream>
+
 #include <gz/common/Profiler.hh>
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/components/JointVelocityCmd.hh>
@@ -21,15 +26,9 @@
 #include <gz/sim/Model.hh>
 #include <gz/plugin/Register.hh>
 
-#include <stdio.h>
-
 #include <simple_interp/interp1d.hpp>
 
-#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
-
+#include "PTOFriction.hpp"
 
 namespace buoy_gazebo
 {
