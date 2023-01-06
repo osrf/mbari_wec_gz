@@ -61,15 +61,15 @@ struct Functor
 struct CatenaryFunction
 {
 public:
-  /// \brief Catenary chain calculation.
+  /// \brief Scaling factor for catenary chain
   /// V: meters, vertical distance from buoy to anchor
-  /// B: Meters, length of mooring chain lying on seafloor, start
-  /// of catenary
+  /// B: Meters, length of mooring chain lying on seafloor, start of catenary
   /// L: meters, total length of mooring chain
-  /// Returns c. Catenary curve from B to H
-  static double CatenaryCoefficient(double _V, double _B, double _L)
+  /// Returns c, scaling factor, ratio of horizontal component of chain tension
+  /// and weight of cable per unit length
+  static double CatenaryScalingFactor(double _V, double _B, double _L)
   {
-    // Catenary coefficient c
+    // Scaling factor c
     return (pow((_L - _B), 2) - pow(_V, 2)) / (2. * _V);
   }
 };
@@ -97,16 +97,6 @@ public:
   {
   }
 
-  double y(double _c, double _x)
-  {
-    return _c * cosh((_x - this->B) / _c) - _c;
-  }
-
-  double f(double _c, double _x)
-  {
-    return (this->y(_c, _x) - this->V);
-  }
-
   // y_B
   // Take in x=H as initial guess
   // x: location on chain
@@ -117,13 +107,14 @@ public:
       return -1;
     }
 
-    // Catenary coefficient
-    double c = CatenaryFunction::CatenaryCoefficient(
+    // Scaling factor
+    double c = CatenaryFunction::CatenaryScalingFactor(
       this->V, this->B, this->L);
 
     // Catenary equation: y = lambda x: c * cosh((x - B) / c) - c
     double y = c * cosh((x[0] - this->B) / c) - c;;
     fvec.resize(x.size());
+    // What we want to be 0, y(H) - V
     fvec[0] = y - this->V;
 
     return 0;
@@ -151,7 +142,7 @@ public:
   {
   }
 
-  // Take in L - V - b as initial guess for B
+  // Know 0 <= B < L - V. Take in B = L - V - b as initial guess
   int operator()(const Eigen::VectorXd & B, Eigen::VectorXd & fvec) const
   {
     if (B.size() < 1) {
@@ -159,8 +150,8 @@ public:
       return -1;
     }
 
-    // Catenary coefficient
-    double c = CatenaryFunction::CatenaryCoefficient(
+    // Scaling factor
+    double c = CatenaryFunction::CatenaryScalingFactor(
       this->V, B[0], this->L);
 
     // Initial guess x = H, for CatenaryVSoln
@@ -169,6 +160,7 @@ public:
     x.resize(1);
     x[0] = this->H;
 
+    // Look for the H for the given B, y_B(B) = H, and y(H)=V
     CatenaryVSoln y_B = CatenaryVSoln(this->V, B[0], this->L);
     Eigen::HybridNonLinearSolver<CatenaryVSoln> vSolver(y_B);
     // Tolerance for error between two consecutive iterations
@@ -176,15 +168,18 @@ public:
     // Max number of calls to the function
     vSolver.parameters.maxfev = 1000;
 
-    // Call the solver
+    // Solver for x. Pass in initial guess.
+    // Want y(H)=V, so y(H) - V = 0
+    // After this, you have independent variable = H, dependent variable = V
     int solverInfo = vSolver.solveNumericalDiff(x);
 
-    // Recalculate y_B(B[0]) using solution of x from solver
+    // Once have x (hopefully x=H)
     fvec.resize(x.size());
-    fvec[0] = y_B.f(c, x[0]) - this->H;
+    // Update H, which is the solution of x from solver
+    fvec[0] = x[0];
 
-    igndbg << "VSolver solverInfo: " << solverInfo << " fvec[0]: " << fvec[0]
-      << std::endl;
+    //igndbg << "VSolver solverInfo: " << solverInfo
+    //  << " fvec[0] (solved x~H): " << fvec[0] << std::endl;
 
     return 0;
   }

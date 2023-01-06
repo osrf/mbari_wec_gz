@@ -104,7 +104,7 @@ void MooringForce::Configure(
   ignition::gazebo::EventManager & /*_eventMgr*/)
 {
   // Skip debug messages to run faster TODO change to 3 before merge PR
-  //ignition::common::Console::SetVerbosity(4);
+  ignition::common::Console::SetVerbosity(4);
 
   this->dataPtr->model = ignition::gazebo::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
@@ -160,17 +160,19 @@ void MooringForce::PreUpdate(
   double b = 0.0;
   this->dataPtr->B[0] = this->dataPtr->L - this->dataPtr->V - b;
 
-  // Catenary coefficient
-  double c = CatenaryFunction::CatenaryCoefficient(
+  // Scaling factor
+  double c = CatenaryFunction::CatenaryScalingFactor(
     this->dataPtr->V, this->dataPtr->B[0], this->dataPtr->L);
 
   int solverInfo;
+  // Increment b, to iterate on B
   while ((c <= 1e-5) && (this->dataPtr->L - this->dataPtr->V - b > 0.0)) {
     b += 1.0;
+    // Solve for B, pass in initial guess
     solverInfo = catenarySolver.solveNumericalDiff(this->dataPtr->B);
 
-    // Update c with newly solved B
-    c = CatenaryFunction::CatenaryCoefficient(
+    // Recalculate c with newly solved B
+    c = CatenaryFunction::CatenaryScalingFactor(
       this->dataPtr->V, this->dataPtr->B[0], this->dataPtr->L);
 
     // Found solution
@@ -181,10 +183,14 @@ void MooringForce::PreUpdate(
   igndbg << "HSolver solverInfo: " << solverInfo << " c: " << c
     << " B: " << this->dataPtr->B[0] << std::endl;
 
-  // TODO calculate tension T and force F
+  // Horizontal component of chain tension, in Newtons
+  // Force at buoy heave cone is Fx = -Tx
+  double Tx = c * this->dataPtr->w;
+  // Vertical component of chain tension at buoy heave cone, in Newtons
+  double Ty = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0]);
 
-  // Apply wrench to heave cone link, to which virtual mooring is attached
-  //ignition::math::Vector3d force(Fx, Fy, 0);
+  // Apply forces to buoy heave cone link, where the mooring would be attached
+  //ignition::math::Vector3d force(-Tx, Ty, 0);
   //ignition::math::Vector3d torque(0, 0, 0);
   //buoyLink.AddWorldWrench(_ecm, force, torque);
 }
