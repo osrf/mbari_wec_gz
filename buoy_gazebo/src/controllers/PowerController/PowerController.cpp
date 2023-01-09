@@ -243,8 +243,10 @@ struct PowerControllerPrivate
 
     auto spin = [this]()
       {
+        rclcpp::Rate rate(50.0);
         while (rclcpp::ok() && !stop_) {
           ros_->executor_->spin_once();
+          rate.sleep();
         }
       };
     thread_executor_spin_ = std::thread(spin);
@@ -290,7 +292,7 @@ struct PowerControllerPrivate
       [this](const std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request> request,
         std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response> response)
       {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCWindCurrCommand Received [" << request->wind_curr << " Amps]");
 
@@ -386,7 +388,7 @@ struct PowerControllerPrivate
       [this](const std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request> request,
         std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response> response)
       {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCBiasCurrCommand Received [" << request->bias_curr << " Amps]");
 
@@ -422,7 +424,7 @@ struct PowerControllerPrivate
     // override
     if (command) {
       if (!watch.Running()) {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "Override " << command_name << " (" <<
             duration.seconds() << "s)");
@@ -435,7 +437,7 @@ struct PowerControllerPrivate
           watch.Stop();
           command = false;
 
-          RCLCPP_INFO_STREAM(
+          RCLCPP_DEBUG_STREAM(
             ros_->node_->get_logger(),
             "Stopped overriding " << command_name << " after (" <<
               watch.ElapsedRunTime().seconds() << "s)");
@@ -500,7 +502,7 @@ struct PowerControllerPrivate
           command = command_value;
           duration = timeout + watch.ElapsedRunTime();
 
-          RCLCPP_INFO_STREAM(
+          RCLCPP_DEBUG_STREAM(
             ros_->node_->get_logger(),
             "Continue Override " << command_name << " (" <<
               duration.seconds() << "s)");

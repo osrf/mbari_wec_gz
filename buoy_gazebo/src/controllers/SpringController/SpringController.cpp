@@ -160,8 +160,10 @@ struct SpringControllerPrivate
 
     auto spin = [this]()
       {
+        rclcpp::Rate rate(50.0);
         while (rclcpp::ok() && !stop_) {
           ros_->executor_->spin_once();
+          rate.sleep();
         }
       };
     thread_executor_spin_ = std::thread(spin);
@@ -641,7 +643,6 @@ void SpringController::PostUpdate(
   // this->dataPtr->sc_record_.salinity = spring_state_comp->Data().salinity_;
   // this->dataPtr->sc_record_.temperature = spring_state_comp->Data().temperature_;
 
-  // TODO(andermi) set the bits for this
   this->dataPtr->ros_->sc_record_.status = spring_state_comp->Data().status;
 
   this->dataPtr->spring_data_valid_ = true;

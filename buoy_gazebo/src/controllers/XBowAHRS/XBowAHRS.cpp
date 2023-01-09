@@ -142,8 +142,10 @@ void XBowAHRS::Configure(
 
   auto spin = [this]()
     {
+      rclcpp::Rate rate(50.0);
       while (rclcpp::ok() && !this->dataPtr->stop_) {
         this->dataPtr->executor_->spin_once();
+        rate.sleep();
       }
     };
   this->dataPtr->thread_executor_spin_ = std::thread(spin);
