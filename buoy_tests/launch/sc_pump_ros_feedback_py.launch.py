@@ -33,7 +33,7 @@ class BuoySCPumpPyTest(BuoyPyTests):
         self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
 
-        preCmdIterations = 40000
+        preCmdIterations = 45000
         statusCheckIterations = 1000
         postCmdIterations = 60000
 
@@ -134,11 +134,13 @@ class BuoySCPumpPyTest(BuoyPyTests):
 
         self.assertGreater(post_pump_range_finder,
                            pre_pump_range_finder - 2.2 * 0.0254,
-                           'Piston should retract 2 inches/min for 1 minute')
+                           'Piston should retract 2 inches/min for 1 minute' +
+                           ' -- decrease pump absement')
 
         self.assertLess(post_pump_range_finder,
                         pre_pump_range_finder - 1.8 * 0.0254,
-                        'Piston should retract 2 inches/min for 1 minute')
+                        'Piston should retract 2 inches/min for 1 minute' +
+                        ' -- increase pump absement')
 
         # TODO(anyone) remove once TestFixture is fixed upstream
         self.test_helper.stop()

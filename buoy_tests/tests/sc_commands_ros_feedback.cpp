@@ -166,7 +166,7 @@ protected:
 //////////////////////////////////////////////////
 TEST_F(BuoySCTests, SCValveROS)
 {
-  int preCmdIterations{40000}, statusCheckIterations{1000}, postCmdIterations{5000};
+  int preCmdIterations{45000}, statusCheckIterations{1000}, postCmdIterations{5000};
 
   // Run simulation server and wait for piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
@@ -298,12 +298,12 @@ TEST_F(BuoySCTests, SCValveROS)
   EXPECT_GT(
     post_valve_range_finder,
     pre_valve_range_finder + 0.8F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
-    "Piston should extend 1 inch/sec for 5 seconds";
+    "Piston should extend 1 inch/sec for 5 seconds -- increase valve absement";
 
   EXPECT_LT(
     post_valve_range_finder,
     pre_valve_range_finder + 1.2F /*inch per sec*/ * INCHES_TO_METERS * 5.0F /*seconds*/) <<
-    "Piston should extend 1 inch/sec for 5 seconds";
+    "Piston should extend 1 inch/sec for 5 seconds -- decrease valve absement";
 
   // Stop spinning node
   node->stop();
@@ -315,7 +315,7 @@ TEST_F(BuoySCTests, SCValveROS)
 //////////////////////////////////////////////////
 TEST_F(BuoySCTests, SCPumpROS)
 {
-  int preCmdIterations{40000}, statusCheckIterations{1000}, postCmdIterations{60000};
+  int preCmdIterations{45000}, statusCheckIterations{1000}, postCmdIterations{60000};
 
   // Run simulation server and allow piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
@@ -443,12 +443,12 @@ TEST_F(BuoySCTests, SCPumpROS)
   EXPECT_GT(
     post_pump_range_finder,
     pre_pump_range_finder - 2.2F /*inches per minute*/ * INCHES_TO_METERS * 1.0F /*minute*/) << \
-    "Piston should retract 2 inches/min for 1 minute";
+    "Piston should retract 2 inches/min for 1 minute -- decrease pump absement";
 
   EXPECT_LT(
     post_pump_range_finder,
     pre_pump_range_finder - 1.8F /*inches per minute*/ * INCHES_TO_METERS * 1.0F /*minute*/) << \
-    "Piston should retract 2 inches/min for 1 minute";
+    "Piston should retract 2 inches/min for 1 minute -- increase pump absement";
 
   // Stop spinning node
   node->stop();

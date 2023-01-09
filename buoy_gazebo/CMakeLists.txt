@@ -127,6 +127,11 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PolytropicPneumaticSpring
   FILES_MATCHING PATTERN "*.hpp"
 )
 
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PTOFriction
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
 ament_export_targets(export_BuoyECMStateData)
 
 # Resources
@@ -141,6 +146,7 @@ install(DIRECTORY
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
+
 endif()
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")

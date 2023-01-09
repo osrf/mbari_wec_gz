@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdio.h>
-#include <memory>
-#include <string>
-#include <vector>
-#include <iostream>
+<<<<<<< HEAD
+#include "PTOFriction.hpp"
 
 #include <gz/common/Profiler.hh>
 #include <gz/sim/components/Name.hh>
@@ -26,9 +23,15 @@
 #include <gz/sim/Model.hh>
 #include <gz/plugin/Register.hh>
 
+#include <stdio.h>
+
 #include <simple_interp/interp1d.hpp>
 
-#include "PTOFriction.hpp"
+#include <memory>
+#include <string>
+#include <vector>
+#include <iostream>
+
 
 namespace buoy_gazebo
 {
@@ -80,7 +83,6 @@ void PTOFriction::Configure(
     return;
   }
 
-
   // Get params from SDF for Prismatic Joint.
   auto PrismaticJointName = _sdf->Get<std::string>("PrismaticJointName");
   if (PrismaticJointName.empty()) {
@@ -88,7 +90,6 @@ void PTOFriction::Configure(
       "Failed to initialize.";
     return;
   }
-
 
   this->dataPtr->PrismaticJointEntity = this->dataPtr->model.JointByName(
     _ecm,
