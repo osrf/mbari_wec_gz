@@ -31,6 +31,9 @@
 #include <rclcpp/rclcpp.hpp>
 
 
+// NOLINTNEXTLINE
+using namespace std::chrono;
+
 TEST(BuoyTests, RunServer)
 {
   // Skip debug messages to run faster
@@ -127,5 +130,6 @@ TEST(BuoyTests, RunServer)
   RCLCPP_INFO(rclcpp::get_logger("run_server"), "Ready to run test server.");
 
   rclcpp::spin(node);
+  std::this_thread::sleep_for(1s);  // needed for launch_test to know we shut down
   RCLCPP_INFO(rclcpp::get_logger("run_server"), "Shutting down test server.");
 }
