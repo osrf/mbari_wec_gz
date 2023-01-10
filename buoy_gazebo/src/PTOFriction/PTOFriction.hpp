@@ -15,10 +15,10 @@
 #ifndef PTOFRICTION__PTOFRICTION_HPP_
 #define PTOFRICTION__PTOFRICTION_HPP_
 
-#include <gz/sim/System.hh>
-
 #include <memory>
 #include <vector>
+
+#include <gz/sim/System.hh>
 
 
 namespace buoy_gazebo
