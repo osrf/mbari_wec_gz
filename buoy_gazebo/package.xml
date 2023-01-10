@@ -22,6 +22,7 @@
   <depend>sdformat_urdf</depend>
   <depend>simple_interp</depend>
   <depend>gnuplot-iostream</depend>
+  <depend>libfshydrodynamics</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
