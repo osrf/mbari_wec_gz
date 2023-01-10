@@ -222,7 +222,7 @@ class BuoyPCPyTest(BuoyPyTests):
                          torque_timeout_iterations,
                          self.test_helper.iterations)
 
-        time.sleep(0.5)
+        time.sleep(5.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 

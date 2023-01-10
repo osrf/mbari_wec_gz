@@ -13,9 +13,7 @@
 # limitations under the License.
 
 import asyncio
-import threading
 from threading import Thread
-import time
 import unittest
 
 from buoy_api import Interface
@@ -183,25 +181,14 @@ class BuoyPyTests(unittest.TestCase):
         self.executor = MultiThreadedExecutor()
         self.executor.add_node(self.node)
         self.executor.add_node(self.test_helper)
-        self.executor_thread = Thread(target=self.spin)
-        self.executor_thread.stop = False
+        self.executor_thread = Thread(target=self.executor.spin)
         self.executor_thread.daemon = True
         self.executor_thread.start()
-
-    def spin(self):
-        # TODO(anyone) rate doesn't update from sim /clock this way and blocks forever
-        # rate = self.node.create_rate(25.0)
-        t = threading.currentThread()
-        while rclpy.ok() and not getattr(t, "stop", False):
-            self.executor.spin_once(1.0)
-            # rate.sleep()
-            time.sleep(1.0/50.0)
         # TODO(anyone) put back when TestFixture fixed upstream
         # self.node.start()
         # set_verbosity(3)
 
     def tearDown(self):
-        self.executor_thread.stop = True
         rclpy.shutdown()
         self.assertFalse(rclpy.ok())
         self.executor.shutdown()
