@@ -21,3 +21,8 @@ jobs:
         env:
           GZ_VERSION: ${{ matrix.gz-version  }}
           ROS_DISTRO: ${{ matrix.ros-distro }}
+      - name: Archive rosbag
+        uses: actions/upload-artifact@v3
+        with:
+          name: rosbag
+          path: rosbag/
