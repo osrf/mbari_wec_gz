@@ -25,4 +25,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: rosbag
-          path: rosbag/
+          path: ~/ws/rosbag/
