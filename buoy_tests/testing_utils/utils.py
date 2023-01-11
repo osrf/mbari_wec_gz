@@ -40,7 +40,7 @@ from rclpy.node import Node as rclpyNode
 from rclpy.parameter import Parameter
 
 
-def default_generate_test_description(server='fixture_server'):
+def default_generate_test_description(server='fixture_server', enable_rosbag=False):
 
     # Test fixture
     gazebo_test_fixture = launchNode(
@@ -54,6 +54,19 @@ def default_generate_test_description(server='fixture_server'):
                         arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                         output='screen')
 
+    if enable_rosbag:
+        rosbag = launch.actions.ExecuteProcess(
+            cmd=['ros2', 'bag', 'record', '-a'],
+            output='screen'
+        )
+
+        return launch.LaunchDescription([
+            gazebo_test_fixture,
+            bridge,
+            rosbag,
+            launch_testing.util.KeepAliveProc(),
+            launch_testing.actions.ReadyToTest()
+        ]), locals()
     return launch.LaunchDescription([
         gazebo_test_fixture,
         bridge,

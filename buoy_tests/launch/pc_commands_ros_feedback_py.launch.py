@@ -27,7 +27,7 @@ from testing_utils import default_generate_test_description
 
 
 def generate_test_description():
-    return default_generate_test_description()
+    return default_generate_test_description(enable_rosbag=True)
 
 
 config = os.path.join(
@@ -105,7 +105,7 @@ class BuoyPCPyTest(BuoyPyTests):
         torque_policy_ = PBTorqueControlPolicy()
         self.set_params(torque_policy_)
 
-        time.sleep(10.0)
+        time.sleep(0.5)
         clock = self.node.get_clock()
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, 0)
@@ -120,7 +120,7 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertTrue(self.test_helper.run_status)
         self.assertEqual(self.test_helper.iterations, feedbackCheckIterations)
 
-        time.sleep(10.0)
+        time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
@@ -137,7 +137,7 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertTrue(self.test_helper.run_status)
         self.assertEqual(self.test_helper.iterations, preCmdIterations + feedbackCheckIterations)
 
-        time.sleep(10.0)
+        time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
@@ -157,7 +157,7 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertEqual(preCmdIterations + 2 * feedbackCheckIterations,
                          self.test_helper.iterations)
 
-        time.sleep(10.0)
+        time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
@@ -180,7 +180,7 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertEqual(preCmdIterations + 3 * feedbackCheckIterations,
                          self.test_helper.iterations)
 
-        time.sleep(10.0)
+        time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
@@ -203,7 +203,7 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertEqual(preCmdIterations + 4 * feedbackCheckIterations,
                          self.test_helper.iterations)
 
-        time.sleep(10.0)
+        time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
@@ -222,7 +222,7 @@ class BuoyPCPyTest(BuoyPyTests):
                          torque_timeout_iterations,
                          self.test_helper.iterations)
 
-        time.sleep(5.5)
+        time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
@@ -253,7 +253,7 @@ class BuoyPCPyTest(BuoyPyTests):
                          torque_timeout_iterations + bias_curr_iterations,
                          self.test_helper.iterations)
 
-        time.sleep(10.0)
+        time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
@@ -270,7 +270,7 @@ class BuoyPCPyTest(BuoyPyTests):
                          torque_timeout_iterations + bias_curr_timeout_iterations,
                          self.test_helper.iterations)
 
-        time.sleep(10.0)
+        time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
