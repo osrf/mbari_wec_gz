@@ -37,6 +37,8 @@ rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
 
+apt install -y ros-humble-ros2cli
+
 # Build everything up to buoy_gazebo
 source /opt/ros/$ROS_DISTRO/setup.bash
 cd $COLCON_WS
