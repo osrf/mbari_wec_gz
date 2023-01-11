@@ -49,3 +49,4 @@ source $COLCON_WS/install/setup.bash
 #colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+
 launch_test $COLCON_WS/install/buoy_tests/share/buoy_tests/launch/pc_commands_ros_feedback_py.launch.py
 colcon test-result
+ls
