@@ -45,7 +45,5 @@ source $COLCON_WS/install/setup.bash
 
 # Test all buoy packages
 #colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+
-ros2 -h
-ls /opt/ros/humble/bin/ros2
 launch_test $COLCON_WS/install/buoy_tests/share/buoy_tests/launch/pc_commands_ros_feedback_py.launch.py
 colcon test-result
