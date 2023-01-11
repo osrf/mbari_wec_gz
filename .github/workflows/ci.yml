@@ -21,7 +21,7 @@ jobs:
         env:
           GZ_VERSION: ${{ matrix.gz-version  }}
           ROS_DISTRO: ${{ matrix.ros-distro }}
-      - name: Archive rosbag
+      - name: Archive rosbags
         if: success() || failure()
         uses: actions/upload-artifact@v3
         with:
