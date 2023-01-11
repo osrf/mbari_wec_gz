@@ -40,7 +40,9 @@ from rclpy.node import Node as rclpyNode
 from rclpy.parameter import Parameter
 
 
-def default_generate_test_description(server='fixture_server', enable_rosbag=False):
+def default_generate_test_description(server='fixture_server',
+                                      enable_rosbag=False,
+                                      rosbag_name=None):
 
     # Test fixture
     gazebo_test_fixture = launchNode(
@@ -55,10 +57,16 @@ def default_generate_test_description(server='fixture_server', enable_rosbag=Fal
                         output='screen')
 
     if enable_rosbag:
-        rosbag = launch.actions.ExecuteProcess(
-            cmd=['ros2', 'bag', 'record', '-o', 'rosbag', '-a'],
-            output='screen'
-        )
+        if rosbag_name is not None:
+            rosbag = launch.actions.ExecuteProcess(
+                cmd=['ros2', 'bag', 'record', '-o', rosbag_name, '-a'],
+                output='screen'
+            )
+        else:
+            rosbag = launch.actions.ExecuteProcess(
+                cmd=['ros2', 'bag', 'record', '-a'],
+                output='screen'
+            )
 
         return launch.LaunchDescription([
             gazebo_test_fixture,

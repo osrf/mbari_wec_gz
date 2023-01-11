@@ -25,5 +25,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v3
         with:
-          name: rosbag
-          path: ~/ws/rosbag/
+          name: rosbags
+          path: ~/ws/build/buoy_tests/rosbag*
+          if-no-files-found: ignore
+          retention-days: 2

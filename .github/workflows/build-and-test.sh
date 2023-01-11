@@ -37,6 +37,7 @@ rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
 
+# For rosbag2 test artifacts
 apt install -y ros-humble-ros2cli ros-humble-rosbag2 ros-humble-rosbag2-transport
 
 # Build everything up to buoy_gazebo
@@ -46,7 +47,5 @@ colcon build --packages-up-to buoy_tests --event-handlers console_direct+
 source $COLCON_WS/install/setup.bash
 
 # Test all buoy packages
-#colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+
-launch_test $COLCON_WS/install/buoy_tests/share/buoy_tests/launch/pc_commands_ros_feedback_py.launch.py
+colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+
 colcon test-result
-ls
