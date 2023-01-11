@@ -56,7 +56,7 @@ def default_generate_test_description(server='fixture_server', enable_rosbag=Fal
 
     if enable_rosbag:
         rosbag = launch.actions.ExecuteProcess(
-            cmd=['ros2', 'bag', 'record', '-a'],
+            cmd=['/opt/ros/humble/bin/ros2', 'bag', 'record', '-a'],
             output='screen'
         )
 
