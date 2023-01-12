@@ -22,7 +22,8 @@ from testing_utils import default_generate_test_description
 
 
 def generate_test_description():
-    return default_generate_test_description()
+    return default_generate_test_description(enable_rosbag=True,
+                                             rosbag_name='rosbag2_sc_pump_py')
 
 
 class BuoySCPumpPyTest(BuoyPyTests):
