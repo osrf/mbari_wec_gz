@@ -26,6 +26,6 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: rosbags
-          path: ~/ws/rosbag*
+          path: ~/ws/build/buoy_tests/rosbag*
           if-no-files-found: ignore
           retention-days: 2
