@@ -48,5 +48,5 @@ source $COLCON_WS/install/setup.bash
 
 # Test all buoy packages
 #colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+
-$COLCON_WS/install/buoy_tests/lib/buoy_tests/no_inputs
+launch_test $COLCON_WS/install/buoy_tests/share/buoy_tests/launch/sc_pump_ros_feedback_py.launch.py
 colcon test-result
