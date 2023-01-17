@@ -363,17 +363,10 @@ void PolytropicPneumaticSpring::Configure(
     gzdbg << "V2: " << config.V2 << std::endl;
     this->dataPtr->V0 = config.V1;
 
-//<<<<<<< HEAD
     this->dataPtr->c = this->dataPtr->P1 * config.V1 / config.T0;
-    igndbg << "c: " << this->dataPtr->c << std::endl;
+    gzdbg << "c: " << this->dataPtr->c << std::endl;
     this->dataPtr->mass = this->dataPtr->c / config.R;
-    igndbg << "mass: " << this->dataPtr->mass << std::endl;
-//=======
-//    config.c = this->dataPtr->P1 * config.V1 / config.T0;
-//    gzdbg << "c: " << config.c << std::endl;
-//    this->dataPtr->mass = config.c / config.R;
-//    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
-//>>>>>>> chapulina/humble_garden
+    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
   } else {  // no hysteresis
     config.n0 = SdfParamDouble(_sdf, "n", PolytropicPneumaticSpringConfig::ADIABATIC_INDEX);
     if (fabs(config.n0 - PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) < 1.0e-7) {
@@ -388,19 +381,11 @@ void PolytropicPneumaticSpring::Configure(
       config.x0 * config.piston_area;
     this->dataPtr->V0 = config.V0;
 
-//<<<<<<< HEAD
-    igndbg << "V0: " << config.V0 << std::endl;
+    gzdbg << "V0: " << config.V0 << std::endl;
     this->dataPtr->c = this->dataPtr->P0 * config.V0 / config.T0;
-    igndbg << "c: " << this->dataPtr->c << std::endl;
+    gzdbg << "c: " << this->dataPtr->c << std::endl;
     this->dataPtr->mass = this->dataPtr->c / config.R;
-    igndbg << "mass: " << this->dataPtr->mass << std::endl;
-//=======
-//    gzdbg << "V0: " << config.V0 << std::endl;
-//    config.c = this->dataPtr->P0 * config.V0 / config.T0;
-//    gzdbg << "c: " << config.c << std::endl;
-//    this->dataPtr->mass = config.c / config.R;
-//    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
-//>>>>>>> chapulina/humble_garden
+    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
   }
 
   this->dataPtr->V = this->dataPtr->V0;

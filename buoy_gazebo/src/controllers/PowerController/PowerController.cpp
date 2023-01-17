@@ -296,7 +296,7 @@ struct PowerControllerPrivate
       [this](const std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request> request,
         std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response> response)
       {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCWindCurrCommand Received [" << request->wind_curr << " Amps]");
 
@@ -386,7 +386,7 @@ struct PowerControllerPrivate
       [this](const std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request> request,
         std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response> response)
       {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCBiasCurrCommand Received [" << request->bias_curr << " Amps]");
 
@@ -426,7 +426,7 @@ struct PowerControllerPrivate
     // override
     if (command) {
       if (!watch.Running()) {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "Override " << command_name << " (" <<
             duration.seconds() << "s)");
@@ -439,7 +439,7 @@ struct PowerControllerPrivate
           watch.Stop();
           command = false;
 
-          RCLCPP_INFO_STREAM(
+          RCLCPP_DEBUG_STREAM(
             ros_->node_->get_logger(),
             "Stopped overriding " << command_name << " after (" <<
               watch.ElapsedRunTime().seconds() << "s)");
@@ -509,7 +509,7 @@ struct PowerControllerPrivate
           command = command_value;
           duration = timeout + watch.ElapsedRunTime();
 
-          RCLCPP_INFO_STREAM(
+          RCLCPP_DEBUG_STREAM(
             ros_->node_->get_logger(),
             "Continue Override " << command_name << " (" <<
               duration.seconds() << "s)");
@@ -717,6 +717,15 @@ void PowerController::PreUpdate(
 
   this->dataPtr->manageCommandTimers(pto_state);
   this->dataPtr->manageCommandStates(pto_state);
+
+  /*
+  if (this->dataPtr->services_->torque_command_watch_.Running()) {
+    RCLCPP_INFO_STREAM(
+      this->dataPtr->ros_->node_->get_logger(),
+      "Winding Current (Torque) Override has been running for (" <<
+        this->dataPtr->services_->torque_command_watch_.ElapsedRunTime().seconds() << " s)");
+  }
+  */
 
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
     this->dataPtr->jointEntity_,

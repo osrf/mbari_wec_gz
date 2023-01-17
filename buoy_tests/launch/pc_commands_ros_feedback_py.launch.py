@@ -27,7 +27,8 @@ from testing_utils import default_generate_test_description
 
 
 def generate_test_description():
-    return default_generate_test_description()
+    return default_generate_test_description(enable_rosbag=True,
+                                             rosbag_name='rosbag2_pc_cmds_py')
 
 
 config = os.path.join(
@@ -212,7 +213,7 @@ class BuoyPCPyTest(BuoyPyTests):
 
         ##################################################
         # Check return to default winding current damping
-        torque_timeout_iterations = 2000
+        torque_timeout_iterations = 2500
 
         # Run to let winding current finish
         self.test_helper.run(torque_timeout_iterations - 2 * feedbackCheckIterations)

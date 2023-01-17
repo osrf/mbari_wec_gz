@@ -15,9 +15,9 @@
 
 #include <gtest/gtest.h>
 
-#include <simple_interp/interp1d.hpp>
-
 #include <vector>
+
+#include <simple_interp/interp1d.hpp>
 
 
 // NOLINTNEXTLINE

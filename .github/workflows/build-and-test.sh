@@ -37,6 +37,9 @@ rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
 
+# For rosbag2 test artifacts
+apt install -y ros-humble-ros2cli ros-humble-rosbag2 ros-humble-rosbag2-transport
+
 # Build everything up to buoy_gazebo
 source /opt/ros/$ROS_DISTRO/setup.bash
 cd $COLCON_WS
