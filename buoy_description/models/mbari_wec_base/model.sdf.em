@@ -29,11 +29,9 @@ num_tether_bottom_links = 5
 
 # Heave cone
 heave_total_mass = 817
-trefoil_mass = 10
+trefoil_mass = 20
+mu_zz = 10000.0
 
-# Heave cone
-heave_total_mass = 817
-trefoil_mass = 10
 
 ###################
 # Computed values #
@@ -84,13 +82,36 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 2.13 0 0 0</pose>
         <mass>1400</mass>
         <inertia>
-          <ixx>1429</ixx>
-          <ixy>6.77</ixy>
-          <ixz>4.69</ixz>
-          <iyy>670.31</iyy>
-          <iyz>30.5</iyz>
-          <izz>1476</izz>
+          <ixx>1450.0</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>1450.0</iyy>
+          <iyz>0.0</iyz>
+          <izz>670.0</izz>
         </inertia>
+        <fluid_added_mass>
+           <xx>1.0</xx>
+           <xy>0.0</xy>
+           <xz>0.0</xz>
+           <xp>0.0</xp>
+           <xq>0.0</xq>
+           <xr>0.0</xr>
+           <yy>1.0</yy>
+           <yz>0.0</yz>
+           <yp>0.0</yp>
+           <yq>0.0</yq>
+           <yr>0.0</yr>
+           <zz>3000.0</zz>
+           <zp>0.0</zp>
+           <zq>0.0</zq>
+           <zr>0.0</zr>
+           <pp>0.1</pp>
+           <pq>0.0</pq>
+           <pr>0.0</pr>
+           <qq>0.1</qq>
+           <qr>0.0</qr>
+           <rr>0.1</rr>
+       </fluid_added_mass>
       </inertial>
       <visual name="visual_Buoy">
         <geometry>
@@ -130,15 +151,38 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <pose relative_to="Buoy">0 0 0 0 0 0</pose>
       <inertial>
         <pose>0 0 -3.67 0 0 0</pose>
-        <mass>605</mass>
+        <mass>600</mass>
         <inertia>
-          <ixx>3219</ixx>
-          <ixy>-0.43</ixy>
-          <ixz>-2.56</ixz>
-          <iyy>3219</iyy>
-          <iyz>3.37</iyz>
-          <izz>7.28</izz>
+          <ixx>3220.0</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>3220.0</iyy>
+          <iyz>0.0</iyz>
+          <izz>10.0</izz>
         </inertia>
+        <fluid_added_mass>
+           <xx>160.0</xx>
+           <xy>0.0</xy>
+           <xz>0.0</xz>
+           <xp>0.0</xp>
+           <xq>0.0</xq>
+           <xr>0.0</xr>
+           <yy>160.0.0</yy>
+           <yz>0.0</yz>
+           <yp>0.0</yp>
+           <yq>0.0</yq>
+           <yr>0.0</yr>
+           <zz>0.0</zz>
+           <zp>0.0</zp>
+           <zq>0.0</zq>
+           <zr>0.0</zr>
+           <pp>0.0</pp>
+           <pq>0.0</pq>
+           <pr>0.0</pr>
+           <qq>0.0</qq>
+           <qr>0.0</qr>
+           <rr>0.0</rr>
+       </fluid_added_mass>
       </inertial>
       <visual name="visual_PTO">
         <geometry>
@@ -177,16 +221,16 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <link name="Piston">
       <pose relative_to="PTO">0 0 @(piston_z_offset) 0 0 0</pose>
       <inertial>
-        <mass>48</mass>
-        <pose>0 0 -2.57934 0 0 0</pose>
+        <mass>48.0</mass>
+        <pose>0 0 -2.58 0 0 0</pose>
         <inertia>
-          <!-- TODO(chapulina) Get real values -->
-          <ixx>128</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>128</iyy>
-          <iyz>0</iyz>
-          <izz>0.0216</izz>
+          <!-- TODO(hamilton) Refine values -->
+          <ixx>100.0</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>100.0</iyy>
+          <iyz>0.0</iyz>
+          <izz>5.0</izz>
         </inertia>
       </inertial>
       <visual name="visual_Piston">
@@ -345,16 +389,39 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <link name="HeaveCone">
       <pose relative_to="PistonBottom">0 0 -@(tether_length) 0 0 0</pose>
       <inertial>
-        <pose>0 0 -1.25 0 0 0</pose>
+        <pose>0 0 -1.2 0 0 0</pose>
         <mass>@(heave_total_mass - trefoil_mass)</mass>
         <inertia>
-          <ixx>339.8</ixx>
-          <ixy>0.16</ixy>
-          <ixz>-0.29</ixz>
-          <iyy>343.73</iyy>
-          <iyz>0.33</iyz>
-          <izz>613.52</izz>
+          <ixx>340.0</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>340.0</iyy>
+          <iyz>0.0</iyz>
+          <izz>600.0</izz>
         </inertia>
+        <fluid_added_mass>
+           <xx>780.0</xx>
+           <xy>0.0</xy>
+           <xz>0.0</xz>
+           <xp>0.0</xp>
+           <xq>0.0</xq>
+           <xr>0.0</xr>
+           <yy>780.0</yy>
+           <yz>0.0</yz>
+           <yp>0.0</yp>
+           <yq>0.0</yq>
+           <yr>0.0</yr>
+           <zz>@(mu_zz)</zz>
+           <zp>0.0</zp>
+           <zq>0.0</zq>
+           <zr>0.0</zr>
+           <pp>0.1</pp>
+           <pq>0.0</pq>
+           <pr>0.0</pr>
+           <qq>0.1</qq>
+           <qr>0.0</qr>
+           <rr>0.1</rr>
+       </fluid_added_mass>
       </inertial>
       <visual name="visual_HeaveCone">
         <geometry>
@@ -382,8 +449,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <link name="Trefoil">
       <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
       <inertial>
-        <pose>0 0 -1.25 0 0 0</pose>
-        <!-- TODO(chapulina) Get real values -->
+        <pose>0 0 -1.2 0 0 0</pose>
         <mass>@(trefoil_mass)</mass>
         <inertia>
           <ixx>10</ixx>
@@ -391,7 +457,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <ixz>0</ixz>
           <iyy>10</iyy>
           <iyz>0</iyz>
-          <izz>19.9</izz>
+          <izz>20.0</izz>
         </inertia>
       </inertial>
       <visual name="visual_Trefoil">
