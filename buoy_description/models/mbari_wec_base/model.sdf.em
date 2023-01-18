@@ -90,27 +90,27 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>670.0</izz>
         </inertia>
         <fluid_added_mass>
-           <xx>1.0</xx>
+           <xx>330.0</xx>
            <xy>0.0</xy>
            <xz>0.0</xz>
            <xp>0.0</xp>
-           <xq>0.0</xq>
+           <xq>180.0</xq>
            <xr>0.0</xr>
-           <yy>1.0</yy>
+           <yy>330.0</yy>
            <yz>0.0</yz>
-           <yp>0.0</yp>
+           <yp>-180.0</yp>
            <yq>0.0</yq>
            <yr>0.0</yr>
-           <zz>3000.0</zz>
+           <zz>2800.0</zz>
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>0.1</pp>
+           <pp>430</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>0.1</qq>
+           <qq>430</qq>
            <qr>0.0</qr>
-           <rr>0.1</rr>
+           <rr>0.0</rr>
        </fluid_added_mass>
       </inertial>
       <visual name="visual_Buoy">
