@@ -43,6 +43,7 @@ apt install -y ros-humble-ros2cli ros-humble-rosbag2 ros-humble-rosbag2-transpor
 # Build everything up to buoy_gazebo
 source /opt/ros/$ROS_DISTRO/setup.bash
 cd $COLCON_WS
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 colcon build --packages-up-to buoy_tests --event-handlers console_direct+
 source $COLCON_WS/install/setup.bash
 
