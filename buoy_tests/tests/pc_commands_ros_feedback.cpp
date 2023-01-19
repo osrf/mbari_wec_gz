@@ -458,4 +458,6 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Sanity check that the test ran
   EXPECT_NE(gz::sim::kNullEntity, buoyEntity);
+
+  std::this_thread::sleep_for(1s);  // needed for launch_test to know we shut down
 }
