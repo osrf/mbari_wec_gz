@@ -12,33 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "XBowAHRS.hpp"
-
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Link.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/plugin/Register.hh>
-#include <ignition/msgs/imu.pb.h>
-#include <ignition/transport/Node.hh>
-
-#include <rclcpp/rclcpp.hpp>
-
-#include <buoy_interfaces/msg/xb_record.hpp>
-#include <sensor_msgs/msg/imu.hpp>
+#include <gz/msgs/imu.pb.h>
 
 #include <memory>
 #include <string>
 #include <vector>
 #include <limits>
 
+#include <gz/sim/Model.hh>
+#include <gz/sim/Link.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/plugin/Register.hh>
+#include <gz/transport/Node.hh>
+
+#include <rclcpp/rclcpp.hpp>
+
+#include <buoy_interfaces/msg/xb_record.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+
+#include "XBowAHRS.hpp"
+
 struct buoy_gazebo::XBowAHRSPrivate
 {
-  ignition::gazebo::Entity entity_;
-  ignition::gazebo::Entity linkEntity_;
+  gz::sim::Entity entity_;
+  gz::sim::Entity linkEntity_;
   rclcpp::Node::SharedPtr rosnode_{nullptr};
-  ignition::transport::Node node_;
-  std::function<void(const ignition::msgs::IMU &)> imu_cb_;
+  gz::transport::Node node_;
+  std::function<void(const gz::msgs::IMU &)> imu_cb_;
   rclcpp::Publisher<buoy_interfaces::msg::XBRecord>::SharedPtr xb_pub_{nullptr};
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_{nullptr};
   double pub_rate_hz_{10.0};
@@ -51,7 +52,7 @@ struct buoy_gazebo::XBowAHRSPrivate
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
   std::atomic<bool> stop_{false}, paused_{true};
 
-  void set_xb_record_imu(const ignition::msgs::IMU & _imu)
+  void set_xb_record_imu(const gz::msgs::IMU & _imu)
   {
     xb_record_.header.stamp.sec = _imu.header().stamp().sec();
     xb_record_.header.stamp.nanosec = _imu.header().stamp().nsec();
@@ -76,9 +77,9 @@ struct buoy_gazebo::XBowAHRSPrivate
 };
 
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::XBowAHRS,
-  ignition::gazebo::System,
+  gz::sim::System,
   buoy_gazebo::XBowAHRS::ISystemConfigure,
   buoy_gazebo::XBowAHRS::ISystemPostUpdate)
 
@@ -100,28 +101,28 @@ XBowAHRS::~XBowAHRS()
 }
 
 void XBowAHRS::Configure(
-  const ignition::gazebo::Entity & _entity,
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  ignition::gazebo::EntityComponentManager & _ecm,
-  ignition::gazebo::EventManager &)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager &)
 {
   // Make sure the controller is attached to a valid model
-  auto model = ignition::gazebo::Model(_entity);
+  auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
-    ignerr << "[ROS 2 XBow AHRS] Failed to initialize because [" << \
+    gzerr << "[ROS 2 XBow AHRS] Failed to initialize because [" << \
       model.Name(_ecm) << "] is not a model." << std::endl << \
       "Please make sure that ROS 2 XBow AHRS is attached to a valid model." << std::endl;
     return;
   }
   const auto link_entity = model.LinkByName(_ecm, "Buoy");
-  ignition::gazebo::Link link(link_entity);
+  gz::sim::Link link(link_entity);
   link.EnableVelocityChecks(_ecm);
 
   this->dataPtr->entity_ = _entity;
 
   // Get params from SDF
   // controller scoped name
-  std::string scoped_name = ignition::gazebo::scopedName(this->dataPtr->entity_, _ecm, "/", false);
+  std::string scoped_name = gz::sim::scopedName(this->dataPtr->entity_, _ecm, "/", false);
 
   // ROS node
   std::string ns = _sdf->Get<std::string>("namespace", scoped_name).first;
@@ -154,7 +155,7 @@ void XBowAHRS::Configure(
     "[ROS 2 XBow AHRS] Setting up controller for [" << model.Name(_ecm) << "]");
 
   // IMU Sensor
-  this->dataPtr->imu_cb_ = [this](const ignition::msgs::IMU & _imu)
+  this->dataPtr->imu_cb_ = [this](const gz::msgs::IMU & _imu)
     {
       // low prio data access
       std::unique_lock low(this->dataPtr->low_prio_mutex_);
@@ -166,7 +167,7 @@ void XBowAHRS::Configure(
       data.unlock();
     };
   if (!this->dataPtr->node_.Subscribe("/Buoy_link/xbow_imu", this->dataPtr->imu_cb_)) {
-    ignerr << "Error subscribing to topic [" << "/Buoy_link/xbow_imu" << "]" << std::endl;
+    gzerr << "Error subscribing to topic [" << "/Buoy_link/xbow_imu" << "]" << std::endl;
     return;
   }
 
@@ -217,13 +218,13 @@ void XBowAHRS::Configure(
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 void XBowAHRS::PostUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  const ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  const gz::sim::EntityComponentManager & _ecm)
 {
   this->dataPtr->paused_ = _info.paused;
-  auto model = ignition::gazebo::Model(this->dataPtr->entity_);
+  auto model = gz::sim::Model(this->dataPtr->entity_);
   const auto link_entity = model.LinkByName(_ecm, "Buoy");
-  ignition::gazebo::Link link(link_entity);
+  gz::sim::Link link(link_entity);
   auto v_world = link.WorldLinearVelocity(_ecm);  // assume x,y,z == ENU
 
   // low prio data access

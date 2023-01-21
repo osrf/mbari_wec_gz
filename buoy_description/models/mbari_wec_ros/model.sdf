@@ -37,13 +37,13 @@
     </plugin>
 
     <plugin
-      filename="ignition-gazebo-joint-state-publisher-system"
-      name="ignition::gazebo::systems::JointStatePublisher">
+      filename="gz-sim-joint-state-publisher-system"
+      name="gz::sim::systems::JointStatePublisher">
     </plugin>
 
     <plugin
-      filename="ignition-gazebo-pose-publisher-system"
-      name="ignition::gazebo::systems::PosePublisher">
+      filename="gz-sim-pose-publisher-system"
+      name="gz::sim::systems::PosePublisher">
       <publish_link_pose>true</publish_link_pose>
       <use_pose_vector_msg>true</use_pose_vector_msg>
       <static_publisher>true</static_publisher>
@@ -51,8 +51,8 @@
     </plugin>
 
     <plugin
-      filename="ignition-gazebo-odometry-publisher-system"
-      name="ignition::gazebo::systems::OdometryPublisher">
+      filename="gz-sim-odometry-publisher-system"
+      name="gz::sim::systems::OdometryPublisher">
       <dimensions>3</dimensions>
       <odom_frame>MBARI_WEC_ROS/odom</odom_frame>
       <robot_base_frame>MBARI_WEC_ROS</robot_base_frame>

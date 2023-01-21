@@ -12,28 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "PolytropicPneumaticSpring.hpp"
-
-#include <ignition/common/Profiler.hh>
-#include <ignition/math/PID.hh>
-#include <ignition/msgs.hh>
-#include <ignition/plugin/Register.hh>
-#include <ignition/transport/Node.hh>
-#include <ignition/transport/TopicUtils.hh>
-
-#include <ignition/gazebo/components/JointForceCmd.hh>
-#include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
-#include <ignition/gazebo/Model.hh>
-
-#include <ignition/msgs/double.pb.h>
+#include <gz/msgs/double.pb.h>
+#include <gz/msgs/time.pb.h>
 
 #include <algorithm>
 #include <memory>
 #include <mutex>
 #include <string>
 
+#include <gz/common/Profiler.hh>
+#include <gz/math/PID.hh>
+#include <gz/plugin/Register.hh>
+#include <gz/transport/Node.hh>
+#include <gz/transport/TopicUtils.hh>
+
+#include <gz/sim/components/JointForceCmd.hh>
+#include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointVelocity.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
+#include <gz/sim/Model.hh>
+
+#include "PolytropicPneumaticSpring.hpp"
 #include "SpringState.hpp"
 
 
@@ -108,10 +107,10 @@ struct PolytropicPneumaticSpringConfig
   bool debug_prescribed_velocity{false};
 
   /// \brief Joint Entity
-  ignition::gazebo::Entity jointEntity;
+  gz::sim::Entity jointEntity;
 
   /// \brief Model interface
-  ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
+  gz::sim::Model model{gz::sim::kNullEntity};
 
   bool VelMode{false};
 };
@@ -180,10 +179,10 @@ void PolytropicPneumaticSpring::openValve(
   double & P1, const double & V1,
   double & P2, const double & V2)
 {
-  IGN_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
-  IGN_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
 
-  const double dt_sec = dt_nano * IGN_NANO_TO_SEC;
+  const double dt_sec = dt_nano * GZ_NANO_TO_SEC;
 
   // want piston to drop 1 inch per second
   // so let mass flow from lower chamber to upper
@@ -221,10 +220,10 @@ void PolytropicPneumaticSpring::pumpOn(
   double & P1, const double & V1,
   double & P2, const double & V2)
 {
-  IGN_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
-  IGN_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
 
-  const double dt_sec = dt_nano * IGN_NANO_TO_SEC;
+  const double dt_sec = dt_nano * GZ_NANO_TO_SEC;
 
   // want piston to raise 2 inches per minute
   // so pump mass flow from upper chamber to lower
@@ -252,7 +251,7 @@ void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const
 
   // Newton's Law of Cooling (non-dimensionalized):
   // Tdot = r*(T_env - T(t)) -> T[n] = dt*r*(Tenv - T[n-1]) + T[n-1] (using forward difference)
-  const double dt_sec = dt_nano * IGN_NANO_TO_SEC;
+  const double dt_sec = dt_nano * GZ_NANO_TO_SEC;
   const double dT =
     dt_sec * this->dataPtr->config_->r * (this->dataPtr->config_->Tenv - this->dataPtr->T);
   this->dataPtr->T += dT;
@@ -304,18 +303,18 @@ void PolytropicPneumaticSpring::computePolytropicForce(const double & x, const d
 
 //////////////////////////////////////////////////
 void PolytropicPneumaticSpring::Configure(
-  const ignition::gazebo::Entity & _entity,
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  ignition::gazebo::EntityComponentManager & _ecm,
-  ignition::gazebo::EventManager & /*_eventMgr*/)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager & /*_eventMgr*/)
 {
   PolytropicPneumaticSpringConfig config;
 
   config.name = _sdf->Get<std::string>("chamber", "upper_adiabatic").first;
-  igndbg << "name: " << config.name << std::endl;
+  gzdbg << "name: " << config.name << std::endl;
 
   config.is_upper = _sdf->Get<bool>("is_upper");
-  igndbg << "is upper? " << std::boolalpha << config.is_upper << std::noboolalpha << std::endl;
+  gzdbg << "is upper? " << std::boolalpha << config.is_upper << std::noboolalpha << std::endl;
 
   config.valve_absement = SdfParamDouble(_sdf, "valve_absement", config.valve_absement);
   config.pump_absement = SdfParamDouble(_sdf, "pump_absement", config.pump_absement);
@@ -358,16 +357,16 @@ void PolytropicPneumaticSpring::Configure(
 
     config.V1 = config.dead_volume +
       config.x1 * config.piston_area;
-    igndbg << "V1: " << config.V1 << std::endl;
+    gzdbg << "V1: " << config.V1 << std::endl;
     config.V2 = config.dead_volume +
       config.x2 * config.piston_area;
-    igndbg << "V2: " << config.V2 << std::endl;
+    gzdbg << "V2: " << config.V2 << std::endl;
     this->dataPtr->V0 = config.V1;
 
     this->dataPtr->c = this->dataPtr->P1 * config.V1 / config.T0;
-    igndbg << "c: " << this->dataPtr->c << std::endl;
+    gzdbg << "c: " << this->dataPtr->c << std::endl;
     this->dataPtr->mass = this->dataPtr->c / config.R;
-    igndbg << "mass: " << this->dataPtr->mass << std::endl;
+    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
   } else {  // no hysteresis
     config.n0 = SdfParamDouble(_sdf, "n", PolytropicPneumaticSpringConfig::ADIABATIC_INDEX);
     if (fabs(config.n0 - PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) < 1.0e-7) {
@@ -382,11 +381,11 @@ void PolytropicPneumaticSpring::Configure(
       config.x0 * config.piston_area;
     this->dataPtr->V0 = config.V0;
 
-    igndbg << "V0: " << config.V0 << std::endl;
+    gzdbg << "V0: " << config.V0 << std::endl;
     this->dataPtr->c = this->dataPtr->P0 * config.V0 / config.T0;
-    igndbg << "c: " << this->dataPtr->c << std::endl;
+    gzdbg << "c: " << this->dataPtr->c << std::endl;
     this->dataPtr->mass = this->dataPtr->c / config.R;
-    igndbg << "mass: " << this->dataPtr->mass << std::endl;
+    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
   }
 
   this->dataPtr->V = this->dataPtr->V0;
@@ -394,9 +393,9 @@ void PolytropicPneumaticSpring::Configure(
   // Ideal Gas Law: T = P*V/(m*R)
   this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->c;
 
-  config.model = ignition::gazebo::Model(_entity);
+  config.model = gz::sim::Model(_entity);
   if (!config.model.Valid(_ecm)) {
-    ignerr << "PolytropicPneumaticSpring plugin should be attached to a model entity. " <<
+    gzerr << "PolytropicPneumaticSpring plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
   }
@@ -404,7 +403,7 @@ void PolytropicPneumaticSpring::Configure(
   // Get params from SDF
   auto jointName = _sdf->Get<std::string>("JointName");
   if (jointName.empty()) {
-    ignerr << "PolytropicPneumaticSpring found an empty jointName parameter. " <<
+    gzerr << "PolytropicPneumaticSpring found an empty jointName parameter. " <<
       "Failed to initialize.";
     return;
   }
@@ -412,8 +411,8 @@ void PolytropicPneumaticSpring::Configure(
   config.jointEntity = config.model.JointByName(
     _ecm,
     jointName);
-  if (config.jointEntity == ignition::gazebo::kNullEntity) {
-    ignerr << "Joint with name[" << jointName << "] not found. " <<
+  if (config.jointEntity == gz::sim::kNullEntity) {
+    gzerr << "Joint with name[" << jointName << "] not found. " <<
       "The PolytropicPneumaticSpring may not influence this joint.\n";
     return;
   }
@@ -422,70 +421,70 @@ void PolytropicPneumaticSpring::Configure(
 
   std::string force_topic = std::string("/force_") + this->dataPtr->config_->name;
   force_pub =
-    node.Advertise<ignition::msgs::Double>(
-    ignition::transport::TopicUtils::AsValidTopic(
+    node.Advertise<gz::msgs::Double>(
+    gz::transport::TopicUtils::AsValidTopic(
       force_topic));
   if (!force_pub) {
-    ignerr << "Error advertising topic [" << force_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << force_topic << "]" << std::endl;
     return;
   }
 
   std::string pressure_topic = std::string("/pressure_") + this->dataPtr->config_->name;
   pressure_pub =
-    node.Advertise<ignition::msgs::Double>(
-    ignition::transport::TopicUtils::AsValidTopic(
+    node.Advertise<gz::msgs::Double>(
+    gz::transport::TopicUtils::AsValidTopic(
       pressure_topic));
   if (!pressure_pub) {
-    ignerr << "Error advertising topic [" << pressure_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << pressure_topic << "]" << std::endl;
     return;
   }
 
   std::string volume_topic = std::string("/volume_") + this->dataPtr->config_->name;
   volume_pub =
-    node.Advertise<ignition::msgs::Double>(
-    ignition::transport::TopicUtils::AsValidTopic(
+    node.Advertise<gz::msgs::Double>(
+    gz::transport::TopicUtils::AsValidTopic(
       volume_topic));
   if (!volume_pub) {
-    ignerr << "Error advertising topic [" << volume_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << volume_topic << "]" << std::endl;
     return;
   }
 
   std::string temperature_topic = std::string("/temperature_") + this->dataPtr->config_->name;
   temperature_pub =
-    node.Advertise<ignition::msgs::Double>(
-    ignition::transport::TopicUtils::AsValidTopic(
+    node.Advertise<gz::msgs::Double>(
+    gz::transport::TopicUtils::AsValidTopic(
       temperature_topic));
   if (!temperature_pub) {
-    ignerr << "Error advertising topic [" << temperature_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << temperature_topic << "]" << std::endl;
     return;
   }
 
   std::string heat_rate_topic = std::string("/heat_rate_") + this->dataPtr->config_->name;
   heat_rate_pub =
-    node.Advertise<ignition::msgs::Double>(
-    ignition::transport::TopicUtils::AsValidTopic(
+    node.Advertise<gz::msgs::Double>(
+    gz::transport::TopicUtils::AsValidTopic(
       heat_rate_topic));
   if (!heat_rate_pub) {
-    ignerr << "Error advertising topic [" << heat_rate_topic << "]" << std::endl;
+    gzerr << "Error advertising topic [" << heat_rate_topic << "]" << std::endl;
     return;
   }
 }
 
 //////////////////////////////////////////////////
 void PolytropicPneumaticSpring::PreUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("PolytropicPneumaticSpring::PreUpdate");
+  GZ_PROFILE("PolytropicPneumaticSpring::PreUpdate");
 
   // If the joint hasn't been identified yet, the plugin is disabled
-  if (this->dataPtr->config_->jointEntity == ignition::gazebo::kNullEntity) {
+  if (this->dataPtr->config_->jointEntity == gz::sim::kNullEntity) {
     return;
   }
 
   // TODO(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero()) {
-    ignwarn << "Detected jump back in time [" <<
+    gzwarn << "Detected jump back in time [" <<
       std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count() <<
       "s]. System may not work properly." << std::endl;
   }
@@ -497,11 +496,11 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   // Create joint position component if one doesn't exist
   auto jointPosComp =
-    _ecm.Component<ignition::gazebo::components::JointPosition>(
+    _ecm.Component<gz::sim::components::JointPosition>(
     this->dataPtr->config_->jointEntity);
   if (jointPosComp == nullptr) {
     _ecm.CreateComponent(
-      this->dataPtr->config_->jointEntity, ignition::gazebo::components::JointPosition());
+      this->dataPtr->config_->jointEntity, gz::sim::components::JointPosition());
   }
   // We just created the joint position component, give one iteration for the
   // physics system to update its size
@@ -511,11 +510,11 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   // Create joint velocity component if one doesn't exist
   auto jointVelComp =
-    _ecm.Component<ignition::gazebo::components::JointVelocity>(
+    _ecm.Component<gz::sim::components::JointVelocity>(
     this->dataPtr->config_->jointEntity);
   if (jointVelComp == nullptr) {
     _ecm.CreateComponent(
-      this->dataPtr->config_->jointEntity, ignition::gazebo::components::JointVelocity());
+      this->dataPtr->config_->jointEntity, gz::sim::components::JointVelocity());
   }
   // We just created the joint velocity component, give one iteration for the
   // physics system to update its size
@@ -586,7 +585,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     this->dataPtr->F *= -1.0;
   }
 
-  auto stampMsg = ignition::gazebo::convert<ignition::msgs::Time>(_info.simTime);
+  auto stampMsg = gz::sim::convert<gz::msgs::Time>(_info.simTime);
 
   if (this->dataPtr->config_->is_upper) {
     spring_state.range_finder = x;
@@ -599,49 +598,49 @@ void PolytropicPneumaticSpring::PreUpdate(
     this->dataPtr->config_->jointEntity,
     spring_state);
 
-  ignition::msgs::Double force;
+  gz::msgs::Double force;
   force.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   force.set_data(this->dataPtr->F);
 
   // TODO(anyone): use sensor to access to P (pressure sensor) and T (thermometer)
-  ignition::msgs::Double pressure;
+  gz::msgs::Double pressure;
   pressure.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   pressure.set_data(this->dataPtr->P);
 
-  ignition::msgs::Double volume;
+  gz::msgs::Double volume;
   volume.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   volume.set_data(this->dataPtr->V);
 
-  ignition::msgs::Double temperature;
+  gz::msgs::Double temperature;
   temperature.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   temperature.set_data(this->dataPtr->T);
 
-  ignition::msgs::Double heat_rate;
+  gz::msgs::Double heat_rate;
   heat_rate.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   heat_rate.set_data(this->dataPtr->Q_rate);
 
-  ignition::msgs::Double piston_velocity;
+  gz::msgs::Double piston_velocity;
   piston_velocity.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
   piston_velocity.set_data(v);
 
   if (!force_pub.Publish(force)) {
-    ignerr << "could not publish force" << std::endl;
+    gzerr << "could not publish force" << std::endl;
   }
 
   if (!pressure_pub.Publish(pressure)) {
-    ignerr << "could not publish pressure" << std::endl;
+    gzerr << "could not publish pressure" << std::endl;
   }
 
   if (!volume_pub.Publish(volume)) {
-    ignerr << "could not publish volume" << std::endl;
+    gzerr << "could not publish volume" << std::endl;
   }
 
   if (!temperature_pub.Publish(temperature)) {
-    ignerr << "could not publish temperature" << std::endl;
+    gzerr << "could not publish temperature" << std::endl;
   }
 
   if (!heat_rate_pub.Publish(heat_rate)) {
-    ignerr << "could not publish heat loss rate" << std::endl;
+    gzerr << "could not publish heat loss rate" << std::endl;
   }
 
   static const bool debug_prescribed_velocity{this->dataPtr->config_->debug_prescribed_velocity};
@@ -650,12 +649,12 @@ void PolytropicPneumaticSpring::PreUpdate(
     // (likely by a test Fixture)
     if (!this->dataPtr->config_->VelMode) {
       auto forceComp =
-        _ecm.Component<ignition::gazebo::components::JointForceCmd>(
+        _ecm.Component<gz::sim::components::JointForceCmd>(
         this->dataPtr->config_->jointEntity);
       if (forceComp == nullptr) {
         _ecm.CreateComponent(
           this->dataPtr->config_->jointEntity,
-          ignition::gazebo::components::JointForceCmd({this->dataPtr->F}));
+          gz::sim::components::JointForceCmd({this->dataPtr->F}));
       } else {
         forceComp->Data()[0] += this->dataPtr->F;  // Add force to existing forces.
       }
@@ -664,23 +663,23 @@ void PolytropicPneumaticSpring::PreUpdate(
     double period = 2.0;  // sec
 
     double piston_velocity = this->dataPtr->config_->stroke * cos(
-      2.0 * IGN_PI *
+      2.0 * GZ_PI *
       std::chrono::duration_cast<std::chrono::seconds>(_info.simTime).count() / period);
-    auto joint_vel = _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(
+    auto joint_vel = _ecm.Component<gz::sim::components::JointVelocityCmd>(
       this->dataPtr->config_->jointEntity);
     if (joint_vel == nullptr) {
       _ecm.CreateComponent(
         this->dataPtr->config_->jointEntity,
-        ignition::gazebo::components::JointVelocityCmd({piston_velocity}));
+        gz::sim::components::JointVelocityCmd({piston_velocity}));
     } else {
-      *joint_vel = ignition::gazebo::components::JointVelocityCmd({piston_velocity});
+      *joint_vel = gz::sim::components::JointVelocityCmd({piston_velocity});
     }
   }
 }
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::PolytropicPneumaticSpring,
-  ignition::gazebo::System,
+  gz::sim::System,
   buoy_gazebo::PolytropicPneumaticSpring::ISystemConfigure,
   buoy_gazebo::PolytropicPneumaticSpring::ISystemPreUpdate)

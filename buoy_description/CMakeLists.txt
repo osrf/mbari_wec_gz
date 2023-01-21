@@ -7,7 +7,7 @@ set(BUOY_BASE_MODEL_PATH "/models/mbari_wec_base")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${BUOY_BASE_MODEL_PATH})
 add_custom_command(
   OUTPUT model_gen_cmd
-  COMMAND empy3
+  COMMAND python3 -m em
     ${CMAKE_CURRENT_SOURCE_DIR}${BUOY_BASE_MODEL_PATH}/model.sdf.em >
     ${CMAKE_CURRENT_BINARY_DIR}${BUOY_BASE_MODEL_PATH}/model.sdf
 )

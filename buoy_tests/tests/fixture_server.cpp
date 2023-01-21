@@ -14,59 +14,62 @@
 
 #include <gtest/gtest.h>
 
-#include <rclcpp/rclcpp.hpp>
-
-#include <ignition/common/Console.hh>
-#include <ignition/gazebo/World.hh>
-#include <ignition/gazebo/Server.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/TestFixture.hh>
-#include <ignition/transport/Node.hh>
-
-#include <buoy_tests/srv/run_server.hpp>
-
 #include <chrono>
 #include <memory>
 #include <string>
 #include <thread>
 
+#include <gz/common/Console.hh>
+#include <gz/sim/World.hh>
+#include <gz/sim/Server.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/TestFixture.hh>
+#include <gz/transport/Node.hh>
+
+#include <buoy_tests/srv/run_server.hpp>
+
+#include <rclcpp/rclcpp.hpp>
+
+
+// NOLINTNEXTLINE
+using namespace std::chrono;
 
 TEST(BuoyTests, RunServer)
 {
   // Skip debug messages to run faster
-  ignition::common::Console::SetVerbosity(3);
+  gz::common::Console::SetVerbosity(3);
 
   // Setup fixture
-  ignition::gazebo::ServerConfig config;
+  gz::sim::ServerConfig config;
   config.SetSdfFile("mbari_wec.sdf");
   config.SetUpdateRate(0.0);
 
   size_t iterations{0U};
 
-  ignition::gazebo::Entity buoyEntity{ignition::gazebo::kNullEntity};
-  std::unique_ptr<ignition::gazebo::TestFixture> fixture =
-    std::make_unique<ignition::gazebo::TestFixture>(config);
+  gz::sim::Entity buoyEntity{gz::sim::kNullEntity};
+  std::unique_ptr<gz::sim::TestFixture> fixture =
+    std::make_unique<gz::sim::TestFixture>(config);
   fixture->
   OnConfigure(
     [&](
-      const ignition::gazebo::Entity & _worldEntity,
+      const gz::sim::Entity & _worldEntity,
       const std::shared_ptr<const sdf::Element> &,
-      ignition::gazebo::EntityComponentManager & _ecm,
-      ignition::gazebo::EventManager &)
+      gz::sim::EntityComponentManager & _ecm,
+      gz::sim::EventManager &)
     {
-      auto world = ignition::gazebo::World(_worldEntity);
+      auto world = gz::sim::World(_worldEntity);
 
       buoyEntity = world.ModelByName(_ecm, "MBARI_WEC_ROS");
-      EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
+      EXPECT_NE(gz::sim::kNullEntity, buoyEntity);
     }).
   OnPostUpdate(
     [&](
-      const ignition::gazebo::UpdateInfo &,
-      const ignition::gazebo::EntityComponentManager & _ecm)
+      const gz::sim::UpdateInfo &,
+      const gz::sim::EntityComponentManager & _ecm)
     {
       iterations++;
 
-      auto pose = ignition::gazebo::worldPose(buoyEntity, _ecm);
+      auto pose = gz::sim::worldPose(buoyEntity, _ecm);
 
       // Expect buoy to stay more or less in the same place horizontally.
       EXPECT_LT(-0.001, pose.Pos().X());
@@ -89,6 +92,7 @@ TEST(BuoyTests, RunServer)
   }
 
   std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("gz_fixture_server");
+  std::atomic<bool> stop = false;
 
   rclcpp::Service<buoy_tests::srv::RunServer>::SharedPtr service =
     node->create_service<buoy_tests::srv::RunServer>(
@@ -100,6 +104,7 @@ TEST(BuoyTests, RunServer)
         RCLCPP_INFO(
           rclcpp::get_logger("run_server"),
           "Incoming request to shutdown");
+        stop = true;
         rclcpp::shutdown();
         response->success = true;
         return;
@@ -126,6 +131,22 @@ TEST(BuoyTests, RunServer)
 
   RCLCPP_INFO(rclcpp::get_logger("run_server"), "Ready to run test server.");
 
-  rclcpp::spin(node);
+  // rclcpp::spin(node);
+  rclcpp::executors::MultiThreadedExecutor::SharedPtr executor =
+    std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+  executor->add_node(node);
+
+  rclcpp::Rate rate(50.0);
+  while (rclcpp::ok() && !stop) {
+    executor->spin_once();
+    rate.sleep();
+  }
+
+  if (executor) {
+    executor->cancel();
+  }
+
+  std::this_thread::sleep_for(1s);  // needed for launch_test to know we shut down
+
   RCLCPP_INFO(rclcpp::get_logger("run_server"), "Shutting down test server.");
 }
