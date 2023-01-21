@@ -26,7 +26,7 @@
         <background_color>0.8 0.8 0.8</background_color>
         <camera_pose>-6 0 6 0 0.5 0</camera_pose>
       </plugin>
-<!-- Plugins that add functionality to the scene -->
+      <!-- Plugins that add functionality to the scene -->
       <plugin filename="EntityContextMenuPlugin" name="Entity context menu">
         <gz-gui>
           <property key="state" type="string">floating</property>
