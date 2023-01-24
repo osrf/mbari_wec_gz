@@ -54,14 +54,11 @@ public:
   /// \brief Piston joint entity
   gz::sim::Entity PrismaticJointEntity{gz::sim::kNullEntity};
 
-  /// \brief Piston area
+/// \brief Piston area
   double PistonArea{1.0};
 
   /// \brief Rotor Inertia
   double RotorInertia{1.0};
-
-  /// \brief Default Scale Factor
-  double DefaultScaleFactor{DEFAULT_SCALE_FACTOR};
 
   /// \brief Model interface
   gz::sim::Model model{gz::sim::kNullEntity};
@@ -74,7 +71,6 @@ public:
   static constexpr double Ri{7.0};
   static constexpr double I_BattChargeMax{7.0};
   static constexpr double MaxTargetVoltage{325.0};
-
 
 // Dummy compensator pressure for ROS messages, not simulated
   static constexpr double CompensatorPressure{2.91};
@@ -136,9 +132,6 @@ void ElectroHydraulicPTO::Configure(
   } else {
     this->dataPtr->PistonArea = SdfParamDouble(_sdf, "PistonArea", this->dataPtr->PistonArea);
   }
-
-  this->dataPtr->DefaultScaleFactor =
-    SdfParamDouble(_sdf, "ScaleFactor", this->dataPtr->DefaultScaleFactor);
 
   if (_sdf->HasElement("VelMode")) {
     this->dataPtr->VelMode = true;
@@ -254,7 +247,7 @@ void ElectroHydraulicPTO::PreUpdate(
   if (pto_state.scale_command) {
     this->dataPtr->functor.I_Wind.ScaleFactor = pto_state.scale_command.value();
   } else {
-    this->dataPtr->functor.I_Wind.ScaleFactor = this->dataPtr->DefaultScaleFactor;
+    this->dataPtr->functor.I_Wind.ScaleFactor = DEFAULT_SCALE_FACTOR;
   }
 
   if (pto_state.retract_command) {

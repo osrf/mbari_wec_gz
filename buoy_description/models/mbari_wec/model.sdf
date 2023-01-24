@@ -11,7 +11,6 @@
       <PistonArea>1.375</PistonArea>
       <HydMotorDisp>0.30</HydMotorDisp>
       <RotorInertia>1</RotorInertia>
-      <ScaleFactor>1.0</ScaleFactor>
     </plugin>
 
     <!-- Upper Polytropic Spring plugin -->

@@ -25,9 +25,6 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 
 
-# empy -D "door_state = 'open'" /home/anderson/wec/igngzb/openrobotics/workspace/src/buoy_sim/buoy_description/models/mbari_wec_base/model.sdf.em
-
-
 def generate_launch_description():
 
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
@@ -64,14 +61,11 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'),
         ),
-        launch_arguments={'gz_args': [
-            LaunchConfiguration('gz_args'), PathJoinSubstitution([' ']),
-            PathJoinSubstitution([
-                pkg_buoy_gazebo,
-                'worlds',
-                LaunchConfiguration('world_file')
-                ])
-            ],
+        launch_arguments={'gz_args': PathJoinSubstitution([
+            pkg_buoy_gazebo,
+            'worlds',
+            LaunchConfiguration('world_file')
+        ]),
             'debugger': LaunchConfiguration('debugger')}.items(),
     )
 
