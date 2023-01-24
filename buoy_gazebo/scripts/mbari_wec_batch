@@ -37,8 +37,8 @@ def generate_simulations(yaml_config):
     door_state = config['door_state']
     scale_factor = config['scale_factor']
     simulation_params = list(zip(*[param.ravel() for param in np.meshgrid(iterations,
-                                                                     door_state,
-                                                                     scale_factor)]))
+                                                                          door_state,
+                                                                          scale_factor)]))
 
     print(f'Generated {len(simulation_params)} simulation runs:')
     print(f'Iterations, Door State, Scale Factor\n{np.array(simulation_params)}')
