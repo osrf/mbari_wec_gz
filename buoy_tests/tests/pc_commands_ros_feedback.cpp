@@ -336,19 +336,14 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   // Now send scale command
   PCROSNode::PCScaleServiceResponseFuture pc_scale_response_future =
     node->send_pc_scale_command(scale);
-  std::cout << "scale: after command" << std::endl;
   EXPECT_TRUE(pc_scale_response_future.valid()) << "Scale future invalid!";
-  std::cout << "scale: after expect valid future" << std::endl;
   pc_scale_response_future.wait();
-  std::cout << "scale: after wait future" << std::endl;
   EXPECT_EQ(
     pc_scale_response_future.get()->result.value,
     pc_scale_response_future.get()->result.OK);
-  std::cout << "scale: after expect command OK" << std::endl;
 
   // Run a bit for scale command to process
   fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
-  std::cout << "scale: after server run" << std::endl;
   EXPECT_EQ(preCmdIterations + 3 * feedbackCheckIterations, iterations);
 
   std::this_thread::sleep_for(500ms);
@@ -367,19 +362,14 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   // Now send retract command
   PCROSNode::PCRetractServiceResponseFuture pc_retract_response_future =
     node->send_pc_retract_command(retract);
-  std::cout << "retract: after command" << std::endl;
   EXPECT_TRUE(pc_retract_response_future.valid()) << "Retract future invalid!";
-  std::cout << "retract: after expect valid future" << std::endl;
   pc_retract_response_future.wait();
-  std::cout << "retract: after wait future" << std::endl;
   EXPECT_EQ(
     pc_retract_response_future.get()->result.value,
     pc_retract_response_future.get()->result.OK);
-  std::cout << "retract: after expect command OK" << std::endl;
 
   // Run a bit for retract command to process
   fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
-  std::cout << "retract: after server run" << std::endl;
   EXPECT_EQ(preCmdIterations + 4 * feedbackCheckIterations, iterations);
 
   std::this_thread::sleep_for(500ms);

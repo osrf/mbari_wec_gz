@@ -344,7 +344,7 @@ struct PowerControllerPrivate
               services_->valid_scale_range_.from_value << ", " <<
               services_->valid_scale_range_.to_value << "]");
         }
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCScaleCommand Done [" << (int)response->result.value << "]");
       };
@@ -377,7 +377,7 @@ struct PowerControllerPrivate
               services_->valid_retract_range_.from_value << ", " <<
               services_->valid_retract_range_.to_value << "]");
         }
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCRetractCommand Done [" << (int)response->result.value << "]");
       };
