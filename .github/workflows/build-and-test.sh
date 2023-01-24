@@ -28,7 +28,7 @@ apt-get install -y git \
 
 cd $COLCON_WS_SRC
 cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
-wget https://raw.githubusercontent.com/osrf/buoy_entrypoint/chapulina/humble_garden/buoy_all.yaml
+wget https://raw.githubusercontent.com/osrf/buoy_entrypoint/main/buoy_all.yaml
 vcs import --skip-existing < buoy_all.yaml
 
 rm -rf buoy_examples
