@@ -14,6 +14,14 @@
 
 #include "WaveBodyInteractions.hpp"
 
+#include <gz/msgs/double.pb.h>
+#include <cmath>
+#include <cstdio>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <gz/sim/Link.hh>
 #include <gz/sim/components/AngularAcceleration.hh>
 #include <gz/sim/components/LinearAcceleration.hh>
@@ -32,20 +40,11 @@
 #include <gz/sim/components/Name.hh>
 #include <gz/math/PID.hh>
 #include <gz/msgs.hh>
-#include <gz/msgs/double.pb.h>
 #include <gz/plugin/Register.hh>
 
-#include <cmath>
-#include <cstdio>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
 
 #include "FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp"
 #include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
-//#include "FS_Hydrodynamics.hpp"
-//#include "LinearIncidentWave.hpp"
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
@@ -141,8 +140,8 @@ void WaveBodyInteractions::Configure(
 // this->dataPtr->Inc = Inc2;
 
   std::string HydrodynamicsBaseFilename =
-    ament_index_cpp::get_package_share_directory("buoy_description")
-    + "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+    ament_index_cpp::get_package_share_directory("buoy_description") +
+    "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
   this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
   // TODO(anyone):  Need to get timestep size from ecm.
@@ -171,34 +170,32 @@ void WaveBodyInteractions::Configure(
   double WaterplaneOrigin_z = SdfParamDouble(_sdf, "WaterplaneOrigin_z", 2.45);
   this->dataPtr->b_Pose_p.Set(WaterplaneOrigin_x, WaterplaneOrigin_y, WaterplaneOrigin_z, 0, 0, 0);
 
-		Eigen::VectorXd b(6);
-		b(0) = 300.0;
-		b(1) = 300.0;
-		b(2) = 900.0;
-		b(3) = 400.0;
-		b(4) = 400.0;
-		b(5) = 100.0;
-		this->dataPtr->FloatingBody.SetDampingCoeffs(b);
+  Eigen::VectorXd b(6);
+  b(0) = 300.0;
+  b(1) = 300.0;
+  b(2) = 900.0;
+  b(3) = 400.0;
+  b(4) = 400.0;
+  b(5) = 100.0;
+  this->dataPtr->FloatingBody.SetDampingCoeffs(b);
 
-		Eigen::VectorXd Cd(6);
-		Cd(0) = .5;
-		Cd(1) = .5;
-	  Cd(2) = .5;
-		Cd(3) = .5;
-		Cd(4) = .5;
-		Cd(5) = .1;
-		this->dataPtr->FloatingBody.SetDragCoeffs(Cd);
+  Eigen::VectorXd Cd(6);
+  Cd(0) = .5;
+  Cd(1) = .5;
+  Cd(2) = .5;
+  Cd(3) = .5;
+  Cd(4) = .5;
+  Cd(5) = .1;
+  this->dataPtr->FloatingBody.SetDragCoeffs(Cd);
 
-		Eigen::VectorXd Area(6);
-		Area(0) = 5.0;
-		Area(1) = 2.0;
-		Area(2) = 2.0;
-		Area(3) = 1.0;
-		Area(4) = 1.0;
-		Area(5) = 1.0;
-		this->dataPtr->FloatingBody.SetAreas(Area);
-
-
+  Eigen::VectorXd Area(6);
+  Area(0) = 5.0;
+  Area(1) = 2.0;
+  Area(2) = 2.0;
+  Area(3) = 1.0;
+  Area(4) = 1.0;
+  Area(5) = 1.0;
+  this->dataPtr->FloatingBody.SetAreas(Area);
 }
 
 #define EPSILON 0.0000001;
@@ -314,12 +311,12 @@ void WaveBodyInteractions::PreUpdate(
   // Add contribution due to force offset from origin
   w_MEp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FEp);
 
-	Eigen::VectorXd vel(6);
+  Eigen::VectorXd vel(6);
   vel << p_xdot.X(), p_xdot.Y(), p_xdot.Z(), p_omega.X(), p_omega.Y(), p_omega.Z();
 #if 0
 // Compute Linear Drag
-	Eigen::VectorXd LinDampingForce(6);
-	LinDampingForce = this->dataPtr->FloatingBody.LinearDampingForce(vel);
+  Eigen::VectorXd LinDampingForce(6);
+  LinDampingForce = this->dataPtr->FloatingBody.LinearDampingForce(vel);
   gz::math::Vector3d w_FLDp(LinDampingForce(0), LinDampingForce(1), LinDampingForce(2));
   // Needs to be adjusted for yaw only
   gz::math::Vector3d w_MLDp(
@@ -333,8 +330,8 @@ void WaveBodyInteractions::PreUpdate(
 #endif
 
 // Compute Viscous Drag (quadratic)
-	Eigen::VectorXd DragForce(6);
-	DragForce = this->dataPtr->FloatingBody.ViscousDragForce(vel);
+  Eigen::VectorXd DragForce(6);
+  DragForce = this->dataPtr->FloatingBody.ViscousDragForce(vel);
   gz::math::Vector3d w_FVDp(DragForce(0), DragForce(1), DragForce(2));
   // Needs to be adjusted for yaw only
   gz::math::Vector3d w_MVDp(

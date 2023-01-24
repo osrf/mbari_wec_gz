@@ -16,10 +16,10 @@
 #define WAVEBODYINTERACTIONS__WAVEBODYINTERACTIONS_HPP_
 
 #include <optional>
+#include <memory>
 
 #include <gz/sim/System.hh>
 #include <gz/transport.hh>
-#include <memory>
 
 namespace buoy_gazebo
 {
