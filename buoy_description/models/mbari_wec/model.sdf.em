@@ -1,4 +1,11 @@
 <?xml version="1.0" ?>
+@{
+try:
+    scale_factor
+except NameError:
+    scale_factor = 1.0  # not defined so default
+}@
+
 <sdf version="1.8">
   <model name="MBARI_WEC">
 
@@ -11,7 +18,7 @@
       <PistonArea>1.375</PistonArea>
       <HydMotorDisp>0.30</HydMotorDisp>
       <RotorInertia>1</RotorInertia>
-      <ScaleFactor>1.0</ScaleFactor>
+      <ScaleFactor>@(scale_factor)</ScaleFactor>
     </plugin>
 
     <!-- Upper Polytropic Spring plugin -->
