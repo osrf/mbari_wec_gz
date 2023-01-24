@@ -359,14 +359,19 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Now send retract command
   node->pc_retract_response_future_ = node->send_pc_retract_command(retract);
+  std::cout << "after retract command" << std::endl;
   EXPECT_TRUE(node->pc_retract_response_future_.valid()) << "Retract future invalid!";
+  std::cout << "after expect valid future" << std::endl;
   node->pc_retract_response_future_.wait();
+  std::cout << "after wait future" << std::endl;
   EXPECT_EQ(
     node->pc_retract_response_future_.get()->result.value,
     node->pc_retract_response_future_.get()->result.OK);
+  std::cout << "after expect retract command OK" << std::endl;
 
   // Run a bit for retract command to process
   fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
+  std::cout << "after server run" << std::endl;
   EXPECT_EQ(preCmdIterations + 4 * feedbackCheckIterations, iterations);
 
   std::this_thread::sleep_for(500ms);
