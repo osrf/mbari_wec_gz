@@ -20,28 +20,34 @@ import numpy as np
 import yaml
 
 import os
+import time
 
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch import LaunchService
-from launch.actions import IncludeLaunchDescription
+from launch.actions import ExecuteProcess, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
-def generate_simulations(yaml_config):
-    with open(yaml_config) as fd:
-        config = yaml.load(fd, Loader=yaml.CLoader)
+def generate_simulations(sim_params_yaml):
+    with open(sim_params_yaml, 'r') as fd:
+        sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
-    iterations = config['iterations']
-    door_state = config['door_state']
-    scale_factor = config['scale_factor']
-    simulation_params = list(zip(*[param.ravel() for param in np.meshgrid(iterations,
-                                                                          door_state,
-                                                                          scale_factor)]))
+    iterations = sim_params['iterations']
+    door_state = sim_params['door_state']
+    scale_factor = sim_params['scale_factor']
+    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(iterations,
+                                                                     door_state,
+                                                                     scale_factor)]))
 
-    print(f'Generated {len(simulation_params)} simulation runs:')
-    print(f'Iterations, Door State, Scale Factor\n{np.array(simulation_params)}')
+    print(f'Generated {len(batch_params)} simulation runs:')
+    print(f'Iterations, Door State, Scale Factor\n{np.array(batch_params)}')
+
+    timestr = time.strftime("%Y%m%d%H%M%S")
+    with open(f'batch_runs_{timestr}.log', 'w') as fd:
+        fd.write(f'# Generated {len(batch_params)} simulation runs\n')
+        fd.write(f'Run Index, Iterations, Door State, Scale Factor\n')
 
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
@@ -54,7 +60,7 @@ def generate_simulations(yaml_config):
     empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
-    for idx, (itx, ds, sf) in enumerate(simulation_params):
+    for idx, (itx, ds, sf) in enumerate(batch_params):
         print(f'\n\nSim run [{idx}] for {itx} iterations: door state={ds}, scale factor={sf}\n\n')
         empy(['-D', f"door_state = '{ds}'",
               '-o', base_sdf_file,
@@ -71,7 +77,18 @@ def generate_simulations(yaml_config):
                 ),
                 launch_arguments={'gz_args': f'-rs --iterations {itx}'}.items(),
             )
+
+            rosbag2_name = f'rosbag2_batch_sim_{idx}'
+            rosbag2 = ExecuteProcess(
+                cmd=['ros2', 'bag', 'record', '-o', rosbag2_name, '-a'],
+                output='screen'
+            )
+
+            with open(f'batch_runs_{timestr}.log', 'a') as fd:
+                fd.write(f'{idx, itx, ds, sf}\n')
+
             return LaunchDescription([
+                rosbag2,
                 mbari_wec
             ])
 
