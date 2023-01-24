@@ -27,23 +27,13 @@ tether_top_length = 2.5
 
 num_tether_bottom_links = 5
 
-# TrefoilDoors
-trefoil_pose = {'open': 1.047, 'closed': 0.0}
-try:
-    door_state
-except NameError:
-    door_state = 'closed'  # not defined so default
-
-if 'open' in door_state:
-    mu_zz = 3000.0
+# Heave cone
+heave_total_mass = 817
+trefoil_mass = 10
 
 # Heave cone
 heave_total_mass = 817
-trefoil_mass = 20
-try:
-    mu_zz
-except NameError:
-    mu_zz = 10000.0  # not defined so default
+trefoil_mass = 10
 
 ###################
 # Computed values #
@@ -459,11 +449,18 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       </axis>
     </joint>
 
-    <joint name="TrefoilDoors" type="fixed">
+    <joint name="TrefoilDoors" type="revolute">
       <parent>HeaveCone</parent>
       <child>Trefoil</child>
       <provide_feedback>1</provide_feedback>
-      <pose>0.0 0.0 0.0 0 0 @(trefoil_pose[door_state])</pose>
+      <pose>0.0 0.0 0.0 0 0 0</pose>
+      <axis>
+        <limit>
+          <lower>0.0</lower>
+          <upper>1.047</upper>
+        </limit>
+        <xyz>0.0 0.0 1.0</xyz>
+      </axis>
     </joint>
 
   </model>

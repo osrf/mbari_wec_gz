@@ -6,7 +6,7 @@ find_package(ament_cmake REQUIRED)
 set(BUOY_BASE_MODEL_PATH "/models/mbari_wec_base")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${BUOY_BASE_MODEL_PATH})
 add_custom_command(
-  OUTPUT base_model_gen_cmd
+  OUTPUT model_gen_cmd
   COMMAND python3 -m em
     ${CMAKE_CURRENT_SOURCE_DIR}${BUOY_BASE_MODEL_PATH}/model.sdf.em >
     ${CMAKE_CURRENT_BINARY_DIR}${BUOY_BASE_MODEL_PATH}/model.sdf
@@ -15,17 +15,6 @@ set(BUOY_MODEL_PATH "/models/mbari_wec")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${BUOY_MODEL_PATH})
 set(BUOY_ROS_MODEL_PATH "/models/mbari_wec_ros")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${BUOY_ROS_MODEL_PATH})
-
-add_custom_target(base_model_gen_target ALL
-  DEPENDS base_model_gen_cmd
-)
-
-add_custom_command(
-  OUTPUT model_gen_cmd
-  COMMAND python3 -m em
-    ${CMAKE_CURRENT_SOURCE_DIR}${BUOY_MODEL_PATH}/model.sdf.em >
-    ${CMAKE_CURRENT_BINARY_DIR}${BUOY_MODEL_PATH}/model.sdf
-)
 
 add_custom_target(model_gen_target ALL
   DEPENDS model_gen_cmd
