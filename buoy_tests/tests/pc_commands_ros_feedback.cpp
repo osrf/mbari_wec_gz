@@ -309,7 +309,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Now send wind curr command
   node->pc_wind_curr_response_future_ = node->send_pc_wind_curr_command(wc);
-  ASSERT_TRUE(node->pc_wind_curr_response_future_.valid());
+  EXPECT_TRUE(node->pc_wind_curr_response_future_.valid()) << "Winding Current future invalid!";
   node->pc_wind_curr_response_future_.wait();
   EXPECT_EQ(
     node->pc_wind_curr_response_future_.get()->result.value,
@@ -334,7 +334,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Now send scale command
   node->pc_scale_response_future_ = node->send_pc_scale_command(scale);
-  ASSERT_TRUE(node->pc_scale_response_future_.valid());
+  EXPECT_TRUE(node->pc_scale_response_future_.valid()) << "Scale future invalid!";
   node->pc_scale_response_future_.wait();
   EXPECT_EQ(
     node->pc_scale_response_future_.get()->result.value,
@@ -359,7 +359,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Now send retract command
   node->pc_retract_response_future_ = node->send_pc_retract_command(retract);
-  ASSERT_TRUE(node->pc_retract_response_future_.valid());
+  EXPECT_TRUE(node->pc_retract_response_future_.valid()) << "Retract future invalid!";
   node->pc_retract_response_future_.wait();
   EXPECT_EQ(
     node->pc_retract_response_future_.get()->result.value,
@@ -408,7 +408,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Now send bias curr command
   node->pc_bias_curr_response_future_ = node->send_pc_bias_curr_command(bc);
-  ASSERT_TRUE(node->pc_bias_curr_response_future_.valid());
+  EXPECT_TRUE(node->pc_bias_curr_response_future_.valid()) << "Bias Current future invalid!";
   node->pc_bias_curr_response_future_.wait();
   EXPECT_EQ(
     node->pc_bias_curr_response_future_.get()->result.value,

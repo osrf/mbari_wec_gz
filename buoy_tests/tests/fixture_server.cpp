@@ -109,7 +109,7 @@ TEST(BuoyTests, RunServer)
         response->success = true;
         return;
       } else {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           rclcpp::get_logger("run_server"),
           "Incoming request\niterations: " << request->iterations);
       }
@@ -123,7 +123,7 @@ TEST(BuoyTests, RunServer)
 
       EXPECT_EQ(iterations - initial_iterations, request->iterations);
 
-      RCLCPP_INFO_STREAM(
+      RCLCPP_DEBUG_STREAM(
         rclcpp::get_logger("run_server"),
         "Response: " << std::boolalpha << response->success << std::noboolalpha);
     }
