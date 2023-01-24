@@ -69,8 +69,7 @@ def generate_simulations(yaml_config):
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
                 ),
-                launch_arguments={'gz_args': f'-rs --iterations {itx}',
-                    'on_exit_shutdown': 'True'}.items(),
+                launch_arguments={'gz_args': f'-rs --iterations {itx}'}.items(),
             )
             return LaunchDescription([
                 mbari_wec
