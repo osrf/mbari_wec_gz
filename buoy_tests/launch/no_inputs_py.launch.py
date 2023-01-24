@@ -35,8 +35,9 @@ def generate_test_description():
     gazebo_test_fixture = Node(
         package='buoy_tests',
         executable='no_inputs',
-        output='screen',
-        on_exit=launch.actions.Shutdown()
+        output='screen'  # ,
+        # TODO(anyone) for some reason this makes the test fail
+        # on_exit=launch.actions.Shutdown()
     )
 
     bridge = Node(package='ros_gz_bridge',
