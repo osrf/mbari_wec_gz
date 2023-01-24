@@ -143,9 +143,8 @@ void ElectroHydraulicPTO::Configure(
   this->dataPtr->x.setConstant(3, 0.0);
   this->dataPtr->x[2] = this->dataPtr->Ve;
 
-  std::string modelName = this->dataPtr->model.Name(_ecm);
-  std::string pistonvel_topic = std::string("/")+ modelName + std::string("/pistonvel_") + PrismaticJointName;
-  pistonvel_pub = node.Advertise<ignition::msgs::Double>(pistonvel_topic);
+  std::string pistonvel_topic = std::string("/pistonvel_") + PrismaticJointName;
+  pistonvel_pub = node.Advertise<gz::msgs::Double>(pistonvel_topic);
   if (!pistonvel_pub) {
     gzerr << "Error advertising topic [" << pistonvel_topic << "]" << std::endl;
     return;

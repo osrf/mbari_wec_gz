@@ -10,11 +10,11 @@
     <!-- rely on world plugins from server.config -->
     <gui fullscreen="0">
       <plugin filename="MinimalScene" name="3D View">
-        <ignition-gui>
+        <gz-gui>
           <title>3D View</title>
           <property type="bool" key="showTitleBar">false</property>
           <property type="string" key="state">docked</property>
-        </ignition-gui>
+        </gz-gui>
 
         <engine>ogre2</engine>
         <scene>scene</scene>
@@ -25,78 +25,78 @@
 
       <!-- Plugins that add functionality to the scene -->
       <plugin filename="EntityContextMenuPlugin" name="Entity context menu">
-        <ignition-gui>
+        <gz-gui>
           <property key="state" type="string">floating</property>
           <property key="width" type="double">5</property>
           <property key="height" type="double">5</property>
           <property key="showTitleBar" type="bool">false</property>
-        </ignition-gui>
+        </gz-gui>
       </plugin>
       <plugin filename="GzSceneManager" name="Scene Manager">
-        <ignition-gui>
+        <gz-gui>
           <property key="resizable" type="bool">false</property>
           <property key="width" type="double">5</property>
           <property key="height" type="double">5</property>
           <property key="state" type="string">floating</property>
           <property key="showTitleBar" type="bool">false</property>
-        </ignition-gui>
+        </gz-gui>
       </plugin>
       <plugin filename="InteractiveViewControl" name="Interactive view control">
-        <ignition-gui>
+        <gz-gui>
           <property key="resizable" type="bool">false</property>
           <property key="width" type="double">5</property>
           <property key="height" type="double">5</property>
           <property key="state" type="string">floating</property>
           <property key="showTitleBar" type="bool">false</property>
-        </ignition-gui>
+        </gz-gui>
       </plugin>
       <plugin filename="CameraTracking" name="Camera Tracking">
-        <ignition-gui>
+        <gz-gui>
           <property key="resizable" type="bool">false</property>
           <property key="width" type="double">5</property>
           <property key="height" type="double">5</property>
           <property key="state" type="string">floating</property>
           <property key="showTitleBar" type="bool">false</property>
-        </ignition-gui>
+        </gz-gui>
       </plugin>
       <plugin filename="MarkerManager" name="Marker manager">
-        <ignition-gui>
+        <gz-gui>
           <property key="resizable" type="bool">false</property>
           <property key="width" type="double">5</property>
           <property key="height" type="double">5</property>
           <property key="state" type="string">floating</property>
           <property key="showTitleBar" type="bool">false</property>
-        </ignition-gui>
+        </gz-gui>
       </plugin>
       <plugin filename="SelectEntities" name="Select Entities">
-        <ignition-gui>
+        <gz-gui>
           <property key="resizable" type="bool">false</property>
           <property key="width" type="double">5</property>
           <property key="height" type="double">5</property>
           <property key="state" type="string">floating</property>
           <property key="showTitleBar" type="bool">false</property>
-        </ignition-gui>
+        </gz-gui>
       </plugin>
       <plugin filename="VisualizationCapabilities" name="Visualization Capabilities">
-        <ignition-gui>
+        <gz-gui>
           <property key="resizable" type="bool">false</property>
           <property key="width" type="double">5</property>
           <property key="height" type="double">5</property>
           <property key="state" type="string">floating</property>
           <property key="showTitleBar" type="bool">false</property>
-        </ignition-gui>
+        </gz-gui>
       </plugin>
 
       <!-- Translate / rotate -->
       <plugin filename="TransformControl" name="Transform control">
-        <ignition-gui>
+        <gz-gui>
           <property key="resizable" type="bool">false</property>
           <property key="width" type="double">250</property>
           <property key="height" type="double">50</property>
           <property key="state" type="string">floating</property>
           <property key="showTitleBar" type="bool">false</property>
           <property key="cardBackground" type="string">#777777</property>
-        </ignition-gui>
+        </gz-gui>
 
         <!-- disable legacy features used to connect this plugin to GzScene3D -->
         <legacy>false</legacy>
@@ -104,7 +104,7 @@
 
       <!-- World control -->
       <plugin filename="WorldControl" name="World control">
-        <ignition-gui>
+        <gz-gui>
           <title>World control</title>
           <property type="bool" key="showTitleBar">false</property>
           <property type="bool" key="resizable">false</property>
@@ -117,7 +117,7 @@
             <line own="left" target="left"/>
             <line own="bottom" target="bottom"/>
           </anchors>
-        </ignition-gui>
+        </gz-gui>
 
         <play_pause>true</play_pause>
         <step>true</step>
@@ -128,7 +128,7 @@
 
       <!-- World statistics -->
       <plugin filename="WorldStats" name="World stats">
-        <ignition-gui>
+        <gz-gui>
           <title>World stats</title>
           <property type="bool" key="showTitleBar">false</property>
           <property type="bool" key="resizable">false</property>
@@ -141,7 +141,7 @@
             <line own="right" target="right"/>
             <line own="bottom" target="bottom"/>
           </anchors>
-        </ignition-gui>
+        </gz-gui>
 
         <sim_time>true</sim_time>
         <real_time>true</real_time>
@@ -150,15 +150,15 @@
       </plugin>
 
       <plugin filename="TransportPlotting" name="Transport Plotting">
-        <ignition-gui>
+        <gz-gui>
           <property key="state" type="string">docked</property>
-        </ignition-gui>
+        </gz-gui>
       </plugin>
 
       <plugin filename="TopicViewer" name="Topic Viewer">
-        <ignition-gui>
+        <gz-gui>
           <property key="state" type="string">docked</property>
-        </ignition-gui>
+        </gz-gui>
       </plugin>
 
     </gui>
@@ -196,95 +196,61 @@
       </link>
     </model>
 
-    <model name="MBARI_WEC_ROS1">
+    <model name="MBARI_WEC_ROS">
       <pose relative_to="world">0 -5 -2 0 0 0</pose>
 
       <include merge="true">
         <uri>package://buoy_description/models/mbari_wec_ros</uri>
       </include>
 
-      <!-- Heave Cone Hydrodynamics -->
-      <plugin filename="ignition-gazebo-hydrodynamics-system"
-        name="ignition::gazebo::systems::Hydrodynamics">
+      <!-- Viscous Drag for Buoy -->
+      <plugin filename="gz-sim-hydrodynamics-system"
+        name="gz::sim::systems::Hydrodynamics">
+        <link_name>HeaveCone</link_name>
+        <water_density>1000</water_density>
+        <xUU>-430</xUU>  <!-- Surge Quadratic Drag kg/m -->
+        <yVV>-430</yVV>  <!-- Sway Quadratic Drag kg/m -->
+        <zWW>-3280 </zWW>  <!-- Vertical Quadratic Drag kg/m -->
+        <disable_added_mass>true</disable_added_mass>
+      </plugin>
+
+      <!-- Viscous Drag for PTO -->
+      <plugin filename="gz-sim-hydrodynamics-system"
+        name="gz::sim::systems::Hydrodynamics">
+        <link_name>HeaveCone</link_name>
+        <water_density>1000</water_density>
+        <xUU>-815</xUU>  <!-- Surge Quadratic Drag kg/m -->
+        <yVV>-815</yVV>  <!-- Sway Quadratic Drag kg/m -->
+        <zWW>-3200 </zWW>  <!-- Vertical Quadratic Drag kg/m -->
+        <kPP>-140200</kPP>  <!-- Roll Quadratic Drag kg m^2 -->
+        <mQQ>-140200</mQQ>  <!-- Roll Quadratic Drag kg m^2 -->
+        <disable_added_mass>true</disable_added_mass>
+      </plugin>     
+
+      <!-- Viscous Drag for Heave Cone -->
+      <plugin filename="gz-sim-hydrodynamics-system"
+        name="gz::sim::systems::Hydrodynamics">
         <link_name>HeaveCone</link_name>
         <water_density>1000</water_density>
         <xDotU>0</xDotU>
         <yDotV>0</yDotV>
-        <zDotW>0</zDotW>  <!-- 3000 open, 10000 close -->
+        <zDotW>3000</zDotW>  <!-- 3000 open, 10000 close -->
         <kDotP>0</kDotP>
         <mDotQ>0</mDotQ>
         <nDotR>0</nDotR>
-        <xUU>0</xUU>
+        <xUU>-1580</xUU>  <!-- Surge Quadratic Drag kg/m -->
         <xU>0</xU>
-        <yVV>0</yVV>
+        <yVV>-1580</yVV>  <!-- Sway Quadratic Drag kg/m -->
         <yV>0</yV>
-        <zWW>270.10625</zWW>  <!-- 2700.10625 open, 3782.25 close -->
-        <zW>0.010895043</zW>
-        <kPP>0</kPP>
+        <zWW>-3200 </zWW>  <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
+        <zW>0</zW>
+        <kPP>-4620</kPP>  <!-- Roll Quadratic Drag kg m^2 -->
         <kP>0</kP>
-        <mQQ>0</mQQ>
+        <mQQ>-4620</mQQ>  <!-- Roll Quadratic Drag kg m^2 -->
         <mQ>0</mQ>
         <nRR>0</nRR>
         <nR>0</nR>
-      </plugin>
-    </model>
-
-    <model name="MBARI_WEC_ROS2">
-      <pose relative_to="world">0 5 -2 0 0 0</pose>
-
-      <include merge="true">
-        <uri>package://buoy_description/models/mbari_wec</uri>
-      </include>
-
-      <plugin filename="NoOpController" name="buoy_gazebo::NoOpController">
-        <namespace>/buoy2</namespace>
-        <node_name>noop_controller</node_name>
-      </plugin>
-
-      <plugin filename="SpringController" name="buoy_gazebo::SpringController">
-        <JointName>HydraulicRam</JointName>
-        <namespace>/buoy2</namespace>
-        <node_name>spring_controller</node_name>
-        <topic>spring_data</topic>
-        <publish_rate>10</publish_rate>
-      </plugin>
-
-      <plugin filename="PowerController" name="buoy_gazebo::PowerController">
-        <JointName>HydraulicRam</JointName>
-        <namespace>/buoy2</namespace>
-        <node_name>power_controller</node_name>
-        <topic>power_data</topic>
-        <publish_rate>10</publish_rate>
-      </plugin>
-
-      <plugin filename="XBowAHRS" name="buoy_gazebo::XBowAHRS">
-        <namespace>/buoy2</namespace>
-        <node_name>xbow_ahrs</node_name>
-        <xb_topic>ahrs_data</xb_topic>
-        <imu_topic>xb_imu</imu_topic>
-        <publish_rate>10</publish_rate>
-      </plugin>
-
-      <plugin
-        filename="ignition-gazebo-joint-state-publisher-system"
-        name="ignition::gazebo::systems::JointStatePublisher">
-      </plugin>
-
-      <plugin
-        filename="ignition-gazebo-pose-publisher-system"
-        name="ignition::gazebo::systems::PosePublisher">
-        <publish_link_pose>true</publish_link_pose>
-        <use_pose_vector_msg>true</use_pose_vector_msg>
-        <static_publisher>true</static_publisher>
-        <static_update_frequency>1</static_update_frequency>
-      </plugin>
-
-      <plugin
-        filename="ignition-gazebo-odometry-publisher-system"
-        name="ignition::gazebo::systems::OdometryPublisher">
-        <dimensions>3</dimensions>
-        <odom_frame>MBARI_WEC_ROS2/odom</odom_frame>
-        <robot_base_frame>MBARI_WEC_ROS2</robot_base_frame>
+        <disable_added_mass>true</disable_added_mass>
       </plugin>
 
     </model>
