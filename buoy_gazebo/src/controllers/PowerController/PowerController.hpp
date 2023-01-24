@@ -15,8 +15,9 @@
 #ifndef CONTROLLERS__POWERCONTROLLER__POWERCONTROLLER_HPP_
 #define CONTROLLERS__POWERCONTROLLER__POWERCONTROLLER_HPP_
 
-#include <ignition/gazebo/System.hh>
 #include <memory>
+
+#include <gz/sim/System.hh>
 
 namespace buoy_gazebo
 {
@@ -25,7 +26,7 @@ struct PowerControllerPrivate;
 
 /// \brief ROS2 Power Controller node for publishing PCRecord and accepting power commands
 /// Uses parameter to set publish rate (PCPackRate).
-/// Uses ros_ign_bridge and use_sim_time to get /clock from gazebo for command timing.
+/// Uses ros_gz_bridge and use_sim_time to get /clock from gazebo for command timing.
 
 /// SDF parameters:
 /// * `<namespace>`: Namespace for ROS node, defaults to scoped name
@@ -33,10 +34,10 @@ struct PowerControllerPrivate;
 /// * `<topic>`: ROS2 topic to publish to, defaults to "pc_record"
 /// * `<publish_rate>`: ROS2 topic publish rate, defaults to 10Hz
 class PowerController
-  : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPreUpdate,
-  public ignition::gazebo::ISystemPostUpdate
+  : public gz::sim::System,
+  public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPreUpdate,
+  public gz::sim::ISystemPostUpdate
 {
 public:
   /// \brief Constructor
@@ -47,20 +48,20 @@ public:
 
   // Documentation inherited
   void Configure(
-    const ignition::gazebo::Entity & _entity,
+    const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager & _eventMgr) override;
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager & _eventMgr) override;
 
   // Documentation inherited
   void PreUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    gz::sim::EntityComponentManager & _ecm) override;
 
   // Documentation inherited
   void PostUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    const ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    const gz::sim::EntityComponentManager & _ecm) override;
 
 private:
   /// \brief Private data pointer.

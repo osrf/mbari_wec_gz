@@ -12,27 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "PowerController.hpp"
-
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/common/Profiler.hh>
-#include <ignition/plugin/Register.hh>
-#include <ignition/msgs/wrench.pb.h>
-#include <ignition/transport/Node.hh>
-
-#include <rclcpp/rclcpp.hpp>
-#include <rcl_interfaces/msg/parameter_descriptor.hpp>
-
-#include <ros_ign_gazebo/Stopwatch.hpp>
-
-#include <buoy_interfaces/msg/pc_record.hpp>
-#include <buoy_interfaces/srv/pc_wind_curr_command.hpp>
-#include <buoy_interfaces/srv/pc_scale_command.hpp>
-#include <buoy_interfaces/srv/pc_retract_command.hpp>
-#include <buoy_interfaces/srv/pc_bias_curr_command.hpp>
-#include <buoy_interfaces/msg/pb_command_response.hpp>
+#include <gz/msgs/wrench.pb.h>
 
 #include <algorithm>
 #include <chrono>
@@ -41,7 +21,27 @@
 #include <string>
 #include <vector>
 
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/common/Profiler.hh>
+#include <gz/plugin/Register.hh>
+#include <gz/transport/Node.hh>
+
+#include <rclcpp/rclcpp.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
+
+#include <ros_gz_sim/Stopwatch.hpp>
+
+#include <buoy_interfaces/msg/pc_record.hpp>
+#include <buoy_interfaces/srv/pc_wind_curr_command.hpp>
+#include <buoy_interfaces/srv/pc_scale_command.hpp>
+#include <buoy_interfaces/srv/pc_retract_command.hpp>
+#include <buoy_interfaces/srv/pc_bias_curr_command.hpp>
+#include <buoy_interfaces/msg/pb_command_response.hpp>
+
 #include "ElectroHydraulicPTO/ElectroHydraulicState.hpp"
+#include "PowerController.hpp"
 
 
 using namespace std::chrono_literals;
@@ -74,7 +74,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response>)> torque_command_handler_;
 
-  ros_ign_gazebo::Stopwatch torque_command_watch_;
+  ros_gz_sim::Stopwatch torque_command_watch_;
   rclcpp::Duration torque_command_duration_{0, 0U};
   static const rclcpp::Duration TORQUE_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_wind_curr_range_;
@@ -87,7 +87,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Response>)> scale_command_handler_;
 
-  ros_ign_gazebo::Stopwatch scale_command_watch_;
+  ros_gz_sim::Stopwatch scale_command_watch_;
   rclcpp::Duration scale_command_duration_{0, 0U};
   static const rclcpp::Duration SCALE_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_scale_range_;
@@ -101,7 +101,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Response>)> retract_command_handler_;
 
-  ros_ign_gazebo::Stopwatch retract_command_watch_;
+  ros_gz_sim::Stopwatch retract_command_watch_;
   rclcpp::Duration retract_command_duration_{0, 0U};
   static const rclcpp::Duration RETRACT_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_retract_range_;
@@ -115,7 +115,7 @@ struct PowerControllerServices
   std::function<void(std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response>)> bias_curr_command_handler_;
 
-  ros_ign_gazebo::Stopwatch bias_curr_command_watch_;
+  ros_gz_sim::Stopwatch bias_curr_command_watch_;
   rclcpp::Duration bias_curr_command_duration_{0, 0U};
   static const rclcpp::Duration BIAS_CURR_COMMAND_TIMEOUT;
   static const rcl_interfaces::msg::FloatingPointRange valid_bias_curr_range_;
@@ -151,9 +151,9 @@ const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_bia
 
 struct PowerControllerPrivate
 {
-  ignition::gazebo::Entity entity_{ignition::gazebo::kNullEntity};
-  ignition::gazebo::Entity jointEntity_{ignition::gazebo::kNullEntity};
-  ignition::transport::Node node_;
+  gz::sim::Entity entity_{gz::sim::kNullEntity};
+  gz::sim::Entity jointEntity_{gz::sim::kNullEntity};
+  gz::transport::Node node_;
   std::chrono::steady_clock::duration current_time_;
 
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
@@ -296,7 +296,7 @@ struct PowerControllerPrivate
       [this](const std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request> request,
         std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response> response)
       {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCWindCurrCommand Received [" << request->wind_curr << " Amps]");
 
@@ -386,7 +386,7 @@ struct PowerControllerPrivate
       [this](const std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request> request,
         std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response> response)
       {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCBiasCurrCommand Received [" << request->bias_curr << " Amps]");
 
@@ -414,7 +414,7 @@ struct PowerControllerPrivate
   void manageCommandTimer(
     const std::string & command_name,
     buoy_utils::CommandTriState<> & command,
-    ros_ign_gazebo::Stopwatch & watch,
+    ros_gz_sim::Stopwatch & watch,
     const rclcpp::Duration & duration)
   {
     // low priority cmd access
@@ -426,7 +426,7 @@ struct PowerControllerPrivate
     // override
     if (command) {
       if (!watch.Running()) {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "Override " << command_name << " (" <<
             duration.seconds() << "s)");
@@ -439,7 +439,7 @@ struct PowerControllerPrivate
           watch.Stop();
           command = false;
 
-          RCLCPP_INFO_STREAM(
+          RCLCPP_DEBUG_STREAM(
             ros_->node_->get_logger(),
             "Stopped overriding " << command_name << " after (" <<
               watch.ElapsedRunTime().seconds() << "s)");
@@ -486,7 +486,7 @@ struct PowerControllerPrivate
     std::atomic<bool> & services_command,
     std::atomic<bool> & new_command,
     const double & command_value,
-    ros_ign_gazebo::Stopwatch & watch,
+    ros_gz_sim::Stopwatch & watch,
     rclcpp::Duration & duration,
     const rclcpp::Duration & timeout)
   {
@@ -509,7 +509,7 @@ struct PowerControllerPrivate
           command = command_value;
           duration = timeout + watch.ElapsedRunTime();
 
-          RCLCPP_INFO_STREAM(
+          RCLCPP_DEBUG_STREAM(
             ros_->node_->get_logger(),
             "Continue Override " << command_name << " (" <<
               duration.seconds() << "s)");
@@ -589,15 +589,15 @@ PowerController::~PowerController()
 }
 
 void PowerController::Configure(
-  const ignition::gazebo::Entity & _entity,
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  ignition::gazebo::EntityComponentManager & _ecm,
-  ignition::gazebo::EventManager &)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager &)
 {
   // Make sure the controller is attached to a valid model
-  auto model = ignition::gazebo::Model(_entity);
+  auto model = gz::sim::Model(_entity);
   if (!model.Valid(_ecm)) {
-    ignerr << "[ROS 2 Power Control] Failed to initialize because [" <<
+    gzerr << "[ROS 2 Power Control] Failed to initialize because [" <<
       model.Name(_ecm) << "] is not a model." << std::endl <<
       "Please make sure that ROS 2 Power Control is attached to a valid model." << std::endl;
     return;
@@ -608,20 +608,20 @@ void PowerController::Configure(
   // Get params from SDF
   auto jointName = _sdf->Get<std::string>("JointName");
   if (jointName.empty()) {
-    ignerr << "PowerController found an empty JointName parameter. " <<
+    gzerr << "PowerController found an empty JointName parameter. " <<
       "Failed to initialize.";
     return;
   }
 
   this->dataPtr->jointEntity_ = model.JointByName(_ecm, jointName);
-  if (this->dataPtr->jointEntity_ == ignition::gazebo::kNullEntity) {
-    ignerr << "Joint with name[" << jointName << "] not found. " <<
+  if (this->dataPtr->jointEntity_ == gz::sim::kNullEntity) {
+    gzerr << "Joint with name[" << jointName << "] not found. " <<
       "The PowerController may not influence this joint.\n";
     return;
   }
 
   // controller scoped name
-  std::string scoped_name = ignition::gazebo::scopedName(_entity, _ecm, "/", false);
+  std::string scoped_name = gz::sim::scopedName(_entity, _ecm, "/", false);
 
   // ROS node
   std::string ns = _sdf->Get<std::string>("namespace", scoped_name).first;
@@ -689,10 +689,10 @@ void PowerController::Configure(
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 void PowerController::PreUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("PowerController::PreUpdate");
+  GZ_PROFILE("PowerController::PreUpdate");
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
@@ -718,6 +718,15 @@ void PowerController::PreUpdate(
   this->dataPtr->manageCommandTimers(pto_state);
   this->dataPtr->manageCommandStates(pto_state);
 
+  /*
+  if (this->dataPtr->services_->torque_command_watch_.Running()) {
+    RCLCPP_INFO_STREAM(
+      this->dataPtr->ros_->node_->get_logger(),
+      "Winding Current (Torque) Override has been running for (" <<
+        this->dataPtr->services_->torque_command_watch_.ElapsedRunTime().seconds() << " s)");
+  }
+  */
+
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
     this->dataPtr->jointEntity_,
     pto_state);
@@ -725,10 +734,10 @@ void PowerController::PreUpdate(
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 void PowerController::PostUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  const ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  const gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("PowerController::PostUpdate");
+  GZ_PROFILE("PowerController::PostUpdate");
 
   this->dataPtr->paused_ = _info.paused;
   this->dataPtr->current_time_ = _info.simTime;
@@ -755,7 +764,7 @@ void PowerController::PostUpdate(
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
 
-  auto sec_nsec = ignition::math::durationToSecNsec(this->dataPtr->current_time_);
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
 
   this->dataPtr->ros_->pc_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->ros_->pc_record_.header.stamp.nanosec = sec_nsec.second;
@@ -786,9 +795,9 @@ void PowerController::PostUpdate(
 }
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::PowerController,
-  ignition::gazebo::System,
+  gz::sim::System,
   buoy_gazebo::PowerController::ISystemConfigure,
   buoy_gazebo::PowerController::ISystemPreUpdate,
   buoy_gazebo::PowerController::ISystemPostUpdate)

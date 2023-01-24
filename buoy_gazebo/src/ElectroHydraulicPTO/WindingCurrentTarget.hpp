@@ -15,9 +15,6 @@
 #ifndef ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 #define ELECTROHYDRAULICPTO__WINDINGCURRENTTARGET_HPP_
 
-#include <buoy_utils/Constants.hpp>
-#include <simple_interp/interp1d.hpp>
-
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -26,6 +23,8 @@
 #include <string>
 #include <vector>
 
+#include <buoy_utils/Constants.hpp>
+#include <simple_interp/interp1d.hpp>
 
 // Defines from Controller Firmware, behavior replicated here
 #define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current

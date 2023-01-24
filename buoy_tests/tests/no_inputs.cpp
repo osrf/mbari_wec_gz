@@ -14,51 +14,51 @@
 
 #include <gtest/gtest.h>
 
-#include <ignition/common/Console.hh>
-#include <ignition/gazebo/World.hh>
-#include <ignition/gazebo/Server.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/TestFixture.hh>
-#include <ignition/transport/Node.hh>
-
 #include <memory>
+
+#include <gz/common/Console.hh>
+#include <gz/sim/World.hh>
+#include <gz/sim/Server.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/TestFixture.hh>
+#include <gz/transport/Node.hh>
 
 //////////////////////////////////////////////////
 TEST(BuoyTests, NoInputs)
 {
   // Skip debug messages to run faster
-  ignition::common::Console::SetVerbosity(3);
+  gz::common::Console::SetVerbosity(3);
 
   // Setup fixture
-  ignition::gazebo::ServerConfig config;
+  gz::sim::ServerConfig config;
   config.SetSdfFile("mbari_wec.sdf");
   config.SetUpdateRate(0.0);
 
-  ignition::gazebo::TestFixture fixture(config);
+  gz::sim::TestFixture fixture(config);
 
   int iterations{0};
-  ignition::gazebo::Entity buoyEntity{ignition::gazebo::kNullEntity};
+  gz::sim::Entity buoyEntity{gz::sim::kNullEntity};
 
   fixture.
   OnConfigure(
-    [&](const ignition::gazebo::Entity & _worldEntity,
+    [&](const gz::sim::Entity & _worldEntity,
     const std::shared_ptr<const sdf::Element> &,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager &)
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager &)
     {
-      auto world = ignition::gazebo::World(_worldEntity);
+      auto world = gz::sim::World(_worldEntity);
 
       buoyEntity = world.ModelByName(_ecm, "MBARI_WEC_ROS");
-      EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
+      EXPECT_NE(gz::sim::kNullEntity, buoyEntity);
     }).
   OnPostUpdate(
     [&](
-      const ignition::gazebo::UpdateInfo &,
-      const ignition::gazebo::EntityComponentManager & _ecm)
+      const gz::sim::UpdateInfo &,
+      const gz::sim::EntityComponentManager & _ecm)
     {
       iterations++;
 
-      auto pose = ignition::gazebo::worldPose(buoyEntity, _ecm);
+      auto pose = gz::sim::worldPose(buoyEntity, _ecm);
 
       // Expect buoy to stay more or less in the same place horizontally.
       EXPECT_LT(-0.001, pose.Pos().X());
@@ -82,5 +82,5 @@ TEST(BuoyTests, NoInputs)
 
   // Sanity check that the test ran
   EXPECT_EQ(targetIterations, iterations);
-  EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
+  EXPECT_NE(gz::sim::kNullEntity, buoyEntity);
 }

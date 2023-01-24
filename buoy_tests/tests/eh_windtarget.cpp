@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-#include <buoy_gazebo/ElectroHydraulicPTO/WindingCurrentTarget.hpp>
 #include <gnuplot-iostream.h>
 #include <gtest/gtest.h>
-#include <rclcpp/rclcpp.hpp>
 
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <vector>
+
+#include <buoy_gazebo/ElectroHydraulicPTO/WindingCurrentTarget.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 class EHWindTarget : public ::testing::Test
 {

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Launch Ignition Gazebo with command line arguments."""
+"""Launch Gazebo Sim with command line arguments."""
 
 from os import environ
 
@@ -23,21 +23,21 @@ from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
-    env = {'IGN_GAZEBO_SYSTEM_PLUGIN_PATH':
-           ':'.join([environ.get('IGN_GAZEBO_SYSTEM_PLUGIN_PATH', default=''),
+    env = {'GZ_SIM_SYSTEM_PLUGIN_PATH':
+           ':'.join([environ.get('GZ_SIM_SYSTEM_PLUGIN_PATH', default=''),
                      environ.get('LD_LIBRARY_PATH', default='')])}
 
     return LaunchDescription([
-        DeclareLaunchArgument('ign_args', default_value='',
-                              description='Arguments to be passed to Ignition Gazebo'),
-        # Ignition Gazebo's major version
-        DeclareLaunchArgument('ign_version', default_value='6',
-                              description="Ignition Gazebo's major version"),
+        DeclareLaunchArgument('gz_args', default_value='',
+                              description='Arguments to be passed to Gazebo'),
+        # Gazebo's major version
+        DeclareLaunchArgument('gz_version', default_value='6',
+                              description="Gazebo's major version"),
         ExecuteProcess(
-            cmd=['ruby $(which ign) gazebo -rs',
-                 LaunchConfiguration('ign_args'),
+            cmd=['ruby $(which gz) sim -rs',
+                 LaunchConfiguration('gz_args'),
                  '--force-version',
-                 LaunchConfiguration('ign_version'),
+                 LaunchConfiguration('gz_version'),
                  ],
             prefix=['xterm -e gdb -ex run --args'],
             # prefix=['xterm -e valgrind'],

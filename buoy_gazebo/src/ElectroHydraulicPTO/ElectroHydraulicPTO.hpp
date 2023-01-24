@@ -15,11 +15,11 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICPTO_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICPTO_HPP_
 
+#include <memory>
 #include <optional>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/transport.hh>
-#include <memory>
+#include <gz/sim/System.hh>
+#include <gz/transport/Node.hh>
 
 namespace buoy_gazebo
 {
@@ -27,13 +27,13 @@ namespace buoy_gazebo
 class ElectroHydraulicPTOPrivate;
 
 /// \brief To use, several parameters are required.
-/// Two ignition gazebo joints that are either prismatic or continous with 1DOF each,
+/// Two Gazebo joints that are either prismatic or continous with 1DOF each,
 /// a desciption of the connectoins between actuator (joints),
 /// and an oil characteristic specification.
 ///
 /// ## System Parameters
 ///
-/// xml tags in Ignition Gazebo .sdf file define behavior as follows:
+/// xml tags in Gazebo .sdf file define behavior as follows:
 ///
 /// \brief <PrismaticJointName>
 ///
@@ -47,9 +47,9 @@ class ElectroHydraulicPTOPrivate;
 ///   For each actuator of revolute type, the following nested tags are required:
 ///
 ///     <Displacement>  Displacement per revolution of rotary pump/motor.
-class ElectroHydraulicPTO : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPreUpdate
+class ElectroHydraulicPTO : public gz::sim::System,
+  public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPreUpdate
 {
 public:
   /// \brief Constructor
@@ -60,19 +60,19 @@ public:
 
   // Documentation inherited
   void Configure(
-    const ignition::gazebo::Entity & _entity,
+    const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager & _eventMgr) override;
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager & _eventMgr) override;
 
   // Documentation inherited
   void PreUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    gz::sim::EntityComponentManager & _ecm) override;
 
 private:
-  ignition::transport::Node node;
-  ignition::transport::Node::Publisher pistonvel_pub, rpm_pub, deltaP_pub, targwindcurr_pub,
+  gz::transport::Node node;
+  gz::transport::Node::Publisher pistonvel_pub, rpm_pub, deltaP_pub, targwindcurr_pub,
     windcurr_pub,
     battcurr_pub, loadcurr_pub, scalefactor_pub, retractfactor_pub;
 

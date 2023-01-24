@@ -15,8 +15,9 @@
 #ifndef CONTROLLERS__XBOWAHRS__XBOWAHRS_HPP_
 #define CONTROLLERS__XBOWAHRS__XBOWAHRS_HPP_
 
-#include <ignition/gazebo/System.hh>
 #include <memory>
+
+#include <gz/sim/System.hh>
 
 namespace buoy_gazebo
 {
@@ -30,9 +31,9 @@ struct XBowAHRSPrivate;
 /// * `<imu_topic>`: ROS2 topic to publish Imu, defaults to "xb_imu"
 /// * `<publish_rate>`: ROS2 topic publish rate, defaults to 10Hz
 class XBowAHRS
-  : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPostUpdate
+  : public gz::sim::System,
+  public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPostUpdate
 {
 public:
   /// \brief Constructor
@@ -43,15 +44,15 @@ public:
 
   // Documentation inherited
   void Configure(
-    const ignition::gazebo::Entity & _entity,
+    const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & _sdf,
-    ignition::gazebo::EntityComponentManager & _ecm,
-    ignition::gazebo::EventManager & _eventMgr) override;
+    gz::sim::EntityComponentManager & _ecm,
+    gz::sim::EventManager & _eventMgr) override;
 
   // Documentation inherited
   void PostUpdate(
-    const ignition::gazebo::UpdateInfo & _info,
-    const ignition::gazebo::EntityComponentManager & _ecm) override;
+    const gz::sim::UpdateInfo & _info,
+    const gz::sim::EntityComponentManager & _ecm) override;
 
 private:
   /// \brief Private data pointer.
