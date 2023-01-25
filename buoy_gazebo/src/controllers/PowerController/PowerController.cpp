@@ -262,19 +262,9 @@ struct PowerControllerPrivate
     int8_t result = buoy_interfaces::msg::PBCommandResponse::OK;
 
     // high priority cmd access
-    RCLCPP_INFO_STREAM(
-      ros_->node_->get_logger(),
-      "[ROS 2 Power Control] Command waiting for 'next' lock");
     std::unique_lock next_lock(services_->next_access_mutex_);
-    RCLCPP_INFO_STREAM(
-      ros_->node_->get_logger(),
-      "[ROS 2 Power Control] Command waiting for 'command' lock");
     std::unique_lock cmd_lock(services_->command_mutex_);
     next_lock.unlock();
-
-    RCLCPP_INFO_STREAM(
-      ros_->node_->get_logger(),
-      "[ROS 2 Power Control] Command processing");
 
     if (valid_range.from_value > command_value ||
       command_value > valid_range.to_value)
@@ -306,7 +296,7 @@ struct PowerControllerPrivate
       [this](const std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request> request,
         std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response> response)
       {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCWindCurrCommand Received [" << request->wind_curr << " Amps]");
 
@@ -324,9 +314,6 @@ struct PowerControllerPrivate
               services_->valid_wind_curr_range_.from_value << ", " <<
               services_->valid_wind_curr_range_.to_value << "] Amps");
         }
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "[ROS 2 Power Control] PCWindCurrCommand Done [" << (int)response->result.value << "]");
       };
     services_->torque_command_service_ =
       ros_->node_->create_service<buoy_interfaces::srv::PCWindCurrCommand>(
@@ -357,9 +344,6 @@ struct PowerControllerPrivate
               services_->valid_scale_range_.from_value << ", " <<
               services_->valid_scale_range_.to_value << "]");
         }
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "[ROS 2 Power Control] PCScaleCommand Done [" << (int)response->result.value << "]");
       };
     services_->scale_command_service_ =
       ros_->node_->create_service<buoy_interfaces::srv::PCScaleCommand>(
@@ -390,9 +374,6 @@ struct PowerControllerPrivate
               services_->valid_retract_range_.from_value << ", " <<
               services_->valid_retract_range_.to_value << "]");
         }
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "[ROS 2 Power Control] PCRetractCommand Done [" << (int)response->result.value << "]");
       };
     services_->retract_command_service_ =
       ros_->node_->create_service<buoy_interfaces::srv::PCRetractCommand>(
@@ -405,7 +386,7 @@ struct PowerControllerPrivate
       [this](const std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request> request,
         std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response> response)
       {
-        RCLCPP_INFO_STREAM(
+        RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
           "[ROS 2 Power Control] PCBiasCurrCommand Received [" << request->bias_curr << " Amps]");
 
@@ -423,9 +404,6 @@ struct PowerControllerPrivate
               services_->valid_bias_curr_range_.from_value << ", " <<
               services_->valid_bias_curr_range_.to_value << "]");
         }
-        RCLCPP_INFO_STREAM(
-          ros_->node_->get_logger(),
-          "[ROS 2 Power Control] PCBiasCurrCommand Done [" << (int)response->result.value << "]");
       };
     services_->bias_curr_command_service_ =
       ros_->node_->create_service<buoy_interfaces::srv::PCBiasCurrCommand>(
