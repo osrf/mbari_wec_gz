@@ -51,6 +51,6 @@ colcon build --packages-up-to buoy_tests --event-handlers console_direct+
 source $COLCON_WS/install/setup.bash
 
 # Test all buoy packages
-# colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+
-launch_test install/buoy_tests/share/buoy_tests/launch/pc_commands_ros_feedback.launch.py
+colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+
+# launch_test install/buoy_tests/share/buoy_tests/launch/pc_commands_ros_feedback.launch.py
 colcon test-result
