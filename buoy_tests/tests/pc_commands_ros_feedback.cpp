@@ -74,10 +74,10 @@ public:
 
   PBTorqueControlPolicy torque_policy_;
 
-  PCWindCurrServiceResponseFuture pc_wind_curr_response_future_;
-  PCBiasCurrServiceResponseFuture pc_bias_curr_response_future_;
-  PCScaleServiceResponseFuture pc_scale_response_future_;
-  PCRetractServiceResponseFuture pc_retract_response_future_;
+  // PCWindCurrServiceResponseFuture pc_wind_curr_response_future_;
+  // PCBiasCurrServiceResponseFuture pc_bias_curr_response_future_;
+  // PCScaleServiceResponseFuture pc_scale_response_future_;
+  // PCRetractServiceResponseFuture pc_retract_response_future_;
 
   explicit PCROSNode(const std::string & node_name)
   : buoy_api::Interface<PCROSNode>(node_name)
@@ -308,15 +308,20 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_NE(node->wind_curr_, wc);
 
   // Now send wind curr command
-  node->pc_wind_curr_response_future_ = node->send_pc_wind_curr_command(wc);
-  EXPECT_TRUE(node->pc_wind_curr_response_future_.valid()) << "Winding Current future invalid!";
-  node->pc_wind_curr_response_future_.wait();
+  PCROSNode::PCWindCurrServiceResponseFuture pc_wind_curr_response_future =
+    node->send_pc_wind_curr_command(wc);
+  EXPECT_TRUE(pc_wind_curr_response_future.valid()) << "Winding Current future invalid!";
+  std::cout << "wind curr: before wait future" << std::endl;
+  pc_wind_curr_response_future.wait();
+  std::cout << "wind curr: after wait future" << std::endl;
   EXPECT_EQ(
-    node->pc_wind_curr_response_future_.get()->result.value,
-    node->pc_wind_curr_response_future_.get()->result.OK);
+    pc_wind_curr_response_future.get()->result.value,
+    pc_wind_curr_response_future.get()->result.OK);
 
   // Run a bit for wind curr command to process
+  std::cout << "wind curr: before server run" << std::endl;
   fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
+  std::cout << "wind curr: after server run" << std::endl;
   EXPECT_EQ(preCmdIterations + 2 * feedbackCheckIterations, iterations);
 
   std::this_thread::sleep_for(500ms);
@@ -333,15 +338,20 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_NE(node->scale_, scale);
 
   // Now send scale command
-  node->pc_scale_response_future_ = node->send_pc_scale_command(scale);
-  EXPECT_TRUE(node->pc_scale_response_future_.valid()) << "Scale future invalid!";
-  node->pc_scale_response_future_.wait();
+  PCROSNode::PCScaleServiceResponseFuture pc_scale_response_future =
+    node->send_pc_scale_command(scale);
+  EXPECT_TRUE(pc_scale_response_future.valid()) << "Scale future invalid!";
+  std::cout << "scale: before wait future" << std::endl;
+  pc_scale_response_future.wait();
+  std::cout << "scale: after wait future" << std::endl;
   EXPECT_EQ(
-    node->pc_scale_response_future_.get()->result.value,
-    node->pc_scale_response_future_.get()->result.OK);
+    pc_scale_response_future.get()->result.value,
+    pc_scale_response_future.get()->result.OK);
 
   // Run a bit for scale command to process
+  std::cout << "scale: before server run" << std::endl;
   fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
+  std::cout << "scale: after server run" << std::endl;
   EXPECT_EQ(preCmdIterations + 3 * feedbackCheckIterations, iterations);
 
   std::this_thread::sleep_for(500ms);
@@ -358,15 +368,20 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_NE(node->retract_, retract);
 
   // Now send retract command
-  node->pc_retract_response_future_ = node->send_pc_retract_command(retract);
-  EXPECT_TRUE(node->pc_retract_response_future_.valid()) << "Retract future invalid!";
-  node->pc_retract_response_future_.wait();
+  PCROSNode::PCRetractServiceResponseFuture pc_retract_response_future =
+    node->send_pc_retract_command(retract);
+  EXPECT_TRUE(pc_retract_response_future.valid()) << "Retract future invalid!";
+  std::cout << "retract: before wait future" << std::endl;
+  pc_retract_response_future.wait();
+  std::cout << "retract: after wait future" << std::endl;
   EXPECT_EQ(
-    node->pc_retract_response_future_.get()->result.value,
-    node->pc_retract_response_future_.get()->result.OK);
+    pc_retract_response_future.get()->result.value,
+    pc_retract_response_future.get()->result.OK);
 
   // Run a bit for retract command to process
+  std::cout << "retract: before server run" << std::endl;
   fixture->Server()->Run(true /*blocking*/, feedbackCheckIterations, false /*paused*/);
+  std::cout << "retract: after server run" << std::endl;
   EXPECT_EQ(preCmdIterations + 4 * feedbackCheckIterations, iterations);
 
   std::this_thread::sleep_for(500ms);
@@ -380,9 +395,11 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   ///////////////////////////////////////////////////////
   // Check Return to Default Winding Current Damping
   int torque_timeout_iterations{2000};
+  std::cout << "wind curr timeout: before server run" << std::endl;
   fixture->Server()->Run(
     true /*blocking*/,
     torque_timeout_iterations - 2 * feedbackCheckIterations, false /*paused*/);
+  std::cout << "wind curr timeout: after server run" << std::endl;
   EXPECT_EQ(
     preCmdIterations + 2 * feedbackCheckIterations + torque_timeout_iterations,
     iterations);
@@ -407,16 +424,21 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_NE(node->bias_curr_, bc);
 
   // Now send bias curr command
-  node->pc_bias_curr_response_future_ = node->send_pc_bias_curr_command(bc);
-  EXPECT_TRUE(node->pc_bias_curr_response_future_.valid()) << "Bias Current future invalid!";
-  node->pc_bias_curr_response_future_.wait();
+  PCROSNode::PCBiasCurrServiceResponseFuture pc_bias_curr_response_future =
+    node->send_pc_bias_curr_command(bc);
+  EXPECT_TRUE(pc_bias_curr_response_future.valid()) << "Bias Current future invalid!";
+  std::cout << "bias curr: before wait future" << std::endl;
+  pc_bias_curr_response_future.wait();
+  std::cout << "bias curr: after wait future" << std::endl;
   EXPECT_EQ(
-    node->pc_bias_curr_response_future_.get()->result.value,
-    node->pc_bias_curr_response_future_.get()->result.OK);
+    pc_bias_curr_response_future.get()->result.value,
+    pc_bias_curr_response_future.get()->result.OK);
 
   // Run a bit for bias curr command to move piston
   int bias_curr_iterations{9000}, bias_curr_timeout_iterations{10000};
+  std::cout << "bias curr: before server run" << std::endl;
   fixture->Server()->Run(true /*blocking*/, bias_curr_iterations, false /*paused*/);
+  std::cout << "bias curr: after server run" << std::endl;
   EXPECT_EQ(
     preCmdIterations + 2 * feedbackCheckIterations +
     torque_timeout_iterations + bias_curr_iterations,
