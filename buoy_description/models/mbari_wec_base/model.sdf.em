@@ -29,21 +29,35 @@ num_tether_bottom_links = 5
 
 # TrefoilDoors
 trefoil_pose = {'open': 1.047, 'closed': 0.0}
+# check if door_state was passed in by empy
 try:
     door_state
 except NameError:
-    door_state = 'closed'  # not defined so default
+    door_state = 'closed'  # not defined so default closed
 
 if 'open' in door_state:
-    mu_zz = 3000.0
+    mu_zz = 3000.0  # kg, Heave Added Mass
+    z_ww = -3200.0  # kg/m, Heave Quadratic Drag
 
 # Heave cone
-heave_total_mass = 817
-trefoil_mass = 20
+heave_total_mass = 817  # kg
+trefoil_mass = 20  # kg
+
+########################
+# TODO(anyone) mu_zz and z_ww below are currently unused. Will be used in #115
+########################
+
+# check if mu_zz was set by door_state 'open' (or passed in by empy)
 try:
     mu_zz
 except NameError:
-    mu_zz = 10000.0  # not defined so default
+    mu_zz = 10000.0  # kg, not defined so default with doors closed
+
+# check if z_ww was set by door_state 'open' (or passed in by empy)
+try:
+    z_ww
+except NameError:
+    z_ww = -3900.0  # kg/m, not defined so default with doors closed
 
 ###################
 # Computed values #
