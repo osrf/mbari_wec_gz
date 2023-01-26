@@ -206,7 +206,7 @@
       <!-- Viscous Drag for Buoy -->
       <plugin filename="gz-sim-hydrodynamics-system"
         name="gz::sim::systems::Hydrodynamics">
-        <link_name>HeaveCone</link_name>
+        <link_name>Buoy</link_name>
         <water_density>1000</water_density>
         <xUU>-430</xUU>  <!-- Surge Quadratic Drag kg/m -->
         <yVV>-430</yVV>  <!-- Sway Quadratic Drag kg/m -->
@@ -217,7 +217,7 @@
       <!-- Viscous Drag for PTO -->
       <plugin filename="gz-sim-hydrodynamics-system"
         name="gz::sim::systems::Hydrodynamics">
-        <link_name>HeaveCone</link_name>
+        <link_name>PTO</link_name>
         <water_density>1000</water_density>
         <xUU>-815</xUU>  <!-- Surge Quadratic Drag kg/m -->
         <yVV>-815</yVV>  <!-- Sway Quadratic Drag kg/m -->
@@ -232,24 +232,11 @@
         name="gz::sim::systems::Hydrodynamics">
         <link_name>HeaveCone</link_name>
         <water_density>1000</water_density>
-        <xDotU>0</xDotU>
-        <yDotV>0</yDotV>
-        <zDotW>3000</zDotW>  <!-- 3000 open, 10000 close -->
-        <kDotP>0</kDotP>
-        <mDotQ>0</mDotQ>
-        <nDotR>0</nDotR>
         <xUU>-1580</xUU>  <!-- Surge Quadratic Drag kg/m -->
-        <xU>0</xU>
         <yVV>-1580</yVV>  <!-- Sway Quadratic Drag kg/m -->
-        <yV>0</yV>
         <zWW>-3200 </zWW>  <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
-        <zW>0</zW>
         <kPP>-4620</kPP>  <!-- Roll Quadratic Drag kg m^2 -->
-        <kP>0</kP>
         <mQQ>-4620</mQQ>  <!-- Roll Quadratic Drag kg m^2 -->
-        <mQ>0</mQ>
-        <nRR>0</nRR>
-        <nR>0</nR>
         <disable_added_mass>true</disable_added_mass>
       </plugin>
 
