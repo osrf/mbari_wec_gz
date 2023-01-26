@@ -31,7 +31,7 @@ def generate_launch_description():
     example_sim_params_yaml = os.path.join(pkg_buoy_gazebo, 'example_sim_params.yaml')
 
     sim_params_yaml_launch_arg = DeclareLaunchArgument(
-        'sim_params_yaml', default_value=[example_sim_params_yaml],
+        'sim_params_yaml',
         description='Input batch sim params yaml'
     )
 
