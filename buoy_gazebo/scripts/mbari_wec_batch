@@ -30,24 +30,29 @@ from launch.actions import ExecuteProcess, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
+PHYSICS_MAX_STEP_SIZE = 0.001
+
 def generate_simulations(sim_params_yaml):
+
     with open(sim_params_yaml, 'r') as fd:
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
-    iterations = sim_params['iterations']
+    duration = sim_params['duration']
+    iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
     door_state = sim_params['door_state']
     scale_factor = sim_params['scale_factor']
-    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(iterations,
+    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(duration,
+                                                                     iterations,
                                                                      door_state,
                                                                      scale_factor)]))
 
     print(f'Generated {len(batch_params)} simulation runs:')
-    print(f'Iterations, Door State, Scale Factor\n{np.array(batch_params)}')
+    print(f'Duration, Door State, Scale Factor\n{np.array(batch_params)[:, [0, 2, 3]]}')
 
     timestr = time.strftime("%Y%m%d%H%M%S")
     with open(f'batch_runs_{timestr}.log', 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
-        fd.write(f'Run Index, Iterations, Door State, Scale Factor\n')
+        fd.write(f'Run Index, Start Time, Duration, Door State, Scale Factor\n')
 
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
@@ -60,13 +65,13 @@ def generate_simulations(sim_params_yaml):
     empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
-    for idx, (itx, ds, sf) in enumerate(batch_params):
-        print(f'\n\nSim run [{idx}] for {itx} iterations: door state={ds}, scale factor={sf}\n\n')
+    for idx, (dur, itx, ds, sf) in enumerate(batch_params):
+        print(f"\n\nSim run [{idx}] for {dur} seconds: door state='{ds}', scale factor={sf}\n\n")
         empy(['-D', f"door_state = '{ds}'",
               '-o', base_sdf_file,
               empy_base_sdf_file])
 
-        empy(['-D', f"scale_factor = '{sf}'",
+        empy(['-D', f"scale_factor = {sf}",
               '-o', sdf_file,
               empy_sdf_file])
 
@@ -84,8 +89,9 @@ def generate_simulations(sim_params_yaml):
                 output='screen'
             )
 
+            idxtimestr = time.strftime("%Y%m%d%H%M%S")
             with open(f'batch_runs_{timestr}.log', 'a') as fd:
-                fd.write(f'{idx, itx, ds, sf}\n')
+                fd.write(f'{idx, idxtimestr, dur, ds, sf}\n')
 
             return LaunchDescription([
                 rosbag2,
