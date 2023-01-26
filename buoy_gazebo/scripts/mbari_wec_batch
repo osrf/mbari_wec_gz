@@ -99,9 +99,11 @@ def generate_simulations(sim_params_yaml):
             print(f'Simulation run [{idx}] was not successful: return code [{result}]')
 
 if __name__=='__main__':
-    import argparse
+    import argparse, sys
     parser = argparse.ArgumentParser(description='Batch running for buoy_sim')
     parser.add_argument('sim_params_yaml',
                         help='yaml file with batch parameters')
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
+    print(args)
+    print(sys.argv)
     generate_simulations(args.sim_params_yaml)
