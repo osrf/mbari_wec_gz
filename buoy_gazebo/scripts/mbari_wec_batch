@@ -37,17 +37,16 @@ def generate_simulations(sim_params_yaml):
     with open(sim_params_yaml, 'r') as fd:
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
-    duration = sim_params['duration']
+    duration = float(sim_params['duration'])
     iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
     door_state = sim_params['door_state']
-    scale_factor = sim_params['scale_factor']
-    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(duration,
-                                                                     iterations,
-                                                                     door_state,
+    scale_factor = np.array(sim_params['scale_factor'], dtype=float)
+    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
                                                                      scale_factor)]))
 
     print(f'Generated {len(batch_params)} simulation runs:')
-    print(f'Duration, Door State, Scale Factor\n{np.array(batch_params)[:, [0, 2, 3]]}')
+    print('Duration, Door State, Scale Factor')
+    [print(f'{duration}, {ds}, {sf}') for ds, sf in batch_params]
 
     timestr = time.strftime("%Y%m%d%H%M%S")
     with open(f'batch_runs_{timestr}.log', 'w') as fd:
@@ -65,8 +64,9 @@ def generate_simulations(sim_params_yaml):
     empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
-    for idx, (dur, itx, ds, sf) in enumerate(batch_params):
-        print(f"\n\nSim run [{idx}] for {dur} seconds: door state='{ds}', scale factor={sf}\n\n")
+    for idx, (ds, sf) in enumerate(batch_params):
+        print(f"\n\nSim run [{idx}] for {duration} seconds: " +
+              f"door state='{ds}', scale factor={sf}\n\n")
         empy(['-D', f"door_state = '{ds}'",
               '-o', base_sdf_file,
               empy_base_sdf_file])
@@ -80,7 +80,7 @@ def generate_simulations(sim_params_yaml):
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
                 ),
-                launch_arguments={'gz_args': f'-rs --iterations {itx}'}.items(),
+                launch_arguments={'gz_args': f'-rs --iterations {iterations}'}.items(),
             )
 
             rosbag2_name = f'rosbag2_batch_sim_{idx}'
@@ -91,7 +91,7 @@ def generate_simulations(sim_params_yaml):
 
             idxtimestr = time.strftime("%Y%m%d%H%M%S")
             with open(f'batch_runs_{timestr}.log', 'a') as fd:
-                fd.write(f'{idx, idxtimestr, dur, ds, sf}\n')
+                fd.write(f'{idx}, {idxtimestr}, {duration}, {ds}, {sf}\n')
 
             return LaunchDescription([
                 rosbag2,
