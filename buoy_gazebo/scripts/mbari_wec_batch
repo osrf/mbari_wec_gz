@@ -20,6 +20,7 @@ import numpy as np
 import yaml
 
 import os
+import sys
 import time
 
 from ament_index_python.packages import get_package_share_directory
@@ -29,24 +30,35 @@ from launch import LaunchService
 from launch.actions import ExecuteProcess, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
+import rclpy
+from rclpy.node import Node
+
 
 PHYSICS_MAX_STEP_SIZE = 0.001
 
 def generate_simulations(sim_params_yaml):
 
+    rclpy.init()
+    node = Node('mbari_wec_batch')
+
     with open(sim_params_yaml, 'r') as fd:
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
-    duration = float(sim_params['duration'])
+    try:
+        duration = float(sim_params['duration'])
+    except TypeError as err:
+        node.get_logger().error('sim_params_yaml: duration parameter ' +
+                                'must be a single value in seconds')
+        sys.exit(-1)
     iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
     door_state = sim_params['door_state']
     scale_factor = np.array(sim_params['scale_factor'], dtype=float)
     batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
                                                                      scale_factor)]))
 
-    print(f'Generated {len(batch_params)} simulation runs:')
-    print('Duration, Door State, Scale Factor')
-    [print(f'{duration}, {ds}, {sf}') for ds, sf in batch_params]
+    node.get_logger().info(f'Generated {len(batch_params)} simulation runs:')
+    node.get_logger().info('Duration, Door State, Scale Factor')
+    [node.get_logger().info(f'{duration}, {ds}, {sf}') for ds, sf in batch_params]
 
     timestr = time.strftime("%Y%m%d%H%M%S")
     with open(f'batch_runs_{timestr}.log', 'w') as fd:
@@ -65,8 +77,8 @@ def generate_simulations(sim_params_yaml):
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     for idx, (ds, sf) in enumerate(batch_params):
-        print(f"\n\nSim run [{idx}] for {duration} seconds: " +
-              f"door state='{ds}', scale factor={sf}\n\n")
+        node.get_logger().info(f"\n\nSim run [{idx}] for {duration} seconds: " +
+                               f"door state='{ds}', scale factor={sf}\n\n")
         empy(['-D', f"door_state = '{ds}'",
               '-o', base_sdf_file,
               empy_base_sdf_file])
@@ -102,7 +114,8 @@ def generate_simulations(sim_params_yaml):
         ls.include_launch_description(generate_launch_description())
         result = ls.run()
         if result:
-            print(f'Simulation run [{idx}] was not successful: return code [{result}]')
+            node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
+                                    f'return code [{result}]')
 
 if __name__=='__main__':
     import argparse

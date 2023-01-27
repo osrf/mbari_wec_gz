@@ -16,8 +16,6 @@
 
 import os
 
-from ament_index_python.packages import get_package_share_directory
-
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, Shutdown
 from launch.substitutions import LaunchConfiguration
@@ -26,9 +24,6 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-
-    pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
-    example_sim_params_yaml = os.path.join(pkg_buoy_gazebo, 'example_sim_params.yaml')
 
     sim_params_yaml_launch_arg = DeclareLaunchArgument(
         'sim_params_yaml',
