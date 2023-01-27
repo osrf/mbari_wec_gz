@@ -47,9 +47,14 @@ def generate_simulations(sim_params_yaml):
 
     timestr = time.strftime("%Y%m%d%H%M%S")
     batch_results_dir = f'batch_results_{timestr}'
+    node.get_logger().info(f'Creating batch results directory: {batch_results_dir}')
     os.makedirs(batch_results_dir)
+
     sim_params_name, dot_yaml = os.path.splitext(os.path.basename(sim_params_yaml))
     sim_params_date_yaml = sim_params_name + f'_{timestr}' + dot_yaml
+    node.get_logger().info('Copying sim params yaml to batch results directory: ' +
+                           os.path.join(batch_results_dir,
+                                        sim_params_date_yaml))
     shutil.copy(sim_params_yaml,
                 os.path.join(batch_results_dir,
                              sim_params_date_yaml))
@@ -84,6 +89,8 @@ def generate_simulations(sim_params_yaml):
     node.get_logger().info('Seed, Duration, Door State, Scale Factor')
     [node.get_logger().info(f'{seed}, {duration}, {ds}, {sf}') for ds, sf in batch_params]
 
+    node.get_logger().info('Creating log file: ' +
+                           os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'))
     with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
         fd.write('Run Index, Start Time, rosbag2 File Name,' +
