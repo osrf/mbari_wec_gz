@@ -45,6 +45,14 @@ def generate_simulations(sim_params_yaml):
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
     try:
+        seed = int(sim_params['seed'])
+        # TODO(anyone) remove warning when --seed supported by gz sim (also see other todo below)
+        node.get_logger().warn('sim_params_yaml: seed parameter not yet supported')
+    except TypeError as err:
+        node.get_logger().error('sim_params_yaml: seed parameter ' +
+                                'must be a single value')
+        sys.exit(-1)
+    try:
         duration = float(sim_params['duration'])
     except TypeError as err:
         node.get_logger().error('sim_params_yaml: duration parameter ' +
@@ -57,13 +65,13 @@ def generate_simulations(sim_params_yaml):
                                                                      scale_factor)]))
 
     node.get_logger().info(f'Generated {len(batch_params)} simulation runs:')
-    node.get_logger().info('Duration, Door State, Scale Factor')
-    [node.get_logger().info(f'{duration}, {ds}, {sf}') for ds, sf in batch_params]
+    node.get_logger().info('Seed, Duration, Door State, Scale Factor')
+    [node.get_logger().info(f'{seed}, {duration}, {ds}, {sf}') for ds, sf in batch_params]
 
     timestr = time.strftime("%Y%m%d%H%M%S")
     with open(f'batch_runs_{timestr}.log', 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
-        fd.write(f'Run Index, Start Time, Duration, Door State, Scale Factor\n')
+        fd.write(f'Run Index, Start Time, Seed, Duration, Door State, Scale Factor\n')
 
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
@@ -77,8 +85,8 @@ def generate_simulations(sim_params_yaml):
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     for idx, (ds, sf) in enumerate(batch_params):
-        node.get_logger().info(f"\n\nSim run [{idx}] for {duration} seconds: " +
-                               f"door state='{ds}', scale factor={sf}\n\n")
+        node.get_logger().info(f"\n\nSim run [{idx}] for {duration} seconds:" +
+                               f" door state='{ds}', scale factor={sf}\n\n")
         empy(['-D', f"door_state = '{ds}'",
               '-o', base_sdf_file,
               empy_base_sdf_file])
@@ -92,7 +100,10 @@ def generate_simulations(sim_params_yaml):
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
                 ),
-                launch_arguments={'gz_args': f'-rs --iterations {iterations}'}.items(),
+                launch_arguments={'gz_args': '-rs' +
+                                             f' --iterations {iterations}'}.items()  # ' +
+                                             # TODO(anyone) uncomment when --seed is supported
+                                             # f' --seed {seed}'}.items(),
             )
 
             rosbag2_name = f'rosbag2_batch_sim_{idx}'
@@ -101,9 +112,9 @@ def generate_simulations(sim_params_yaml):
                 output='screen'
             )
 
-            idxtimestr = time.strftime("%Y%m%d%H%M%S")
+            start_time = time.strftime("%Y%m%d%H%M%S")
             with open(f'batch_runs_{timestr}.log', 'a') as fd:
-                fd.write(f'{idx}, {idxtimestr}, {duration}, {ds}, {sf}\n')
+                fd.write(f'{idx}, {start_time}, {seed}, {duration}, {ds}, {sf}\n')
 
             return LaunchDescription([
                 rosbag2,
