@@ -20,6 +20,7 @@ import numpy as np
 import yaml
 
 import os
+import shutil
 import sys
 import time
 
@@ -34,7 +35,7 @@ import rclpy
 from rclpy.node import Node
 
 
-PHYSICS_MAX_STEP_SIZE = 0.001
+PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
 
 def generate_simulations(sim_params_yaml):
 
@@ -44,6 +45,16 @@ def generate_simulations(sim_params_yaml):
     with open(sim_params_yaml, 'r') as fd:
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
+    timestr = time.strftime("%Y%m%d%H%M%S")
+    batch_results_dir = f'batch_results_{timestr}'
+    os.makedirs(batch_results_dir)
+    sim_params_name, dot_yaml = os.path.splitext(os.path.basename(sim_params_yaml))
+    sim_params_date_yaml = sim_params_name + f'_{timestr}' + dot_yaml
+    shutil.copy(sim_params_yaml,
+                os.path.join(batch_results_dir,
+                             sim_params_date_yaml))
+
+    # seed
     try:
         seed = int(sim_params['seed'])
         # TODO(anyone) remove warning when --seed supported by gz sim (also see other todo below)
@@ -52,15 +63,20 @@ def generate_simulations(sim_params_yaml):
         node.get_logger().error('sim_params_yaml: seed parameter ' +
                                 'must be a single value')
         sys.exit(-1)
+
+    # duration
     try:
         duration = float(sim_params['duration'])
     except TypeError as err:
         node.get_logger().error('sim_params_yaml: duration parameter ' +
                                 'must be a single value in seconds')
         sys.exit(-1)
+
     iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
     door_state = sim_params['door_state']
     scale_factor = np.array(sim_params['scale_factor'], dtype=float)
+
+    # generate test matrix
     batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
                                                                      scale_factor)]))
 
@@ -68,10 +84,10 @@ def generate_simulations(sim_params_yaml):
     node.get_logger().info('Seed, Duration, Door State, Scale Factor')
     [node.get_logger().info(f'{seed}, {duration}, {ds}, {sf}') for ds, sf in batch_params]
 
-    timestr = time.strftime("%Y%m%d%H%M%S")
-    with open(f'batch_runs_{timestr}.log', 'w') as fd:
+    with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
-        fd.write(f'Run Index, Start Time, Seed, Duration, Door State, Scale Factor\n')
+        fd.write('Run Index, Start Time, rosbag2 File Name,' +
+                 ' Seed, Duration, Door State, Scale Factor\n')
 
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
@@ -106,15 +122,16 @@ def generate_simulations(sim_params_yaml):
                                              # f' --seed {seed}'}.items(),
             )
 
-            rosbag2_name = f'rosbag2_batch_sim_{idx}'
+            start_time = time.strftime("%Y%m%d%H%M%S")
+            rosbag2_name = f'rosbag2_batch_sim_{idx}_{start_time}'
             rosbag2 = ExecuteProcess(
-                cmd=['ros2', 'bag', 'record', '-o', rosbag2_name, '-a'],
+                cmd=['ros2', 'bag', 'record',
+                     '-o', os.path.join(batch_results_dir, rosbag2_name), '-a'],
                 output='screen'
             )
 
-            start_time = time.strftime("%Y%m%d%H%M%S")
-            with open(f'batch_runs_{timestr}.log', 'a') as fd:
-                fd.write(f'{idx}, {start_time}, {seed}, {duration}, {ds}, {sf}\n')
+            with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'a') as fd:
+                fd.write(f'{idx}, {start_time}, {rosbag2_name}, {seed}, {duration}, {ds}, {sf}\n')
 
             return LaunchDescription([
                 rosbag2,
