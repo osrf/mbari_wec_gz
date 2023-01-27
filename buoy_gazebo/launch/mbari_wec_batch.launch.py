@@ -14,8 +14,6 @@
 
 """Launch Gazebo world with a buoy."""
 
-import os
-
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, Shutdown
 from launch.substitutions import LaunchConfiguration
