@@ -5,5 +5,5 @@ gz_add_plugin(PowerController
     ../..
   ROS
   EXTRA_ROS_PKGS
-    ros_ign_gazebo
+    ros_gz_sim
 )

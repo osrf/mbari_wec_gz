@@ -5,19 +5,27 @@ on: [push, pull_request]
 jobs:
   tests:
     name: Build and test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         include:
-          - gz-version: "fortress"
-            ros-distro: "galactic"
+          - gz-version: "garden"
+            ros-distro: "humble"
     container:
-      image: ubuntu:20.04
+      image: ubuntu:22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Build and Test
         run: .github/workflows/build-and-test.sh
         env:
-          IGNITION_VERSION: ${{ matrix.gz-version  }}
+          GZ_VERSION: ${{ matrix.gz-version  }}
           ROS_DISTRO: ${{ matrix.ros-distro }}
+      - name: Archive rosbags
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: rosbags
+          path: ~/ws/build/buoy_tests/rosbag*
+          if-no-files-found: ignore
+          retention-days: 2

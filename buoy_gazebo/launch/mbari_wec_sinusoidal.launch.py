@@ -27,7 +27,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
 
-    pkg_ros_ign_gazebo = get_package_share_directory('ros_ign_gazebo')
+    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
     model_dir = 'mbari_wec_ros'
@@ -59,9 +59,9 @@ def generate_launch_description():
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_ign_gazebo, 'launch', 'ign_gazebo.launch.py'),
+            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'),
         ),
-        launch_arguments={'ign_args': PathJoinSubstitution([
+        launch_arguments={'gz_args': PathJoinSubstitution([
             pkg_buoy_gazebo,
             'worlds',
             LaunchConfiguration('world_file')
@@ -72,17 +72,17 @@ def generate_launch_description():
     # Bridge to forward tf and joint states to ros2
     link_pose_gz_topic = '/model/' + model_name + '/pose'
     bridge = Node(
-        package='ros_ign_bridge',
+        package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
             # Clock (Gazebo -> ROS2)
-            '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
             # Joint states (Gazebo -> ROS2)
             ['/world/', LaunchConfiguration('world_name'), '/model/', model_name, '/joint_state',
-             '@', 'sensor_msgs/msg/JointState', '[', 'ignition.msgs.Model'],
+             '@', 'sensor_msgs/msg/JointState', '[', 'gz.msgs.Model'],
             # Link poses (Gazebo -> ROS2)
-            link_pose_gz_topic + '@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
-            link_pose_gz_topic + '_static@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
+            link_pose_gz_topic + '@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V',
+            link_pose_gz_topic + '_static@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V',
         ],
         remappings=[
             (['/world/', LaunchConfiguration('world_name'), '/model/', model_name, '/joint_state'],

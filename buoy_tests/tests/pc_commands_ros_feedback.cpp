@@ -12,19 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <buoy_api/interface.hpp>
-
 #include <gtest/gtest.h>
-
-#include <ignition/common/Console.hh>
-#include <ignition/gazebo/World.hh>
-#include <ignition/gazebo/Server.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/TestFixture.hh>
-#include <ignition/transport/Node.hh>
-
-#include <buoy_interfaces/msg/pc_record.hpp>
-#include <buoy_api/examples/torque_control_policy.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -32,6 +20,18 @@
 #include <string>
 #include <thread>
 #include <vector>
+
+#include <gz/common/Console.hh>
+#include <gz/sim/World.hh>
+#include <gz/sim/Server.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/TestFixture.hh>
+#include <gz/transport/Node.hh>
+
+#include <buoy_api/interface.hpp>
+#include <buoy_api/examples/torque_control_policy.hpp>
+
+#include <buoy_interfaces/msg/pc_record.hpp>
 
 
 // Defines from Controller Firmware, behavior replicated here
@@ -98,8 +98,10 @@ public:
 
     auto spin = [this]()
       {
+        rclcpp::Rate rate(50.0);
         while (rclcpp::ok() && !stop_) {
           executor_->spin_once();
+          rate.sleep();
         }
       };
     thread_executor_spin_ = std::thread(spin);
@@ -200,45 +202,45 @@ class BuoyPCTests : public ::testing::Test
 {
 protected:
   int iterations{0};
-  std::unique_ptr<ignition::gazebo::TestFixture> fixture{nullptr};
+  std::unique_ptr<gz::sim::TestFixture> fixture{nullptr};
   std::unique_ptr<PCROSNode> node{nullptr};
-  ignition::gazebo::Entity buoyEntity{ignition::gazebo::kNullEntity};
+  gz::sim::Entity buoyEntity{gz::sim::kNullEntity};
 
   virtual void SetUp()
   {
     // Skip debug messages to run faster
-    ignition::common::Console::SetVerbosity(3);
+    gz::common::Console::SetVerbosity(3);
 
     // Setup fixture
-    ignition::gazebo::ServerConfig config;
+    gz::sim::ServerConfig config;
     config.SetSdfFile("mbari_wec.sdf");
     config.SetUpdateRate(0.0);
 
-    fixture = std::make_unique<ignition::gazebo::TestFixture>(config);
+    fixture = std::make_unique<gz::sim::TestFixture>(config);
     node = std::make_unique<PCROSNode>("pb_torque_controller");  // same name as example to grab
                                                                  // params
 
     fixture->
     OnConfigure(
       [&](
-        const ignition::gazebo::Entity & _worldEntity,
+        const gz::sim::Entity & _worldEntity,
         const std::shared_ptr<const sdf::Element> &,
-        ignition::gazebo::EntityComponentManager & _ecm,
-        ignition::gazebo::EventManager &)
+        gz::sim::EntityComponentManager & _ecm,
+        gz::sim::EventManager &)
       {
-        auto world = ignition::gazebo::World(_worldEntity);
+        auto world = gz::sim::World(_worldEntity);
 
         buoyEntity = world.ModelByName(_ecm, "MBARI_WEC_ROS");
-        EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
+        EXPECT_NE(gz::sim::kNullEntity, buoyEntity);
       }).
     OnPostUpdate(
       [&](
-        const ignition::gazebo::UpdateInfo &,
-        const ignition::gazebo::EntityComponentManager & _ecm)
+        const gz::sim::UpdateInfo &,
+        const gz::sim::EntityComponentManager & _ecm)
       {
         iterations++;
 
-        auto pose = ignition::gazebo::worldPose(buoyEntity, _ecm);
+        auto pose = gz::sim::worldPose(buoyEntity, _ecm);
 
         // Expect buoy to stay more or less in the same place horizontally.
         EXPECT_LT(-0.001, pose.Pos().X());
@@ -307,7 +309,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Now send wind curr command
   node->pc_wind_curr_response_future_ = node->send_pc_wind_curr_command(wc);
-  ASSERT_TRUE(node->pc_wind_curr_response_future_.valid());
+  EXPECT_TRUE(node->pc_wind_curr_response_future_.valid()) << "Winding Current future invalid!";
   node->pc_wind_curr_response_future_.wait();
   EXPECT_EQ(
     node->pc_wind_curr_response_future_.get()->result.value,
@@ -332,7 +334,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Now send scale command
   node->pc_scale_response_future_ = node->send_pc_scale_command(scale);
-  ASSERT_TRUE(node->pc_scale_response_future_.valid());
+  EXPECT_TRUE(node->pc_scale_response_future_.valid()) << "Scale future invalid!";
   node->pc_scale_response_future_.wait();
   EXPECT_EQ(
     node->pc_scale_response_future_.get()->result.value,
@@ -357,7 +359,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Now send retract command
   node->pc_retract_response_future_ = node->send_pc_retract_command(retract);
-  ASSERT_TRUE(node->pc_retract_response_future_.valid());
+  EXPECT_TRUE(node->pc_retract_response_future_.valid()) << "Retract future invalid!";
   node->pc_retract_response_future_.wait();
   EXPECT_EQ(
     node->pc_retract_response_future_.get()->result.value,
@@ -406,7 +408,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 
   // Now send bias curr command
   node->pc_bias_curr_response_future_ = node->send_pc_bias_curr_command(bc);
-  ASSERT_TRUE(node->pc_bias_curr_response_future_.valid());
+  EXPECT_TRUE(node->pc_bias_curr_response_future_.valid()) << "Bias Current future invalid!";
   node->pc_bias_curr_response_future_.wait();
   EXPECT_EQ(
     node->pc_bias_curr_response_future_.get()->result.value,
@@ -455,5 +457,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   node->stop();
 
   // Sanity check that the test ran
-  EXPECT_NE(ignition::gazebo::kNullEntity, buoyEntity);
+  EXPECT_NE(gz::sim::kNullEntity, buoyEntity);
+
+  std::this_thread::sleep_for(1s);  // needed for launch_test to know we shut down
 }

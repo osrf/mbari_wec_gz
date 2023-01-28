@@ -15,11 +15,7 @@
 #ifndef ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 #define ELECTROHYDRAULICPTO__ELECTROHYDRAULICSOLN_HPP_
 
-
-// Interpolation for efficiency maps
-#include <simple_interp/interp1d.hpp>
-#include <buoy_utils/Constants.hpp>
-#include <unsupported/Eigen/NonLinearOptimization>
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
 #include <algorithm>
 #include <cmath>
@@ -28,6 +24,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+// Interpolation for efficiency maps
+#include <simple_interp/interp1d.hpp>
+#include <buoy_utils/Constants.hpp>
 
 #include "ElectroHydraulicState.hpp"
 #include "WindingCurrentTarget.hpp"
