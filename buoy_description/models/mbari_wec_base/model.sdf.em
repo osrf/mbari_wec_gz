@@ -30,7 +30,6 @@ num_tether_bottom_links = 5
 # Heave cone
 heave_total_mass = 817
 trefoil_mass = 10
-heave_height = 1.65 # From STL mesh in Blender
 
 ###################
 # Computed values #
@@ -71,7 +70,6 @@ def tether_joint_properties():
 # PTO
 pto_inner_radius = tether_radius + pto_gap
 pto_scale = pto_inner_radius / pto_stl_inner_radius
-
 }@
 <sdf version="1.8">
   <model name="MBARI_WEC_BASE">
@@ -376,9 +374,6 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         </geometry>
       </collision>
     </link>
-    <frame name="HeaveConeBottom" attached_to="HeaveCone">
-      <pose>0 0 -@(heave_height) 0 0 0</pose>
-    </frame>
 
     <link name="Trefoil">
       <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
