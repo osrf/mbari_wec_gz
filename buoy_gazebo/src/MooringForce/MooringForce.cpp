@@ -16,14 +16,14 @@
 #include "MooringForce.hpp"
 
 // Only for debug level TODO remove before merge PR
-#include <ignition/common/Console.hh>
+#include <gz/common/Console.hh>
 
-#include <ignition/common/Profiler.hh>
-#include <ignition/plugin/Register.hh>
+#include <gz/common/Profiler.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/Link.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/World.hh>
+#include <gz/sim/Link.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/World.hh>
 
 #include <memory>
 #include <string>
@@ -36,16 +36,16 @@ class MooringForcePrivate
 {
 public:
   /// \brief Heave cone link entity
-  ignition::gazebo::Entity heaveConeLinkEnt{ignition::gazebo::kNullEntity};
+  gz::sim::Entity heaveConeLinkEnt{gz::sim::kNullEntity};
 
   /// \brief Heave cone link to which the virtual mooring is attached
-  ignition::gazebo::Link heaveConeLink;
+  gz::sim::Link heaveConeLink;
 
   /// \brief A predefined pose we assume the anchor to be
-  ignition::math::Vector3d anchorPos{20, 0, -77};
+  gz::math::Vector3d anchorPos{20, 0, -77};
 
   /// \brief Model interface
-  ignition::gazebo::Model model{ignition::gazebo::kNullEntity};
+  gz::sim::Model model{gz::sim::kNullEntity};
 
   /// \brief Meters, vertical distance from buoy to anchor
   double V = 82.0;
@@ -66,7 +66,7 @@ public:
   Eigen::VectorXd B{};
 
   /// \brief Look for heave cone link to apply force to
-  void FindLink(ignition::gazebo::EntityComponentManager & _ecm);
+  void FindLink(gz::sim::EntityComponentManager & _ecm);
 };
 
 //////////////////////////////////////////////////
@@ -77,12 +77,12 @@ MooringForce::MooringForce()
 
 //////////////////////////////////////////////////
 void MooringForcePrivate::FindLink(
-  ignition::gazebo::EntityComponentManager & _ecm)
+  gz::sim::EntityComponentManager & _ecm)
 {
   this->heaveConeLinkEnt = this->model.LinkByName(_ecm,
     "HeaveCone");
-  if (this->heaveConeLinkEnt != ignition::gazebo::kNullEntity) {
-    this->heaveConeLink = ignition::gazebo::Link(
+  if (this->heaveConeLinkEnt != gz::sim::kNullEntity) {
+    this->heaveConeLink = gz::sim::Link(
       this->heaveConeLinkEnt);
     if (!this->heaveConeLink.Valid(_ecm))
     {
@@ -98,22 +98,22 @@ void MooringForcePrivate::FindLink(
 
 //////////////////////////////////////////////////
 void MooringForce::Configure(
-  const ignition::gazebo::Entity & _entity,
+  const gz::sim::Entity & _entity,
   const std::shared_ptr<const sdf::Element> & _sdf,
-  ignition::gazebo::EntityComponentManager & _ecm,
-  ignition::gazebo::EventManager & /*_eventMgr*/)
+  gz::sim::EntityComponentManager & _ecm,
+  gz::sim::EventManager & /*_eventMgr*/)
 {
   // Skip debug messages to run faster TODO change to 3 before merge PR
-  ignition::common::Console::SetVerbosity(4);
+  gz::common::Console::SetVerbosity(4);
 
-  this->dataPtr->model = ignition::gazebo::Model(_entity);
+  this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
     ignerr << "MooringForce plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
   }
 
-  this->dataPtr->anchorPos = _sdf->Get<ignition::math::Vector3d>(
+  this->dataPtr->anchorPos = _sdf->Get<gz::math::Vector3d>(
     "anchor_position", this->dataPtr->anchorPos).first;
   igndbg << "Anchor position set to " << this->dataPtr->anchorPos
     << std::endl;
@@ -126,13 +126,13 @@ void MooringForce::Configure(
 
 //////////////////////////////////////////////////
 void MooringForce::PreUpdate(
-  const ignition::gazebo::UpdateInfo & _info,
-  ignition::gazebo::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo & _info,
+  gz::sim::EntityComponentManager & _ecm)
 {
-  IGN_PROFILE("MooringForce::PreUpdate");
+  GZ_PROFILE("MooringForce::PreUpdate");
 
   // If the link hasn't been identified yet, the plugin is disabled
-  if (this->dataPtr->heaveConeLinkEnt == ignition::gazebo::kNullEntity) {
+  if (this->dataPtr->heaveConeLinkEnt == gz::sim::kNullEntity) {
     this->dataPtr->FindLink(_ecm);
     return;
   }
@@ -190,14 +190,14 @@ void MooringForce::PreUpdate(
   double Ty = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0]);
 
   // Apply forces to buoy heave cone link, where the mooring would be attached
-  //ignition::math::Vector3d force(-Tx, Ty, 0);
-  //ignition::math::Vector3d torque(0, 0, 0);
+  //gz::math::Vector3d force(-Tx, Ty, 0);
+  //gz::math::Vector3d torque(0, 0, 0);
   //buoyLink.AddWorldWrench(_ecm, force, torque);
 }
 }  // namespace buoy_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   buoy_gazebo::MooringForce,
-  ignition::gazebo::System,
+  gz::sim::System,
   buoy_gazebo::MooringForce::ISystemConfigure,
   buoy_gazebo::MooringForce::ISystemPreUpdate)

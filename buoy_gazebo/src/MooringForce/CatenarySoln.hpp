@@ -15,11 +15,11 @@
 #ifndef MOORINGFORCE__CATENARYSOLN_HPP_
 #define MOORINGFORCE__CATENARYSOLN_HPP_
 
-#include <unsupported/Eigen/NonLinearOptimization>
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
 #include <cmath>
 
-#include <ignition/common/Console.hh>
+#include <gz/common/Console.hh>
 
 /////////////////////////////////////////////////////
 // Generic functor
