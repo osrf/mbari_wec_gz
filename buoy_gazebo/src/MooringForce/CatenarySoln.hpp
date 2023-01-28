@@ -150,12 +150,7 @@ public:
       return -1;
     }
 
-    // Scaling factor
-    double c = CatenaryFunction::CatenaryScalingFactor(
-      this->V, B[0], this->L);
-
     // Initial guess x = H, for CatenaryVSoln
-    // TODO Is this how to pass in H as initial guess for x?
     Eigen::VectorXd x{};
     x.resize(1);
     x[0] = this->H;
@@ -176,7 +171,7 @@ public:
     // Once have x (hopefully x=H)
     fvec.resize(x.size());
     // Update H, which is the solution of x from solver
-    fvec[0] = x[0];
+    fvec[0] = x[0] - this->H;
 
     //igndbg << "VSolver solverInfo: " << solverInfo
     //  << " fvec[0] (solved x~H): " << fvec[0] << std::endl;
