@@ -167,7 +167,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
            <xp>0.0</xp>
            <xq>0.0</xq>
            <xr>0.0</xr>
-           <yy>160.0.0</yy>
+           <yy>160.0</yy>
            <yz>0.0</yz>
            <yp>0.0</yp>
            <yq>0.0</yq>
