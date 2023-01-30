@@ -45,6 +45,56 @@ def generate_simulations(sim_params_yaml):
     with open(sim_params_yaml, 'r') as fd:
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
+    # Grab params from yaml
+    # seed
+    try:
+        if 'seed' in sim_params:
+            seed = int(sim_params['seed'])
+            # TODO(anyone) remove warning and `seed = None` when --seed
+            # supported by gz sim
+            node.get_logger().warn('sim_params_yaml: seed parameter not yet supported -- ignoring')
+            seed = None
+        else:
+            seed = None
+            node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
+    except TypeError as err:
+        node.get_logger().error('sim_params_yaml: seed parameter ' +
+                                'must be a single value')
+        sys.exit(-1)
+
+    # duration
+    try:
+        if 'duration' not in sim_params:
+            node.get_logger().error('sim_params_yaml: required duration parameter not specified')
+            sys.exit(-1)
+        duration = float(sim_params['duration'])
+    except TypeError as err:
+        node.get_logger().error('sim_params_yaml: duration parameter ' +
+                                'must be a single value in seconds')
+        sys.exit(-1)
+
+    # convert duration to iterations
+    iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
+
+    # door state
+    if 'door_state' in sim_params:
+        door_state = sim_params['door_state']
+    else:
+        node.get_logger().warn(
+            "sim_params_yaml: door_state parameter not specified -- defaulting to 'closed'"
+        )
+        door_state = ['closed']
+
+    # scale factor
+    if 'scale_factor' in sim_params:
+        scale_factor = np.array(sim_params['scale_factor'], dtype=float)
+    else:
+        node.get_logger().warn(
+            'sim_params_yaml: scale_factor parameter not specified -- defaulting to 1.0'
+        )
+        scale_factor = [1.0]
+
+    # create batch results directory
     timestr = time.strftime("%Y%m%d%H%M%S")
     batch_results_dir = f'batch_results_{timestr}'
     node.get_logger().info(f'Creating batch results directory: {batch_results_dir}')
@@ -59,35 +109,14 @@ def generate_simulations(sim_params_yaml):
                 os.path.join(batch_results_dir,
                              sim_params_date_yaml))
 
-    # seed
-    try:
-        seed = int(sim_params['seed'])
-        # TODO(anyone) remove warning when --seed supported by gz sim (also see other todo below)
-        node.get_logger().warn('sim_params_yaml: seed parameter not yet supported')
-    except TypeError as err:
-        node.get_logger().error('sim_params_yaml: seed parameter ' +
-                                'must be a single value')
-        sys.exit(-1)
-
-    # duration
-    try:
-        duration = float(sim_params['duration'])
-    except TypeError as err:
-        node.get_logger().error('sim_params_yaml: duration parameter ' +
-                                'must be a single value in seconds')
-        sys.exit(-1)
-
-    iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
-    door_state = sim_params['door_state']
-    scale_factor = np.array(sim_params['scale_factor'], dtype=float)
-
     # generate test matrix
     batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
                                                                      scale_factor)]))
 
     node.get_logger().info(f'Generated {len(batch_params)} simulation runs:')
     node.get_logger().info('Seed, Duration, Door State, Scale Factor')
-    [node.get_logger().info(f'{seed}, {duration}, {ds}, {sf}') for ds, sf in batch_params]
+    [node.get_logger().info(f'{seed if seed is not None else ""}, {duration}, {ds}, {sf}')
+        for ds, sf in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'))
@@ -96,9 +125,11 @@ def generate_simulations(sim_params_yaml):
         fd.write('Run Index, Start Time, rosbag2 File Name,' +
                  ' Seed, Duration, Door State, Scale Factor\n')
 
+    # Find packages
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
 
+    # Find model templates
     model_dir = 'mbari_wec_base'
     empy_base_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
     base_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
@@ -107,9 +138,12 @@ def generate_simulations(sim_params_yaml):
     empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
+    # Start batch runs
     for idx, (ds, sf) in enumerate(batch_params):
-        node.get_logger().info(f"\n\nSim run [{idx}] for {duration} seconds:" +
-                               f" door state='{ds}', scale factor={sf}\n\n")
+        node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
+                               f" door state='{ds}', scale factor={sf}\n")
+
+        # fill model templates with params
         empy(['-D', f"door_state = '{ds}'",
               '-o', base_sdf_file,
               empy_base_sdf_file])
@@ -118,17 +152,24 @@ def generate_simulations(sim_params_yaml):
               '-o', sdf_file,
               empy_sdf_file])
 
+        node.get_logger().info('running gz-sim with gz_args:=' +
+                       '-rs' +
+                       f' --iterations {iterations}' +
+                       (f' --seed {seed}' if seed is not None else ''))
+
+        # Dynamically create launch file
         def generate_launch_description():
             mbari_wec = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
                 ),
                 launch_arguments={'gz_args': '-rs' +
-                                             f' --iterations {iterations}'}.items()  # ' +
-                                             # TODO(anyone) uncomment when --seed is supported
-                                             # f' --seed {seed}'}.items(),
+                                             f' --iterations {iterations}' +
+                                             (f' --seed {seed}' if seed is not None else '')
+                                 }.items(),
             )
 
+            # record all topics with rosbag2
             start_time = time.strftime("%Y%m%d%H%M%S")
             rosbag2_name = f'rosbag2_batch_sim_{idx}_{start_time}'
             rosbag2 = ExecuteProcess(
@@ -137,14 +178,17 @@ def generate_simulations(sim_params_yaml):
                 output='screen'
             )
 
+            # Write to log
             with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'a') as fd:
-                fd.write(f'{idx}, {start_time}, {rosbag2_name}, {seed}, {duration}, {ds}, {sf}\n')
+                fd.write(f'{idx}, {start_time}, {rosbag2_name}' +
+                         f', {seed if seed is not None else ""}, {duration}, {ds}, {sf}\n')
 
             return LaunchDescription([
                 rosbag2,
                 mbari_wec
             ])
 
+        # Launch sim instance
         ls = LaunchService()
         ls.include_launch_description(generate_launch_description())
         result = ls.run()
