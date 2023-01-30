@@ -467,9 +467,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <plugin filename="gz-sim-hydrodynamics-system"
       name="gz::sim::systems::Hydrodynamics">
       <link_name>Buoy</link_name>
-      <xUU>-430</xUU>  <!-- Surge Quadratic Drag kg/m -->
-      <yVV>-430</yVV>  <!-- Sway Quadratic Drag kg/m -->
-      <zWW>-3280 </zWW>  <!-- Vertical Quadratic Drag kg/m -->
+      <xUabsU>-430</xUabsU>  <!-- Surge Quadratic Drag kg/m -->
+      <yVabsV>-430</yVabsV>  <!-- Sway Quadratic Drag kg/m -->
+      <zWabsW>-3280</zWabsW>  <!-- Vertical Quadratic Drag kg/m -->
+      <disable_coriolis>true</disable_coriolis>
       <disable_added_mass>true</disable_added_mass>
     </plugin>
 
@@ -477,11 +478,12 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <plugin filename="gz-sim-hydrodynamics-system"
       name="gz::sim::systems::Hydrodynamics">
       <link_name>PTO</link_name>
-      <xUU>-815</xUU>  <!-- Surge Quadratic Drag kg/m -->
-      <yVV>-815</yVV>  <!-- Sway Quadratic Drag kg/m -->
-      <zWW>-3200 </zWW>  <!-- Vertical Quadratic Drag kg/m -->
-      <kPP>-140200</kPP>  <!-- Roll Quadratic Drag kg m^2 -->
-      <mQQ>-140200</mQQ>  <!-- Roll Quadratic Drag kg m^2 -->
+      <xUabsU>-815</xUabsU>  <!-- Surge Quadratic Drag kg/m -->
+      <yVabsV>-815</yVabsV>  <!-- Sway Quadratic Drag kg/m -->
+      <zWabsW>-3200</zWabsW>  <!-- Vertical Quadratic Drag kg/m -->
+      <kPabsP>-140200</kPabsP>  <!-- Roll Quadratic Drag kg m^2 -->
+      <mQabsQ>-140200</mQabsQ>  <!-- Roll Quadratic Drag kg m^2 -->
+      <disable_coriolis>true</disable_coriolis>
       <disable_added_mass>true</disable_added_mass>
     </plugin>
 
@@ -489,11 +491,12 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <plugin filename="gz-sim-hydrodynamics-system"
       name="gz::sim::systems::Hydrodynamics">
       <link_name>HeaveCone</link_name>
-      <xUU>-1580</xUU>  <!-- Surge Quadratic Drag kg/m -->
-      <yVV>-1580</yVV>  <!-- Sway Quadratic Drag kg/m -->
-      <zWW>-3200 </zWW>  <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
-      <kPP>-4620</kPP>  <!-- Roll Quadratic Drag kg m^2 -->
-      <mQQ>-4620</mQQ>  <!-- Roll Quadratic Drag kg m^2 -->
+      <xUabsU>-1580</xUabsU>  <!-- Surge Quadratic Drag kg/m -->
+      <yVabsV>-1580</yVabsV>  <!-- Sway Quadratic Drag kg/m -->
+      <zWabsW>-3200</zWabsW>  <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
+      <kPabsP>-4620</kPabsP>  <!-- Roll Quadratic Drag kg m^2 -->
+      <mQabsQ>-4620</mQabsQ>  <!-- Roll Quadratic Drag kg m^2 -->
+      <disable_coriolis>true</disable_coriolis>
       <disable_added_mass>true</disable_added_mass>
     </plugin>
 
