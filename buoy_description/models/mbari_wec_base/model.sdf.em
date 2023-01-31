@@ -37,14 +37,14 @@ except NameError:
 
 if 'open' in door_state:
     mu_zz = 3000.0  # kg, Heave Added Mass
-    z_ww = -3200.0  # kg/m, Heave Quadratic Drag
+    heavecone_zWabsW = -3200.0  # kg/m, Heave Quadratic Drag
 
 # Heave cone
 heave_total_mass = 817  # kg
 trefoil_mass = 20  # kg
 
 ########################
-# TODO(anyone) mu_zz and z_ww below are currently unused. Will be used in #115
+# TODO(anyone) mu_zz below is currently unused. Will be used in #115
 ########################
 
 # check if mu_zz was set by door_state 'open' (or passed in by empy)
@@ -55,9 +55,9 @@ except NameError:
 
 # check if z_ww was set by door_state 'open' (or passed in by empy)
 try:
-    z_ww
+    heavecone_zWabsW
 except NameError:
-    z_ww = -3900.0  # kg/m, not defined so default with doors closed
+    heavecone_zWabsW = -3900.0  # kg/m, not defined so default with doors closed
 
 ###################
 # Computed values #
@@ -514,7 +514,8 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <link_name>HeaveCone</link_name>
       <xUabsU>-1580</xUabsU>  <!-- Surge Quadratic Drag kg/m -->
       <yVabsV>-1580</yVabsV>  <!-- Sway Quadratic Drag kg/m -->
-      <zWabsW>-3900</zWabsW>  <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
+      <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
+      <zWabsW>@(heavecone_zWabsW)</zWabsW>
       <kPabsP>-4620</kPabsP>  <!-- Roll Quadratic Drag kg m^2 -->
       <mQabsQ>-4620</mQabsQ>  <!-- Pitch Quadratic Drag kg m^2 -->
       <nRabsR>-50</nRabsR>  <!-- Yaw Quadratic Drag kg m^2 -->
