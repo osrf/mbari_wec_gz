@@ -463,5 +463,47 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       </axis>
     </joint>
 
+    <!-- Viscous Drag for Buoy -->
+    <plugin filename="gz-sim-hydrodynamics-system"
+      name="gz::sim::systems::Hydrodynamics">
+      <link_name>Buoy</link_name>
+      <xUabsU>-430</xUabsU>  <!-- Surge Quadratic Drag kg/m -->
+      <yVabsV>-430</yVabsV>  <!-- Sway Quadratic Drag kg/m -->
+      <zWabsW>-3280</zWabsW>  <!-- Heave Quadratic Drag kg/m -->
+      <kPabsP>-880</kPabsP>  <!-- Roll Quadratic Drag kg m^2 -->
+      <mQabsQ>-880</mQabsQ>  <!-- Pitch Quadratic Drag kg m^2 -->
+      <nRabsR>-50</nRabsR>  <!-- Yaw Quadratic Drag kg m^2 -->
+      <disable_coriolis>true</disable_coriolis>
+      <disable_added_mass>true</disable_added_mass>
+    </plugin>
+
+    <!-- Viscous Drag for PTO -->
+    <plugin filename="gz-sim-hydrodynamics-system"
+      name="gz::sim::systems::Hydrodynamics">
+      <link_name>PTO</link_name>
+      <xUabsU>-1140</xUabsU>  <!-- Surge Quadratic Drag kg/m -->
+      <yVabsV>-1140</yVabsV>  <!-- Sway Quadratic Drag kg/m -->
+      <zWabsW>-50</zWabsW>  <!-- Heave Quadratic Drag kg/m -->
+      <kPabsP>-195400</kPabsP>  <!-- Roll Quadratic Drag kg m^2 -->
+      <mQabsQ>-195400</mQabsQ>  <!-- Pitch Quadratic Drag kg m^2 -->
+      <nRabsR>-50</nRabsR>  <!-- Yaw Quadratic Drag kg m^2 -->
+      <disable_coriolis>true</disable_coriolis>
+      <disable_added_mass>true</disable_added_mass>
+    </plugin>
+
+    <!-- Viscous Drag for Heave Cone -->
+    <plugin filename="gz-sim-hydrodynamics-system"
+      name="gz::sim::systems::Hydrodynamics">
+      <link_name>HeaveCone</link_name>
+      <xUabsU>-1580</xUabsU>  <!-- Surge Quadratic Drag kg/m -->
+      <yVabsV>-1580</yVabsV>  <!-- Sway Quadratic Drag kg/m -->
+      <zWabsW>-3900</zWabsW>  <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
+      <kPabsP>-4620</kPabsP>  <!-- Roll Quadratic Drag kg m^2 -->
+      <mQabsQ>-4620</mQabsQ>  <!-- Pitch Quadratic Drag kg m^2 -->
+      <nRabsR>-50</nRabsR>  <!-- Yaw Quadratic Drag kg m^2 -->
+      <disable_coriolis>true</disable_coriolis>
+      <disable_added_mass>true</disable_added_mass>
+    </plugin>
+
   </model>
 </sdf>
