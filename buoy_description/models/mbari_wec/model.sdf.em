@@ -13,6 +13,7 @@ except NameError:
       <uri>package://buoy_description/models/mbari_wec_base</uri>
     </include>
 
+    <!-- Electro-Hydraulic PTO Plugin -->
     <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
       <PrismaticJointName>HydraulicRam</PrismaticJointName>
       <PistonArea>1.375</PistonArea>
@@ -75,6 +76,7 @@ except NameError:
       <P2>1212740</P2>
     </plugin>
 
+    <!-- Adding Friction to PTO -->
     <plugin filename="PTOFriction" name="buoy_gazebo::PTOFriction">
       <PrismaticJointName>HydraulicRam</PrismaticJointName>
     </plugin>
