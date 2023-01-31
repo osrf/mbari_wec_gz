@@ -30,7 +30,7 @@ num_tether_bottom_links = 5
 # Heave cone
 heave_total_mass = 817
 trefoil_mass = 20
-mu_zz = 10000.0
+mu_zz = 3000.0
 
 
 ###################

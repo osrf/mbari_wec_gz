@@ -128,7 +128,7 @@ void WaveBodyInteractions::Configure(
   }
 
   double Hs = SdfParamDouble(_sdf, "Hs", 3.0);
-  double Tp = SdfParamDouble(_sdf, "Tp", 8.);
+  double Tp = SdfParamDouble(_sdf, "Tp", 12.);
 
   if (Tp > 0) {
     this->dataPtr->Inc.SetToPiersonMoskowitzSpectrum(Hs, Tp, 0.0, 180.0);
@@ -329,6 +329,7 @@ void WaveBodyInteractions::PreUpdate(
   w_MLDp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FLDp);
 #endif
 
+#if 0
 // Compute Viscous Drag (quadratic)
   Eigen::VectorXd DragForce(6);
   DragForce = this->dataPtr->FloatingBody.ViscousDragForce(vel);
@@ -342,8 +343,10 @@ void WaveBodyInteractions::PreUpdate(
   std::cout << "Viscous Drag: applied moment = " << w_MVDp << std::endl;
   // Add contribution due to force offset from origin
   w_MVDp += (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FVDp);
+#endif
 
-  baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp + w_FVDp, w_MBp + w_MRp + w_MEp + w_MVDp);
+  baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp + w_MRp + w_MEp);
+ // baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp + w_FVDp, w_MBp + w_MRp + w_MEp + w_MVDp);
 }
 
 //////////////////////////////////////////////////
