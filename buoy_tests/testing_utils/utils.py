@@ -48,7 +48,8 @@ def default_generate_test_description(server='fixture_server',
     gazebo_test_fixture = launchNode(
         package='buoy_tests',
         executable=server,
-        output='screen'
+        output='screen',
+        on_exit=launch.actions.Shutdown()
     )
 
     bridge = launchNode(package='ros_gz_bridge',
