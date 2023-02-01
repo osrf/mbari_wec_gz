@@ -27,13 +27,6 @@ tether_top_length = 2.5
 
 num_tether_bottom_links = 5
 
-<<<<<<< HEAD
-# Heave cone
-heave_total_mass = 817
-trefoil_mass = 20
-mu_zz = 3000.0
-
-=======
 # TrefoilDoors
 trefoil_pose = {'open': 1.047, 'closed': 0.0}
 # check if door_state was passed in by empy
@@ -65,7 +58,6 @@ try:
     heavecone_zWabsW
 except NameError:
     heavecone_zWabsW = -3900.0  # kg/m, not defined so default with doors closed
->>>>>>> main
 
 ###################
 # Computed values #
