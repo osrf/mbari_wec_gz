@@ -523,11 +523,11 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <pose>0.0 0.0 0.0 0 0 0</pose>
       <axis>
         <xyz>1 0 0</xyz>
-        @(bridal_joint_properties())
+        <!-- #@(bridal_joint_properties()) -->
       </axis>
       <axis2>
         <xyz>0 1 0</xyz>
-        @(bridal_joint_properties())
+        <!-- #@(bridal_joint_properties()) -->
       </axis2>
       <sensor name="force_torque_sensor" type="force_torque">
         <always_on>true</always_on>
