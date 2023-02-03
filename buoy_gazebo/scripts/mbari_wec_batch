@@ -163,9 +163,9 @@ def generate_simulations(sim_params_yaml):
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
                 ),
-                launch_arguments={'gz_args': '-rs' +
-                                             f' --iterations {iterations}' +
-                                             (f' --seed {seed}' if seed is not None else '')
+                launch_arguments={'extra_gz_args': '-rs' +
+                                                  f' --iterations {iterations}' +
+                                                 (f' --seed {seed}' if seed is not None else '')
                                  }.items(),
             )
 
