@@ -597,8 +597,12 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <link_name>HeaveCone</link_name>
       <xUabsU>-1580</xUabsU>  <!-- Surge Quadratic Drag kg/m -->
       <yVabsV>-1580</yVabsV>  <!-- Sway Quadratic Drag kg/m -->
+<<<<<<< HEAD
+      <zWabsW>-3900</zWabsW>  <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
+=======
       <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
       <zWabsW>@(heavecone_zWabsW)</zWabsW>
+>>>>>>> main
       <kPabsP>-4620</kPabsP>  <!-- Roll Quadratic Drag kg m^2 -->
       <mQabsQ>-4620</mQabsQ>  <!-- Pitch Quadratic Drag kg m^2 -->
       <nRabsR>-50</nRabsR>  <!-- Yaw Quadratic Drag kg m^2 -->
