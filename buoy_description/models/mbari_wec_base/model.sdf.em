@@ -95,21 +95,6 @@ def tether_joint_properties():
         </limit>
     """)
 
-def bridal_joint_properties():
-    """ Prints the <dynamics> and <limit> blocks for the bridal joint. """
-    print("""
-        <dynamics>
-          <damping>100.0</damping>
-          <friction>50</friction>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>100</spring_stiffness>
-        </dynamics>
-        <limit>
-          <lower>-1.570796</lower>
-          <upper>1.570796</upper>
-        </limit>
-    """)
-
 # PTO
 pto_inner_radius = tether_radius + pto_gap
 pto_scale = pto_inner_radius / pto_stl_inner_radius
@@ -523,11 +508,9 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <pose>0.0 0.0 0.0 0 0 0</pose>
       <axis>
         <xyz>1 0 0</xyz>
-        <!-- #@(bridal_joint_properties()) -->
       </axis>
       <axis2>
         <xyz>0 1 0</xyz>
-        <!-- #@(bridal_joint_properties()) -->
       </axis2>
       <sensor name="force_torque_sensor" type="force_torque">
         <always_on>true</always_on>
@@ -597,12 +580,8 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <link_name>HeaveCone</link_name>
       <xUabsU>-1580</xUabsU>  <!-- Surge Quadratic Drag kg/m -->
       <yVabsV>-1580</yVabsV>  <!-- Sway Quadratic Drag kg/m -->
-<<<<<<< HEAD
-      <zWabsW>-3900</zWabsW>  <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
-=======
       <!-- Vertical Quadratic Drag kg/m: -3200 open, -3900 close -->
       <zWabsW>@(heavecone_zWabsW)</zWabsW>
->>>>>>> main
       <kPabsP>-4620</kPabsP>  <!-- Roll Quadratic Drag kg m^2 -->
       <mQabsQ>-4620</mQabsQ>  <!-- Pitch Quadratic Drag kg m^2 -->
       <nRabsR>-50</nRabsR>  <!-- Yaw Quadratic Drag kg m^2 -->
