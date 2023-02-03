@@ -1,4 +1,12 @@
 <?xml version="1.0" ?>
+@{
+# Check if scale_factor was passed in via empy
+try:
+    scale_factor
+except NameError:
+    scale_factor = 1.0  # not defined so default
+}@
+
 <sdf version="1.8">
   <model name="MBARI_WEC">
 
@@ -6,11 +14,13 @@
       <uri>package://buoy_description/models/mbari_wec_base</uri>
     </include>
 
+    <!-- Electro-Hydraulic PTO Plugin -->
     <plugin filename="ElectroHydraulicPTO" name="buoy_gazebo::ElectroHydraulicPTO">
       <PrismaticJointName>HydraulicRam</PrismaticJointName>
       <PistonArea>1.375</PistonArea>
       <HydMotorDisp>0.30</HydMotorDisp>
       <RotorInertia>1</RotorInertia>
+      <ScaleFactor>@(scale_factor)</ScaleFactor>
     </plugin>
 
     <!-- Upper Polytropic Spring plugin -->
@@ -86,6 +96,7 @@
 	    </plugin>
     -->
     
+    <!-- Adding Friction to PTO -->
     <plugin filename="PTOFriction" name="buoy_gazebo::PTOFriction">
       <PrismaticJointName>HydraulicRam</PrismaticJointName>
     </plugin>

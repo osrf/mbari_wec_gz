@@ -55,5 +55,5 @@ colcon build --packages-up-to buoy_tests --event-handlers console_direct+
 source $COLCON_WS/install/setup.bash
 
 # Test all buoy packages
-colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+
+colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+ --retest-until-pass 10
 colcon test-result

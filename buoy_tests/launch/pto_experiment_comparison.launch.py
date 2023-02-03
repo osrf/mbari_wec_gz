@@ -23,7 +23,8 @@ def generate_launch_description():
     gazebo_test_fixture = launchNode(
         package='buoy_tests',
         executable='experiment_comparison',
-        output='screen'
+        output='screen',
+        on_exit=launch.actions.Shutdown()
     )
 
     return launch.LaunchDescription([
