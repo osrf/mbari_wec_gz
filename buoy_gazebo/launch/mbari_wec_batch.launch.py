@@ -12,27 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import launch
+"""Launch Gazebo world with a buoy."""
 
-from launch_ros.actions import Node as launchNode
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, Shutdown
+from launch.substitutions import LaunchConfiguration
+
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
 
-    # Test fixture
-    gazebo_test_fixture = launchNode(
-        package='buoy_tests',
-        executable='fixture_server',
-        output='screen',
-        on_exit=launch.actions.Shutdown()
+    sim_params_yaml_launch_arg = DeclareLaunchArgument(
+        'sim_params_yaml',
+        description='Input batch sim params yaml'
     )
 
-    bridge = launchNode(package='ros_gz_bridge',
-                        executable='parameter_bridge',
-                        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
-                        output='screen')
+    batch_sim = Node(
+        package='buoy_gazebo',
+        executable='mbari_wec_batch',
+        arguments=[
+            LaunchConfiguration('sim_params_yaml'),
+        ],
+        output='screen',
+        on_exit=Shutdown()
+    )
 
-    return launch.LaunchDescription([
-        gazebo_test_fixture,
-        bridge
+    return LaunchDescription([
+        sim_params_yaml_launch_arg,
+        batch_sim,
     ])

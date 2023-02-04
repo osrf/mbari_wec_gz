@@ -39,7 +39,8 @@ def generate_test_description():
         package='buoy_tests',
         executable='pc_commands_ros_feedback',
         output='screen',
-        parameters=[config]
+        parameters=[config],
+        on_exit=launch.actions.Shutdown()
     )
 
     bridge = Node(package='ros_gz_bridge',
