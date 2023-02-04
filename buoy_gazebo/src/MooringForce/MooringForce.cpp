@@ -219,7 +219,8 @@ void MooringForce::PreUpdate(
   // Update V and H based on latest buoy position
   this->dataPtr->UpdateVH(_ecm);
 
-  Eigen::HybridNonLinearSolver<CatenaryHSoln> catenarySolver(this->dataPtr->catenarySoln);
+  Eigen::HybridNonLinearSolver<CatenaryHSoln> catenarySolver(
+    this->dataPtr->catenarySoln);
   // Tolerance for error between two consecutive iterations
   catenarySolver.parameters.xtol = 0.0001;
   // Max number of calls to the function
@@ -234,8 +235,11 @@ void MooringForce::PreUpdate(
     this->dataPtr->V, this->dataPtr->B[0], this->dataPtr->L);
 
   int solverInfo;
-  // Increment b, to iterate on B
   while ((c <= 1e-5) && (this->dataPtr->L - this->dataPtr->V - b > 0.0)) {
+    // Increment b, to iterate on B
+    b += 1.0;
+    this->dataPtr->B[0] = this->dataPtr->L - this->dataPtr->V - b;
+
     // Solve for B, pass in initial guess
     solverInfo = catenarySolver.solveNumericalDiff(this->dataPtr->B);
 
@@ -246,9 +250,6 @@ void MooringForce::PreUpdate(
     // Found solution
     if (solverInfo == 1)
       break;
-
-    b += 1.0;
-    this->dataPtr->B[0] = this->dataPtr->L - this->dataPtr->V - b;
   }
 
   // Horizontal component of chain tension, in Newtons
@@ -257,7 +258,10 @@ void MooringForce::PreUpdate(
   // Vertical component of chain tension at buoy heave cone, in Newtons
   double Ty = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0]);
 
-  igndbg << "HSolver solverInfo: " << solverInfo << " c: " << c
+  igndbg << "HSolver solverInfo: " << solverInfo
+    << " V: " << this->dataPtr->V
+    << " H: " << this->dataPtr->H
+    << " c: " << c
     << " B: " << this->dataPtr->B[0]
     << " Tx: " << Tx
     << " Ty: " << Ty

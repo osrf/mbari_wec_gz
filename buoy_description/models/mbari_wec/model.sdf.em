@@ -82,7 +82,7 @@ except NameError:
     </plugin>
 
     <plugin filename="MooringForce" name="buoy_gazebo::MooringForce">
-      <anchor_position>20 0 -77</anchor_position>
+      <anchor_position>120 0 -84</anchor_position>
     </plugin>
 
   </model>
