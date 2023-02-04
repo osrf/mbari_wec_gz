@@ -47,7 +47,7 @@ trefoil_mass = 20  # kg
 try:
     mu_zz
 except NameError:
-    mu_zz = 10000.0  # kg, not defined so default with doors closed
+    mu_zz = 9330.0  # kg, not defined so default with doors closed
 
 # check if z_ww was set by door_state 'open' (or passed in by empy)
 try:
@@ -183,25 +183,25 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>10.0</izz>
         </inertia>
         <fluid_added_mass>
-           <xx>160.0</xx>
+           <xx>310.0</xx>
            <xy>0.0</xy>
            <xz>0.0</xz>
            <xp>0.0</xp>
-           <xq>0.0</xq>
+           <xq>1250.0</xq>
            <xr>0.0</xr>
-           <yy>160.0</yy>
+           <yy>310.0</yy>
            <yz>0.0</yz>
-           <yp>0.0</yp>
+           <yp>-1250.0</yp>
            <yq>0.0</yq>
            <yr>0.0</yr>
-           <zz>0.0</zz>
+           <zz>10.0</zz>
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>0.0</pp>
+           <pp>7040.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>0.0</qq>
+           <qq>7040.0</qq>
            <qr>0.0</qr>
            <rr>0.0</rr>
        </fluid_added_mass>
@@ -412,7 +412,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <pose relative_to="PistonBottom">0 0 -@(tether_length) 0 0 0</pose>
       <inertial>
         <pose>0 0 -1.2 0 0 0</pose>
-        <mass>@(heave_total_mass - trefoil_mass)</mass>
+        <mass>@(heave_total_mass)</mass>
         <inertia>
           <ixx>340.0</ixx>
           <ixy>0.0</ixy>
@@ -422,27 +422,27 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <izz>600.0</izz>
         </inertia>
         <fluid_added_mass>
-           <xx>780.0</xx>
+           <xx>720.0</xx>
            <xy>0.0</xy>
            <xz>0.0</xz>
            <xp>0.0</xp>
-           <xq>0.0</xq>
+           <xq>900.0</xq>
            <xr>0.0</xr>
-           <yy>780.0</yy>
+           <yy>720.0</yy>
            <yz>0.0</yz>
-           <yp>0.0</yp>
+           <yp>-900.0</yp>
            <yq>0.0</yq>
            <yr>0.0</yr>
            <zz>@(mu_zz)</zz>
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>0.1</pp>
+           <pp>3990.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>0.1</qq>
+           <qq>3990.0</qq>
            <qr>0.0</qr>
-           <rr>0.1</rr>
+           <rr>80.0</rr>
        </fluid_added_mass>
       </inertial>
       <visual name="visual_HeaveCone">
@@ -470,18 +470,18 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
 
     <link name="Trefoil">
       <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
-      <inertial>
-        <pose>0 0 -1.2 0 0 0</pose>
-        <mass>@(trefoil_mass)</mass>
-        <inertia>
-          <ixx>10</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>10</iyy>
-          <iyz>0</iyz>
-          <izz>20.0</izz>
-        </inertia>
-      </inertial>
+<!--      <inertial>-->
+<!--        <pose>0 0 -1.2 0 0 0</pose>-->
+<!--        <mass>@(trefoil_mass)</mass>-->
+<!--        <inertia>-->
+<!--          <ixx>10</ixx>-->
+<!--          <ixy>0</ixy>-->
+<!--          <ixz>0</ixz>-->
+<!--          <iyy>10</iyy>-->
+<!--          <iyz>0</iyz>-->
+<!--          <izz>20.0</izz>-->
+<!--        </inertia>-->
+<!--      </inertial>-->
       <visual name="visual_Trefoil">
         <geometry>
           <mesh>
