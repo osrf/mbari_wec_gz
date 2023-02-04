@@ -1,0 +1,205 @@
+#!/usr/bin/python3
+# Copyright 2022 Open Source Robotics Foundation, Inc. and Monterey Bay Aquarium Research Institute
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Launch batch of buoy simulations."""
+
+from em import invoke as empy
+import numpy as np
+import yaml
+
+import os
+import shutil
+import sys
+import time
+
+from ament_index_python.packages import get_package_share_directory
+
+from launch import LaunchDescription
+from launch import LaunchService
+from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+
+import rclpy
+from rclpy.node import Node
+
+
+PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
+
+def generate_simulations(sim_params_yaml):
+
+    rclpy.init()
+    node = Node('mbari_wec_batch')
+
+    with open(sim_params_yaml, 'r') as fd:
+        sim_params = yaml.load(fd, Loader=yaml.CLoader)
+
+    # Grab params from yaml
+    # seed
+    try:
+        if 'seed' in sim_params:
+            seed = int(sim_params['seed'])
+            # TODO(anyone) remove warning and `seed = None` when --seed
+            # supported by gz sim
+            node.get_logger().warn('sim_params_yaml: seed parameter not yet supported -- ignoring')
+            seed = None
+        else:
+            seed = None
+            node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
+    except TypeError as err:
+        node.get_logger().error('sim_params_yaml: seed parameter ' +
+                                'must be a single value')
+        sys.exit(-1)
+
+    # duration
+    try:
+        if 'duration' not in sim_params:
+            node.get_logger().error('sim_params_yaml: required duration parameter not specified')
+            sys.exit(-1)
+        duration = float(sim_params['duration'])
+    except TypeError as err:
+        node.get_logger().error('sim_params_yaml: duration parameter ' +
+                                'must be a single value in seconds')
+        sys.exit(-1)
+
+    # convert duration to iterations
+    iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
+
+    # door state
+    if 'door_state' in sim_params:
+        door_state = sim_params['door_state']
+    else:
+        node.get_logger().warn(
+            "sim_params_yaml: door_state parameter not specified -- defaulting to 'closed'"
+        )
+        door_state = ['closed']
+
+    # scale factor
+    if 'scale_factor' in sim_params:
+        scale_factor = np.array(sim_params['scale_factor'], dtype=float)
+    else:
+        node.get_logger().warn(
+            'sim_params_yaml: scale_factor parameter not specified -- defaulting to 1.0'
+        )
+        scale_factor = [1.0]
+
+    # create batch results directory
+    timestr = time.strftime("%Y%m%d%H%M%S")
+    batch_results_dir = f'batch_results_{timestr}'
+    node.get_logger().info(f'Creating batch results directory: {batch_results_dir}')
+    os.makedirs(batch_results_dir)
+
+    sim_params_name, dot_yaml = os.path.splitext(os.path.basename(sim_params_yaml))
+    sim_params_date_yaml = sim_params_name + f'_{timestr}' + dot_yaml
+    node.get_logger().info('Copying sim params yaml to batch results directory: ' +
+                           os.path.join(batch_results_dir,
+                                        sim_params_date_yaml))
+    shutil.copy(sim_params_yaml,
+                os.path.join(batch_results_dir,
+                             sim_params_date_yaml))
+
+    # generate test matrix
+    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
+                                                                     scale_factor)]))
+
+    node.get_logger().info(f'Generated {len(batch_params)} simulation runs:')
+    node.get_logger().info('Seed, Duration, Door State, Scale Factor')
+    [node.get_logger().info(f'{seed if seed is not None else ""}, {duration}, {ds}, {sf}')
+        for ds, sf in batch_params]
+
+    node.get_logger().info('Creating log file: ' +
+                           os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'))
+    with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'w') as fd:
+        fd.write(f'# Generated {len(batch_params)} simulation runs\n')
+        fd.write('Run Index, Start Time, rosbag2 File Name,' +
+                 ' Seed, Duration, Door State, Scale Factor\n')
+
+    # Find packages
+    pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
+    pkg_buoy_description = get_package_share_directory('buoy_description')
+
+    # Find model templates
+    model_dir = 'mbari_wec_base'
+    empy_base_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
+    base_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
+
+    model_dir = 'mbari_wec'
+    empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
+    sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
+
+    # Start batch runs
+    for idx, (ds, sf) in enumerate(batch_params):
+        node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
+                               f" door state='{ds}', scale factor={sf}\n")
+
+        # fill model templates with params
+        empy(['-D', f"door_state = '{ds}'",
+              '-o', base_sdf_file,
+              empy_base_sdf_file])
+
+        empy(['-D', f"scale_factor = {sf}",
+              '-o', sdf_file,
+              empy_sdf_file])
+
+        node.get_logger().info('running gz-sim with gz_args:=' +
+                       '-rs' +
+                       f' --iterations {iterations}' +
+                       (f' --seed {seed}' if seed is not None else ''))
+
+        # Dynamically create launch file
+        def generate_launch_description():
+            mbari_wec = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
+                ),
+                launch_arguments={'extra_gz_args': '-rs' +
+                                                  f' --iterations {iterations}' +
+                                                 (f' --seed {seed}' if seed is not None else '')
+                                 }.items(),
+            )
+
+            # record all topics with rosbag2
+            start_time = time.strftime("%Y%m%d%H%M%S")
+            rosbag2_name = f'rosbag2_batch_sim_{idx}_{start_time}'
+            rosbag2 = ExecuteProcess(
+                cmd=['ros2', 'bag', 'record',
+                     '-o', os.path.join(batch_results_dir, rosbag2_name), '-a'],
+                output='screen'
+            )
+
+            # Write to log
+            with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'a') as fd:
+                fd.write(f'{idx}, {start_time}, {rosbag2_name}' +
+                         f', {seed if seed is not None else ""}, {duration}, {ds}, {sf}\n')
+
+            return LaunchDescription([
+                rosbag2,
+                mbari_wec
+            ])
+
+        # Launch sim instance
+        ls = LaunchService()
+        ls.include_launch_description(generate_launch_description())
+        result = ls.run()
+        if result:
+            node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
+                                    f'return code [{result}]')
+
+if __name__=='__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Batch running for buoy_sim')
+    parser.add_argument('sim_params_yaml',
+                        help='yaml file with batch parameters')
+    args, unknown = parser.parse_known_args()
+    generate_simulations(args.sim_params_yaml)

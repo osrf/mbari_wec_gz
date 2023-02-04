@@ -148,6 +148,10 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}/
 )
 
+# Install batch running script
+install(PROGRAMS scripts/mbari_wec_batch DESTINATION lib/${PROJECT_NAME}/)
+install(FILES scripts/example_sim_params.yaml DESTINATION share/${PROJECT_NAME})
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()

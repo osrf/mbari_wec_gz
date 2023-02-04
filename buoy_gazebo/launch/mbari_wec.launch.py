@@ -57,16 +57,25 @@ def generate_launch_description():
         description='run gazebo in gdb'
     )
 
+    extra_gz_args = DeclareLaunchArgument(
+        'extra_gz_args', default_value='',
+        description='extra_gz_args'
+    )
+
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'),
         ),
-        launch_arguments={'gz_args': PathJoinSubstitution([
-            pkg_buoy_gazebo,
-            'worlds',
-            LaunchConfiguration('world_file')
-        ]),
-            'debugger': LaunchConfiguration('debugger')}.items(),
+        launch_arguments={'gz_args': [
+            LaunchConfiguration('extra_gz_args'), PathJoinSubstitution([' ']),
+            PathJoinSubstitution([
+                pkg_buoy_gazebo,
+                'worlds',
+                LaunchConfiguration('world_file')
+                ])
+            ],
+            'debugger': LaunchConfiguration('debugger'),
+            'on_exit_shutdown': 'True'}.items(),
     )
 
     # Bridge to forward tf and joint states to ros2
@@ -122,6 +131,7 @@ def generate_launch_description():
         gazebo_world_name_launch_arg,
         rviz_launch_arg,
         gazebo_debugger_arg,
+        extra_gz_args,
         gazebo,
         bridge,
         robot_state_publisher,

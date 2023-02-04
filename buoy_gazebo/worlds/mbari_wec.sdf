@@ -76,6 +76,7 @@
       <include merge="true">
         <uri>package://buoy_description/models/mbari_wec_ros</uri>
       </include>
+
     </model>
 
   </world>

@@ -29,7 +29,8 @@ def generate_test_description():
     gazebo_test_fixture = Node(
         package='buoy_tests',
         executable='no_inputs_ros_feedback',
-        output='screen'
+        output='screen',
+        on_exit=launch.actions.Shutdown()
     )
 
     bridge = Node(package='ros_gz_bridge',
