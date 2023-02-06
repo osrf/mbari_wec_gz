@@ -70,7 +70,7 @@ public:
 
   Eigen::VectorXd x{};
 
-  static constexpr double Ve{315.0};
+  static constexpr double Ve{300.0};
   static constexpr double Ri{7.0};
   static constexpr double I_BattChargeMax{7.0};
   static constexpr double MaxTargetVoltage{325.0};

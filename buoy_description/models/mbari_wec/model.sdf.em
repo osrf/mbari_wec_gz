@@ -89,13 +89,28 @@ except NameError:
       <S>5.47</S>
       <S11>1.37</S11>
       <S22>1.37</S22>
+
+      <IncWaveSeed>42</IncWaveSeed>
+
+<!--
+      <IncWaveSpectrumType>MonoChromatic</IncWaveSpectrumType>
+      <A>1.0</A>
+      <T>12.0</T>
+-->
+
+      <IncWaveSpectrumType>Bretschneider</IncWaveSpectrumType>
+      <Hs>3.0</Hs>
+      <Tp>14.0</Tp>
+
+<!--
+      <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
+      <omega>3.0</omega>
+      <Szz>14.0</Szz>
+-->
+
     </plugin>
 
-    <!--
-    <plugin filename="IncidentWaves" name="buoy_gazebo::IncidentWaves">  
-	    </plugin>
-    -->
-    
+
     <!-- Adding Friction to PTO -->
     <plugin filename="PTOFriction" name="buoy_gazebo::PTOFriction">
       <PrismaticJointName>HydraulicRam</PrismaticJointName>
