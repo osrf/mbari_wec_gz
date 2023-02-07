@@ -27,8 +27,7 @@ from testing_utils import default_generate_test_description
 
 
 def generate_test_description():
-    return default_generate_test_description(enable_rosbag=True,
-                                             rosbag_name='rosbag2_pc_cmds_py')
+    return default_generate_test_description()
 
 
 config = os.path.join(
