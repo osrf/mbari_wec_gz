@@ -82,7 +82,8 @@ except NameError:
     </plugin>
 
     <plugin filename="MooringForce" name="buoy_gazebo::MooringForce">
-      <anchor_position>120 0 -84</anchor_position>
+      <anchor_position>80 100 -84</anchor_position>
+      <enable_beyond_radius>50</enable_beyond_radius>
     </plugin>
 
   </model>

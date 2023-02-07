@@ -67,8 +67,16 @@ public:
   /// iteration
   double H = 120.0;
 
+  /// \brief Distance of buoy from anchor, beyond which (i.e. H > radius)
+  /// mooring force is applied. Within the radius, no or negligible catenary
+  /// curve is formed, and no mooring force will be applied.
+  double effectiveRadius = 50;
+
   /// \brief N/m, weight of chain per unit length
   double w = 20.0;
+
+  /// \brief radians, atan2 angle of buoy from anchor
+  double theta = 0;
 
   /// \brief Catenary equation to pass to solver
   CatenaryHSoln catenarySoln{V, H, L};
@@ -149,7 +157,7 @@ void MooringForcePrivate::UpdateVH(
   auto buoyPose = this->buoyLink.WorldPose(_ecm);
   this->buoyPos = buoyPose->Pos();
 
-  // Update vertical distance between buoy and anchor
+  // Update vertical (z) distance between buoy and anchor
   this->V = fabs(this->buoyPos[2] - this->anchorPos[2]);
 
   // Update horizontal distance between buoy and anchor
@@ -158,6 +166,10 @@ void MooringForcePrivate::UpdateVH(
     (this->buoyPos[0] - this->anchorPos[0]) +
     (this->buoyPos[1] - this->anchorPos[1]) *
     (this->buoyPos[1] - this->anchorPos[1]));
+
+  // Update angle between buoy and anchor
+  this->theta = atan2(this->buoyPos[1] - this->anchorPos[1],
+    this->buoyPos[0] - this->anchorPos[0]);
 }
 
 //////////////////////////////////////////////////
@@ -180,6 +192,11 @@ void MooringForce::Configure(
   this->dataPtr->anchorPos = _sdf->Get<gz::math::Vector3d>(
     "anchor_position", this->dataPtr->anchorPos).first;
   igndbg << "Anchor position set to " << this->dataPtr->anchorPos
+    << std::endl;
+
+  this->dataPtr->effectiveRadius = _sdf->Get<double>(
+    "enable_beyond_radius", this->dataPtr->effectiveRadius).first;
+  igndbg << "Effective radius set to beyond " << this->dataPtr->effectiveRadius
     << std::endl;
 
   // Find necessary model links
@@ -218,6 +235,11 @@ void MooringForce::PreUpdate(
 
   // Update V and H based on latest buoy position
   this->dataPtr->UpdateVH(_ecm);
+  // If buoy is not far enough from anchor for there to be a need to pull it
+  // back, no need to apply mooring force
+  if (this->dataPtr->H < this->dataPtr->effectiveRadius) {
+    return;
+  }
 
   Eigen::HybridNonLinearSolver<CatenaryHSoln> catenarySolver(
     this->dataPtr->catenarySoln);
@@ -246,17 +268,21 @@ void MooringForce::PreUpdate(
     // Recalculate c with newly solved B
     c = CatenaryFunction::CatenaryScalingFactor(
       this->dataPtr->V, this->dataPtr->B[0], this->dataPtr->L);
+  }
 
-    // Found solution
-    if (solverInfo == 1)
-      break;
+  // Did not find solution. Maybe shouldn't apply a force that doesn't make sense
+  if (solverInfo != 1) {
+    return;
   }
 
   // Horizontal component of chain tension, in Newtons
   // Force at buoy heave cone is Fx = -Tx
-  double Tx = c * this->dataPtr->w;
-  // Vertical component of chain tension at buoy heave cone, in Newtons
-  double Ty = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0]);
+  double Tr = - c * this->dataPtr->w;
+  double Tx = Tr * cos(this->dataPtr->theta);
+  double Ty = Tr * sin(this->dataPtr->theta);
+  // Vertical component of chain tension at buoy heave cone, in Newtons.
+  // Unused at the moment
+  // double Tz = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0]);
 
   igndbg << "HSolver solverInfo: " << solverInfo
     << " V: " << this->dataPtr->V
@@ -268,8 +294,8 @@ void MooringForce::PreUpdate(
     << std::endl;
 
   // Apply forces to buoy heave cone link, where the mooring would be attached
-  gz::math::Vector3d force(-Tx, Ty, 0);
-  gz::math::Vector3d torque(0, 0, 0);
+  gz::math::Vector3d force(Tx, Ty, 0.0);
+  gz::math::Vector3d torque(0.0, 0.0, 0.0);
   this->dataPtr->buoyLink.AddWorldWrench(_ecm, force, torque);
 }
 }  // namespace buoy_gazebo
