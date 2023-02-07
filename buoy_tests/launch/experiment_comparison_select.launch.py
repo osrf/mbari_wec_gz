@@ -17,7 +17,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 import launch
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, Shutdown
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 
@@ -54,7 +54,8 @@ def generate_launch_description():
             {'manual_comparison': False}
         ],
         namespace='/experiment_comparison',
-        condition=UnlessCondition(LaunchConfiguration('manual'))
+        condition=UnlessCondition(LaunchConfiguration('manual')),
+        on_exit=Shutdown()
     )
 
     gazebo_test_fixture_manual = Node(
@@ -69,7 +70,8 @@ def generate_launch_description():
         namespace='/experiment_comparison',
         prefix=['x-terminal-emulator -e'],
         shell=True,
-        condition=IfCondition(LaunchConfiguration('manual'))
+        condition=IfCondition(LaunchConfiguration('manual')),
+        on_exit=Shutdown()
     )
 
     bridge = Node(package='ros_gz_bridge',
