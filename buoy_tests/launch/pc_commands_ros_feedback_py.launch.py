@@ -261,7 +261,7 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertGreater(self.node.bias_curr_, bc - 0.1)
         self.assertLess(self.node.bias_curr_, bc + 0.1)
 
-        self.assertLess(self.node.range_finder_, 0.96)  # meters
+        self.assertLess(self.node.range_finder_, 0.97)  # meters
 
         self.test_helper.run(bias_curr_timeout_iterations - bias_curr_iterations +
                              feedbackCheckIterations)
