@@ -81,7 +81,8 @@ public:
   /// \brief Catenary equation to pass to solver
   CatenaryHSoln catenarySoln{V, H, L};
 
-  /// \brief Solution to catenary equation
+  /// \brief Solution to catenary equation. Meters, length of chain laying on
+  /// the bottom, start of catenary.
   Eigen::VectorXd B{};
 
   /// \brief Look for buoy link to find input to catenary equation, and heave
@@ -249,7 +250,7 @@ void MooringForce::PreUpdate(
   catenarySolver.parameters.maxfev = 1000;
 
   // Initial guess B = L - V - b
-  double b = 0.0;
+  double b = 1.0;
   this->dataPtr->B[0] = this->dataPtr->L - this->dataPtr->V - b;
 
   // Scaling factor
@@ -258,8 +259,15 @@ void MooringForce::PreUpdate(
 
   int solverInfo;
   while ((c <= 1e-5) && (this->dataPtr->L - this->dataPtr->V - b > 0.0)) {
-    // Increment b, to iterate on B
-    b += 1.0;
+    // Invalid chain length. One side of triangle is negative length.
+    if ((this->dataPtr->L - this->dataPtr->B[0]) *
+        (this->dataPtr->L - this->dataPtr->B[0]) -
+        this->dataPtr->V * this->dataPtr->V <= 0) {
+      b += 1.0;
+      continue;
+    }
+
+    // Update guess for B, with new b
     this->dataPtr->B[0] = this->dataPtr->L - this->dataPtr->V - b;
 
     // Solve for B, pass in initial guess
@@ -268,11 +276,9 @@ void MooringForce::PreUpdate(
     // Recalculate c with newly solved B
     c = CatenaryFunction::CatenaryScalingFactor(
       this->dataPtr->V, this->dataPtr->B[0], this->dataPtr->L);
-  }
 
-  // Did not find solution. Maybe shouldn't apply a force that doesn't make sense
-  if (solverInfo != 1) {
-    return;
+    // Increment b, to iterate on B
+    b += 1.0;
   }
 
   // Horizontal component of chain tension, in Newtons
@@ -282,16 +288,25 @@ void MooringForce::PreUpdate(
   double Ty = Tr * sin(this->dataPtr->theta);
   // Vertical component of chain tension at buoy heave cone, in Newtons.
   // Unused at the moment
-  // double Tz = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0]);
+  double Tz = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0]);
 
   igndbg << "HSolver solverInfo: " << solverInfo
     << " V: " << this->dataPtr->V
     << " H: " << this->dataPtr->H
-    << " c: " << c
+    << " b: " << b
     << " B: " << this->dataPtr->B[0]
+    << " c: " << c
+    << " theta: " << this->dataPtr->theta
     << " Tx: " << Tx
     << " Ty: " << Ty
+    << " Tr: " << Tr
+    << " Tz: " << Tz
     << std::endl;
+
+  // Did not find solution. Maybe shouldn't apply a force that doesn't make sense
+  if (solverInfo != 1) {
+    return;
+  }
 
   // Apply forces to buoy heave cone link, where the mooring would be attached
   gz::math::Vector3d force(Tx, Ty, 0.0);
