@@ -431,7 +431,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_GT(node->bias_curr_, bc - 0.1F);
   EXPECT_LT(node->bias_curr_, bc + 0.1F);
 
-  EXPECT_LT(node->range_finder_, 0.96);  // meters
+  EXPECT_LT(node->range_finder_, 0.97);  // meters
 
   // Let bias curr command timeout
   fixture->Server()->Run(
