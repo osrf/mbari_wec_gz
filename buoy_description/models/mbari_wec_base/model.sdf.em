@@ -101,36 +101,36 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <link name="Buoy">
       <pose relative_to="__model__">0 0 0 0 0 0</pose>
       <inertial>
-        <pose>0 0 2.13 0 0 0</pose>
+        <pose>0 0 2.03 0 0 0</pose>
         <mass>1400</mass>
         <inertia>
-          <ixx>1450.0</ixx>
+          <ixx>6993.0</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
-          <iyy>1450.0</iyy>
+          <iyy>7039.0</iyy>
           <iyz>0.0</iyz>
-          <izz>670.0</izz>
+          <izz>671.0</izz>
         </inertia>
         <fluid_added_mass>
-           <xx>330.0</xx>
+           <xx>260.0</xx>
            <xy>0.0</xy>
            <xz>0.0</xz>
            <xp>0.0</xp>
-           <xq>180.0</xq>
+           <xq>370.0</xq>
            <xr>0.0</xr>
-           <yy>330.0</yy>
+           <yy>260.0</yy>
            <yz>0.0</yz>
-           <yp>-180.0</yp>
+           <yp>-370.0</yp>
            <yq>0.0</yq>
            <yr>0.0</yr>
-           <zz>2800.0</zz>
+           <zz>3080.0</zz>
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>430</pp>
+           <pp>780.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>430</qq>
+           <qq>780.0</qq>
            <qr>0.0</qr>
            <rr>0.0</rr>
        </fluid_added_mass>
@@ -173,14 +173,14 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       <pose relative_to="Buoy">0 0 0 0 0 0</pose>
       <inertial>
         <pose>0 0 -3.67 0 0 0</pose>
-        <mass>600</mass>
+        <mass>605</mass>
         <inertia>
-          <ixx>3220.0</ixx>
+          <ixx>32566.0</ixx>
           <ixy>0.0</ixy>
-          <ixz>0.0</ixz>
-          <iyy>3220.0</iyy>
-          <iyz>0.0</iyz>
-          <izz>10.0</izz>
+          <ixz>-2.0</ixz>
+          <iyy>32566.0</iyy>
+          <iyz>-3.0</iyz>
+          <izz>7.0</izz>
         </inertia>
         <fluid_added_mass>
            <xx>310.0</xx>
@@ -411,15 +411,15 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <link name="HeaveCone">
       <pose relative_to="PistonBottom">0 0 -@(tether_length) 0 0 0</pose>
       <inertial>
-        <pose>0 0 -1.2 0 0 0</pose>
+        <pose>0 0 -1.25 0 0 0</pose>
         <mass>@(heave_total_mass)</mass>
         <inertia>
-          <ixx>340.0</ixx>
+          <ixx>4169.0</ixx>
           <ixy>0.0</ixy>
-          <ixz>0.0</ixz>
-          <iyy>340.0</iyy>
+          <ixz>-1.0</ixz>
+          <iyy>4169.0</iyy>
           <iyz>0.0</iyz>
-          <izz>600.0</izz>
+          <izz>614.0</izz>
         </inertia>
         <fluid_added_mass>
            <xx>720.0</xx>
@@ -442,7 +442,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
            <pr>0.0</pr>
            <qq>3990.0</qq>
            <qr>0.0</qr>
-           <rr>80.0</rr>
+           <rr>10.0</rr>
        </fluid_added_mass>
       </inertial>
       <visual name="visual_HeaveCone">
