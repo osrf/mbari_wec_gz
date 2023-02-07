@@ -51,7 +51,7 @@ public:
   gz::sim::Link heaveConeLink;
 
   /// \brief A predefined pose we assume the anchor to be
-  gz::math::Vector3d anchorPos{20, 0, -77};
+  gz::math::Vector3d anchorPos{20.0, 0.0, -77.0};
 
   /// \brief Model interface
   gz::sim::Model model{gz::sim::kNullEntity};
@@ -70,16 +70,16 @@ public:
   /// \brief Distance of buoy from anchor, beyond which (i.e. H > radius)
   /// mooring force is applied. Within the radius, no or negligible catenary
   /// curve is formed, and no mooring force will be applied.
-  double effectiveRadius = 50;
+  double effectiveRadius = 90.0;
 
   /// \brief N/m, weight of chain per unit length
   double w = 20.0;
 
   /// \brief radians, atan2 angle of buoy from anchor
-  double theta = 0;
+  double theta = 0.0;
 
   /// \brief Catenary equation to pass to solver
-  CatenaryHSoln catenarySoln{V, H, L};
+  std::unique_ptr<CatenaryHSoln> catenarySoln{new CatenaryHSoln(V, H, L)};
 
   /// \brief Solution to catenary equation. Meters, length of chain laying on
   /// the bottom, start of catenary.
@@ -159,18 +159,20 @@ void MooringForcePrivate::UpdateVH(
   this->buoyPos = buoyPose->Pos();
 
   // Update vertical (z) distance between buoy and anchor
-  this->V = fabs(this->buoyPos[2] - this->anchorPos[2]);
+  this->V = fabs(this->buoyPos[2U] - this->anchorPos[2U]);
 
   // Update horizontal distance between buoy and anchor
   this->H = sqrt(
-    (this->buoyPos[0] - this->anchorPos[0]) *
-    (this->buoyPos[0] - this->anchorPos[0]) +
-    (this->buoyPos[1] - this->anchorPos[1]) *
-    (this->buoyPos[1] - this->anchorPos[1]));
+    (this->buoyPos[0U] - this->anchorPos[0U]) *
+    (this->buoyPos[0U] - this->anchorPos[0U]) +
+    (this->buoyPos[1U] - this->anchorPos[1U]) *
+    (this->buoyPos[1U] - this->anchorPos[1U]));
 
   // Update angle between buoy and anchor
-  this->theta = atan2(this->buoyPos[1] - this->anchorPos[1],
-    this->buoyPos[0] - this->anchorPos[0]);
+  this->theta = atan2(this->buoyPos[1U] - this->anchorPos[1U],
+    this->buoyPos[0U] - this->anchorPos[0U]);
+
+  this->catenarySoln.reset(new CatenaryHSoln(this->V, this->H, this->L));
 }
 
 //////////////////////////////////////////////////
@@ -205,7 +207,7 @@ void MooringForce::Configure(
     this->dataPtr->UpdateVH(_ecm);
   }
 
-  this->dataPtr->B.resize(1);
+  this->dataPtr->B.resize(1U);
 }
 
 //////////////////////////////////////////////////
@@ -243,42 +245,41 @@ void MooringForce::PreUpdate(
   }
 
   Eigen::HybridNonLinearSolver<CatenaryHSoln> catenarySolver(
-    this->dataPtr->catenarySoln);
+    *this->dataPtr->catenarySoln);
   // Tolerance for error between two consecutive iterations
   catenarySolver.parameters.xtol = 0.0001;
   // Max number of calls to the function
   catenarySolver.parameters.maxfev = 1000;
+  catenarySolver.diag.setConstant(1, 1.0);
+  catenarySolver.useExternalScaling = true;  // Improves solution stability dramatically.
 
   // Initial guess B = L - V - b
-  double b = 1.0;
-  this->dataPtr->B[0] = this->dataPtr->L - this->dataPtr->V - b;
+  double b = 0.0;
 
-  // Scaling factor
-  double c = CatenaryFunction::CatenaryScalingFactor(
-    this->dataPtr->V, this->dataPtr->B[0], this->dataPtr->L);
+  // Catenary Scaling factor
+  double c = 0.0;
 
   int solverInfo;
   while ((c <= 1e-5) && (this->dataPtr->L - this->dataPtr->V - b > 0.0)) {
-    // Invalid chain length. One side of triangle is negative length.
-    if ((this->dataPtr->L - this->dataPtr->B[0]) *
-        (this->dataPtr->L - this->dataPtr->B[0]) -
-        this->dataPtr->V * this->dataPtr->V <= 0) {
-      b += 1.0;
-      continue;
-    }
+    // Increment b, to iterate on B
+    b += 1.0;
 
     // Update guess for B, with new b
-    this->dataPtr->B[0] = this->dataPtr->L - this->dataPtr->V - b;
+    this->dataPtr->B[0U] = this->dataPtr->L - this->dataPtr->V - b;
+
+    // Invalid chain length. One side of triangle is negative length.
+    if ((this->dataPtr->L - this->dataPtr->B[0U]) *
+        (this->dataPtr->L - this->dataPtr->B[0U]) -
+        this->dataPtr->V * this->dataPtr->V <= 0.0) {
+      continue;
+    }
 
     // Solve for B, pass in initial guess
     solverInfo = catenarySolver.solveNumericalDiff(this->dataPtr->B);
 
     // Recalculate c with newly solved B
     c = CatenaryFunction::CatenaryScalingFactor(
-      this->dataPtr->V, this->dataPtr->B[0], this->dataPtr->L);
-
-    // Increment b, to iterate on B
-    b += 1.0;
+      this->dataPtr->V, this->dataPtr->B[0U], this->dataPtr->L);
   }
 
   // Horizontal component of chain tension, in Newtons
@@ -288,13 +289,13 @@ void MooringForce::PreUpdate(
   double Ty = Tr * sin(this->dataPtr->theta);
   // Vertical component of chain tension at buoy heave cone, in Newtons.
   // Unused at the moment
-  double Tz = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0]);
+  double Tz = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0U]);
 
   igndbg << "HSolver solverInfo: " << solverInfo
     << " V: " << this->dataPtr->V
     << " H: " << this->dataPtr->H
     << " b: " << b
-    << " B: " << this->dataPtr->B[0]
+    << " B: " << this->dataPtr->B[0U]
     << " c: " << c
     << " theta: " << this->dataPtr->theta
     << " Tx: " << Tx
