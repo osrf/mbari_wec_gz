@@ -40,7 +40,7 @@ if 'open' in door_state:
     heavecone_zWabsW = -3200.0  # kg/m, Heave Quadratic Drag
 
 # Heave cone
-heave_total_mass = 817  # kg
+heave_total_mass = 820  # kg
 trefoil_mass = 20  # kg
 
 # check if mu_zz was set by door_state 'open' (or passed in by empy)
@@ -104,12 +104,12 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 2.03 0 0 0</pose>
         <mass>1400</mass>
         <inertia>
-          <ixx>6993.0</ixx>
+          <ixx>7000.0</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
-          <iyy>7039.0</iyy>
+          <iyy>7040.0</iyy>
           <iyz>0.0</iyz>
-          <izz>671.0</izz>
+          <izz>670.0</izz>
         </inertia>
         <fluid_added_mass>
            <xx>260.0</xx>
@@ -175,10 +175,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 -3.67 0 0 0</pose>
         <mass>605</mass>
         <inertia>
-          <ixx>32566.0</ixx>
+          <ixx>32600.0</ixx>
           <ixy>0.0</ixy>
           <ixz>-2.0</ixz>
-          <iyy>32566.0</iyy>
+          <iyy>32600.0</iyy>
           <iyz>-3.0</iyz>
           <izz>7.0</izz>
         </inertia>
@@ -414,12 +414,12 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 -1.25 0 0 0</pose>
         <mass>@(heave_total_mass)</mass>
         <inertia>
-          <ixx>4169.0</ixx>
+          <ixx>4200.0</ixx>
           <ixy>0.0</ixy>
           <ixz>-1.0</ixz>
-          <iyy>4169.0</iyy>
+          <iyy>4200.0</iyy>
           <iyz>0.0</iyz>
-          <izz>614.0</izz>
+          <izz>610.0</izz>
         </inertia>
         <fluid_added_mass>
            <xx>720.0</xx>
