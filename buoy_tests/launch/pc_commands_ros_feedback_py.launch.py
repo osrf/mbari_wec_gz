@@ -66,7 +66,7 @@ class BuoyPCPyTest(BuoyPyTests):
     def winding_current_limiter(self, current):
         LimitedI = current
         AdjustedN = self.node.rpm_
-        RamPosition = (self.SC_RANGE_MAX - (self.node.range_finder_ / 0.0254))
+        RamPosition = self.node.range_finder_ / 0.0254
         if self.node.rpm_ >= 0.0:  # Retracting
             min_region = self.SC_RANGE_MIN + self.STOP_RANGE
             if RamPosition < min_region:
@@ -129,7 +129,7 @@ class BuoyPCPyTest(BuoyPyTests):
             torque_policy_.winding_current_target(self.node.rpm_,
                                                   self.node.scale_,
                                                   self.node.retract_) + self.node.bias_curr_
-        expected_wind_curr = self.winding_current_limiter(expected_wind_curr)
+        # expected_wind_curr = self.winding_current_limiter(expected_wind_curr)
         self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.1)
         self.assertLess(self.node.wind_curr_, expected_wind_curr + 0.1)
 
@@ -162,6 +162,7 @@ class BuoyPCPyTest(BuoyPyTests):
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
+        # expected_wind_curr = self.winding_current_limiter(wc)
         self.assertGreater(self.node.wind_curr_, wc - 0.1)
         self.assertLess(self.node.wind_curr_, wc + 0.1)
 
@@ -231,7 +232,7 @@ class BuoyPCPyTest(BuoyPyTests):
             torque_policy_.winding_current_target(self.node.rpm_,
                                                   self.node.scale_,
                                                   self.node.retract_) + self.node.bias_curr_
-        expected_wind_curr = self.winding_current_limiter(expected_wind_curr)
+        # expected_wind_curr = self.winding_current_limiter(expected_wind_curr)
         self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.2)
         self.assertLess(self.node.wind_curr_, expected_wind_curr + 0.2)
 
@@ -261,8 +262,7 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertGreater(self.node.bias_curr_, bc - 0.1)
         self.assertLess(self.node.bias_curr_, bc + 0.1)
 
-        # TODO(andermi) fix this comparison when motor mode is fixed
-        self.assertLess(self.node.range_finder_, 2.03)  # meters
+        self.assertLess(self.node.range_finder_, 0.97)  # meters
 
         self.test_helper.run(bias_curr_timeout_iterations - bias_curr_iterations +
                              feedbackCheckIterations)
