@@ -104,8 +104,8 @@ except NameError:
 
 <!--
       <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
-      <omega>3.0</omega>
-      <Szz>14.0</Szz>
+      <omega>0 .1 .2 .3 .4 .5</omega>
+      <Szz>0 .1  .15 .1 .05 .0</Szz>
 -->
 
     </plugin>
