@@ -366,7 +366,7 @@ void ElectroHydraulicPTO::PreUpdate(
   }
 
   // Assign Values
-  battery_state.voltage =  VBus;
+  battery_state.voltage = VBus;
 
   pto_state.rpm = N;
   pto_state.voltage = VBus;
@@ -394,7 +394,7 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_loss.motor_drive_friction_loss += 5.0;
   pto_loss.battery_i2r_loss = I_Batt * I_Batt * this->dataPtr->Ri;
 
-   _ecm.SetComponentData<buoy_gazebo::components::BatteryState>(
+  _ecm.SetComponentData<buoy_gazebo::components::BatteryState>(
     this->dataPtr->PrismaticJointEntity,
     battery_state);
 
