@@ -44,6 +44,7 @@
 #include "ElectroHydraulicSoln.hpp"
 #include "ElectroHydraulicState.hpp"
 #include "ElectroHydraulicLoss.hpp"
+#include "BatteryState.hpp"
 
 
 namespace buoy_gazebo
@@ -227,6 +228,17 @@ void ElectroHydraulicPTO::PreUpdate(
   // This is an implicit non-linear relation so iteration required,
   // performed by Eigen HybridNonLinearSolver
 
+  buoy_gazebo::BatteryState battery_state{};
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->PrismaticJointEntity,
+      buoy_gazebo::components::BatteryState().TypeId()))
+  {
+    auto battery_state_comp =
+      _ecm.Component<buoy_gazebo::components::BatteryState>(this->dataPtr->PrismaticJointEntity);
+
+    battery_state = buoy_gazebo::BatteryState(battery_state_comp->Data());
+  }
+
   buoy_gazebo::ElectroHydraulicState pto_state;
   if (_ecm.EntityHasComponentType(
       this->dataPtr->PrismaticJointEntity,
@@ -280,14 +292,14 @@ void ElectroHydraulicPTO::PreUpdate(
   this->dataPtr->functor.VBattEMF = this->dataPtr->Ve;
   this->dataPtr->functor.Ri = this->dataPtr->Ri;       // Ohms
 
-// See MINPACK documentation for detail son this solver
-// Parameters and defaults are (Scalar = double):
-//           : factor(Scalar(100.))
-//           , maxfev(1000)
-//           , xtol(std::sqrt(NumTraits<Scalar>::epsilon()))
-//           , nb_of_subdiagonals(-1)
-//           , nb_of_superdiagonals(-1)
-//           , epsfcn(Scalar(0.)) {}
+  // See MINPACK documentation for details on this solver
+  // Parameters and defaults are (Scalar = double):
+  //           : factor(Scalar(100.))
+  //           , maxfev(1000)
+  //           , xtol(std::sqrt(NumTraits<Scalar>::epsilon()))
+  //           , nb_of_subdiagonals(-1)
+  //           , nb_of_superdiagonals(-1)
+  //           , epsfcn(Scalar(0.)) {}
   Eigen::HybridNonLinearSolver<ElectroHydraulicSoln> solver(this->dataPtr->functor);
   solver.parameters.xtol = 0.0001;
   solver.parameters.maxfev = 1000;
@@ -354,6 +366,14 @@ void ElectroHydraulicPTO::PreUpdate(
   }
 
   // Assign Values
+  battery_state.voltage = VBus;
+  battery_state.ips = 0.0;
+  battery_state.vbalance = 2.76;
+  battery_state.vstopcharge = 2.79;
+  battery_state.gfault = 0.06;
+  battery_state.hydrogen = 3.26;
+  battery_state.status = 11264;
+
   pto_state.rpm = N;
   pto_state.voltage = VBus;
   pto_state.bcurrent = I_Batt;
@@ -379,6 +399,10 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_loss.motor_drive_switching_loss += 4.0;
   pto_loss.motor_drive_friction_loss += 5.0;
   pto_loss.battery_i2r_loss = I_Batt * I_Batt * this->dataPtr->Ri;
+
+  _ecm.SetComponentData<buoy_gazebo::components::BatteryState>(
+    this->dataPtr->PrismaticJointEntity,
+    battery_state);
 
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicState>(
     this->dataPtr->PrismaticJointEntity,

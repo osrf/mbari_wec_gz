@@ -1,0 +1,9 @@
+gz_add_plugin(BatteryController
+  SOURCES
+    BatteryController.cpp
+    INCLUDE_DIRS
+    ../..
+  ROS
+  EXTRA_ROS_PKGS
+    ros_gz_sim
+)
