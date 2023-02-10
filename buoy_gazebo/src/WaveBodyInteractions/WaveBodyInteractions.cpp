@@ -146,13 +146,6 @@ void WaveBodyInteractions::Configure(
     // this->dataPtr->Inc.SetToCustomSpectrum(omega, S, 180.0);
   }
 
-  std::string HydrodynamicsBaseFilename =
-    ament_index_cpp::get_package_share_directory("buoy_description") +
-    "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
-  this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
-  this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
-  // TODO(anyone):  Need to get timestep size from ecm.
-  this->dataPtr->FloatingBody.SetTimestepSize(0.005);
 
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
 
@@ -179,6 +172,13 @@ void WaveBodyInteractions::Configure(
     WaterplaneOrigin_y,
     WaterplaneOrigin_z,
     0.0, 0.0, 0.0);
+
+  std::string HydrodynamicsBaseFilename =
+    ament_index_cpp::get_package_share_directory("buoy_description") +
+    "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+  this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
+  this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
+
 }
 
 #define EPSILON 0.0000001;
@@ -197,13 +197,11 @@ void WaveBodyInteractions::PreUpdate(
     return;
   }
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
-
-  double dt = std::chrono::duration<double>(_info.dt).count();
-  if (!AreSame(dt, dataPtr->FloatingBody.GetTimestepSize())) {
-    // Would prefer to set this in Configure,
-    //   but not sure how to access it or if it's guaranteed to be setup when configure is called.
-    gzdbg << " Setting timestep size " << std::endl;
-    // dataPtr->FloatingBody.SetTimestepSize(dt);
+  if(_info.iterations == 1)  // First iteration, set timestep size.
+  {
+    double dt = std::chrono::duration<double>(_info.dt).count();
+    dataPtr->FloatingBody.SetTimestepSize(dt);
+    gzdbg << " Set Wave Forcing timestep size:  dt = " << dt << std::endl; 
   }
 
   // \TODO(anyone): Support rewind
