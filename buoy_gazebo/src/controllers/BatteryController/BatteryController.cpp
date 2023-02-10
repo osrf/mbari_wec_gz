@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <gz/msgs/wrench.pb.h>
-
 #include <algorithm>
 #include <chrono>
 #include <limits>

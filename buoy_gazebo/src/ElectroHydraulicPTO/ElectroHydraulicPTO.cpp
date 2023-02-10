@@ -367,6 +367,12 @@ void ElectroHydraulicPTO::PreUpdate(
 
   // Assign Values
   battery_state.voltage = VBus;
+  battery_state.ips = 0.0;
+  battery_state.vbalance = 2.76;
+  battery_state.vstopcharge = 2.79;
+  battery_state.gfault = 0.06;
+  battery_state.hydrogen = 3.26;
+  battery_state.status = 11264;
 
   pto_state.rpm = N;
   pto_state.voltage = VBus;

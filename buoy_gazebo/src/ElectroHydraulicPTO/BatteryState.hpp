@@ -27,11 +27,11 @@ struct BatteryState
 {
   float voltage{0.0F};
   float ips{0.0F};
-  float vbalance{2.76F};
-  float vstopcharge{2.79F};
-  float gfault{0.06F};
-  float hydrogen{3.26F};
-  uint16_t status{11264};
+  float vbalance{0.0F};
+  float vstopcharge{0.0F};
+  float gfault{0.0F};
+  float hydrogen{0.0F};
+  uint16_t status{0};
 };
 
 namespace components
