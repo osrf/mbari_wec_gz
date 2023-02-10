@@ -55,7 +55,7 @@ class WaveBodyInteractionsPrivate
 public:
   WaveBodyInteractionsPrivate()
   : FloatingBody(
-      IncRef)
+      Inc)
   {
   }                    // Constructor needs to assign reference or compile error
                        // of un-assigned referenced occurs
@@ -68,9 +68,6 @@ public:
 
 /// \brief Incident wave implementation
   LinearIncidentWave Inc;
-
-/// \brief Reference to Incident wave implementation
-  LinearIncidentWave & IncRef = Inc;
 
 /// \brief  Free-Surface hydrodynamics implementation
   FS_HydroDynamics FloatingBody;
@@ -155,7 +152,7 @@ void WaveBodyInteractions::Configure(
   this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
   // TODO(anyone):  Need to get timestep size from ecm.
-  this->dataPtr->FloatingBody.SetTimestepSize(.005);
+  this->dataPtr->FloatingBody.SetTimestepSize(0.005);
 
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
 
@@ -167,9 +164,9 @@ void WaveBodyInteractions::Configure(
   double S22 = SdfParamDouble(_sdf, "S22", 1.37);
   this->dataPtr->FloatingBody.SetWaterplane(S, S11, S22);
 
-  double COB_x = SdfParamDouble(_sdf, "COB_x", 0);
-  double COB_y = SdfParamDouble(_sdf, "COB_y", 0);
-  double COB_z = SdfParamDouble(_sdf, "COB_z", -.18);
+  double COB_x = SdfParamDouble(_sdf, "COB_x", 0.0);
+  double COB_y = SdfParamDouble(_sdf, "COB_y", 0.0);
+  double COB_z = SdfParamDouble(_sdf, "COB_z", -0.18);
   this->dataPtr->FloatingBody.SetCOB(COB_x, COB_y, COB_z);
   double Vol = SdfParamDouble(_sdf, "Vol", 1.75);
   this->dataPtr->FloatingBody.SetVolume(Vol);
@@ -177,11 +174,15 @@ void WaveBodyInteractions::Configure(
   double WaterplaneOrigin_x = SdfParamDouble(_sdf, "WaterplaneOrigin_x", 0.0);
   double WaterplaneOrigin_y = SdfParamDouble(_sdf, "WaterplaneOrigin_y", 0.0);
   double WaterplaneOrigin_z = SdfParamDouble(_sdf, "WaterplaneOrigin_z", 2.45);
-  this->dataPtr->b_Pose_p.Set(WaterplaneOrigin_x, WaterplaneOrigin_y, WaterplaneOrigin_z, 0, 0, 0);
+  this->dataPtr->b_Pose_p.Set(
+    WaterplaneOrigin_x,
+    WaterplaneOrigin_y,
+    WaterplaneOrigin_z,
+    0.0, 0.0, 0.0);
 }
 
 #define EPSILON 0.0000001;
-bool AreSame(double a, double b)
+bool AreSame(const double & a, const double & b)
 {
   return fabs(a - b) < EPSILON;
 }
@@ -240,6 +241,43 @@ void WaveBodyInteractions::PreUpdate(
   Eigen::VectorXd BuoyancyForce(6);
   BuoyancyForce = this->dataPtr->FloatingBody.BuoyancyForce(x);
   gzdbg << "Buoyancy Force = " << BuoyancyForce.transpose() << std::endl;
+
+  double deta_dx{0.0}, deta_dy{0.0};
+  double eta = this->dataPtr->Inc.eta(w_Pose_p.X(), w_Pose_p.Y(), SimTime, &deta_dx, &deta_dy);
+
+  gz::msgs::Pose req;
+  req.set_name("water_plane");
+  req.mutable_position()->set_x(w_Pose_p.X());
+  req.mutable_position()->set_y(w_Pose_p.Y());
+  req.mutable_position()->set_z(eta);
+
+  double roll = atan(deta_dx);
+  double pitch = atan(deta_dy);
+  double yaw = 0.0;
+
+  double qx = sin(roll/2.0) * cos(pitch/2.0) * cos(yaw/2.0)
+    - cos(roll/2.0) * sin(pitch/2.0) * sin(yaw/2.0);
+  double qy = cos(roll/2.0) * sin(pitch/2.0) * cos(yaw/2.0)
+    + sin(roll/2.0) * cos(pitch/2.0) * sin(yaw/2.0);
+  double qz = cos(roll/2.0) * cos(pitch/2.0) * sin(yaw/2.0)
+    - sin(roll/2.0) * sin(pitch/2.0) * cos(yaw/2.0);
+  double qw = cos(roll/2.0) * cos(pitch/2.0) * cos(yaw/2.0)
+    + sin(roll/2.0) * sin(pitch/2.0) * sin(yaw/2.0);
+
+  req.mutable_orientation()->set_x(qx);
+  req.mutable_orientation()->set_y(qy);
+  req.mutable_orientation()->set_z(qz);
+  req.mutable_orientation()->set_w(qw);
+
+  std::function<void(const gz::msgs::Boolean &, const bool)> cb =
+      [](const gz::msgs::Boolean &/*_rep*/, const bool _result)
+  {
+    if (!_result)
+      gzerr << "Error sending move to request" << std::endl;
+  };
+
+  gz::transport::Node node;
+  node.Request("/world/world_demo/set_pose", req, cb);
 
 // Compute Buoyancy Force
   gz::math::Vector3d w_FBp(BuoyancyForce(0), BuoyancyForce(1), BuoyancyForce(2));
