@@ -111,13 +111,13 @@ bool MooringForcePrivate::FindLinks(
       this->buoyLinkEnt);
     if (!this->buoyLink.Valid(_ecm))
     {
-      ignwarn << "Could not find valid buoy link. Mooring force may "
+      gzwarn << "Could not find valid buoy link. Mooring force may "
         << "not be calculated correctly." << std::endl;
       return false;
     }
   }
   else {
-    ignwarn << "Could not find valid buoy link. Mooring force may "
+    gzwarn << "Could not find valid buoy link. Mooring force may "
       << "not be calculated correctly." << std::endl;
     return false;
   }
@@ -130,13 +130,13 @@ bool MooringForcePrivate::FindLinks(
       this->heaveConeLinkEnt);
     if (!this->heaveConeLink.Valid(_ecm))
     {
-      ignwarn << "Could not find valid heave cone link. Mooring force may "
+      gzwarn << "Could not find valid heave cone link. Mooring force may "
         << "not be applied correctly." << std::endl;
       return false;
     }
   }
   else {
-    ignwarn << "Could not find valid heave cone link. Mooring force may "
+    gzwarn << "Could not find valid heave cone link. Mooring force may "
       << "not be applied correctly." << std::endl;
     return false;
   }
@@ -187,19 +187,19 @@ void MooringForce::Configure(
 
   this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
-    ignerr << "MooringForce plugin should be attached to a model entity. " <<
+    gzerr << "MooringForce plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
   }
 
   this->dataPtr->anchorPos = _sdf->Get<gz::math::Vector3d>(
     "anchor_position", this->dataPtr->anchorPos).first;
-  igndbg << "Anchor position set to " << this->dataPtr->anchorPos
+  gzdbg << "Anchor position set to " << this->dataPtr->anchorPos
     << std::endl;
 
   this->dataPtr->effectiveRadius = _sdf->Get<double>(
     "enable_beyond_radius", this->dataPtr->effectiveRadius).first;
-  igndbg << "Effective radius set to beyond " << this->dataPtr->effectiveRadius
+  gzdbg << "Effective radius set to beyond " << this->dataPtr->effectiveRadius
     << std::endl;
 
   // Find necessary model links
@@ -226,7 +226,7 @@ void MooringForce::PreUpdate(
 
   // TODO(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero()) {
-    ignwarn << "Detected jump back in time [" <<
+    gzwarn << "Detected jump back in time [" <<
       std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count() <<
       "s]. System may not work properly." << std::endl;
   }
@@ -291,7 +291,7 @@ void MooringForce::PreUpdate(
   // Unused at the moment
   double Tz = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0U]);
 
-  igndbg << "HSolver solverInfo: " << solverInfo
+  gzdbg << "HSolver solverInfo: " << solverInfo
     << " V: " << this->dataPtr->V
     << " H: " << this->dataPtr->H
     << " b: " << b
