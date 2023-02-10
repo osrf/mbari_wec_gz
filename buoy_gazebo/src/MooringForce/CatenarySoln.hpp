@@ -113,9 +113,11 @@ public:
 
     // Catenary equation: y = lambda x: c * cosh((x - B) / c) - c
     double y = c * cosh((x[0] - this->B) / c) - c;;
-    fvec.resize(x.size());
+    // fvec.resize(x.size());
     // What we want to be 0, y(H) - V
     fvec[0] = y - this->V;
+
+    // igndbg << " fvec[0] (solved y(H)~V): " << fvec[0] << std::endl;
 
     return 0;
   }
@@ -162,19 +164,20 @@ public:
     vSolver.parameters.xtol = 0.0001;
     // Max number of calls to the function
     vSolver.parameters.maxfev = 1000;
-
+    vSolver.diag.setConstant(1, 1.0);
+    vSolver.useExternalScaling = true;  // Improves solution stability dramatically.
     // Solver for x. Pass in initial guess.
     // Want y(H)=V, so y(H) - V = 0
     // After this, you have independent variable = H, dependent variable = V
     int solverInfo = vSolver.solveNumericalDiff(x);
 
     // Once have x (hopefully x=H)
-    fvec.resize(x.size());
+    // fvec.resize(x.size());
     // Update H, which is the solution of x from solver
     fvec[0] = x[0] - this->H;
 
-    //igndbg << "VSolver solverInfo: " << solverInfo
-    //  << " fvec[0] (solved x~H): " << fvec[0] << std::endl;
+    // igndbg << "VSolver solverInfo: " << solverInfo
+    //   << " fvec[0] (solved x~H): " << fvec[0] << std::endl;
 
     return 0;
   }
