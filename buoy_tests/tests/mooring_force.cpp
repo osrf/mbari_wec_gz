@@ -114,7 +114,7 @@ TEST(BuoyTests, MooringForce)
   gz::math::Vector2d finalAnchorXY(anchorPos.X(), anchorPos.Y());
   gz::math::Vector2d finalBuoyXY(buoyLinkPose.Pos().X(), buoyLinkPose.Pos().Y());
   gzdbg << "Final buoy link pose: " << buoyLinkPose.Pos()
-    << " Final distance between buoy and anchor: "
+    << " Final horizontal distance between buoy and anchor: "
     << (finalBuoyXY - finalAnchorXY).Length() << std::endl;
 
   // Sanity check that the test ran
