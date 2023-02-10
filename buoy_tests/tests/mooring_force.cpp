@@ -26,7 +26,7 @@
 #include <gz/transport/Node.hh>
 
 //////////////////////////////////////////////////
-TEST(BuoyTests, MooringDrift)
+TEST(BuoyTests, MooringForce)
 {
   // Skip debug messages to run faster TODO change to 3 for PR
   gz::common::Console::SetVerbosity(4);
@@ -37,23 +37,23 @@ TEST(BuoyTests, MooringDrift)
 
   gz::sim::TestFixture fixture(config);
 
+  // Anchor pose, defined in SDF parameter anchor_position to MooringForce
+  // plugin in buoy_description/models/mbari_wec/model.sdf.em
+  gz::math::Vector3d anchorPos(80.0, 100.0, -84.0);
+
   // Expect buoy to stay within a horizontal radius of anchor, the
-  // distance calculated from the vertical depth (~80 m) and the
-  // hypotenuse that is the length of the mooring line (~100 m).
-  // Anchor is at (20, 0, -77.53) as defined in
-  // buoy_description/models/mbari_wec_base/model.sdf.em
-  const double DEPTH = 80.0;
-  const double MOORING_LENGTH = 100.0;
-  double maxRadius = sqrt(MOORING_LENGTH * MOORING_LENGTH - DEPTH * DEPTH);
+  // distance calculated from the vertical depth V and the
+  // hypotenuse that is the length of the mooring line L.
+  const double DEPTH = 82.0;
+  const double MOORING_LENGTH = 160.0;
+  //double maxRadius = sqrt(MOORING_LENGTH * MOORING_LENGTH - DEPTH * DEPTH);
+  double maxRadius = MOORING_LENGTH;
 
   int iterations{0};
 
   gz::sim::Entity buoyLinkEnt{gz::sim::kNullEntity};
   gz::sim::Link buoyLink;
   gz::math::Pose3d buoyLinkPose;
-
-  gz::sim::Entity anchorLinkEnt{gz::sim::kNullEntity};
-  gz::math::Pose3d anchorPose;
 
   fixture.
   OnConfigure(
@@ -74,21 +74,16 @@ TEST(BuoyTests, MooringDrift)
       EXPECT_NE(gz::sim::kNullEntity, buoyLinkEnt);
       buoyLink = gz::sim::Link(buoyLinkEnt);
       ASSERT_TRUE(buoyLink.Valid(_ecm));
-
-      // Get the anchor pose
-      anchorLinkEnt = buoyModel.LinkByName(_ecm, "Anchor");
-      EXPECT_NE(gz::sim::kNullEntity, anchorLinkEnt);
-      anchorPose = gz::sim::worldPose(anchorLinkEnt, _ecm);
     }).
   OnPreUpdate(
     [&](
       const gz::sim::UpdateInfo &,
       gz::sim::EntityComponentManager & _ecm)
     {
-      // Apply wrench to buoy link on water surface
-      gz::math::Vector3d force(10000, 0, 0);
-      gz::math::Vector3d torque(0, 0, 0);
-      buoyLink.AddWorldWrench(_ecm, force, torque);
+      // Apply wrench to buoy link on water surface to push it away
+      gz::math::Vector3d driftForce(1000000, 0, 0);
+      gz::math::Vector3d driftTorque(0, 0, 0);
+      buoyLink.AddWorldWrench(_ecm, driftForce, driftTorque);
     }).
   OnPostUpdate(
     [&](
@@ -99,21 +94,28 @@ TEST(BuoyTests, MooringDrift)
 
       buoyLinkPose = gz::sim::worldPose(buoyLinkEnt, _ecm);
 
-      gz::math::Vector2d anchorXY(anchorPose.Pos().X(), anchorPose.Pos().Y());
+      gz::math::Vector2d anchorXY(anchorPos.X(), anchorPos.Y());
       gz::math::Vector2d buoyXY(buoyLinkPose.Pos().X(), buoyLinkPose.Pos().Y());
 
-      // Expect buoy to stay horizontal distance within maxRadius
-      gzdbg << "iter " << iterations
-             << ", buoy link pose: " << buoyLinkPose.Pos() << std::endl;
+      // Expect mooring plugin to apply force on buoy to pull it back toward
+      // anchor, such that buoy stays horizontal distance within maxRadius.
+      //gzdbg << "iter " << iterations
+      //       << ", buoy link pose: " << buoyLinkPose.Pos() << std::endl;
       EXPECT_LT((buoyXY - anchorXY).Length(), maxRadius);
     }).
   Finalize();
 
   // Run simulation server
-  int targetIterations{3000};
+  int targetIterations{20000};
+  gzdbg << "Applying force to simulate natural buoy drift for "
+    << targetIterations << " iterations..."<< std::endl;
   fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
-  gzdbg << "Buoy link pose: " << buoyLinkPose.Pos() << std::endl;
+  gz::math::Vector2d finalAnchorXY(anchorPos.X(), anchorPos.Y());
+  gz::math::Vector2d finalBuoyXY(buoyLinkPose.Pos().X(), buoyLinkPose.Pos().Y());
+  gzdbg << "Final buoy link pose: " << buoyLinkPose.Pos()
+    << " Final distance between buoy and anchor: "
+    << (finalBuoyXY - finalAnchorXY).Length() << std::endl;
 
   // Sanity check that the test ran
   EXPECT_EQ(targetIterations, iterations);
