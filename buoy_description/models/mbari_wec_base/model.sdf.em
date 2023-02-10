@@ -28,7 +28,7 @@ tether_top_length = 2.5
 num_tether_bottom_links = 5
 
 # TrefoilDoors
-trefoil_pose = {'open': 1.047, 'closed': 0.0}
+trefoil_pose = {'open': 0.0, 'closed': 1.047}
 # check if door_state was passed in by empy
 try:
     door_state
@@ -469,7 +469,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     </link>
 
     <link name="Trefoil">
-      <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
+      <pose relative_to="HeaveCone">0 0 0 0 0 @(trefoil_pose[door_state])</pose>
 <!--      <inertial>-->
 <!--        <pose>0 0 -1.2 0 0 0</pose>-->
 <!--        <mass>@(trefoil_mass)</mass>-->
@@ -538,8 +538,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <joint name="TrefoilDoors" type="fixed">
       <parent>HeaveCone</parent>
       <child>Trefoil</child>
-      <provide_feedback>1</provide_feedback>
-      <pose>0.0 0.0 0.0 0 0 @(trefoil_pose[door_state])</pose>
+      <pose>0.0 0.0 0.0 0 0 0.0</pose>
     </joint>
 
     <!-- Viscous Drag for Buoy -->
