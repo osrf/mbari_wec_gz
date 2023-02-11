@@ -247,11 +247,12 @@ void MooringForce::PreUpdate(
   Eigen::HybridNonLinearSolver<CatenaryHSoln> catenarySolver(
     *this->dataPtr->catenarySoln);
   // Tolerance for error between two consecutive iterations
-  catenarySolver.parameters.xtol = 0.0001;
+  catenarySolver.parameters.xtol = 0.001;
   // Max number of calls to the function
-  catenarySolver.parameters.maxfev = 1000;
+  catenarySolver.parameters.maxfev = 20;
   catenarySolver.diag.setConstant(1, 1.0);
-  catenarySolver.useExternalScaling = true;  // Improves solution stability dramatically.
+  // Improves solution stability dramatically.
+  catenarySolver.useExternalScaling = true;
 
   // Initial guess B = L - V - b
   double b = 0.0;

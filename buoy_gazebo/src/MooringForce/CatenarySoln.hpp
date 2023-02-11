@@ -161,11 +161,13 @@ public:
     CatenaryVSoln y_B = CatenaryVSoln(this->V, B[0], this->L);
     Eigen::HybridNonLinearSolver<CatenaryVSoln> vSolver(y_B);
     // Tolerance for error between two consecutive iterations
-    vSolver.parameters.xtol = 0.0001;
+    vSolver.parameters.xtol = 0.001;
     // Max number of calls to the function
-    vSolver.parameters.maxfev = 1000;
+    vSolver.parameters.maxfev = 20;
     vSolver.diag.setConstant(1, 1.0);
-    vSolver.useExternalScaling = true;  // Improves solution stability dramatically.
+    // Improves solution stability dramatically.
+    vSolver.useExternalScaling = true;
+
     // Solver for x. Pass in initial guess.
     // Want y(H)=V, so y(H) - V = 0
     // After this, you have independent variable = H, dependent variable = V
