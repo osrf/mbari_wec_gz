@@ -179,7 +179,9 @@ void WaveBodyInteractions::Configure(
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
 
   baseLink.EnableAccelerationChecks(
-    _ecm, true);             // Allow access to last-timestep's acceleration in Configure()
+    _ecm, true);        
+  baseLink.EnableVelocityChecks(
+    _ecm, true); 
 
   double S = SdfParamDouble(_sdf, "S", 5.47);
   double S11 = SdfParamDouble(_sdf, "S11", 1.37);
@@ -210,11 +212,6 @@ void WaveBodyInteractions::Configure(
 
 }
 
-#define EPSILON 0.0000001;
-bool AreSame(const double & a, const double & b)
-{
-  return fabs(a - b) < EPSILON;
-}
 //////////////////////////////////////////////////
 void WaveBodyInteractions::PreUpdate(
   const gz::sim::UpdateInfo & _info,
@@ -225,6 +222,7 @@ void WaveBodyInteractions::PreUpdate(
   if (_info.paused) {
     return;
   }
+
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
   if(_info.iterations == 1)  // First iteration, set timestep size.
   {
@@ -242,10 +240,14 @@ void WaveBodyInteractions::PreUpdate(
   }
 
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
+
+  gzdbg << "baseLink.Name = " << baseLink.Name(_ecm).value() << std::endl;
+
   auto w_xddot = baseLink.WorldLinearAcceleration(_ecm);
   auto w_omegadot = baseLink.WorldAngularAcceleration(_ecm);
   auto w_xdot = baseLink.WorldLinearVelocity(_ecm);
   auto w_omega = baseLink.WorldAngularVelocity(_ecm);
+
 
   auto w_Pose_b = gz::sim::worldPose(this->dataPtr->linkEntity, _ecm);
   auto w_Pose_p = w_Pose_b * this->dataPtr->b_Pose_p;
@@ -271,7 +273,6 @@ void WaveBodyInteractions::PreUpdate(
 
   double deta_dx{0.0}, deta_dy{0.0};
   double eta = this->dataPtr->Inc->eta(w_Pose_p.X(), w_Pose_p.Y(), SimTime, &deta_dx, &deta_dy);
-
   gz::msgs::Pose req;
   req.set_name("water_plane");
   req.mutable_position()->set_x(w_Pose_p.X());

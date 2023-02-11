@@ -1,0 +1,168 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <world name="world_demo">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.005</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+
+    <!-- rely on world plugins from server.config -->
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="water_plane">
+      <static>true</static>
+      <link name="link">
+        <visual name="water_plane">
+          <geometry>
+            <plane>
+              <size>5 5</size>
+              <normal>0 0 1</normal>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0 0 1 0.5</ambient>
+            <diffuse>0 0 1 0.5</diffuse>
+            <specular>0 0 1 0.5</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+
+    <model name="MBARI_WEC_ROS">
+      <pose relative_to="world">0 0 -2 0 0 0</pose>
+
+    <self_collide>true</self_collide>
+
+    <link name="Buoy">
+      <pose relative_to="__model__">0 0 0 0 0 0</pose>
+      <inertial>
+        <pose>0 0 2.03 0 0 0</pose>
+        <mass>1400</mass>
+        <inertia>
+          <ixx>7000.0</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>7040.0</iyy>
+          <iyz>0.0</iyz>
+          <izz>670.0</izz>
+        </inertia>
+        <fluid_added_mass>
+           <xx>260.0</xx>
+           <xy>0.0</xy>
+           <xz>0.0</xz>
+           <xp>0.0</xp>
+           <xq>370.0</xq>
+           <xr>0.0</xr>
+           <yy>260.0</yy>
+           <yz>0.0</yz>
+           <yp>-370.0</yp>
+           <yq>0.0</yq>
+           <yr>0.0</yr>
+           <zz>3080.0</zz>
+           <zp>0.0</zp>
+           <zq>0.0</zq>
+           <zr>0.0</zr>
+           <pp>780.0</pp>
+           <pq>0.0</pq>
+           <pr>0.0</pr>
+           <qq>780.0</qq>
+           <qr>0.0</qr>
+           <rr>0.0</rr>
+       </fluid_added_mass>
+      </inertial>
+      <visual name="visual_Buoy">
+        <geometry>
+          <mesh>
+            <uri>package://buoy_description/models/mbari_wec_base/meshes/buoy_float.stl</uri>
+          </mesh>
+        </geometry>
+        <!--color-->
+        <material>
+          <ambient>1.0 1.0 0.0 1</ambient>
+          <diffuse>1.0 1.0 0.0 1</diffuse>
+          <specular>1.0 1.0 0.0 1</specular>
+        </material>
+      </visual>
+      <collision name="collision">
+        <pose>0 0 2.46 0 0 0 </pose>
+        <geometry>
+          <box>
+            <size>2.34 2.34 1</size>
+          </box>
+        </geometry>
+      </collision>
+ <sensor name='xbow_imu' type='imu'>
+        <topic>Buoy_link/xbow_imu</topic>
+        <update_rate>50</update_rate>
+        <imu>
+          <orientation_reference_frame>
+            <localization>ENU</localization>
+          </orientation_reference_frame>
+        </imu>
+        <always_on>1</always_on>
+        <visualize>true</visualize>
+      </sensor>
+
+    </link>
+
+
+    <plugin filename="WaveBodyInteractions" name="buoy_gazebo::WaveBodyInteractions">
+      <LinkName>Buoy</LinkName>
+      <WaterplaneOrigin_x>0</WaterplaneOrigin_x>  <!-- Waterplane origin relative to link origin -->
+      <WaterplaneOrigin_y>0</WaterplaneOrigin_y>
+      <WaterplaneOrigin_z>2.46</WaterplaneOrigin_z>
+      <COB_x>0</COB_x>  <!-- COG relative to waterplance origin -->
+      <COB_y>0</COB_y>
+      <COB_z>-.18</COB_z>
+      <Vol>1.75</Vol>
+      <S>5.47</S>
+      <S11>1.37</S11>
+      <S22>1.37</S22>
+
+      <IncWaveSeed>42</IncWaveSeed>
+
+      <IncWaveSpectrumType>MonoChromatic</IncWaveSpectrumType>
+      <A>1.0</A>
+      <T>12.0</T>
+
+<!--
+      <IncWaveSpectrumType>Bretschneider</IncWaveSpectrumType>
+      <Hs>3.0</Hs>
+      <Tp>14.0</Tp>
+-->
+
+<!--
+      <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
+      <w0>0</w0> <Szz0>0.0</Szz0>
+      <w1>.2</w1> <Szz1>.4</Szz1>
+      <w2>.4</w2> <Szz2>1.0</Szz2>
+      <w3>.6</w3> <Szz3>1.0</Szz3>
+      <w4>2.0</w4> <Szz4>0.0</Szz4>
+
+-->
+
+    </plugin>
+
+
+
+    </model>
+
+  </world>
+</sdf>
