@@ -102,10 +102,15 @@ except NameError:
       <Hs>3.0</Hs>
       <Tp>14.0</Tp>
 
+
 <!--
       <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
-      <omega>0 .1 .2 .3 .4 .5</omega>
-      <Szz>0 .1  .15 .1 .05 .0</Szz>
+      <w0>0</w0> <Szz0>0.0</Szz0>
+      <w1>.2</w1> <Szz1>.4</Szz1>
+      <w2>.4</w2> <Szz2>1.0</Szz2>
+      <w3>.6</w3> <Szz3>1.0</Szz3>
+      <w4>2.0</w4> <Szz4>0.0</Szz4>
+
 -->
 
     </plugin>

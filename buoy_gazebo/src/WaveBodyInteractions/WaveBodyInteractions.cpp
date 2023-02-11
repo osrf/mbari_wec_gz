@@ -53,12 +53,13 @@ namespace buoy_gazebo
 class WaveBodyInteractionsPrivate
 {
 public:
-  WaveBodyInteractionsPrivate()
-  : FloatingBody(
-      Inc)
-  {
-  }                    // Constructor needs to assign reference or compile error
+//  WaveBodyInteractionsPrivate()
+//  : FloatingBody(
+//      Inc)
+//  {
+//  }                    // Constructor needs to assign reference or compile error
                        // of un-assigned referenced occurs
+
 
 /// \brief Model interface
   gz::sim::Model model{gz::sim::kNullEntity};
@@ -67,7 +68,8 @@ public:
   gz::sim::Entity linkEntity;
 
 /// \brief Incident wave implementation
-  LinearIncidentWave Inc;
+  std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> ();
+//  LinearIncidentWave Inc;
 
 /// \brief  Free-Surface hydrodynamics implementation
   FS_HydroDynamics FloatingBody;
@@ -125,12 +127,16 @@ void WaveBodyInteractions::Configure(
 
   auto SpectrumType = _sdf->Get<std::string>("IncWaveSpectrumType");
 
+//  double beta = SdfParamDouble(_sdf, "WaveDir", 180.0);  // Not yet implemented
+  double beta = 180.0;
+
   if (!SpectrumType.compare("MonoChromatic")) {
     gzdbg << "SpectrumType " << SpectrumType << std::endl;
     double A = SdfParamDouble(_sdf, "A", 0.0);
     double T = SdfParamDouble(_sdf, "T", 14.0);
     double phase = SdfParamDouble(_sdf, "Phase", 0.0);
-    this->dataPtr->Inc.SetToMonoChromatic(A, T, phase, 180.0);
+    this->dataPtr->Inc->SetToMonoChromatic(A, T, phase, beta);
+    this->dataPtr->FloatingBody.AssignIncidentWave(this->dataPtr->Inc);
   }
 
   if (!SpectrumType.compare("Bretschneider")) {
@@ -138,12 +144,35 @@ void WaveBodyInteractions::Configure(
     double Hs = SdfParamDouble(_sdf, "Hs", 0.0);
     double Tp = SdfParamDouble(_sdf, "Tp", 14.0);
     gzdbg << "Hs = " << Hs << "  Tp = " << Tp << std::endl;
-    this->dataPtr->Inc.SetToBretschneiderSpectrum(Hs, Tp, 180.0);
+    this->dataPtr->Inc->SetToBretschneiderSpectrum(Hs, Tp, beta);
+    this->dataPtr->FloatingBody.AssignIncidentWave(this->dataPtr->Inc);
   }
 
   if (!SpectrumType.compare("Custom")) {
-    gzwarn << "SpectrumType " << SpectrumType << "Spectrum Not Yet Implemented" << std::endl;
-    // this->dataPtr->Inc.SetToCustomSpectrum(omega, S, 180.0);
+    gzwarn << "SpectrumType " << SpectrumType << "Custom Defined" << std::endl;
+    std::vector<double> omega;
+    std::vector<double> S;
+    
+    for(int i = 0;;i++)
+    {
+      std::string w_tag = "w" + std::to_string(i);
+      std::string Szz_tag = "Szz" + std::to_string(i);
+      if (_sdf->HasElement(w_tag) && _sdf->HasElement(Szz_tag))
+      {
+        omega.push_back(_sdf->Get<double>(w_tag));
+        S.push_back(_sdf->Get<double>(Szz_tag));
+      }
+      else
+        break;
+    }
+    
+  if(omega.size() > 2) {  // \TODO(anyone):  Add more checks on validity of spectrum
+    this->dataPtr->Inc->SetToCustomSpectrum(omega,S,beta);
+    this->dataPtr->FloatingBody.AssignIncidentWave(this->dataPtr->Inc);
+  }
+  else
+    gzwarn << "Ill-formed custom wave-spectrum specification, no waves added" << std::endl;
+
   }
 
 
@@ -241,7 +270,7 @@ void WaveBodyInteractions::PreUpdate(
   gzdbg << "Buoyancy Force = " << BuoyancyForce.transpose() << std::endl;
 
   double deta_dx{0.0}, deta_dy{0.0};
-  double eta = this->dataPtr->Inc.eta(w_Pose_p.X(), w_Pose_p.Y(), SimTime, &deta_dx, &deta_dy);
+  double eta = this->dataPtr->Inc->eta(w_Pose_p.X(), w_Pose_p.Y(), SimTime, &deta_dx, &deta_dy);
 
   gz::msgs::Pose req;
   req.set_name("water_plane");
