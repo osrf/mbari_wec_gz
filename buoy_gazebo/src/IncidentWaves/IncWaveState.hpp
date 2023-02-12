@@ -15,6 +15,8 @@
 #ifndef INCIDENTWAVES__INCWAVESTATE_HPP_
 #define INCIDENTWAVES__INCWAVESTATE_HPP_
 
+#include <memory>
+
 #include <gz/sim/components/Factory.hh>
 #include <gz/sim/components/Component.hh>
 #include <gz/sim/config.hh>
@@ -32,7 +34,7 @@ struct IncWaveState
 
 namespace components
 {
-/// \brief State 
+/// \brief State
 using IncWaveState =
   gz::sim::components::Component<buoy_gazebo::IncWaveState,
     class IncWaveStateTag>;
@@ -44,5 +46,3 @@ GZ_SIM_REGISTER_COMPONENT(
 }  // namespace buoy_gazebo
 
 #endif  // INCIDENTWAVES__INCWAVESTATE_HPP_
-
-

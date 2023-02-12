@@ -53,7 +53,6 @@ namespace buoy_gazebo
 class WaveBodyInteractionsPrivate
 {
 public:
-
 /// \brief Model interface
   gz::sim::Model model{gz::sim::kNullEntity};
 
@@ -74,9 +73,6 @@ public:
   gz::math::Pose3<double> b_Pose_p;
 
   gz::sim::Entity IncWaveEntity{gz::sim::kNullEntity};
-
-
-
 };
 
 //////////////////////////////////////////////////
@@ -125,8 +121,8 @@ void WaveBodyInteractions::Configure(
 
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
 
-  baseLink.EnableAccelerationChecks( _ecm, true);        
-  baseLink.EnableVelocityChecks( _ecm, true); 
+  baseLink.EnableAccelerationChecks(_ecm, true);
+  baseLink.EnableVelocityChecks(_ecm, true);
 
   double S = SdfParamDouble(_sdf, "S", 5.47);
   double S11 = SdfParamDouble(_sdf, "S11", 1.37);
@@ -154,7 +150,6 @@ void WaveBodyInteractions::Configure(
     "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
   this->dataPtr->FloatingBody.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   this->dataPtr->FloatingBody.ReadWAMITData_TD(HydrodynamicsBaseFilename);
-
 }
 
 //////////////////////////////////////////////////
@@ -169,11 +164,10 @@ void WaveBodyInteractions::PreUpdate(
   }
 
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
-  if(_info.iterations == 1)  // First iteration, set timestep size.
-  {
+  if (_info.iterations == 1) {  // First iteration, set timestep size.
     double dt = std::chrono::duration<double>(_info.dt).count();
     dataPtr->FloatingBody.SetTimestepSize(dt);
-    gzdbg << " Set Wave Forcing timestep size:  dt = " << dt << std::endl; 
+    gzdbg << " Set Wave Forcing timestep size:  dt = " << dt << std::endl;
   }
 
   // \TODO(anyone): Support rewind
@@ -185,9 +179,11 @@ void WaveBodyInteractions::PreUpdate(
   }
 
 // Retrieve pointer to Incident Wave from ECM, and assign to Floating Body
-  this->dataPtr->IncWaveEntity = _ecm.EntityByComponents(gz::sim::components::Name("IncidentWaves"));
+  this->dataPtr->IncWaveEntity =
+    _ecm.EntityByComponents(gz::sim::components::Name("IncidentWaves"));
   buoy_gazebo::IncWaveState inc_wave_state;
-  if (_ecm.EntityHasComponentType( this->dataPtr->IncWaveEntity,
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->IncWaveEntity,
       buoy_gazebo::components::IncWaveState().TypeId()))
   {
     auto inc_wave_state_comp =
@@ -286,11 +282,10 @@ void WaveBodyInteractions::PreUpdate(
   baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp + w_MRp + w_MEp);
 
 
-//push buoy x-y location back to incident wave plugin, temporary.
+// push buoy x-y location back to incident wave plugin, temporary.
   _ecm.SetComponentData<buoy_gazebo::components::IncWaveState>(
     this->dataPtr->IncWaveEntity,
     inc_wave_state);
-
 }
 
 //////////////////////////////////////////////////
