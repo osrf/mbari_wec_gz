@@ -197,7 +197,6 @@ void WaveBodyInteractions::PreUpdate(
     this->dataPtr->FloatingBody.AssignIncidentWave(inc_wave_state.Inc);
   }
 
-  std::cout << " use_count = "  << inc_wave_state.Inc.use_count() << std::endl;
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
 
   gzdbg << "baseLink.Name = " << baseLink.Name(_ecm).value() << std::endl;
