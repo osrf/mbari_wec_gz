@@ -28,6 +28,14 @@
       <publish_rate>10</publish_rate>
     </plugin>
 
+    <plugin filename="BatteryController" name="buoy_gazebo::BatteryController">
+      <JointName>HydraulicRam</JointName>
+      <namespace>/</namespace>
+      <node_name>battery_controller</node_name>
+      <topic>battery_data</topic>
+      <publish_rate>10</publish_rate>
+    </plugin>
+
     <plugin filename="XBowAHRS" name="buoy_gazebo::XBowAHRS">
       <namespace>/</namespace>
       <node_name>xbow_ahrs</node_name>
