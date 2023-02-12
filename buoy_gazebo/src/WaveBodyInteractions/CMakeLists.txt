@@ -13,6 +13,7 @@ gz_add_plugin(WaveBodyInteractions
     WaveBodyInteractions.cpp
   INCLUDE_DIRS
     ..
+    ../..
   EXTRA_ROS_PKGS
     simple_interp
 )

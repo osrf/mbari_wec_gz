@@ -14,7 +14,6 @@
 
 #include "WaveBodyInteractions.hpp"
 
-#include <gz/msgs/double.pb.h>
 #include <cmath>
 #include <cstdio>
 #include <iostream>
@@ -42,6 +41,7 @@
 #include <gz/msgs.hh>
 #include <gz/plugin/Register.hh>
 
+#include "IncidentWaves/IncWaveState.hpp"
 
 #include "FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp"
 #include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
@@ -53,13 +53,6 @@ namespace buoy_gazebo
 class WaveBodyInteractionsPrivate
 {
 public:
-//  WaveBodyInteractionsPrivate()
-//  : FloatingBody(
-//      Inc)
-//  {
-//  }                    // Constructor needs to assign reference or compile error
-                       // of un-assigned referenced occurs
-
 
 /// \brief Model interface
   gz::sim::Model model{gz::sim::kNullEntity};
@@ -68,7 +61,7 @@ public:
   gz::sim::Entity linkEntity;
 
 /// \brief Incident wave implementation
-  std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> ();
+//  std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> ();
 //  LinearIncidentWave Inc;
 
 /// \brief  Free-Surface hydrodynamics implementation
@@ -79,6 +72,11 @@ public:
 
 /// \brief Pose of Waterplane (CS p) in Link Frame (CS b)
   gz::math::Pose3<double> b_Pose_p;
+
+  gz::sim::Entity IncWaveEntity{gz::sim::kNullEntity};
+
+
+
 };
 
 //////////////////////////////////////////////////
@@ -125,63 +123,10 @@ void WaveBodyInteractions::Configure(
     return;
   }
 
-  auto SpectrumType = _sdf->Get<std::string>("IncWaveSpectrumType");
-
-//  double beta = SdfParamDouble(_sdf, "WaveDir", 180.0);  // Not yet implemented
-  double beta = 180.0;
-
-  if (!SpectrumType.compare("MonoChromatic")) {
-    gzdbg << "SpectrumType " << SpectrumType << std::endl;
-    double A = SdfParamDouble(_sdf, "A", 0.0);
-    double T = SdfParamDouble(_sdf, "T", 14.0);
-    double phase = SdfParamDouble(_sdf, "Phase", 0.0);
-    this->dataPtr->Inc->SetToMonoChromatic(A, T, phase, beta);
-    this->dataPtr->FloatingBody.AssignIncidentWave(this->dataPtr->Inc);
-  }
-
-  if (!SpectrumType.compare("Bretschneider")) {
-    gzdbg << "SpectrumType " << SpectrumType << std::endl;
-    double Hs = SdfParamDouble(_sdf, "Hs", 0.0);
-    double Tp = SdfParamDouble(_sdf, "Tp", 14.0);
-    gzdbg << "Hs = " << Hs << "  Tp = " << Tp << std::endl;
-    this->dataPtr->Inc->SetToBretschneiderSpectrum(Hs, Tp, beta);
-    this->dataPtr->FloatingBody.AssignIncidentWave(this->dataPtr->Inc);
-  }
-
-  if (!SpectrumType.compare("Custom")) {
-    gzwarn << "SpectrumType " << SpectrumType << "Custom Defined" << std::endl;
-    std::vector<double> omega;
-    std::vector<double> S;
-    
-    for(int i = 0;;i++)
-    {
-      std::string w_tag = "w" + std::to_string(i);
-      std::string Szz_tag = "Szz" + std::to_string(i);
-      if (_sdf->HasElement(w_tag) && _sdf->HasElement(Szz_tag))
-      {
-        omega.push_back(_sdf->Get<double>(w_tag));
-        S.push_back(_sdf->Get<double>(Szz_tag));
-      }
-      else
-        break;
-    }
-    
-  if(omega.size() > 2) {  // \TODO(anyone):  Add more checks on validity of spectrum
-    this->dataPtr->Inc->SetToCustomSpectrum(omega,S,beta);
-    this->dataPtr->FloatingBody.AssignIncidentWave(this->dataPtr->Inc);
-  }
-  else
-    gzwarn << "Ill-formed custom wave-spectrum specification, no waves added" << std::endl;
-
-  }
-
-
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
 
-  baseLink.EnableAccelerationChecks(
-    _ecm, true);        
-  baseLink.EnableVelocityChecks(
-    _ecm, true); 
+  baseLink.EnableAccelerationChecks( _ecm, true);        
+  baseLink.EnableVelocityChecks( _ecm, true); 
 
   double S = SdfParamDouble(_sdf, "S", 5.47);
   double S11 = SdfParamDouble(_sdf, "S11", 1.37);
@@ -239,6 +184,20 @@ void WaveBodyInteractions::PreUpdate(
       "s]. System may not work properly." << std::endl;
   }
 
+// Retrieve pointer to Incident Wave from ECM, and assign to Floating Body
+  this->dataPtr->IncWaveEntity = _ecm.EntityByComponents(gz::sim::components::Name("IncidentWaves"));
+  buoy_gazebo::IncWaveState inc_wave_state;
+  if (_ecm.EntityHasComponentType( this->dataPtr->IncWaveEntity,
+      buoy_gazebo::components::IncWaveState().TypeId()))
+  {
+    auto inc_wave_state_comp =
+      _ecm.Component<buoy_gazebo::components::IncWaveState>(
+      this->dataPtr->IncWaveEntity);
+    inc_wave_state = buoy_gazebo::IncWaveState(inc_wave_state_comp->Data());
+    this->dataPtr->FloatingBody.AssignIncidentWave(inc_wave_state.Inc);
+  }
+
+  std::cout << " use_count = "  << inc_wave_state.Inc.use_count() << std::endl;
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
 
   gzdbg << "baseLink.Name = " << baseLink.Name(_ecm).value() << std::endl;
@@ -264,48 +223,15 @@ void WaveBodyInteractions::PreUpdate(
   gzdbg << "w_xdot = " << w_xdot.value() << std::endl;
   gzdbg << "p_xdot = " << p_xdot << std::endl;
 
+  inc_wave_state.x = w_Pose_p.X();
+  inc_wave_state.y = w_Pose_p.Y();
+
   Eigen::VectorXd x(6);
   x << w_Pose_p.X(), w_Pose_p.Y(), w_Pose_p.Z(), w_Pose_p.Roll(), w_Pose_p.Pitch(), w_Pose_p.Yaw();
   gzdbg << "x(6) = " << x.transpose() << std::endl;
   Eigen::VectorXd BuoyancyForce(6);
   BuoyancyForce = this->dataPtr->FloatingBody.BuoyancyForce(x);
   gzdbg << "Buoyancy Force = " << BuoyancyForce.transpose() << std::endl;
-
-  double deta_dx{0.0}, deta_dy{0.0};
-  double eta = this->dataPtr->Inc->eta(w_Pose_p.X(), w_Pose_p.Y(), SimTime, &deta_dx, &deta_dy);
-  gz::msgs::Pose req;
-  req.set_name("water_plane");
-  req.mutable_position()->set_x(w_Pose_p.X());
-  req.mutable_position()->set_y(w_Pose_p.Y());
-  req.mutable_position()->set_z(eta);
-
-  double roll = atan(deta_dx);
-  double pitch = atan(deta_dy);
-  double yaw = 0.0;
-
-  double qx = sin(roll/2.0) * cos(pitch/2.0) * cos(yaw/2.0)
-    - cos(roll/2.0) * sin(pitch/2.0) * sin(yaw/2.0);
-  double qy = cos(roll/2.0) * sin(pitch/2.0) * cos(yaw/2.0)
-    + sin(roll/2.0) * cos(pitch/2.0) * sin(yaw/2.0);
-  double qz = cos(roll/2.0) * cos(pitch/2.0) * sin(yaw/2.0)
-    - sin(roll/2.0) * sin(pitch/2.0) * cos(yaw/2.0);
-  double qw = cos(roll/2.0) * cos(pitch/2.0) * cos(yaw/2.0)
-    + sin(roll/2.0) * sin(pitch/2.0) * sin(yaw/2.0);
-
-  req.mutable_orientation()->set_x(qx);
-  req.mutable_orientation()->set_y(qy);
-  req.mutable_orientation()->set_z(qz);
-  req.mutable_orientation()->set_w(qw);
-
-  std::function<void(const gz::msgs::Boolean &, const bool)> cb =
-      [](const gz::msgs::Boolean &/*_rep*/, const bool _result)
-  {
-    if (!_result)
-      gzerr << "Error sending move to request" << std::endl;
-  };
-
-  gz::transport::Node node;
-  node.Request("/world/world_demo/set_pose", req, cb);
 
 // Compute Buoyancy Force
   gz::math::Vector3d w_FBp(BuoyancyForce(0), BuoyancyForce(1), BuoyancyForce(2));
@@ -359,6 +285,13 @@ void WaveBodyInteractions::PreUpdate(
   vel << p_xdot.X(), p_xdot.Y(), p_xdot.Z(), p_omega.X(), p_omega.Y(), p_omega.Z();
 
   baseLink.AddWorldWrench(_ecm, w_FBp + w_FRp + w_FEp, w_MBp + w_MRp + w_MEp);
+
+
+//push buoy x-y location back to incident wave plugin, temporary.
+  _ecm.SetComponentData<buoy_gazebo::components::IncWaveState>(
+    this->dataPtr->IncWaveEntity,
+    inc_wave_state);
+
 }
 
 //////////////////////////////////////////////////

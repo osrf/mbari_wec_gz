@@ -19,7 +19,6 @@
 #include <memory>
 
 #include <gz/sim/System.hh>
-#include <gz/transport.hh>
 
 namespace buoy_gazebo
 {
@@ -83,9 +82,6 @@ public:
     const gz::sim::EntityComponentManager & _ecm) override;
 
 private:
-  gz::transport::Node node;
-  gz::transport::Node::Publisher pistonvel_pub;
-
   /// \brief Private data pointer
   std::unique_ptr<WaveBodyInteractionsPrivate> dataPtr;
 };

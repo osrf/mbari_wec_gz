@@ -132,6 +132,11 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/WaveBodyInteractions
   FILES_MATCHING PATTERN "*.hpp"
 )
 
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/IncidentWaves
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PTOFriction
   DESTINATION include/buoy_gazebo
   FILES_MATCHING PATTERN "*.hpp"
