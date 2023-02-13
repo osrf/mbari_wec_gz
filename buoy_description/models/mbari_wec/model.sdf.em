@@ -94,18 +94,16 @@ except NameError:
 
     <plugin filename="IncidentWaves" name="buoy_gazebo::IncidentWaves">  
       <IncWaveSeed>42</IncWaveSeed>
-
 <!--
+
       <IncWaveSpectrumType>MonoChromatic</IncWaveSpectrumType>
       <A>1.0</A>
       <T>12.0</T>
--->
 
       <IncWaveSpectrumType>Bretschneider</IncWaveSpectrumType>
       <Hs>3.0</Hs>
       <Tp>14.0</Tp>
 
-<!--
       <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
       <w0>0</w0> <Szz0>0.0</Szz0>
       <w1>.2</w1> <Szz1>.4</Szz1>
@@ -113,7 +111,6 @@ except NameError:
       <w3>.6</w3> <Szz3>1.0</Szz3>
       <w4>2.0</w4> <Szz4>0.0</Szz4>
 -->
-
     </plugin>
 
     <!-- Adding Friction to PTO -->

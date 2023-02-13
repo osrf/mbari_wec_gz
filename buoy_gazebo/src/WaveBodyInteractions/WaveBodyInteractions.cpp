@@ -283,9 +283,12 @@ void WaveBodyInteractions::PreUpdate(
 
 
 // push buoy x-y location back to incident wave plugin, temporary.
+if(this->dataPtr->IncWaveEntity != gz::sim::kNullEntity)
+  {
   _ecm.SetComponentData<buoy_gazebo::components::IncWaveState>(
     this->dataPtr->IncWaveEntity,
     inc_wave_state);
+  }
 }
 
 //////////////////////////////////////////////////

@@ -65,7 +65,7 @@ TEST(WaveBodyInteractionTests, Motions)
       const gz::sim::UpdateInfo & _info,
       const gz::sim::EntityComponentManager & _ecm)
     {
-      std::cout << "In OnPreUpdate" << std::endl;
+//      std::cout << "In OnPreUpdate" << std::endl;
     }).
   // Use post-update callback to get values at the end of every iteration
   OnPostUpdate(
@@ -73,12 +73,12 @@ TEST(WaveBodyInteractionTests, Motions)
       const gz::sim::UpdateInfo & _info,
       const gz::sim::EntityComponentManager & _ecm)
     {
-      std::cout << "In PostUpdate" << std::endl;
+//      std::cout << "In PostUpdate" << std::endl;
       auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
 
-      std::cout << w_Pose_b.X() << "  " << w_Pose_b.Y() << "  " << w_Pose_b.Z() << "  "
-                << w_Pose_b.Roll() << "  " << w_Pose_b.Pitch() << "  " << w_Pose_b.Yaw()
-                << std::endl;
+//      std::cout << w_Pose_b.X() << "  " << w_Pose_b.Y() << "  " << w_Pose_b.Z() << "  "
+//                << w_Pose_b.Roll() << "  " << w_Pose_b.Pitch() << "  " << w_Pose_b.Yaw()
+//                << std::endl;
 
       iterations++;
     }).
