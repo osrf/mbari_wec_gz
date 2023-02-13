@@ -506,6 +506,12 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <always_on>1</always_on>
         <visualize>true</visualize>
       </sensor>
+      <sensor name='trefoil_mag' type='magnetometer'>
+        <topic>Trefoil_link/trefoil_mag</topic>
+        <update_rate>50</update_rate>
+        <always_on>1</always_on>
+        <visualize>true</visualize>
+      </sensor>
     </link>
 
     <joint name="Universal" type="universal">

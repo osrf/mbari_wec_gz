@@ -239,13 +239,15 @@ void TrefoilController::PostUpdate(
 
   this->dataPtr->tf_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->tf_record_.header.stamp.nanosec = sec_nsec.second;
-  this->dataPtr->tf_record_.power_timeouts = 0;
-  this->dataPtr->tf_record_.tether_voltage = 0.0;
-  this->dataPtr->tf_record_.battery_voltage = 0.0;
   this->dataPtr->tf_record_.pressure = 0.0;
+
+  //  Constants
+  this->dataPtr->tf_record_.power_timeouts = 60;
+  this->dataPtr->tf_record_.tether_voltage = 48.0;
+  this->dataPtr->tf_record_.battery_voltage = 48.0;
   this->dataPtr->tf_record_.status = 0;
   this->dataPtr->tf_record_.vpe_status = 0;
-  this->dataPtr->tf_record_.comms_timeouts = 0;
+  this->dataPtr->tf_record_.comms_timeouts = 60;
   this->dataPtr->tf_record_.motor_status = 0;
   this->dataPtr->tf_record_.motor_current = 0;
   this->dataPtr->tf_record_.encoder = 0;
