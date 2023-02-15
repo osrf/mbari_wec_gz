@@ -29,6 +29,7 @@
 
 #include <buoy_interfaces/msg/tf_record.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/magnetic_field.hpp>
 
 #include "TrefoilController.hpp"
 
@@ -43,14 +44,16 @@ struct buoy_gazebo::TrefoilControllerPrivate
 
   rclcpp::Publisher<buoy_interfaces::msg::TFRecord>::SharedPtr tf_pub_{nullptr};
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_{nullptr};
+  rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr mag_pub_{nullptr};
 
   std::function<void(const gz::msgs::IMU &)> imu_cb_;
+  std::function<void(const gz::msgs::Magnetometer &)> mag_cb_;
   double pub_rate_hz_{10.0};
   std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
   buoy_interfaces::msg::TFRecord tf_record_;
 
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
-  std::atomic<bool> imu_data_valid_{false};
+  std::atomic<bool> imu_data_valid_{false}, mag_data_valid_{false};
 
   std::thread thread_executor_spin_, thread_publish_;
   std::atomic<bool> stop_{false}, paused_{true};
@@ -75,9 +78,20 @@ struct buoy_gazebo::TrefoilControllerPrivate
     tf_record_.imu.linear_acceleration.z = _imu.linear_acceleration().z();
   }
 
+  void set_tf_record_mag(const gz::msgs::Magnetometer & _mag)
+  {
+    tf_record_.header.stamp.sec = _mag.header().stamp().sec();
+    tf_record_.header.stamp.nanosec = _mag.header().stamp().nsec();
+    tf_record_.header.frame_id = "Trefoil";
+    tf_record_.mag.header = tf_record_.header;
+    tf_record_.mag.magnetic_field.x = _mag.field_tesla().x();
+    tf_record_.mag.magnetic_field.y = _mag.field_tesla().y();
+    tf_record_.mag.magnetic_field.z = _mag.field_tesla().z();
+  }
+
   bool data_valid() const
   {
-    return imu_data_valid_;
+    return imu_data_valid_ && mag_data_valid_;
   }
 };
 
@@ -172,6 +186,23 @@ void TrefoilController::Configure(
     return;
   }
 
+  // Magnetometer Sensor
+  this->dataPtr->mag_cb_ = [this](const gz::msgs::Magnetometer & _mag)
+    {
+      // low prio data access
+      std::unique_lock low(this->dataPtr->low_prio_mutex_);
+      std::unique_lock next(this->dataPtr->next_access_mutex_);
+      std::unique_lock data(this->dataPtr->data_mutex_);
+      next.unlock();
+      this->dataPtr->set_tf_record_mag(_mag);
+      this->dataPtr->mag_data_valid_ = true;
+      data.unlock();
+    };
+    if (!this->dataPtr->node_.Subscribe("/Trefoil_link/trefoil_mag", this->dataPtr->mag_cb_)) {
+    gzerr << "Error subscribing to topic [" << "/Trefoil_link/trefoil_mag" << "]" << std::endl;
+    return;
+  }
+
   // Publisher
   std::string tf_topic = _sdf->Get<std::string>("tf_topic", "trefoil_data").first;
   this->dataPtr->tf_pub_ = \
@@ -181,6 +212,10 @@ void TrefoilController::Configure(
   this->dataPtr->imu_pub_ = \
     this->dataPtr->rosnode_->create_publisher<sensor_msgs::msg::Imu>(imu_topic, 10);
 
+  std::string mag_topic = _sdf->Get<std::string>("mag_topic", "trefoil_mag").first;
+  this->dataPtr->mag_pub_ = \
+    this->dataPtr->rosnode_->create_publisher<sensor_msgs::msg::MagneticField>(mag_topic, 10);
+
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
   this->dataPtr->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
@@ -189,7 +224,8 @@ void TrefoilController::Configure(
     {
       while (rclcpp::ok() && !this->dataPtr->stop_) {
         if (this->dataPtr->tf_pub_->get_subscription_count() <= 0 && \
-          this->dataPtr->imu_pub_->get_subscription_count() <= 0) {continue;}
+          this->dataPtr->imu_pub_->get_subscription_count() <= 0 && \
+          this->dataPtr->mag_pub_->get_subscription_count() <= 0) {continue;}
         // Only update and publish if not paused.
         if (this->dataPtr->paused_) {continue;}
 
@@ -209,6 +245,9 @@ void TrefoilController::Configure(
           }
           if (this->dataPtr->imu_pub_->get_subscription_count() > 0) {
             this->dataPtr->imu_pub_->publish(tf_record.imu);
+          }
+          if (this->dataPtr->mag_pub_->get_subscription_count() > 0) {
+            this->dataPtr->mag_pub_->publish(tf_record.mag);
           }
         } else {
           data.unlock();
@@ -239,6 +278,7 @@ void TrefoilController::PostUpdate(
 
   this->dataPtr->tf_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->tf_record_.header.stamp.nanosec = sec_nsec.second;
+  //  TODO(quarkytale): depth*rho*g, Pa to psi
   this->dataPtr->tf_record_.pressure = 0.0;
 
   //  Constants
