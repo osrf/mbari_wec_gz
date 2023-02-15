@@ -19,6 +19,7 @@
 #include <vector>
 #include <limits>
 
+#include <gz/sim/Link.hh>
 #include <gz/sim/Model.hh>
 #include <gz/sim/Util.hh>
 #include <gz/sim/components/Name.hh>
@@ -268,6 +269,12 @@ void TrefoilController::PostUpdate(
     return;
   }
 
+  //  Get Trefoil link's pose
+  auto model = gz::sim::Model(this->dataPtr->entity_);
+  auto link = model.LinkByName(_ecm, "Trefoil");
+  auto pose = gz::sim::worldPose(link, _ecm);
+  double depth = pose.Pos().Z();
+
   // low prio data access
   std::unique_lock low(this->dataPtr->low_prio_mutex_);
   std::unique_lock next(this->dataPtr->next_access_mutex_);
@@ -278,8 +285,8 @@ void TrefoilController::PostUpdate(
 
   this->dataPtr->tf_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->tf_record_.header.stamp.nanosec = sec_nsec.second;
-  //  TODO(quarkytale): depth*rho*g, Pa to psi
-  this->dataPtr->tf_record_.pressure = 0.0;
+  //  Sea pressure: depth*rho*g, Pascal to psi
+  this->dataPtr->tf_record_.pressure = (depth * 1025 * 9.8)/6894.75729;
 
   //  Constants
   this->dataPtr->tf_record_.power_timeouts = 60;
