@@ -23,17 +23,18 @@
 #include <vector>
 
 #include <gz/common/Profiler.hh>
-#include <gz/sim/components/Name.hh>
-#include <gz/sim/components/JointVelocityCmd.hh>
-#include <gz/sim/components/JointForceCmd.hh>
-#include <gz/sim/components/JointVelocity.hh>
-#include <gz/sim/Model.hh>
+#include <gz/math/Quaternion.hh>
 #include <gz/msgs.hh>
 #include <gz/plugin/Register.hh>
-
+#include <gz/sim/components/JointForceCmd.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
+#include <gz/sim/components/JointVelocity.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/Model.hh>
 
 #include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
 #include "IncWaveState.hpp"
+
 
 namespace buoy_gazebo
 {
@@ -158,6 +159,7 @@ void IncidentWaves::PreUpdate(
       this->dataPtr->IncWaveEntity);
     this->dataPtr->inc_wave_state = buoy_gazebo::IncWaveState(inc_wave_state_comp->Data());
   }
+
   double deta_dx{0.0}, deta_dy{0.0};
   double eta = this->dataPtr->Inc->eta(
     this->dataPtr->inc_wave_state.x,
@@ -174,19 +176,13 @@ void IncidentWaves::PreUpdate(
   double pitch = atan(deta_dy);
   double yaw = 0.0;
 
-  double qx = sin(roll / 2.0) * cos(pitch / 2.0) * cos(yaw / 2.0) -
-    cos(roll / 2.0) * sin(pitch / 2.0) * sin(yaw / 2.0);
-  double qy = cos(roll / 2.0) * sin(pitch / 2.0) * cos(yaw / 2.0) +
-    sin(roll / 2.0) * cos(pitch / 2.0) * sin(yaw / 2.0);
-  double qz = cos(roll / 2.0) * cos(pitch / 2.0) * sin(yaw / 2.0) -
-    sin(roll / 2.0) * sin(pitch / 2.0) * cos(yaw / 2.0);
-  double qw = cos(roll / 2.0) * cos(pitch / 2.0) * cos(yaw / 2.0) +
-    sin(roll / 2.0) * sin(pitch / 2.0) * sin(yaw / 2.0);
+  gz::math::Quaternion<double> q =
+    gz::math::Quaternion<double>::EulerToQuaternion(roll, pitch, yaw);
 
-  req.mutable_orientation()->set_x(qx);
-  req.mutable_orientation()->set_y(qy);
-  req.mutable_orientation()->set_z(qz);
-  req.mutable_orientation()->set_w(qw);
+  req.mutable_orientation()->set_x(q.X());
+  req.mutable_orientation()->set_y(q.Y());
+  req.mutable_orientation()->set_z(q.Z());
+  req.mutable_orientation()->set_w(q.W());
 
   std::function<void(const gz::msgs::Boolean &, const bool)> cb =
     [](const gz::msgs::Boolean & /*_rep*/, const bool _result)
