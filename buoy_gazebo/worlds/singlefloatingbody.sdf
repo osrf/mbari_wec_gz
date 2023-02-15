@@ -3,7 +3,7 @@
   <world name="world_demo">
 
     <physics name="1ms" type="ignored">
-      <max_step_size>0.005</max_step_size>
+      <max_step_size>0.01</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
 
@@ -113,7 +113,7 @@
         <update_rate>50</update_rate>
         <imu>
           <orientation_reference_frame>
-            <localization>ENU</localization>
+           <localization>ENU</localization>
           </orientation_reference_frame>
         </imu>
         <always_on>1</always_on>
@@ -136,31 +136,7 @@
       <S11>1.37</S11>
       <S22>1.37</S22>
 
-      <IncWaveSeed>42</IncWaveSeed>
-
-      <IncWaveSpectrumType>MonoChromatic</IncWaveSpectrumType>
-      <A>1.0</A>
-      <T>12.0</T>
-
-<!--
-      <IncWaveSpectrumType>Bretschneider</IncWaveSpectrumType>
-      <Hs>3.0</Hs>
-      <Tp>14.0</Tp>
--->
-
-<!--
-      <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
-      <w0>0</w0> <Szz0>0.0</Szz0>
-      <w1>.2</w1> <Szz1>.4</Szz1>
-      <w2>.4</w2> <Szz2>1.0</Szz2>
-      <w3>.6</w3> <Szz3>1.0</Szz3>
-      <w4>2.0</w4> <Szz4>0.0</Szz4>
-
--->
-
     </plugin>
-
-
 
     </model>
 

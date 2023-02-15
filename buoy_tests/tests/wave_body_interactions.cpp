@@ -21,6 +21,8 @@
 #include <gz/sim/Server.hh>
 #include <gz/sim/Util.hh>
 #include <gz/sim/TestFixture.hh>
+#include <gz/sim/components/Pose.hh>
+#include <gz/sim/components/Name.hh>
 
 
 //////////////////////////////////////////////////
@@ -52,12 +54,24 @@ TEST(WaveBodyInteractionTests, Motions)
     gz::sim::EventManager & /*_eventMgr*/)
     {
       std::cout << "In OnConfigure " << std::endl;
-      model = gz::sim::Model(_entity);
-      linkEntity = model.LinkByName(_ecm, "Buoy");
+
+//      model = gz::sim::Model(_entity);
+//  if (!model.Valid(_ecm)) {
+//    ignerr <<
+//      "Invalid Model Entity. " <<
+//      "Failed to initialize." << std::endl;
+//    return;
+//  }
+//      linkEntity = model.LinkByName(_ecm, "Buoy");
+
+      linkEntity = _ecm.EntityByComponents(gz::sim::components::Name("Buoy"));
+
       if (!_ecm.HasEntity(linkEntity)) {
         ignerr << "Link name Buoy does not exist";
         return;
       }
+      //linkEntity.EnableAccelerationChecks(_ecm, true);
+      //linkEntity.EnableVelocityChecks(_ecm, true);
     }).
   // Use post-update callback to get values at the end of every iteration
   OnPreUpdate(
@@ -65,7 +79,12 @@ TEST(WaveBodyInteractionTests, Motions)
       const gz::sim::UpdateInfo & _info,
       const gz::sim::EntityComponentManager & _ecm)
     {
-//      std::cout << "In OnPreUpdate" << std::endl;
+      auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
+
+      std::cout << iterations << ":  " <<w_Pose_b.X() << "  " << w_Pose_b.Y() << "  " << w_Pose_b.Z() << "  "
+                << w_Pose_b.Roll() << "  " << w_Pose_b.Pitch() << "  " << w_Pose_b.Yaw()
+                << std::endl;
+
     }).
   // Use post-update callback to get values at the end of every iteration
   OnPostUpdate(
@@ -74,11 +93,6 @@ TEST(WaveBodyInteractionTests, Motions)
       const gz::sim::EntityComponentManager & _ecm)
     {
 //      std::cout << "In PostUpdate" << std::endl;
-      auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
-
-//      std::cout << w_Pose_b.X() << "  " << w_Pose_b.Y() << "  " << w_Pose_b.Z() << "  "
-//                << w_Pose_b.Roll() << "  " << w_Pose_b.Pitch() << "  " << w_Pose_b.Yaw()
-//                << std::endl;
 
       iterations++;
     }).
@@ -87,8 +101,8 @@ TEST(WaveBodyInteractionTests, Motions)
 
   // Setup simulation server, this will call the post-update callbacks.
   // It also calls pre-update and update callbacks if those are being used.
-  fixture.Server()->Run(true, 1000, false);
+  fixture.Server()->Run(true, 3000, false);
 
   // Verify that the post update function was called 1000 times
-  EXPECT_EQ(1000, iterations);
+  EXPECT_EQ(3000, iterations);
 }
