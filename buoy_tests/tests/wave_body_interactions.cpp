@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <gtest/gtest.h>
+#include <boost/numeric/odeint.hpp>
 
 #include <gz/common/Console.hh>
 #include <gz/sim/config.hh>
@@ -24,7 +25,73 @@
 #include <gz/sim/components/Pose.hh>
 #include <gz/sim/components/Name.hh>
 
+#if 0
+#include "FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp"
+#include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
 
+/* The rhs of x' = f(x) defined as a class */
+class SingleModeMotionRHS {
+public:
+  FS_HydroDynamics *FloatingBody = NULL;
+  double last_accel = 0;
+  int mode = 0;
+
+  explicit SingleModeMotionRHS(FS_HydroDynamics *Body) : FloatingBody(Body) {}
+
+  // x[0] = position
+  // x[1] = velocity
+  void operator()(const std::vector<double> &x, std::vector<double> &dxdt,
+                  const double t) {
+    Eigen::VectorXd pos(6);
+    pos(0) = 0; pos(1) = 0; pos(2) = 0; pos(3) = 0; pos(4) = 0; pos(5) = 0;
+    pos(mode) = x[0];
+    Eigen::VectorXd vel(6);
+    vel(0) = 0; vel(1) = 0; vel(2) = 0; vel(3) = 0; vel(4) = 0; vel(5) = 0;
+    vel(mode) = x[1];
+    Eigen::VectorXd F_LinDamping(6);
+    F_LinDamping = FloatingBody->LinearDampingForce(vel);
+    Eigen::VectorXd F_B(6);
+    F_B = FloatingBody->BuoyancyForce(pos);
+    Eigen::VectorXd F_G(6);
+    F_G = FloatingBody->GravityForce(pos);
+    Eigen::VectorXd F_R(6);
+    Eigen::VectorXd accel(6);
+    accel(0) = 0;
+    accel(1) = 0;
+    accel(2) = 0;
+    accel(3) = 0;
+    accel(4) = 0;
+    accel(5) = 0;
+    accel(mode) = last_accel;
+    F_R = -FloatingBody->RadiationForce(accel);
+    Eigen::VectorXd F_E(6);
+    F_E = FloatingBody->ExcitingForce();
+    dxdt[0] = x[1];
+    double b = 0.1;
+    dxdt[1] =
+        (F_LinDamping(mode) + F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
+        (FloatingBody->M(mode, mode) +
+         FloatingBody->AddedMass(10000.0, mode, mode));
+    last_accel = dxdt[1];
+  }
+};
+
+//[ integrate_observer
+struct push_back_state_and_time {
+  std::vector<std::vector<double>> &m_states;
+  std::vector<double> &m_times;
+
+  push_back_state_and_time(std::vector<std::vector<double>> &states,
+                           std::vector<double> &times)
+      : m_states(states), m_times(times) {}
+
+  void operator()(const std::vector<double> &x, double t) {
+    m_states.push_back(x);
+    m_times.push_back(t);
+  }
+};
+
+#endif
 //////////////////////////////////////////////////
 TEST(WaveBodyInteractionTests, Motions)
 {
