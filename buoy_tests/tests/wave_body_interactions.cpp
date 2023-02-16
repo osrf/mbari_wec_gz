@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include <gtest/gtest.h>
+#include <Eigen/Dense>
 #include <boost/numeric/odeint.hpp>
+#include <cstdlib>
 
 #include <gz/common/Console.hh>
 #include <gz/sim/config.hh>
@@ -25,16 +27,16 @@
 #include <gz/sim/components/Pose.hh>
 #include <gz/sim/components/Name.hh>
 
-#if 0
 #include "FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp"
 #include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
 
+  double last_accel = 0;
 /* The rhs of x' = f(x) defined as a class */
 class SingleModeMotionRHS {
 public:
   FS_HydroDynamics *FloatingBody = NULL;
-  double last_accel = 0;
   int mode = 0;
+  double inf_freq_added_mass = 0;
 
   explicit SingleModeMotionRHS(FS_HydroDynamics *Body) : FloatingBody(Body) {}
 
@@ -48,8 +50,8 @@ public:
     Eigen::VectorXd vel(6);
     vel(0) = 0; vel(1) = 0; vel(2) = 0; vel(3) = 0; vel(4) = 0; vel(5) = 0;
     vel(mode) = x[1];
-    Eigen::VectorXd F_LinDamping(6);
-    F_LinDamping = FloatingBody->LinearDampingForce(vel);
+//    Eigen::VectorXd F_LinDamping(6);
+//    F_LinDamping = FloatingBody->LinearDampingForce(vel);
     Eigen::VectorXd F_B(6);
     F_B = FloatingBody->BuoyancyForce(pos);
     Eigen::VectorXd F_G(6);
@@ -62,17 +64,27 @@ public:
     accel(3) = 0;
     accel(4) = 0;
     accel(5) = 0;
+         std::cout << "# use last_accel = " << last_accel << std::endl;
     accel(mode) = last_accel;
     F_R = -FloatingBody->RadiationForce(accel);
     Eigen::VectorXd F_E(6);
-    F_E = FloatingBody->ExcitingForce();
+    //F_E = FloatingBody->ExcitingForce();
     dxdt[0] = x[1];
-    double b = 0.1;
+    //double b = 0.1;
+    std::cout << "# " << x[0] << "  " << x[1] << "  "  
+              << F_G(mode) << "  "  
+              << F_B(mode) << "  "
+              << F_R(mode) << "  "  
+              << (F_B(mode) + F_G(mode) + F_R(mode)) << "  "
+              << std::endl;
     dxdt[1] =
-        (F_LinDamping(mode) + F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
+        //(F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
+        (F_B(mode) + F_G(mode) + F_R(mode)) /
         (FloatingBody->M(mode, mode) +
-         FloatingBody->AddedMass(10000.0, mode, mode));
+         inf_freq_added_mass);
+         std::cout << "#dxdt = " << dxdt[1] << std::endl;
     last_accel = dxdt[1];
+         std::cout << "#set last_accel = " << last_accel << std::endl;
   }
 };
 
@@ -91,7 +103,6 @@ struct push_back_state_and_time {
   }
 };
 
-#endif
 //////////////////////////////////////////////////
 TEST(WaveBodyInteractionTests, Motions)
 {
@@ -112,10 +123,14 @@ TEST(WaveBodyInteractionTests, Motions)
   gz::sim::Model model{gz::sim::kNullEntity};
   gz::sim::Entity linkEntity;
 
+  std::vector<double> GzSimTime;
+  std::vector<double> GzSimHeavePos;
+  double dt;
+
   fixture.
   // Use configure callback to get values at startup
   OnConfigure(
-    [&model, &linkEntity](const gz::sim::Entity & _entity,
+    [&model, &linkEntity,&GzSimTime,&GzSimHeavePos](const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & /*_sdf*/,
     gz::sim::EntityComponentManager & _ecm,
     gz::sim::EventManager & /*_eventMgr*/)
@@ -142,34 +157,105 @@ TEST(WaveBodyInteractionTests, Motions)
     }).
   // Use post-update callback to get values at the end of every iteration
   OnPreUpdate(
-    [&iterations, &linkEntity](
+    [&iterations, &linkEntity,&dt](
       const gz::sim::UpdateInfo & _info,
       const gz::sim::EntityComponentManager & _ecm)
     {
-      auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
-
-      std::cout << iterations << ":  " <<w_Pose_b.X() << "  " << w_Pose_b.Y() << "  " << w_Pose_b.Z() << "  "
-                << w_Pose_b.Roll() << "  " << w_Pose_b.Pitch() << "  " << w_Pose_b.Yaw()
-                << std::endl;
-
+     auto SimTime = std::chrono::duration<double>(_info.simTime).count();
+     if (_info.iterations == 1) {  // First iteration, set timestep size.
+       dt = std::chrono::duration<double>(_info.dt).count();
+       } 
     }).
   // Use post-update callback to get values at the end of every iteration
   OnPostUpdate(
-    [&iterations, &linkEntity](
+    [&iterations, &linkEntity,&GzSimTime,&GzSimHeavePos](
       const gz::sim::UpdateInfo & _info,
       const gz::sim::EntityComponentManager & _ecm)
     {
 //      std::cout << "In PostUpdate" << std::endl;
-
+      auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
+      GzSimTime.push_back(iterations); 
+      GzSimHeavePos.push_back(w_Pose_b.Z()); 
       iterations++;
     }).
   // The moment we finalize, the configure callback is called
   Finalize();
-
-  // Setup simulation server, this will call the post-update callbacks.
+// Setup simulation server, this will call the post-update callbacks.
   // It also calls pre-update and update callbacks if those are being used.
-  fixture.Server()->Run(true, 3000, false);
+  fixture.Server()->Run(true, 10000, false);
+
+// Compute solution independently for comparison
+const char *modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
+std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> ();
+
+  double rho = 1025;
+  double g = 9.81;
+  double buoy_mass = 1400; // kg
+  FS_HydroDynamics BuoyA5;
+
+  //double omega = 2 * M_PI / Tp;
+  //double tf = 2.0 * Tp;
+
+// Inc->SetToMonoChromatic(A, Tp, phase, beta);
+//  BuoyA5.AssignIncidentWave(Inc);
+
+  BuoyA5.SetWaterplane(5.47, 1.37,
+                       1.37); // Set area and 2nd moments of area for waterplane
+  BuoyA5.SetCOB(0, 0,
+                -.18); // Set COB relative to waterplane coordinate system.
+  BuoyA5.SetCOG(0, 0,
+                2.03); // Set COG relative to waterplane coordinate system.
+  BuoyA5.SetVolume(1.75);//buoy_mass / rho);
+  BuoyA5.SetMass(buoy_mass);
+
+//  std::string HydrodynamicsBaseFilename =
+//      "./example_hydrodynamic_coeffs/BuoyA5";
+  std::string HydrodynamicsBaseFilename =
+    "/home/hamilton/buoy_ws/src/buoy_sim/buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+  //  ament_index_cpp::get_package_share_directory("buoy_description") +
+  //  "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+
+  BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
+  BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
+  BuoyA5.SetTimestepSize(dt);
+
+  Eigen::Matrix<double, 3, 3> I;
+  I << 7000.0, 0, 0, 0, 7040.0, 0, 0, 0, 670.0;
+  BuoyA5.SetI(I);
+    Eigen::VectorXd b(6);
+    b(0) = 300.0;
+    b(1) = 300.0;
+    b(2) = 900.0;
+    b(3) = 400.0;
+    b(4) = 400.0;
+    b(5) = 100.0;
+    BuoyA5.SetDampingCoeffs(b);
+
+  std::vector<double> x(2);
+  x[0] = -2.0+2.46; // initial position
+  x[1] = 0.0; // initial velocity
+
+  double t_final = iterations*dt;
+  // integrate_observ
+  std::vector<std::vector<double>> x_vec;
+  std::vector<double> times;
+  boost::numeric::odeint::euler<std::vector<double>> stepper;
+  SingleModeMotionRHS RHS(&BuoyA5);
+  RHS.mode = 2;
+  RHS.inf_freq_added_mass = 3080;
+  int steps = boost::numeric::odeint::integrate_const(
+      stepper, RHS, x, 0.0, t_final, dt,
+      push_back_state_and_time(x_vec, times));
+
+std::cout << "N = " << GzSimHeavePos.size() << std::endl;
+for(int i = 0; i< GzSimHeavePos.size();i++)
+{
+      std::cout << GzSimTime[i] * dt
+                << "    " << GzSimHeavePos[i]
+                << "    " << x_vec[i][0] - 2.46 << std::endl;
+
+}
 
   // Verify that the post update function was called 1000 times
-  EXPECT_EQ(3000, iterations);
+  EXPECT_EQ(10000, iterations);
 }
