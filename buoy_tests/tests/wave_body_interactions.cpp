@@ -30,18 +30,22 @@
 #include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
 
 /* The rhs of x' = f(x) defined as a class */
-class SingleModeMotionRHS {
+class SingleModeMotionRHS
+{
 public:
-  FS_HydroDynamics *FloatingBody = NULL;
+  FS_HydroDynamics * FloatingBody = NULL;
   double last_accel = 0;
   int mode = 0;
 
-  explicit SingleModeMotionRHS(FS_HydroDynamics *Body) : FloatingBody(Body) {}
+  explicit SingleModeMotionRHS(FS_HydroDynamics * Body)
+  : FloatingBody(Body) {}
 
   // x[0] = position
   // x[1] = velocity
-  void operator()(const std::vector<double> &x, std::vector<double> &dxdt,
-                  const double t) {
+  void operator()(
+    const std::vector<double> & x, std::vector<double> & dxdt,
+    const double t)
+  {
     Eigen::VectorXd pos(6);
     pos(0) = 0; pos(1) = 0; pos(2) = 0; pos(3) = 0; pos(4) = 0; pos(5) = 0;
     pos(mode) = x[0];
@@ -69,23 +73,26 @@ public:
     dxdt[0] = x[1];
     double b = 0.1;
     dxdt[1] =
-        (F_LinDamping(mode) + F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
-        (FloatingBody->M(mode, mode) +
-         FloatingBody->AddedMass(10000.0, mode, mode));
+      (F_LinDamping(mode) + F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
+      (FloatingBody->M(mode, mode) +
+      FloatingBody->AddedMass(10000.0, mode, mode));
     last_accel = dxdt[1];
   }
 };
 
 //[ integrate_observer
-struct push_back_state_and_time {
-  std::vector<std::vector<double>> &m_states;
-  std::vector<double> &m_times;
+struct push_back_state_and_time
+{
+  std::vector<std::vector<double>> & m_states;
+  std::vector<double> & m_times;
 
-  push_back_state_and_time(std::vector<std::vector<double>> &states,
-                           std::vector<double> &times)
-      : m_states(states), m_times(times) {}
+  push_back_state_and_time(
+    std::vector<std::vector<double>> & states,
+    std::vector<double> & times)
+  : m_states(states), m_times(times) {}
 
-  void operator()(const std::vector<double> &x, double t) {
+  void operator()(const std::vector<double> & x, double t)
+  {
     m_states.push_back(x);
     m_times.push_back(t);
   }
@@ -148,7 +155,7 @@ TEST(WaveBodyInteractionTests, Motions)
     {
       auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
 
-      std::cout << iterations << ":  " <<w_Pose_b.X() << "  " << w_Pose_b.Y() << "  " << w_Pose_b.Z() << "  "
+      std::cout << iterations << ":  " << w_Pose_b.X() << "  " << w_Pose_b.Y() << "  " << w_Pose_b.Z() << "  "
                 << w_Pose_b.Roll() << "  " << w_Pose_b.Pitch() << "  " << w_Pose_b.Yaw()
                 << std::endl;
 
