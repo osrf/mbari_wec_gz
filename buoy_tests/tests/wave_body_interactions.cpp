@@ -80,7 +80,7 @@ public:
   }
 };
 
-//[ integrate_observer
+// [ integrate_observer
 struct push_back_state_and_time
 {
   std::vector<std::vector<double>> & m_states;
@@ -144,8 +144,8 @@ TEST(WaveBodyInteractionTests, Motions)
         ignerr << "Link name Buoy does not exist";
         return;
       }
-      //linkEntity.EnableAccelerationChecks(_ecm, true);
-      //linkEntity.EnableVelocityChecks(_ecm, true);
+      // linkEntity.EnableAccelerationChecks(_ecm, true);
+      // linkEntity.EnableVelocityChecks(_ecm, true);
     }).
   // Use post-update callback to get values at the end of every iteration
   OnPreUpdate(
@@ -155,9 +155,10 @@ TEST(WaveBodyInteractionTests, Motions)
     {
       auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
 
-      std::cout << iterations << ":  " << w_Pose_b.X() << "  " << w_Pose_b.Y() << "  " << w_Pose_b.Z() << "  "
-                << w_Pose_b.Roll() << "  " << w_Pose_b.Pitch() << "  " << w_Pose_b.Yaw()
-                << std::endl;
+      igndbg << iterations << ":  "
+             << w_Pose_b.X() << "  " << w_Pose_b.Y() << "  " << w_Pose_b.Z() << "  "
+             << w_Pose_b.Roll() << "  " << w_Pose_b.Pitch() << "  " << w_Pose_b.Yaw()
+             << std::endl;
 
     }).
   // Use post-update callback to get values at the end of every iteration
