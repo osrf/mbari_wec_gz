@@ -199,7 +199,7 @@ void TrefoilController::Configure(
       this->dataPtr->mag_data_valid_ = true;
       data.unlock();
     };
-    if (!this->dataPtr->node_.Subscribe("/Trefoil_link/trefoil_mag", this->dataPtr->mag_cb_)) {
+  if (!this->dataPtr->node_.Subscribe("/Trefoil_link/trefoil_mag", this->dataPtr->mag_cb_)) {
     gzerr << "Error subscribing to topic [" << "/Trefoil_link/trefoil_mag" << "]" << std::endl;
     return;
   }
@@ -286,7 +286,7 @@ void TrefoilController::PostUpdate(
   this->dataPtr->tf_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->tf_record_.header.stamp.nanosec = sec_nsec.second;
   //  Sea pressure: depth*rho*g, Pascal to psi
-  this->dataPtr->tf_record_.pressure = (depth * 1025 * 9.8)/6894.75729;
+  this->dataPtr->tf_record_.pressure = (depth * 1025 * 9.8) / 6894.75729;
 
   //  Constants
   this->dataPtr->tf_record_.power_timeouts = 60;
