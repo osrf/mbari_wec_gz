@@ -137,13 +137,12 @@ def generate_simulations(sim_params_yaml):
                 else:
                     T = None
 
-                if A is None or T is None:
-                    A, T = None, None
-                    node.get_logger().warn(
+                if (A is None) ^ (T is None):
+                    node.get_logger().error(
                         'sim_params_yaml: MonoChromatic: A or T unspecified.' +
                         ' Please specify both or neither'
-                        ' -- defaulting to neither'
                     )
+                    sys.exit(-1)
                 incident_waves.append(MonoChromatic(A, T))
             elif 'Bretschneider' in inc_wave_spectrum_type:
                 bretschneider_spectrum = inc_wave_spectrum_type['Bretschneider']
@@ -156,13 +155,12 @@ def generate_simulations(sim_params_yaml):
                 else:
                     Tp = None
 
-                if Hs is None or Tp is None:
-                    Hs, Tp = None, None
-                    node.get_logger().warn(
+                if (Hs is None) ^ (Tp is None):
+                    node.get_logger().error(
                         'sim_params_yaml: Bretschneider: Hs or Tp unspecified.' +
                         ' Please specify both or neither'
-                        ' -- defaulting to neither'
                     )
+                    sys.exit(-1)
                 incident_waves.append(Bretschneider(Hs, Tp))
             elif 'Custom' in inc_wave_spectrum_type:
                 custom_spectrum = inc_wave_spectrum_type['Custom']
@@ -175,20 +173,18 @@ def generate_simulations(sim_params_yaml):
                 else:
                     Szz = None
 
-                if w is None or Szz is None:
-                    w, Szz = None, None
-                    node.get_logger().warn(
+                if (w is None) ^ (Szz is None):
+                    node.get_logger().error(
                         'sim_params_yaml: Custom: w or Szz unspecified.' +
                         ' Please specify both or neither'
-                        ' -- defaulting to neither'
                     )
+                    sys.exit(-1)
                 if w is not None and Szz is not None:
                     if w.shape != Szz.shape:
-                        w, Szz = None, None
-                        node.get_logger().warn(
-                            'sim_params_yaml: Custom: w.shape != Szz.shape' +
-                            ' -- defaulting'
+                        node.get_logger().error(
+                            'sim_params_yaml: Custom: w.shape != Szz.shape'
                         )
+                        sys.exit(-1)
                 incident_waves.append(Custom(w, Szz))
             else:
                 # default no waves; TODO(hamilton) correct?
@@ -275,10 +271,11 @@ def generate_simulations(sim_params_yaml):
                     mbari_wec_model_params.extend(['-D', f'Tp = {iw.Tp}'])
             if 'Custom' in iw.name:
                 if iw.w is not None:
-                    mbari_wec_model_params.extend(['-D', f'w = {iw.w}'])
-                    mbari_wec_model_params.extend(['-D', f'Szz = {iw.Szz}'])
+                    mbari_wec_model_params.extend(['-D', f'w = {iw.w.tolist()}'])
+                    mbari_wec_model_params.extend(['-D', f'Szz = {iw.Szz.tolist()}'])
         mbari_wec_model_params.extend(['-o', sdf_file,
             empy_sdf_file])
+        print(mbari_wec_model_params)
         empy(mbari_wec_model_params)
 
         node.get_logger().info('running gz-sim with gz_args:=' +
