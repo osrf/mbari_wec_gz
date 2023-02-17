@@ -275,7 +275,6 @@ def generate_simulations(sim_params_yaml):
                     mbari_wec_model_params.extend(['-D', f'Szz = {iw.Szz.tolist()}'])
         mbari_wec_model_params.extend(['-o', sdf_file,
             empy_sdf_file])
-        print(mbari_wec_model_params)
         empy(mbari_wec_model_params)
 
         node.get_logger().info('running gz-sim with gz_args:=' +
