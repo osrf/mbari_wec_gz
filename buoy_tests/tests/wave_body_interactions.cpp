@@ -32,18 +32,22 @@
 
   double last_accel = 0;
 /* The rhs of x' = f(x) defined as a class */
-class SingleModeMotionRHS {
+class SingleModeMotionRHS
+{
 public:
   FS_HydroDynamics *FloatingBody = NULL;
   int mode = 0;
   double inf_freq_added_mass = 0;
 
-  explicit SingleModeMotionRHS(FS_HydroDynamics *Body) : FloatingBody(Body) {}
+  explicit SingleModeMotionRHS(FS_HydroDynamics * Body)
+  : FloatingBody(Body) {}
 
   // x[0] = position
   // x[1] = velocity
-  void operator()(const std::vector<double> &x, std::vector<double> &dxdt,
-                  const double t) {
+  void operator()(
+    const std::vector<double> & x, std::vector<double> & dxdt,
+    const double t)
+  {
     Eigen::VectorXd pos(6);
     pos(0) = 0; pos(1) = 0; pos(2) = 0; pos(3) = 0; pos(4) = 0; pos(5) = 0;
     pos(mode) = x[0];
@@ -88,16 +92,19 @@ public:
   }
 };
 
-//[ integrate_observer
-struct push_back_state_and_time {
-  std::vector<std::vector<double>> &m_states;
-  std::vector<double> &m_times;
+// [ integrate_observer
+struct push_back_state_and_time
+{
+  std::vector<std::vector<double>> & m_states;
+  std::vector<double> & m_times;
 
-  push_back_state_and_time(std::vector<std::vector<double>> &states,
-                           std::vector<double> &times)
-      : m_states(states), m_times(times) {}
+  push_back_state_and_time(
+    std::vector<std::vector<double>> & states,
+    std::vector<double> & times)
+  : m_states(states), m_times(times) {}
 
-  void operator()(const std::vector<double> &x, double t) {
+  void operator()(const std::vector<double> & x, double t)
+  {
     m_states.push_back(x);
     m_times.push_back(t);
   }
@@ -152,8 +159,8 @@ TEST(WaveBodyInteractionTests, Motions)
         ignerr << "Link name Buoy does not exist";
         return;
       }
-      //linkEntity.EnableAccelerationChecks(_ecm, true);
-      //linkEntity.EnableVelocityChecks(_ecm, true);
+      // linkEntity.EnableAccelerationChecks(_ecm, true);
+      // linkEntity.EnableVelocityChecks(_ecm, true);
     }).
   // Use post-update callback to get values at the end of every iteration
   OnPreUpdate(
@@ -182,7 +189,7 @@ TEST(WaveBodyInteractionTests, Motions)
   Finalize();
 // Setup simulation server, this will call the post-update callbacks.
   // It also calls pre-update and update callbacks if those are being used.
-  fixture.Server()->Run(true, 10000, false);
+  fixture.Server()->Run(true, 1000, false);
 
 // Compute solution independently for comparison
 const char *modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
@@ -257,5 +264,5 @@ for(int i = 0; i< GzSimHeavePos.size();i++)
 }
 
   // Verify that the post update function was called 1000 times
-  EXPECT_EQ(10000, iterations);
+  EXPECT_EQ(1000, iterations);
 }

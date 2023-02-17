@@ -125,7 +125,8 @@ public:
   {
     double LimitedI = I;
     double AdjustedN = rpm_;
-    const double RamPosition = range_finder_ / 0.0254;
+    // TODO(anyone) hook this up when ram position is dynamic in EHPTO.cpp
+    const double RamPosition = 40.0;  // range_finder_ / 0.0254;
     if (rpm_ >= 0.0) {  // Retracting
       const double min_region = SC_RANGE_MIN + STOP_RANGE;
       if (RamPosition < min_region) {
@@ -289,7 +290,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     node->rpm_,
     node->scale_,
     node->retract_) + node->bias_curr_;
-  // expected_wind_curr = node->winding_current_limiter(expected_wind_curr);
+  expected_wind_curr = node->winding_current_limiter(expected_wind_curr);
   EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1);
   EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1);
 
@@ -324,9 +325,9 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
 
-  // expected_wind_curr = node->winding_current_limiter(wc);
-  EXPECT_GT(node->wind_curr_, wc - 0.1F);
-  EXPECT_LT(node->wind_curr_, wc + 0.1F);
+  expected_wind_curr = node->winding_current_limiter(wc);
+  EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1F);
+  EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1F);
 
   ///////////////////////////////////////////
   // Scale
@@ -398,7 +399,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     node->rpm_,
     node->scale_,
     node->retract_) + node->bias_curr_;
-  // expected_wind_curr = node->winding_current_limiter(expected_wind_curr);
+  expected_wind_curr = node->winding_current_limiter(expected_wind_curr);
   EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.2);
   EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.2);
 
