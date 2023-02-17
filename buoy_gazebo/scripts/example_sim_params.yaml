@@ -2,4 +2,13 @@ seed: 42
 duration: 5
 door_state: ['closed', 'open']
 scale_factor: [0.5, 0.625, 0.75, 0.875, 1.0, 1.125, 1.25, 1.375, 1.4]
-
+IncidentWaveSpectrumType:
+  - MonoChromatic:
+      A: 1.0
+      T: 12.0
+  - Bretschneider:
+      Hs: 3.0
+      Tp: 14.0
+  - Custom:
+      w: [0.0, 0.2, 0.4, 0.6, 2.0]
+      Szz: [0.0, 0.4, 1.0, 1.0, 0.0]

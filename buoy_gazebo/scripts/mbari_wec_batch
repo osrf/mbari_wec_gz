@@ -42,19 +42,30 @@ class MonoChromatic(object):
         self.A, self.T = A, T
         self.name = "MonoChromatic"
     def __str__(self):
-        
+        if self.A is not None:
+            return f'{self.name};A:{self.A};T:{self.T}'
+        else:
+            return f'{self.name};A:default;T:default'
 
 class Bretschneider(object):
     def __init__(self, Hs, Tp):
         self.Hs, self.Tp = Hs, Tp
         self.name = "Bretschneider"
     def __str__(self):
-        return f'{self.name}, {Hs}, {Tp}'
+        if self.Hs is not None:
+            return f'{self.name};Hs:{self.Hs};Tp:{self.Tp}'
+        else:
+            return f'{self.name};Hs:default;Tp:default'
 
 class Custom(object):
-    __init__(self, w, Szz):
+    def __init__(self, w, Szz):
         self.w, self.Szz = w, Szz
         self.name = "Custom"
+    def __str__(self):
+        if self.w is not None:
+            return f'{self.name};w:{":".join([str(w) for w in self.w])};Szz:{":".join([str(Szz) for Szz in self.Szz])}'
+        else:
+            return f'{self.name};w:defaults;Szz:defaults'
 
 
 def generate_simulations(sim_params_yaml):
@@ -111,12 +122,12 @@ def generate_simulations(sim_params_yaml):
         scale_factor = [1.0]
 
     # IncWaveSpectrumType
-    if 'IncWaveSpectrumType' in sim_params:
-        inc_wave_spectrum_types = sim_params['IncWaveSpectrumType']
+    if 'IncidentWaveSpectrumType' in sim_params:
+        inc_wave_spectrum_types = sim_params['IncidentWaveSpectrumType']
         incident_waves = []
         for inc_wave_spectrum_type in inc_wave_spectrum_types:
             if 'MonoChromatic' in inc_wave_spectrum_type:
-                monochromatic_spectrum = inc_wave_spectrum_types[inc_wave_spectrum_type]
+                monochromatic_spectrum = inc_wave_spectrum_type['MonoChromatic']
                 if 'A' in monochromatic_spectrum:
                     A = float(monochromatic_spectrum['A'])
                 else:
@@ -134,12 +145,12 @@ def generate_simulations(sim_params_yaml):
                         ' -- defaulting to neither'
                     )
                 incident_waves.append(MonoChromatic(A, T))
-            if 'Bretschneider' in inc_wave_spectrum_type:
-                bretschneider_spectrum = inc_wave_spectrum_types[inc_wave_spectrum_type]
+            elif 'Bretschneider' in inc_wave_spectrum_type:
+                bretschneider_spectrum = inc_wave_spectrum_type['Bretschneider']
                 if 'Hs' in bretschneider_spectrum:
                     Hs = float(bretschneider_spectrum['Hs'])
                 else:
-                    Tp = None
+                    Hs = None
                 if 'Tp' in bretschneider_spectrum:
                     Tp = float(bretschneider_spectrum['Tp'])
                 else:
@@ -153,10 +164,10 @@ def generate_simulations(sim_params_yaml):
                         ' -- defaulting to neither'
                     )
                 incident_waves.append(Bretschneider(Hs, Tp))
-            if 'Custom' in inc_wave_spectrum_type:
-                custom_spectrum = inc_wave_spectrum_types[inc_wave_spectrum_type]
+            elif 'Custom' in inc_wave_spectrum_type:
+                custom_spectrum = inc_wave_spectrum_type['Custom']
                 if 'w' in custom_spectrum:
-                    w = np.array(custom_spectrum['w']), dtype=float)
+                    w = np.array(custom_spectrum['w'], dtype=float)
                 else:
                     w = None
                 if 'Szz' in custom_spectrum:
@@ -205,21 +216,24 @@ def generate_simulations(sim_params_yaml):
                              sim_params_date_yaml))
 
     # generate test matrix
-    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(incident_waves, 
-                                                                     door_state,
-                                                                     scale_factor)]))
+    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
+                                                                     scale_factor,
+                                                                     incident_waves)]))
 
     node.get_logger().info(f'Generated {len(batch_params)} simulation runs:')
-    node.get_logger().info('Seed, Duration, Door State, Scale Factor')
-    [node.get_logger().info(f'{seed if seed is not None else ""}, {duration}, {ds}, {sf}')
-        for ds, sf in batch_params]
+    node.get_logger().info('Seed, Duration, Door State, Scale Factor,' +
+                           ' IncWaveSpectrumType;IncWaveSpectrumParams')
+    [node.get_logger().info(f'{seed if seed is not None else ""}, {duration}, {ds}, {sf},' +
+                            f' {str(iw) if iw is not None else ""}')
+        for ds, sf, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'))
     with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
         fd.write('Run Index, Start Time, rosbag2 File Name,' +
-                 ' Seed, Duration, Door State, Scale Factor\n')
+                 ' Seed, Duration, Door State, Scale Factor,' +
+                 ' IncWaveSpectrumType;IncWaveSpectrumParams\n')
 
     # Find packages
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
@@ -235,23 +249,41 @@ def generate_simulations(sim_params_yaml):
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     # Start batch runs
-    for idx, (ds, sf) in enumerate(batch_params):
+    for idx, (ds, sf, iw) in enumerate(batch_params):
         node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
-                               f" door state='{ds}', scale factor={sf}\n")
+                               f" door state='{ds}', scale factor={sf}," +
+                               f" IncidentWaveSpectrumType={str(iw) if iw is not None else 'None'}\n")
 
-        # fill model templates with params
+        # fill mbari_wec_base model template with params
         empy(['-D', f"door_state = '{ds}'",
               '-o', base_sdf_file,
               empy_base_sdf_file])
 
-        empy(['-D', f'scale_factor = {sf}',
-              '-D', f'inc_wave_seed = {seed}'
-              '-o', sdf_file,
-              empy_sdf_file])
+        # fill mbari_wec model template with params
+        mbari_wec_model_params = ['-D', f'scale_factor = {sf}']
+        if seed is not None:
+            mbari_wec_model_params.extend(['-D', f'inc_wave_seed = {seed}'])
+        if iw is not None:
+            mbari_wec_model_params.extend(['-D', f'inc_wave_spectrum_type = "{iw.name}"'])
+            if 'MonoChromatic' in iw.name:
+                if iw.A is not None:
+                    mbari_wec_model_params.extend(['-D', f'A = {iw.A}'])
+                    mbari_wec_model_params.extend(['-D', f'T = {iw.T}'])
+            if 'Bretschneider' in iw.name:
+                if iw.Hs is not None:
+                    mbari_wec_model_params.extend(['-D', f'Hs = {iw.Hs}'])
+                    mbari_wec_model_params.extend(['-D', f'Tp = {iw.Tp}'])
+            if 'Custom' in iw.name:
+                if iw.w is not None:
+                    mbari_wec_model_params.extend(['-D', f'w = {iw.w}'])
+                    mbari_wec_model_params.extend(['-D', f'Szz = {iw.Szz}'])
+        mbari_wec_model_params.extend(['-o', sdf_file,
+            empy_sdf_file])
+        empy(mbari_wec_model_params)
 
         node.get_logger().info('running gz-sim with gz_args:=' +
                        '-rs' +
-                       f' --iterations {iterations}'
+                       f' --iterations {iterations}')
 
         # Dynamically create launch file
         def generate_launch_description():
@@ -276,7 +308,8 @@ def generate_simulations(sim_params_yaml):
             # Write to log
             with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'a') as fd:
                 fd.write(f'{idx}, {start_time}, {rosbag2_name}' +
-                         f', {seed if seed is not None else ""}, {duration}, {ds}, {sf}\n')
+                         f', {seed if seed is not None else ""}, {duration}, {ds}, {sf}' +
+                         f', {str(iw) if iw is not None else ""}\n')
 
             return LaunchDescription([
                 rosbag2,
