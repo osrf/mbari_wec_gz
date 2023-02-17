@@ -41,6 +41,7 @@ struct buoy_gazebo::TrefoilControllerPrivate
 
   gz::sim::Entity entity_;
   gz::transport::Node node_;
+  bool use_sim_time_{true};
   std::chrono::steady_clock::duration current_time_;
 
   rclcpp::Publisher<buoy_interfaces::msg::TFRecord>::SharedPtr tf_pub_{nullptr};
@@ -63,9 +64,6 @@ struct buoy_gazebo::TrefoilControllerPrivate
 
   void set_tf_record_imu(const gz::msgs::IMU & _imu)
   {
-    tf_record_.header.stamp.sec = _imu.header().stamp().sec();
-    tf_record_.header.stamp.nanosec = _imu.header().stamp().nsec();
-    tf_record_.header.frame_id = "Trefoil";
     tf_record_.imu.header = tf_record_.header;
     tf_record_.imu.orientation.x = _imu.orientation().x();
     tf_record_.imu.orientation.y = _imu.orientation().y();
@@ -81,9 +79,6 @@ struct buoy_gazebo::TrefoilControllerPrivate
 
   void set_tf_record_mag(const gz::msgs::Magnetometer & _mag)
   {
-    tf_record_.header.stamp.sec = _mag.header().stamp().sec();
-    tf_record_.header.stamp.nanosec = _mag.header().stamp().nsec();
-    tf_record_.header.frame_id = "Trefoil";
     tf_record_.mag.header = tf_record_.header;
     tf_record_.mag.magnetic_field.x = _mag.field_tesla().x();
     tf_record_.mag.magnetic_field.y = _mag.field_tesla().y();
@@ -151,6 +146,10 @@ void TrefoilController::Configure(
   }
   std::string node_name = _sdf->Get<std::string>("node_name", "Trefoil_controller").first;
   this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name, ns);
+  this->dataPtr->rosnode_->set_parameter(
+    rclcpp::Parameter(
+      "use_sim_time",
+      this->dataPtr->use_sim_time_));
 
   this->dataPtr->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
   this->dataPtr->executor_->add_node(this->dataPtr->rosnode_);
@@ -169,6 +168,11 @@ void TrefoilController::Configure(
   RCLCPP_INFO_STREAM(
     this->dataPtr->rosnode_->get_logger(),
     "[ROS 2 Trefoil Controller] Setting up controller for [" << model.Name(_ecm) << "]");
+
+  // Set header
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
+  this->dataPtr->tf_record_.header.stamp.sec = sec_nsec.first;
+  this->dataPtr->tf_record_.header.stamp.nanosec = sec_nsec.second;
 
   // IMU Sensor
   this->dataPtr->imu_cb_ = [this](const gz::msgs::IMU & _imu)
@@ -281,6 +285,7 @@ void TrefoilController::PostUpdate(
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
 
+  this->dataPtr->current_time_ = _info.simTime;
   auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
 
   this->dataPtr->tf_record_.header.stamp.sec = sec_nsec.first;
