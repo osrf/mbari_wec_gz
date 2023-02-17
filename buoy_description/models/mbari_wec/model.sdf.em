@@ -5,6 +5,69 @@ try:
     scale_factor
 except NameError:
     scale_factor = 1.0  # not defined so default
+
+# Check if inc_wave_seed was passed in via empy
+try:
+    inc_wave_seed
+except NameError:
+    inc_wave_seed = 42  # not defined so default
+
+def monochromatic_spectrum(A=1.0, T=12.0):
+    ''' Prints the MonoChromatic <IncWaveSpectrumType> block for the IncidentWave plugin. '''
+    print(f'''
+      <IncWaveSpectrumType>MonoChromatic</IncWaveSpectrumType>
+      <A>{A}</A>
+      <T>{T}</T>
+''')
+
+def bretschneider_spectrum(Hs=3.0, Tp=14.0):
+    ''' Prints the Bretschneider <IncWaveSpectrumType> block for the IncidentWave plugin. '''
+    print(f'''
+      <IncWaveSpectrumType>Bretschneider</IncWaveSpectrumType>
+      <Hs>{Hs}</Hs>
+      <Tp>{Tp}</Tp>
+''')
+
+def custom_spectrum(w=None, Szz=None):
+    ''' Prints the Custom <IncWaveSpectrumType> block for the IncidentWave plugin. '''
+    if w is None:
+        w = [0.0, 0.2, 0.4, 0.6, 2.0]
+    if Szz is None:
+        Szz = [0.0, 0.4, 1.0, 1.0, 0.0]
+    coefs = \
+        ('\n' + 6*' ').join([f'<w{idx}>{wn}</w{idx}> <Szz{idx}>{Szzn}</Szz{idx}>'
+            for idx, (wn, Szzn) in enumerate(zip(w, Szz))])
+    print(f'''
+      <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
+      {coefs}
+''')
+
+from functools import partial
+
+# Check if inc_wave_spectrum_type was passed in via empy
+try:
+    inc_wave_spectrum_type
+except NameError:
+    inc_wave_spectrum_type = ''  # not defined so default to no waves; TODO(hamilton) correct?
+
+if 'MonoChromatic' in inc_wave_spectrum_type:
+    try:
+        inc_wave_spectrum = partial(monochromatic_spectrum, A, T)
+    except NameError:
+        inc_wave_spectrum = monochromatic_spectrum  # default
+elif 'Bretschneider' in inc_wave_spectrum_type:
+    try:
+        inc_wave_spectrum = partial(bretschneider_spectrum, Hs, Tp)
+    except NameError:
+        inc_wave_spectrum = bretschneider_spectrum  # default
+elif 'Custom' in inc_wave_spectrum_type:
+    try:
+        inc_wave_spectrum = partial(custom_spectrum, w, Szz)
+    except NameError:
+        inc_wave_spectrum = custom_spectrum  # default
+else:
+    inc_wave_spectrum = lambda : '<!-- No Waves -->'  # default no waves; TODO(hamilton) correct?
+
 }@
 
 <sdf version="1.8">
@@ -93,24 +156,8 @@ except NameError:
 
 
     <plugin filename="IncidentWaves" name="buoy_gazebo::IncidentWaves">  
-      <IncWaveSeed>42</IncWaveSeed>
-<!--
-
-      <IncWaveSpectrumType>MonoChromatic</IncWaveSpectrumType>
-      <A>1.0</A>
-      <T>12.0</T>
-
-      <IncWaveSpectrumType>Bretschneider</IncWaveSpectrumType>
-      <Hs>3.0</Hs>
-      <Tp>14.0</Tp>
-
-      <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
-      <w0>0</w0> <Szz0>0.0</Szz0>
-      <w1>.2</w1> <Szz1>.4</Szz1>
-      <w2>.4</w2> <Szz2>1.0</Szz2>
-      <w3>.6</w3> <Szz3>1.0</Szz3>
-      <w4>2.0</w4> <Szz4>0.0</Szz4>
--->
+      <IncWaveSeed>@(inc_wave_seed)</IncWaveSeed>
+      @(inc_wave_spectrum())
     </plugin>
 
     <!-- Adding Friction to PTO -->

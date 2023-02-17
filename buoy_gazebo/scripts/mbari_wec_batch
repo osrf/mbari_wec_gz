@@ -37,6 +37,26 @@ from rclpy.node import Node
 
 PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
 
+class MonoChromatic(object):
+    def __init__(self, A, T):
+        self.A, self.T = A, T
+        self.name = "MonoChromatic"
+    def __str__(self):
+        
+
+class Bretschneider(object):
+    def __init__(self, Hs, Tp):
+        self.Hs, self.Tp = Hs, Tp
+        self.name = "Bretschneider"
+    def __str__(self):
+        return f'{self.name}, {Hs}, {Tp}'
+
+class Custom(object):
+    __init__(self, w, Szz):
+        self.w, self.Szz = w, Szz
+        self.name = "Custom"
+
+
 def generate_simulations(sim_params_yaml):
 
     rclpy.init()
@@ -50,10 +70,6 @@ def generate_simulations(sim_params_yaml):
     try:
         if 'seed' in sim_params:
             seed = int(sim_params['seed'])
-            # TODO(anyone) remove warning and `seed = None` when --seed
-            # supported by gz sim
-            node.get_logger().warn('sim_params_yaml: seed parameter not yet supported -- ignoring')
-            seed = None
         else:
             seed = None
             node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
@@ -94,6 +110,85 @@ def generate_simulations(sim_params_yaml):
         )
         scale_factor = [1.0]
 
+    # IncWaveSpectrumType
+    if 'IncWaveSpectrumType' in sim_params:
+        inc_wave_spectrum_types = sim_params['IncWaveSpectrumType']
+        incident_waves = []
+        for inc_wave_spectrum_type in inc_wave_spectrum_types:
+            if 'MonoChromatic' in inc_wave_spectrum_type:
+                monochromatic_spectrum = inc_wave_spectrum_types[inc_wave_spectrum_type]
+                if 'A' in monochromatic_spectrum:
+                    A = float(monochromatic_spectrum['A'])
+                else:
+                    A = None
+                if 'T' in monochromatic_spectrum:
+                    T = float(monochromatic_spectrum['T'])
+                else:
+                    T = None
+
+                if A is None or T is None:
+                    A, T = None, None
+                    node.get_logger().warn(
+                        'sim_params_yaml: MonoChromatic: A or T unspecified.' +
+                        ' Please specify both or neither'
+                        ' -- defaulting to neither'
+                    )
+                incident_waves.append(MonoChromatic(A, T))
+            if 'Bretschneider' in inc_wave_spectrum_type:
+                bretschneider_spectrum = inc_wave_spectrum_types[inc_wave_spectrum_type]
+                if 'Hs' in bretschneider_spectrum:
+                    Hs = float(bretschneider_spectrum['Hs'])
+                else:
+                    Tp = None
+                if 'Tp' in bretschneider_spectrum:
+                    Tp = float(bretschneider_spectrum['Tp'])
+                else:
+                    Tp = None
+
+                if Hs is None or Tp is None:
+                    Hs, Tp = None, None
+                    node.get_logger().warn(
+                        'sim_params_yaml: Bretschneider: Hs or Tp unspecified.' +
+                        ' Please specify both or neither'
+                        ' -- defaulting to neither'
+                    )
+                incident_waves.append(Bretschneider(Hs, Tp))
+            if 'Custom' in inc_wave_spectrum_type:
+                custom_spectrum = inc_wave_spectrum_types[inc_wave_spectrum_type]
+                if 'w' in custom_spectrum:
+                    w = np.array(custom_spectrum['w']), dtype=float)
+                else:
+                    w = None
+                if 'Szz' in custom_spectrum:
+                    Szz = np.array(custom_spectrum['Szz'], dtype=float)
+                else:
+                    Szz = None
+
+                if w is None or Szz is None:
+                    w, Szz = None, None
+                    node.get_logger().warn(
+                        'sim_params_yaml: Custom: w or Szz unspecified.' +
+                        ' Please specify both or neither'
+                        ' -- defaulting to neither'
+                    )
+                if w is not None and Szz is not None:
+                    if w.shape != Szz.shape:
+                        w, Szz = None, None
+                        node.get_logger().warn(
+                            'sim_params_yaml: Custom: w.shape != Szz.shape' +
+                            ' -- defaulting'
+                        )
+                incident_waves.append(Custom(w, Szz))
+            else:
+                # default no waves; TODO(hamilton) correct?
+                incident_waves.append(None)
+    else:
+        node.get_logger().warn(
+            'sim_params_yaml: IncWaveSpectrumType parameter not specified' +
+            ' -- defaulting to No Waves'
+        )
+        incident_waves = [None]
+
     # create batch results directory
     timestr = time.strftime("%Y%m%d%H%M%S")
     batch_results_dir = f'batch_results_{timestr}'
@@ -110,7 +205,8 @@ def generate_simulations(sim_params_yaml):
                              sim_params_date_yaml))
 
     # generate test matrix
-    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
+    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(incident_waves, 
+                                                                     door_state,
                                                                      scale_factor)]))
 
     node.get_logger().info(f'Generated {len(batch_params)} simulation runs:')
@@ -148,14 +244,14 @@ def generate_simulations(sim_params_yaml):
               '-o', base_sdf_file,
               empy_base_sdf_file])
 
-        empy(['-D', f"scale_factor = {sf}",
+        empy(['-D', f'scale_factor = {sf}',
+              '-D', f'inc_wave_seed = {seed}'
               '-o', sdf_file,
               empy_sdf_file])
 
         node.get_logger().info('running gz-sim with gz_args:=' +
                        '-rs' +
-                       f' --iterations {iterations}' +
-                       (f' --seed {seed}' if seed is not None else ''))
+                       f' --iterations {iterations}'
 
         # Dynamically create launch file
         def generate_launch_description():
@@ -164,8 +260,7 @@ def generate_simulations(sim_params_yaml):
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
                 ),
                 launch_arguments={'extra_gz_args': '-rs' +
-                                                  f' --iterations {iterations}' +
-                                                 (f' --seed {seed}' if seed is not None else '')
+                                                  f' --iterations {iterations}'
                                  }.items(),
             )
 
