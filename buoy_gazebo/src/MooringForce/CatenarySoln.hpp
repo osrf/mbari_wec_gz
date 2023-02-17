@@ -135,6 +135,10 @@ private:
    /// \brief Meters, total length of mooring chain
    double L = 160.0;
 
+   /// \brief For performance, set to true to skip solving vor CatenaryVSoln.
+   /// For accuracy, set to false.
+   bool SKIP_V_SOLVER = true;
+
 public:
   CatenaryHSoln(double _V, double _H, double _L)
   : Functor<double>(1, 1),
@@ -152,34 +156,52 @@ public:
       return -1;
     }
 
-    // Initial guess x = H, for CatenaryVSoln
-    Eigen::VectorXd x{};
-    x.resize(1);
-    x[0] = this->H;
+    // Accuracy option: use CatenaryVSoln
+    if (!this->SKIP_V_SOLVER)
+    {
+      // Initial guess x = H, for CatenaryVSoln
+      Eigen::VectorXd x{};
+      x.resize(1);
+      x[0] = this->H;
 
-    // Look for the H for the given B, y_B(B) = H, and y(H)=V
-    CatenaryVSoln y_B = CatenaryVSoln(this->V, B[0], this->L);
-    Eigen::HybridNonLinearSolver<CatenaryVSoln> vSolver(y_B);
-    // Tolerance for error between two consecutive iterations
-    vSolver.parameters.xtol = 0.001;
-    // Max number of calls to the function
-    vSolver.parameters.maxfev = 20;
-    vSolver.diag.setConstant(1, 1.0);
-    // Improves solution stability dramatically.
-    vSolver.useExternalScaling = true;
+      // Look for the H for the given B, y_B(B) = H, and y(H)=V
+      CatenaryVSoln y_B = CatenaryVSoln(this->V, B[0], this->L);
+      Eigen::HybridNonLinearSolver<CatenaryVSoln> vSolver(y_B);
+      // Tolerance for error between two consecutive iterations
+      vSolver.parameters.xtol = 0.001;
+      // Max number of calls to the function
+      vSolver.parameters.maxfev = 20;
+      vSolver.diag.setConstant(1, 1.0);
+      // Improves solution stability dramatically.
+      vSolver.useExternalScaling = true;
 
-    // Solver for x. Pass in initial guess.
-    // Want y(H)=V, so y(H) - V = 0
-    // After this, you have independent variable = H, dependent variable = V
-    int solverInfo = vSolver.solveNumericalDiff(x);
+      // Solver for x. Pass in initial guess.
+      // Want y(H)=V, so y(H) - V = 0
+      // After this, you have independent variable = H, dependent variable = V
+      int solverInfo = vSolver.solveNumericalDiff(x);
 
-    // Once have x (hopefully x=H)
-    // fvec.resize(x.size());
-    // Update H, which is the solution of x from solver
-    fvec[0] = x[0] - this->H;
+      // Once have x (hopefully x=H)
+      // fvec.resize(x.size());
+      // Update H, which is the solution of x from solver
+      fvec[0] = x[0] - this->H;
 
-    // igndbg << "VSolver solverInfo: " << solverInfo
-    //   << " fvec[0] (solved x~H): " << fvec[0] << std::endl;
+      // igndbg << "VSolver solverInfo: " << solverInfo
+      //   << " fvec[0] (solved x~H): " << fvec[0] << std::endl;
+    }
+    // Performance option: skip CatenaryVSoln, just return y(H).
+    else
+    {
+      // Scaling factor
+      double c = CatenaryFunction::CatenaryScalingFactor(
+        this->V, B[0], this->L);
+
+      // Just assume x = H. Simply use y(H) (as opposed to solving for
+      // y(x) - V if using CatenaryVSoln).
+      // Catenary equation: y = lambda x: c * cosh((x - B) / c) - c
+      double y = c * cosh((this->H - B[0]) / c) - c;;
+
+      fvec[0] = y - this->V;
+    }
 
     return 0;
   }
