@@ -44,6 +44,15 @@
       <publish_rate>10</publish_rate>
     </plugin>
 
+    <plugin filename="TrefoilController" name="buoy_gazebo::TrefoilController">
+      <namespace>/</namespace>
+      <node_name>trefoil_controller</node_name>
+      <tf_topic>trefoil_data</tf_topic>
+      <imu_topic>trefoil_imu</imu_topic>
+      <mag_topic>trefoil_mag</mag_topic>
+      <publish_rate>10</publish_rate>
+    </plugin>
+
     <plugin
       filename="gz-sim-joint-state-publisher-system"
       name="gz::sim::systems::JointStatePublisher">
