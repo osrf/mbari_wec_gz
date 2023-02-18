@@ -254,34 +254,19 @@ void MooringForce::PreUpdate(
   // Improves solution stability dramatically.
   catenarySolver.useExternalScaling = true;
 
-  // Initial guess B = L - V - b
-  double b = 0.0;
+  // Initial estimate for B (upper bound).
+  auto BMax = [](double V, double H, double L) -> double
+  {
+    return (L*L - (V*V + H*H)) / (2 * (L - H));
+  };
 
-  // Catenary Scaling factor
-  double c = 0.0;
+  double bMax = BMax(this->dataPtr->V, this->dataPtr->H, this->dataPtr->L);
 
-  int solverInfo;
-  while ((c <= 1e-5) && (this->dataPtr->L - this->dataPtr->V - b > 0.0)) {
-    // Increment b, to iterate on B
-    b += 1.0;
+  this->dataPtr->B[0] = bMax;
+  int solverInfo = catenarySolver.solveNumericalDiff(this->dataPtr->B);
 
-    // Update guess for B, with new b
-    this->dataPtr->B[0U] = this->dataPtr->L - this->dataPtr->V - b;
-
-    // Invalid chain length. One side of triangle is negative length.
-    if ((this->dataPtr->L - this->dataPtr->B[0U]) *
-        (this->dataPtr->L - this->dataPtr->B[0U]) -
-        this->dataPtr->V * this->dataPtr->V <= 0.0) {
-      continue;
-    }
-
-    // Solve for B, pass in initial guess
-    solverInfo = catenarySolver.solveNumericalDiff(this->dataPtr->B);
-
-    // Recalculate c with newly solved B
-    c = CatenaryFunction::CatenaryScalingFactor(
-      this->dataPtr->V, this->dataPtr->B[0U], this->dataPtr->L);
-  }
+  double c = CatenaryFunction::CatenaryScalingFactor(
+    this->dataPtr->V, this->dataPtr->B[0U], this->dataPtr->L);
 
   // Horizontal component of chain tension, in Newtons
   // Force at buoy heave cone is Fx = -Tx
@@ -292,18 +277,21 @@ void MooringForce::PreUpdate(
   // Unused at the moment
   double Tz = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0U]);
 
-  gzdbg << "HSolver solverInfo: " << solverInfo
-    << " V: " << this->dataPtr->V
-    << " H: " << this->dataPtr->H
-    << " b: " << b
-    << " B: " << this->dataPtr->B[0U]
-    << " c: " << c
-    << " theta: " << this->dataPtr->theta
-    << " Tx: " << Tx
-    << " Ty: " << Ty
-    << " Tr: " << Tr
-    << " Tz: " << Tz
-    << std::endl;
+  // gzdbg << "HSolver solverInfo: " << solverInfo << "\n"
+  //   << " V: " << this->dataPtr->V << "\n"
+  //   << " H: " << this->dataPtr->H << "\n"
+  //   << " b: " << bMax << "\n"
+  //   << " B: " << this->dataPtr->B[0U] << "\n"
+  //   << " c: " << c << "\n"
+  //   << " theta: " << this->dataPtr->theta << "\n"
+  //   << " Tx: " << Tx << "\n"
+  //   << " Ty: " << Ty << "\n"
+  //   << " Tr: " << Tr << "\n"
+  //   << " Tz: " << Tz << "\n"
+  //   << " nfev: " << catenarySolver.nfev << "\n"
+  //   << " iter: " << catenarySolver.iter << "\n"
+  //   << " fnorm: " << catenarySolver.fnorm << "\n"
+  //   << "\n";
 
   // Did not find solution. Maybe shouldn't apply a force that doesn't make sense
   if (solverInfo != 1) {
