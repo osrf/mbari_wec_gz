@@ -168,10 +168,6 @@ if(BUILD_TESTING)
       buoy_gazebo)
 
   buoy_add_gtest(wave_body_interactions LAUNCH_TEST
-    BOOST_COMPONENTS
-      iostreams system filesystem
-    EXTRA_ROS_PKGS
-      buoy_gazebo
     LOCALLY_INSTALLED_LIBS
       FreeSurfaceHydrodynamics)
 
@@ -182,7 +178,6 @@ if(BUILD_TESTING)
 
   buoy_add_gtest(test_pto_friction ROS
     EXTRA_ROS_PKGS
-      buoy_gazebo
       simple_interp)
 
   # Add pytests
