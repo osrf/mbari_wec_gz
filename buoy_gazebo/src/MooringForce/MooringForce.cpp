@@ -261,6 +261,9 @@ void MooringForce::PreUpdate(
   double c = 0.0;
 
   int solverInfo;
+
+  GZ_PROFILE_THREAD_NAME("mooring solver");
+  GZ_PROFILE_BEGIN("MooringForce::PreUpdate solver loop");
   while ((c <= 1e-5) && (this->dataPtr->L - this->dataPtr->V - b > 0.0)) {
     // Increment b, to iterate on B
     b += 1.0;
@@ -282,6 +285,7 @@ void MooringForce::PreUpdate(
     c = CatenaryFunction::CatenaryScalingFactor(
       this->dataPtr->V, this->dataPtr->B[0U], this->dataPtr->L);
   }
+  GZ_PROFILE_END();
 
   // Horizontal component of chain tension, in Newtons
   // Force at buoy heave cone is Fx = -Tx
@@ -292,6 +296,7 @@ void MooringForce::PreUpdate(
   // Unused at the moment
   double Tz = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0U]);
 
+  /*
   gzdbg << "HSolver solverInfo: " << solverInfo
     << " V: " << this->dataPtr->V
     << " H: " << this->dataPtr->H
@@ -304,6 +309,7 @@ void MooringForce::PreUpdate(
     << " Tr: " << Tr
     << " Tz: " << Tz
     << std::endl;
+  */
 
   // Did not find solution. Maybe shouldn't apply a force that doesn't make sense
   if (solverInfo != 1) {
