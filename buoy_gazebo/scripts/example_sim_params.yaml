@@ -1,4 +1,4 @@
-physics_step: 0.001
+physics_step: [0.001, 0.01, 0.1]
 physics_rtf: 11
 seed: 42
 duration: 5

@@ -84,9 +84,10 @@ def generate_simulations(sim_params_yaml):
     # physics time step (seconds)
     try:
         if 'physics_step' in sim_params:
-            physics_step = float(sim_params['physics_step'])
+            physics_step = np.array(sim_params['physics_step'], dtype=float)
+            physics_step = np.atleast_1d(physics_step)
         else:
-            physics_step = None
+            physics_step = [None]
             node.get_logger().warn(
                 "sim_params_yaml: optional physics_step parameter not specified -- defaulting"
             )
@@ -152,6 +153,7 @@ def generate_simulations(sim_params_yaml):
     # scale factor (0.5 - 1.4)
     if 'scale_factor' in sim_params:
         scale_factor = np.array(sim_params['scale_factor'], dtype=float)
+        scale_factor = np.atleast_1d(scale_factor)
         if not np.all((0.5 <= scale_factor) & (scale_factor <= 1.4)):
             node.get_logger().error(
                 'sim_params_yaml: all scale_factor parameters must be between 0.5 to 1.4'
@@ -167,6 +169,7 @@ def generate_simulations(sim_params_yaml):
     # State of Charge (0.0 [270V] to 1.0 [320V])
     if 'battery_soc' in sim_params:
         battery_state = np.array(sim_params['battery_soc'], dtype=float)
+        battery_state = np.atleast_1d(battery_state)
         if np.all((0.0 <= battery_state) & (battery_state <= 1.0)):
             batt_state_type = 'SoC'
         else:
@@ -177,6 +180,7 @@ def generate_simulations(sim_params_yaml):
     # EMF (270V to 320V)
     elif 'battery_emf' in sim_params:
         battery_state = np.array(sim_params['battery_emf'], dtype=float)
+        battery_state = np.atleast_1d(battery_state)
         if np.all((270.0 <= battery_state) & (battery_state <= 300.0)):
             batt_state_type = 'EMF'
         else:
@@ -250,10 +254,12 @@ def generate_simulations(sim_params_yaml):
                 custom_spectrum = inc_wave_spectrum_type['Custom']
                 if 'w' in custom_spectrum:
                     w = np.array(custom_spectrum['w'], dtype=float)
+                    w = np.atleast_1d(w)
                 else:
                     w = None
                 if 'Szz' in custom_spectrum:
                     Szz = np.array(custom_spectrum['Szz'], dtype=float)
+                    Szz = np.atleast_1d(Szz)
                 else:
                     Szz = None
 
@@ -300,7 +306,8 @@ def generate_simulations(sim_params_yaml):
                              sim_params_date_yaml))
 
     # generate test matrix
-    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
+    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(physics_step,
+                                                                     door_state,
                                                                      scale_factor,
                                                                      battery_state,
                                                                      incident_waves)]))
@@ -308,11 +315,11 @@ def generate_simulations(sim_params_yaml):
     node.get_logger().info(f'Generated {len(batch_params)} simulation runs')
     node.get_logger().debug('PhysicsStep, PhysicsRTF, Seed, Duration, DoorState, ScaleFactor' +
                             ', BatteryState, IncWaveSpectrumType;IncWaveSpectrumParams')
-    [node.get_logger().debug(f'{print_optional(physics_step)}, {print_optional(physics_rtf)}' +
+    [node.get_logger().debug(f'{print_optional(ps)}, {print_optional(physics_rtf)}' +
                              f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
                              f', {print_optional(bs)}' +
                              f', {print_optional(iw)}')
-        for ds, sf, bs, iw in batch_params]
+        for ps, ds, sf, bs, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'))
@@ -341,7 +348,7 @@ def generate_simulations(sim_params_yaml):
     world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec_batch.sdf')
 
     # Start batch runs
-    for idx, (ds, sf, bs, iw) in enumerate(batch_params):
+    for idx, (ps, ds, sf, bs, iw) in enumerate(batch_params):
         node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
                                f" door state='{ds}', scale factor={sf}" +
                                f", battery state={bs if bs is not None else 'None'}" +
@@ -356,7 +363,7 @@ def generate_simulations(sim_params_yaml):
         # fill mbari_wec world template with params
         mbari_wec_world_params = []
         if physics_step is not None:
-            mbari_wec_world_params.extend(['-D', f'physics_step = {physics_step}'])
+            mbari_wec_world_params.extend(['-D', f'physics_step = {ps}'])
         if physics_rtf is not None:
             mbari_wec_world_params.extend(['-D', f'physics_rtf = {physics_rtf}'])
         mbari_wec_world_params.extend(['-o', world_file,
@@ -418,7 +425,7 @@ def generate_simulations(sim_params_yaml):
             # Write to log
             with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'a') as fd:
                 fd.write(f'{idx}, {start_time}, {rosbag2_name}' +
-                         f', {print_optional(physics_step)}, {print_optional(physics_rtf)}'
+                         f', {print_optional(ps)}, {print_optional(physics_rtf)}'
                          f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
                          f', {print_optional(bs)}'
                          f', {print_optional(iw)}\n')
