@@ -26,6 +26,9 @@
 #include <gz/sim/TestFixture.hh>
 #include <gz/sim/components/Pose.hh>
 #include <gz/sim/components/Name.hh>
+#include <gz/sim/components/World.hh>
+#include <gz/sim/components/Gravity.hh>
+
 
 #include "FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp"
 #include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
@@ -132,12 +135,15 @@ TEST(WaveBodyInteractionTests, Motions)
 
   std::vector<double> GzSimTime;
   std::vector<double> GzSimHeavePos;
+  GzSimTime.push_back(0.0);
+  GzSimHeavePos.push_back(-2.0);
   double dt;
+  double gravity;
 
   fixture.
   // Use configure callback to get values at startup
   OnConfigure(
-    [&model, &linkEntity,&GzSimTime,&GzSimHeavePos](const gz::sim::Entity & _entity,
+    [&model, &linkEntity,&GzSimTime,&GzSimHeavePos,&gravity](const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & /*_sdf*/,
     gz::sim::EntityComponentManager & _ecm,
     gz::sim::EventManager & /*_eventMgr*/)
@@ -152,7 +158,12 @@ TEST(WaveBodyInteractionTests, Motions)
 //    return;
 //  }
 //      linkEntity = model.LinkByName(_ecm, "Buoy");
-
+  // Get world and gravity
+  gz::sim::Entity worldEntity =
+   _ecm.EntityByComponents(gz::sim::components::World());
+  auto g = _ecm.Component<gz::sim::components::Gravity>(worldEntity);
+  gravity = -g->Data()[2];
+  
       linkEntity = _ecm.EntityByComponents(gz::sim::components::Name("Buoy"));
 
       if (!_ecm.HasEntity(linkEntity)) {
@@ -181,7 +192,7 @@ TEST(WaveBodyInteractionTests, Motions)
     {
 //      std::cout << "In PostUpdate" << std::endl;
       auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
-      GzSimTime.push_back(iterations); 
+      GzSimTime.push_back(iterations+1); 
       GzSimHeavePos.push_back(w_Pose_b.Z()); 
       iterations++;
     }).
@@ -189,16 +200,15 @@ TEST(WaveBodyInteractionTests, Motions)
   Finalize();
 // Setup simulation server, this will call the post-update callbacks.
   // It also calls pre-update and update callbacks if those are being used.
-  fixture.Server()->Run(true, 1000, false);
+  fixture.Server()->Run(true, 1500, false);
 
 // Compute solution independently for comparison
 const char *modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
 std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> ();
 
-  double rho = 1025;
-  double g = 9.81;
-  double buoy_mass = 1400; // kg
+  double buoy_mass = 1400.0; // kg
   FS_HydroDynamics BuoyA5;
+  BuoyA5.SetGravity(gravity); //Use gravity that matches what was used by gz-sim
 
   //double omega = 2 * M_PI / Tp;
   //double tf = 2.0 * Tp;
@@ -212,7 +222,7 @@ std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> (
                 -.18); // Set COB relative to waterplane coordinate system.
   BuoyA5.SetCOG(0, 0,
                 2.03); // Set COG relative to waterplane coordinate system.
-  BuoyA5.SetVolume(1.75);//buoy_mass / rho);
+  BuoyA5.SetVolume(1.3658536);
   BuoyA5.SetMass(buoy_mass);
 
 //  std::string HydrodynamicsBaseFilename =
@@ -239,7 +249,7 @@ std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> (
     BuoyA5.SetDampingCoeffs(b);
 
   std::vector<double> x(2);
-  x[0] = -2.0+2.46; // initial position
+  x[0] = -2.4+2.4; // initial position
   x[1] = 0.0; // initial velocity
 
   double t_final = iterations*dt;
@@ -250,19 +260,34 @@ std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> (
   SingleModeMotionRHS RHS(&BuoyA5);
   RHS.mode = 2;
   RHS.inf_freq_added_mass = 3080;
-  int steps = boost::numeric::odeint::integrate_const(
-      stepper, RHS, x, 0.0, t_final, dt,
-      push_back_state_and_time(x_vec, times));
+  //int steps = boost::numeric::odeint::integrate_const(
+  //    stepper, RHS, x, 0.0, t_final, dt,
+  //    push_back_state_and_time(x_vec, times));
 
-std::cout << "N = " << GzSimHeavePos.size() << std::endl;
-for(int i = 0; i< GzSimHeavePos.size();i++)
+
+std::vector<double> ddxdt(2);
+std::vector<double> &_rhs = ddxdt;
+x_vec.push_back(x);  // Set initial conditions
+for(int n = 0; n< GzSimHeavePos.size();n++)
+{
+RHS(x_vec[n],_rhs,n*dt);
+std::vector<double> xx(2);
+xx[1] = x_vec[n][1] + _rhs[1]*dt;  // Step velocity
+xx[0] = x_vec[n][0] + xx[1] * dt;  //Step Position
+x_vec.push_back(xx);
+}
+
+
+
+for(int i = 0; i< GzSimHeavePos.size()-1;i++)
 {
       std::cout << GzSimTime[i] * dt
                 << "    " << GzSimHeavePos[i]
-                << "    " << x_vec[i][0] - 2.46 << std::endl;
+                << "    " << x_vec[i][0] - 2.4  
+                << "    " << GzSimHeavePos[i]-(x_vec[i][0]-2.4) << std::endl;
 
 }
 
   // Verify that the post update function was called 1000 times
-  EXPECT_EQ(1000, iterations);
+  EXPECT_EQ(1500, iterations);
 }

@@ -27,6 +27,7 @@
 #include <gz/sim/components/LinearVelocity.hh>
 #include <gz/sim/components/Pose.hh>
 #include <gz/sim/components/World.hh>
+#include <gz/sim/components/Gravity.hh>
 #include <gz/common/Console.hh>
 #include <gz/common/Profiler.hh>
 #include <gz/sim/Model.hh>
@@ -104,6 +105,9 @@ void WaveBodyInteractions::Configure(
     return;
   }
 
+
+
+
   // Get params from SDF.
   if (!_sdf->HasElement("LinkName")) {
     ignerr << "You musk specify a <LinkName> for the wavebodyinteraction "
@@ -123,6 +127,12 @@ void WaveBodyInteractions::Configure(
 
   baseLink.EnableAccelerationChecks(_ecm, true);
   baseLink.EnableVelocityChecks(_ecm, true);
+
+  // Get world and gravity
+  gz::sim::Entity worldEntity =
+   _ecm.EntityByComponents(gz::sim::components::World());
+  auto gravity = _ecm.Component<gz::sim::components::Gravity>(worldEntity);
+  this->dataPtr->FloatingBody.SetGravity(-gravity->Data()[2]);
 
   double S = SdfParamDouble(_sdf, "S", 5.47);
   double S11 = SdfParamDouble(_sdf, "S11", 1.37);

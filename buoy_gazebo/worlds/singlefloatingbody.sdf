@@ -45,8 +45,9 @@
 
 
 
-    <model name="MBARI_WEC_ROS">
-      <pose relative_to="world">0 0 -2 0 0 0</pose>
+    <model name="SingleBuoy">
+      <!-- <pose relative_to="world">0 0 -2.0 0 0 0</pose> -->
+      <pose relative_to="world">0 0 -2.4 0 .174 0</pose>
 
     <self_collide>true</self_collide>
 
@@ -127,11 +128,11 @@
       <LinkName>Buoy</LinkName>
       <WaterplaneOrigin_x>0</WaterplaneOrigin_x>  <!-- Waterplane origin relative to link origin -->
       <WaterplaneOrigin_y>0</WaterplaneOrigin_y>
-      <WaterplaneOrigin_z>2.46</WaterplaneOrigin_z>
+      <WaterplaneOrigin_z>2.4</WaterplaneOrigin_z>
       <COB_x>0</COB_x>  <!-- COG relative to waterplance origin -->
       <COB_y>0</COB_y>
       <COB_z>-.18</COB_z>
-      <Vol>1.75</Vol>
+      <Vol>1.3658536</Vol>
       <S>5.47</S>
       <S11>1.37</S11>
       <S22>1.37</S22>
