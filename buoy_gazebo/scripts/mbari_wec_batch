@@ -227,11 +227,15 @@ def generate_simulations(sim_params_yaml):
                         sys.exit(-1)
                 incident_waves.append(Custom(w, Szz))
             else:
-                # default no waves; TODO(hamilton) correct?
-                incident_waves.append(None)
+                node.get_logger().error(
+                    f'sim_params_yaml: IncWaveSpectrumType [{inc_wave_spectrum_type}]' +
+                    ' did not match supported types:\n    ' +
+                    '\n    '.join(['MonoChromatic', 'Bretschneider', 'Custom'])
+                )
+                sys.exit(-1)
     else:
         node.get_logger().warn(
-            'sim_params_yaml: IncWaveSpectrumType parameter not specified' +
+            'sim_params_yaml: optional IncWaveSpectrumType parameter not specified' +
             ' -- defaulting to No Waves'
         )
         incident_waves = [None]
