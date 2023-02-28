@@ -169,11 +169,13 @@ def generate_simulations(sim_params_yaml):
             if 'MonoChromatic' in inc_wave_spectrum_type:
                 monochromatic_spectrum = inc_wave_spectrum_type['MonoChromatic']
                 if 'A' in monochromatic_spectrum:
-                    A = float(monochromatic_spectrum['A'])
+                    A = np.array(monochromatic_spectrum['A'], dtype=float)
+                    A = np.atleast_1d(A)
                 else:
                     A = None
                 if 'T' in monochromatic_spectrum:
-                    T = float(monochromatic_spectrum['T'])
+                    T = np.array(monochromatic_spectrum['T'], dtype=float)
+                    T = np.atleast_1d(T)
                 else:
                     T = None
 
@@ -183,15 +185,22 @@ def generate_simulations(sim_params_yaml):
                         ' Please specify both or neither'
                     )
                     sys.exit(-1)
-                incident_waves.append(MonoChromatic(A, T))
+                if A.shape != T.shape:
+                    node.get_logger().error(
+                        'sim_params_yaml: MonoChromatic: A and T have different length'
+                    )
+                    sys.exit(-1)
+                incident_waves.extend([MonoChromatic(a, t) for a, t in zip(A, T)])
             elif 'Bretschneider' in inc_wave_spectrum_type:
                 bretschneider_spectrum = inc_wave_spectrum_type['Bretschneider']
                 if 'Hs' in bretschneider_spectrum:
-                    Hs = float(bretschneider_spectrum['Hs'])
+                    Hs = np.array(bretschneider_spectrum['Hs'], dtype=float)
+                    Hs = np.atleast_1d(Hs)
                 else:
                     Hs = None
                 if 'Tp' in bretschneider_spectrum:
-                    Tp = float(bretschneider_spectrum['Tp'])
+                    Tp = np.array(bretschneider_spectrum['Tp'], dtype=float)
+                    Tp = np.atleast_1d(Tp)
                 else:
                     Tp = None
 
@@ -201,7 +210,12 @@ def generate_simulations(sim_params_yaml):
                         ' Please specify both or neither'
                     )
                     sys.exit(-1)
-                incident_waves.append(Bretschneider(Hs, Tp))
+                if Hs.shape != Tp.shape:
+                    node.get_logger().error(
+                        'sim_params_yaml: Bretschneider: Hs and Tp have different length.'
+                    )
+                    sys.exit(-1)
+                incident_waves.extend([Bretschneider(hs, tp) for hs, tp in zip(Hs, Tp)])
             elif 'Custom' in inc_wave_spectrum_type:
                 custom_spectrum = inc_wave_spectrum_type['Custom']
                 if 'w' in custom_spectrum:
