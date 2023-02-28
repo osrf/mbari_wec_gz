@@ -2,7 +2,7 @@
 @{
 # Check if scale_factor was passed in via empy
 try:
-    scale_factor
+    scale_factor  # 0.5 to 1.4
 except NameError:
     scale_factor = 1.0  # not defined so default
 
@@ -11,6 +11,21 @@ try:
     inc_wave_seed
 except NameError:
     inc_wave_seed = 42  # not defined so default
+
+# Check if battery state (battery_soc or battery_emf) was passed in via empy
+try:
+    battery_soc  # 0.0 to 1.0
+    battery_state = lambda : print(f'<BatterySoC>{battery_soc}</BatterySoC>')
+except NameError:
+    try:
+        battery_emf  # 270V to 320V
+    except NameError:
+        battery_emf = 300.0  # V, neither defined so default
+    battery_state = lambda : print(f'<BatteryEMF>{battery_emf}</BatteryEMF>')
+
+#####################
+# Wave Spectra
+#####################
 
 def monochromatic_spectrum(A=1.0, T=12.0):
     ''' Prints the MonoChromatic <IncWaveSpectrumType> block for the IncidentWave plugin. '''
@@ -84,6 +99,7 @@ else:
       <HydMotorDisp>0.30</HydMotorDisp>
       <RotorInertia>1</RotorInertia>
       <ScaleFactor>@(scale_factor)</ScaleFactor>
+      @(battery_state())
     </plugin>
 
     <!-- Upper Polytropic Spring plugin -->
@@ -145,9 +161,9 @@ else:
       <WaterplaneOrigin_x>0</WaterplaneOrigin_x>  <!-- Waterplane origin relative to link origin -->
       <WaterplaneOrigin_y>0</WaterplaneOrigin_y>
       <WaterplaneOrigin_z>2.46</WaterplaneOrigin_z> 
-      <COB_x>0</COB_x>  <!-- COG relative to waterplance origin -->
-      <COB_y>0</COB_y>
-      <COB_z>-.18</COB_z> 
+      <COB_x>0.0</COB_x>  <!-- COG relative to waterplance origin -->
+      <COB_y>0.0</COB_y>
+      <COB_z>-0.18</COB_z> 
       <Vol>1.75</Vol>
       <S>5.47</S>
       <S11>1.37</S11>

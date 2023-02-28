@@ -63,7 +63,9 @@ class Custom(object):
         self.name = "Custom"
     def __str__(self):
         if self.w is not None:
-            return f'{self.name};w:{":".join([str(w) for w in self.w])};Szz:{":".join([str(Szz) for Szz in self.Szz])}'
+            return f'{self.name};' + \
+                   f'w:{":".join([str(w) for w in self.w])};' + \
+                   f'Szz:{":".join([str(Szz) for Szz in self.Szz])}'
         else:
             return f'{self.name};w:defaults;Szz:defaults'
 
@@ -77,7 +79,7 @@ def generate_simulations(sim_params_yaml):
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
     # Grab params from yaml
-    # seed
+    # seed (random seed for incident waves plugin)
     try:
         if 'seed' in sim_params:
             seed = int(sim_params['seed'])
@@ -85,41 +87,79 @@ def generate_simulations(sim_params_yaml):
             seed = None
             node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
     except TypeError as err:
-        node.get_logger().error('sim_params_yaml: seed parameter ' +
-                                'must be a single value')
+        node.get_logger().error('sim_params_yaml: seed parameter' +
+                                ' must be a single value')
         sys.exit(-1)
 
-    # duration
+    # duration (seconds)
     try:
         if 'duration' not in sim_params:
             node.get_logger().error('sim_params_yaml: required duration parameter not specified')
             sys.exit(-1)
         duration = float(sim_params['duration'])
     except TypeError as err:
-        node.get_logger().error('sim_params_yaml: duration parameter ' +
-                                'must be a single value in seconds')
+        node.get_logger().error('sim_params_yaml: duration parameter' +
+                                ' must be a single value in seconds')
         sys.exit(-1)
 
     # convert duration to iterations
     iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
 
-    # door state
+    # door state ('open', 'closed')
     if 'door_state' in sim_params:
         door_state = sim_params['door_state']
+        if any(['open' not in ds and 'closed' not in ds for ds in door_state]):
+            node.get_logger().error(
+                "sim_params_yaml: all door_state parameters must be either 'open' or 'closed'"
+            )
+            sys.exit(-1)
     else:
         node.get_logger().warn(
             "sim_params_yaml: door_state parameter not specified -- defaulting to 'closed'"
         )
         door_state = ['closed']
 
-    # scale factor
+    # scale factor (0.5 - 1.4)
     if 'scale_factor' in sim_params:
         scale_factor = np.array(sim_params['scale_factor'], dtype=float)
+        if not np.all((0.5 <= scale_factor) & (scale_factor <= 1.4)):
+            node.get_logger().error(
+                'sim_params_yaml: all scale_factor parameters must be between 0.5 to 1.4'
+            )
+            sys.exit(-1)
     else:
         node.get_logger().warn(
             'sim_params_yaml: scale_factor parameter not specified -- defaulting to 1.0'
         )
         scale_factor = [1.0]
+
+    # Battery State
+    # State of Charge (0.0 [270V] to 1.0 [320V])
+    if 'battery_soc' in sim_params:
+        battery_state = np.array(sim_params['battery_soc'], dtype=float)
+        if np.all((0.0 <= battery_state) & (battery_state <= 1.0)):
+            batt_state_type = 'SoC'
+        else:
+            node.get_logger().error(
+                'sim_params_yaml: all battery_soc parameters must be between 0.0 to 1.0'
+            )
+            sys.exit(-1)
+    # EMF (270V to 320V)
+    elif 'battery_emf' in sim_params:
+        battery_state = np.array(sim_params['battery_emf'], dtype=float)
+        if np.all((270.0 <= battery_state) & (battery_state <= 300.0)):
+            batt_state_type = 'EMF'
+        else:
+            node.get_logger().error(
+                f'sim_params_yaml: all battery_emf parameters must be between 300V to 270V'
+            )
+            sys.exit(-1)
+    else:
+        node.get_logger().warn(
+            f'sim_params_yaml: optional battery_emf or battery_soc parameter not specified'
+        )
+        battery_state = [None]
+        batt_state_type = ''
 
     # IncWaveSpectrumType
     if 'IncidentWaveSpectrumType' in sim_params:
@@ -204,9 +244,9 @@ def generate_simulations(sim_params_yaml):
 
     sim_params_name, dot_yaml = os.path.splitext(os.path.basename(sim_params_yaml))
     sim_params_date_yaml = sim_params_name + f'_{timestr}' + dot_yaml
-    node.get_logger().info('Copying sim params yaml to batch results directory: ' +
-                           os.path.join(batch_results_dir,
-                                        sim_params_date_yaml))
+    node.get_logger().debug('Copying sim params yaml to batch results directory: ' +
+                            os.path.join(batch_results_dir,
+                                         sim_params_date_yaml))
     shutil.copy(sim_params_yaml,
                 os.path.join(batch_results_dir,
                              sim_params_date_yaml))
@@ -214,22 +254,24 @@ def generate_simulations(sim_params_yaml):
     # generate test matrix
     batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
                                                                      scale_factor,
+                                                                     battery_state,
                                                                      incident_waves)]))
 
-    node.get_logger().info(f'Generated {len(batch_params)} simulation runs:')
-    node.get_logger().info('Seed, Duration, Door State, Scale Factor,' +
-                           ' IncWaveSpectrumType;IncWaveSpectrumParams')
-    [node.get_logger().info(f'{seed if seed is not None else ""}, {duration}, {ds}, {sf},' +
-                            f' {str(iw) if iw is not None else ""}')
-        for ds, sf, iw in batch_params]
+    node.get_logger().info(f'Generated {len(batch_params)} simulation runs')
+    node.get_logger().debug('Seed, Duration, Door State, Scale Factor, Battery State' +
+                            ', IncWaveSpectrumType;IncWaveSpectrumParams')
+    [node.get_logger().debug(f'{seed if seed is not None else ""}, {duration}, {ds}, {sf}' +
+                             f', {bs if bs is not None else ""}' +
+                             f', {str(iw) if iw is not None else ""}')
+        for ds, sf, bs, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'))
     with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
         fd.write('Run Index, Start Time, rosbag2 File Name,' +
-                 ' Seed, Duration, Door State, Scale Factor,' +
-                 ' IncWaveSpectrumType;IncWaveSpectrumParams\n')
+                 ' Seed, Duration, Door State, Scale Factor, Battery State' +
+                 ', IncWaveSpectrumType;IncWaveSpectrumParams\n')
 
     # Find packages
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
@@ -245,10 +287,12 @@ def generate_simulations(sim_params_yaml):
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     # Start batch runs
-    for idx, (ds, sf, iw) in enumerate(batch_params):
+    for idx, (ds, sf, bs, iw) in enumerate(batch_params):
         node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
-                               f" door state='{ds}', scale factor={sf}," +
-                               f" IncidentWaveSpectrumType={str(iw) if iw is not None else 'None'}\n")
+                               f" door state='{ds}', scale factor={sf}" +
+                               f", battery state={bs if bs is not None else 'None'}" +
+                               ", IncidentWaveSpectrumType=" +
+                               f"{str(iw) if iw is not None else 'None'}\n")
 
         # fill mbari_wec_base model template with params
         empy(['-D', f"door_state = '{ds}'",
@@ -259,6 +303,11 @@ def generate_simulations(sim_params_yaml):
         mbari_wec_model_params = ['-D', f'scale_factor = {sf}']
         if seed is not None:
             mbari_wec_model_params.extend(['-D', f'inc_wave_seed = {seed}'])
+        if bs is not None:
+            if 'SoC' in batt_state_type:
+                mbari_wec_model_params.extend(['-D', f'battery_soc = {bs}'])
+            elif 'EMF' in batt_state_type:
+                mbari_wec_model_params.extend(['-D', f'battery_emf = {bs}'])
         if iw is not None:
             mbari_wec_model_params.extend(['-D', f'inc_wave_spectrum_type = "{iw.name}"'])
             if 'MonoChromatic' in iw.name:
@@ -275,11 +324,12 @@ def generate_simulations(sim_params_yaml):
                     mbari_wec_model_params.extend(['-D', f'Szz = {iw.Szz.tolist()}'])
         mbari_wec_model_params.extend(['-o', sdf_file,
             empy_sdf_file])
+        node.get_logger().debug(mbari_wec_model_params)
         empy(mbari_wec_model_params)
 
-        node.get_logger().info('running gz-sim with gz_args:=' +
-                       '-rs' +
-                       f' --iterations {iterations}')
+        node.get_logger().debug('running gz-sim with gz_args:=' +
+                               '-rs' +
+                              f' --iterations {iterations}')
 
         # Dynamically create launch file
         def generate_launch_description():
@@ -305,6 +355,7 @@ def generate_simulations(sim_params_yaml):
             with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'a') as fd:
                 fd.write(f'{idx}, {start_time}, {rosbag2_name}' +
                          f', {seed if seed is not None else ""}, {duration}, {ds}, {sf}' +
+                         f', {bs if bs is not None else ""}'
                          f', {str(iw) if iw is not None else ""}\n')
 
             return LaunchDescription([
