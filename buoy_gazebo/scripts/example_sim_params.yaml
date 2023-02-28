@@ -1,3 +1,5 @@
+physics_step: 0.001
+physics_rtf: 11
 seed: 42
 duration: 5
 door_state: ['closed', 'open']
