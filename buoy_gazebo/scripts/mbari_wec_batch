@@ -342,7 +342,7 @@ def generate_simulations(sim_params_yaml):
     model_dir = 'mbari_wec'
     empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
-    
+
     # Find world file template
     empy_world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf.em')
     world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec_batch.sdf')
@@ -398,16 +398,16 @@ def generate_simulations(sim_params_yaml):
         node.get_logger().debug(mbari_wec_model_params)
         empy(mbari_wec_model_params)
 
-        node.get_logger().debug('running gz-sim with gz_args:=' +
-                                '-rs' +
-                               f' --iterations {iterations}')
-
         # convert duration to iterations
         if ps is None:
             step_size = DEFAULT_PHYSICS_MAX_STEP_SIZE
         else:
             step_size = ps
         iterations = int(round(duration / step_size))
+
+        node.get_logger().debug('running gz-sim with gz_args:=' +
+                                '-rs' +
+                               f' --iterations {iterations}')
 
         # Dynamically create launch file
         start_time = time.strftime("%Y%m%d%H%M%S")
