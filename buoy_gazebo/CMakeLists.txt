@@ -25,6 +25,20 @@ set(GZ_COMMON_VER ${gz-common5_VERSION_MAJOR})
 find_package(gz-sim7 REQUIRED)
 set(GZ_SIM_VER ${gz-sim7_VERSION_MAJOR})
 
+# SDF Template
+set(WORLDS_PATH "/worlds")
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}${WORLDS_PATH})
+
+add_custom_command(
+  OUTPUT mbari_wec_gen_cmd
+  COMMAND python3 -m em
+    ${CMAKE_CURRENT_SOURCE_DIR}${WORLDS_PATH}/mbari_wec.sdf.em >
+    ${CMAKE_CURRENT_BINARY_DIR}${WORLDS_PATH}/mbari_wec.sdf
+)
+
+add_custom_target(mbari_wec_gen_target ALL
+  DEPENDS mbari_wec_gen_cmd
+)
 
 # Plugins
 #
@@ -150,6 +164,7 @@ install(DIRECTORY
   launch
   gazebo
   rviz
+  ${CMAKE_CURRENT_BINARY_DIR}${WORLDS_PATH}
   DESTINATION share/${PROJECT_NAME}/
 )
 

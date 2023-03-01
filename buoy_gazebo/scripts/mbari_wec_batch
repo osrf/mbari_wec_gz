@@ -415,7 +415,8 @@ def generate_simulations(sim_params_yaml):
                 ),
                 launch_arguments={'extra_gz_args': '-rs' +
                                                   f' --iterations {iterations}',
-                                  'world_file': 'mbari_wec_batch.sdf'}.items(),
+                                  'world_file': 'mbari_wec_batch.sdf',
+                                  'regenerate_models': 'false'}.items(),
             )
 
             # record all topics with rosbag2
@@ -444,6 +445,15 @@ def generate_simulations(sim_params_yaml):
                      f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
                      f', {print_optional(bs)}'
                      f', {print_optional(iw)}\n')
+
+    # Return all files to defaults
+    empy(['-o', base_sdf_file,
+          empy_base_sdf_file])
+    empy(['-o', world_file,
+          empy_world_file])
+    empy(['-o', sdf_file,
+          empy_sdf_file])
+
 
 if __name__=='__main__':
     import argparse
