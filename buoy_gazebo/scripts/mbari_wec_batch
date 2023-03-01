@@ -99,7 +99,7 @@ def generate_simulations(sim_params_yaml):
     # physics real-time factor (RTF)
     try:
         if 'physics_rtf' in sim_params:
-            physics_rtf = sim_params['physics_rtf']
+            physics_rtf = float(sim_params['physics_rtf'])
         else:
             physics_rtf = None
             node.get_logger().warn(
@@ -295,6 +295,9 @@ def generate_simulations(sim_params_yaml):
     batch_results_dir = f'batch_results_{timestr}'
     node.get_logger().info(f'Creating batch results directory: {batch_results_dir}')
     os.makedirs(batch_results_dir)
+    # python workaround for 'ln -sf'
+    os.symlink(batch_results_dir, f'latest_batch_results_{timestr}', target_is_directory=True)
+    os.replace(f'latest_batch_results_{timestr}', 'latest_batch_results')
 
     sim_params_name, dot_yaml = os.path.splitext(os.path.basename(sim_params_yaml))
     sim_params_date_yaml = sim_params_name + f'_{timestr}' + dot_yaml
@@ -322,10 +325,10 @@ def generate_simulations(sim_params_yaml):
         for ps, ds, sf, bs, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
-                           os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'))
-    with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'w') as fd:
+                           os.path.join(batch_results_dir, f'batch_runs.log'))
+    with open(os.path.join(batch_results_dir, f'batch_runs.log'), 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
-        fd.write('RunIndex, StartTime, rosbag2FileName' +
+        fd.write('RunIndex, SimReturnCode, StartTime, rosbag2FileName' +
                  ', PhysicsStep, PhysicsRTF' +
                  ', Seed, Duration, DoorState, ScaleFactor, BatteryState' +
                  ', IncWaveSpectrumType;IncWaveSpectrumParams\n')
@@ -403,6 +406,8 @@ def generate_simulations(sim_params_yaml):
                               f' --iterations {iterations}')
 
         # Dynamically create launch file
+        start_time = time.strftime("%Y%m%d%H%M%S")
+        rosbag2_name = f'rosbag2_batch_sim_{idx}_{start_time}'
         def generate_launch_description():
             mbari_wec = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -414,21 +419,11 @@ def generate_simulations(sim_params_yaml):
             )
 
             # record all topics with rosbag2
-            start_time = time.strftime("%Y%m%d%H%M%S")
-            rosbag2_name = f'rosbag2_batch_sim_{idx}_{start_time}'
             rosbag2 = ExecuteProcess(
                 cmd=['ros2', 'bag', 'record',
                      '-o', os.path.join(batch_results_dir, rosbag2_name), '-a'],
                 output='screen'
             )
-
-            # Write to log
-            with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'a') as fd:
-                fd.write(f'{idx}, {start_time}, {rosbag2_name}' +
-                         f', {print_optional(ps)}, {print_optional(physics_rtf)}'
-                         f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
-                         f', {print_optional(bs)}'
-                         f', {print_optional(iw)}\n')
 
             return LaunchDescription([
                 rosbag2,
@@ -442,6 +437,13 @@ def generate_simulations(sim_params_yaml):
         if result:
             node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
                                     f'return code [{result}]')
+        # Write to log
+        with open(os.path.join(batch_results_dir, f'batch_runs.log'), 'a') as fd:
+            fd.write(f'{idx}, {result}, {start_time}, {rosbag2_name}' +
+                     f', {print_optional(ps)}, {print_optional(physics_rtf)}'
+                     f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
+                     f', {print_optional(bs)}'
+                     f', {print_optional(iw)}\n')
 
 if __name__=='__main__':
     import argparse
