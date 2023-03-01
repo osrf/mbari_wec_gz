@@ -432,7 +432,10 @@ def generate_simulations(sim_params_yaml):
 
         # Dynamically create launch file
         start_time = time.strftime("%Y%m%d%H%M%S")
-        rosbag2_name = f'rosbag2_batch_sim_{idx}_{start_time}'
+        rosbag2_name = 'rosbag2'
+        run_results_dir = f'results_run_{idx}_{start_time}'
+        # TODO(anyone) also path for pblog when ready
+        os.makedirs(os.path.join(batch_results_dir, run_results_dir))
 
         def generate_launch_description():
             mbari_wec = IncludeLaunchDescription(
@@ -448,7 +451,7 @@ def generate_simulations(sim_params_yaml):
             # record all topics with rosbag2
             rosbag2 = ExecuteProcess(
                 cmd=['ros2', 'bag', 'record',
-                     '-o', os.path.join(batch_results_dir, rosbag2_name), '-a'],
+                     '-o', os.path.join(batch_results_dir, run_results_dir, rosbag2_name), '-a'],
                 output='screen'
             )
 
@@ -466,7 +469,8 @@ def generate_simulations(sim_params_yaml):
                                     f'return code [{result}]')
         # Write to log
         with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'a') as fd:
-            fd.write(f'{idx}, {result}, {start_time}, {rosbag2_name}' +
+            fd.write(f'{idx}, {result}, {start_time}' +
+                     f', {os.path.join(run_results_dir, rosbag2_name)}' +
                      f', {print_optional(ps)}, {print_optional(physics_rtf)}'
                      f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
                      f', {print_optional(bs)}'
