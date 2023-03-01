@@ -35,7 +35,7 @@ import rclpy
 from rclpy.node import Node
 
 
-PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
+DEFAULT_PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
 
 class MonoChromatic(object):
     def __init__(self, A, T):
@@ -132,9 +132,6 @@ def generate_simulations(sim_params_yaml):
         node.get_logger().error('sim_params_yaml: duration parameter' +
                                 ' must be a single value in seconds')
         sys.exit(-1)
-
-    # convert duration to iterations
-    iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
 
     # door state ('open', 'closed')
     if 'door_state' in sim_params:
@@ -365,7 +362,7 @@ def generate_simulations(sim_params_yaml):
 
         # fill mbari_wec world template with params
         mbari_wec_world_params = []
-        if physics_step is not None:
+        if ps is not None:
             mbari_wec_world_params.extend(['-D', f'physics_step = {ps}'])
         if physics_rtf is not None:
             mbari_wec_world_params.extend(['-D', f'physics_rtf = {physics_rtf}'])
@@ -402,8 +399,15 @@ def generate_simulations(sim_params_yaml):
         empy(mbari_wec_model_params)
 
         node.get_logger().debug('running gz-sim with gz_args:=' +
-                               '-rs' +
-                              f' --iterations {iterations}')
+                                '-rs' +
+                               f' --iterations {iterations}')
+
+        # convert duration to iterations
+        if ps is None:
+            step_size = DEFAULT_PHYSICS_MAX_STEP_SIZE
+        else:
+            step_size = ps
+        iterations = int(round(duration / step_size))
 
         # Dynamically create launch file
         start_time = time.strftime("%Y%m%d%H%M%S")
