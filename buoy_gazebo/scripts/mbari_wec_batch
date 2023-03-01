@@ -37,30 +37,36 @@ from rclpy.node import Node
 
 DEFAULT_PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
 
+
 class MonoChromatic(object):
     def __init__(self, A, T):
         self.A, self.T = A, T
         self.name = "MonoChromatic"
+
     def __str__(self):
         if self.A is not None:
             return f'{self.name};A:{self.A};T:{self.T}'
         else:
             return f'{self.name};A:default;T:default'
 
+
 class Bretschneider(object):
     def __init__(self, Hs, Tp):
         self.Hs, self.Tp = Hs, Tp
         self.name = "Bretschneider"
+
     def __str__(self):
         if self.Hs is not None:
             return f'{self.name};Hs:{self.Hs};Tp:{self.Tp}'
         else:
             return f'{self.name};Hs:default;Tp:default'
 
+
 class Custom(object):
     def __init__(self, w, Szz):
         self.w, self.Szz = w, Szz
         self.name = "Custom"
+
     def __str__(self):
         if self.w is not None:
             return f'{self.name};' + \
@@ -78,7 +84,7 @@ def generate_simulations(sim_params_yaml):
     with open(sim_params_yaml, 'r') as fd:
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
-    print_optional = lambda param: str(param) if param is not None else ""
+    print_optional = lambda param: str(param) if param is not None else ""  # noqa: E731
 
     # Grab params from yaml
     # physics time step (seconds)
@@ -91,7 +97,7 @@ def generate_simulations(sim_params_yaml):
             node.get_logger().warn(
                 "sim_params_yaml: optional physics_step parameter not specified -- defaulting"
             )
-    except TypeError as err:
+    except TypeError:
         node.get_logger().error('sim_params_yaml: physics_step parameter' +
                                 ' must be a single value')
         sys.exit(-1)
@@ -105,7 +111,7 @@ def generate_simulations(sim_params_yaml):
             node.get_logger().warn(
                 "sim_params_yaml: optional physics_rtf parameter not specified -- defaulting"
             )
-    except TypeError as err:
+    except TypeError:
         node.get_logger().error('sim_params_yaml: physics_rtf parameter' +
                                 ' must be a single value')
         sys.exit(-1)
@@ -117,7 +123,7 @@ def generate_simulations(sim_params_yaml):
         else:
             seed = None
             node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
-    except TypeError as err:
+    except TypeError:
         node.get_logger().error('sim_params_yaml: seed parameter' +
                                 ' must be a single value')
         sys.exit(-1)
@@ -128,7 +134,7 @@ def generate_simulations(sim_params_yaml):
             node.get_logger().error('sim_params_yaml: required duration parameter not specified')
             sys.exit(-1)
         duration = float(sim_params['duration'])
-    except TypeError as err:
+    except TypeError:
         node.get_logger().error('sim_params_yaml: duration parameter' +
                                 ' must be a single value in seconds')
         sys.exit(-1)
@@ -182,12 +188,12 @@ def generate_simulations(sim_params_yaml):
             batt_state_type = 'EMF'
         else:
             node.get_logger().error(
-                f'sim_params_yaml: all battery_emf parameters must be between 300V to 270V'
+                'sim_params_yaml: all battery_emf parameters must be between 300V to 270V'
             )
             sys.exit(-1)
     else:
         node.get_logger().warn(
-            f'sim_params_yaml: optional battery_emf or battery_soc parameter not specified'
+            'sim_params_yaml: optional battery_emf or battery_soc parameter not specified'
         )
         battery_state = [None]
         batt_state_type = ''
@@ -322,8 +328,8 @@ def generate_simulations(sim_params_yaml):
         for ps, ds, sf, bs, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
-                           os.path.join(batch_results_dir, f'batch_runs.log'))
-    with open(os.path.join(batch_results_dir, f'batch_runs.log'), 'w') as fd:
+                           os.path.join(batch_results_dir, 'batch_runs.log'))
+    with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
         fd.write('RunIndex, SimReturnCode, StartTime, rosbag2FileName' +
                  ', PhysicsStep, PhysicsRTF' +
@@ -367,7 +373,7 @@ def generate_simulations(sim_params_yaml):
         if physics_rtf is not None:
             mbari_wec_world_params.extend(['-D', f'physics_rtf = {physics_rtf}'])
         mbari_wec_world_params.extend(['-o', world_file,
-            empy_world_file])
+                                       empy_world_file])
         empy(mbari_wec_world_params)
 
         # fill mbari_wec model template with params
@@ -394,7 +400,7 @@ def generate_simulations(sim_params_yaml):
                     mbari_wec_model_params.extend(['-D', f'w = {iw.w.tolist()}'])
                     mbari_wec_model_params.extend(['-D', f'Szz = {iw.Szz.tolist()}'])
         mbari_wec_model_params.extend(['-o', sdf_file,
-            empy_sdf_file])
+                                       empy_sdf_file])
         node.get_logger().debug(mbari_wec_model_params)
         empy(mbari_wec_model_params)
 
@@ -407,18 +413,19 @@ def generate_simulations(sim_params_yaml):
 
         node.get_logger().debug('running gz-sim with gz_args:=' +
                                 '-rs' +
-                               f' --iterations {iterations}')
+                                f' --iterations {iterations}')
 
         # Dynamically create launch file
         start_time = time.strftime("%Y%m%d%H%M%S")
         rosbag2_name = f'rosbag2_batch_sim_{idx}_{start_time}'
+
         def generate_launch_description():
             mbari_wec = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
                 ),
                 launch_arguments={'extra_gz_args': '-rs' +
-                                                  f' --iterations {iterations}',
+                                                   f' --iterations {iterations}',
                                   'world_file': 'mbari_wec_batch.sdf',
                                   'regenerate_models': 'false'}.items(),
             )
@@ -443,7 +450,7 @@ def generate_simulations(sim_params_yaml):
             node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
                                     f'return code [{result}]')
         # Write to log
-        with open(os.path.join(batch_results_dir, f'batch_runs.log'), 'a') as fd:
+        with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'a') as fd:
             fd.write(f'{idx}, {result}, {start_time}, {rosbag2_name}' +
                      f', {print_optional(ps)}, {print_optional(physics_rtf)}'
                      f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
@@ -459,7 +466,7 @@ def generate_simulations(sim_params_yaml):
           empy_sdf_file])
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Batch running for buoy_sim')
     parser.add_argument('sim_params_yaml',
