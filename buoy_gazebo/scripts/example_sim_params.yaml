@@ -4,6 +4,7 @@
 seed: 42
 duration: 5
 physics_rtf: 11
+enable_gui: False
 #
 # Run-Specific Parameters (Test Matrix)
 #

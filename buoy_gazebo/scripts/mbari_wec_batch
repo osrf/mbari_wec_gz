@@ -95,7 +95,7 @@ def generate_simulations(sim_params_yaml):
         else:
             physics_step = [None]
             node.get_logger().warn(
-                "sim_params_yaml: optional physics_step parameter not specified -- defaulting"
+                'sim_params_yaml: optional physics_step parameter not specified -- defaulting'
             )
     except TypeError:
         node.get_logger().error('sim_params_yaml: physics_step parameter' +
@@ -109,10 +109,25 @@ def generate_simulations(sim_params_yaml):
         else:
             physics_rtf = None
             node.get_logger().warn(
-                "sim_params_yaml: optional physics_rtf parameter not specified -- defaulting"
+                'sim_params_yaml: optional physics_rtf parameter not specified -- defaulting'
             )
     except TypeError:
         node.get_logger().error('sim_params_yaml: physics_rtf parameter' +
+                                ' must be a single value')
+        sys.exit(-1)
+
+    # Enable GUI
+    try:
+        if 'enable_gui' in sim_params:
+            enable_gui = bool(sim_params['enable_gui'])
+        else:
+            enable_gui = False
+            node.get_logger().debug(
+                'sim_params_yaml: optional enable_gui parameter not specified' +
+                ' -- defaulting to headless'
+            )
+    except TypeError:
+        node.get_logger().error('sim_params_yaml: enable_gui parameter' +
                                 ' must be a single value')
         sys.exit(-1)
 
@@ -412,7 +427,7 @@ def generate_simulations(sim_params_yaml):
         iterations = int(round(duration / step_size))
 
         node.get_logger().debug('running gz-sim with gz_args:=' +
-                                '-rs' +
+                                '-r' if enable_gui else '-rs' +
                                 f' --iterations {iterations}')
 
         # Dynamically create launch file
@@ -424,7 +439,7 @@ def generate_simulations(sim_params_yaml):
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
                 ),
-                launch_arguments={'extra_gz_args': '-rs' +
+                launch_arguments={'extra_gz_args': '-r' if enable_gui else '-rs' +
                                                    f' --iterations {iterations}',
                                   'world_file': 'mbari_wec_batch.sdf',
                                   'regenerate_models': 'false'}.items(),
