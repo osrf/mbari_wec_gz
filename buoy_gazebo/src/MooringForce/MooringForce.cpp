@@ -85,6 +85,15 @@ public:
   /// the bottom, start of catenary.
   Eigen::VectorXd B{};
 
+  /// \brief If we have notified when inside effective radius.
+  public: bool notifiedInsideEffectiveRadius{false};
+
+  /// \brief Debug print period calculated from <debug_print_rate>
+  public: std::chrono::steady_clock::duration debugPrintPeriod{0};
+
+  /// \brief Last debug print simulation time
+  public: std::chrono::steady_clock::duration lastDebugPrintTime{0};
+
   /// \brief Look for buoy link to find input to catenary equation, and heave
   /// cone link to apply output force to
   bool FindLinks(gz::sim::EntityComponentManager & _ecm);
@@ -202,12 +211,36 @@ void MooringForce::Configure(
   gzdbg << "Effective radius set to beyond " << this->dataPtr->effectiveRadius
     << std::endl;
 
+  if (_sdf->HasElement("chain_length"))
+  {
+    this->dataPtr->L = _sdf->Get<double>(
+      "chain_length", this->dataPtr->L).first;
+    gzdbg << "Mooring chain length set to " << this->dataPtr->L
+      << std::endl;
+  }
+
   // Find necessary model links
   if (this->dataPtr->FindLinks(_ecm)) {
     this->dataPtr->UpdateVH(_ecm);
   }
 
   this->dataPtr->B.resize(1U);
+
+  // debug print throttle, default 1Hz
+  {
+    double rate(1.0);
+    if (_sdf->HasElement("debug_print_rate"))
+    {
+      rate = _sdf->Get<double>(
+        "debug_print_rate", this->dataPtr->L).first;
+      gzdbg << "Debug print rate set to " << this->dataPtr->L
+        << std::endl;
+    }
+    std::chrono::duration<double> period{rate > 0.0 ? 1.0 / rate : 0.0};
+    this->dataPtr->debugPrintPeriod = std::chrono::duration_cast<
+        std::chrono::steady_clock::duration>(period);
+  }
+
 }
 
 //////////////////////////////////////////////////
@@ -219,8 +252,10 @@ void MooringForce::PreUpdate(
 
   // If necessary links have not been identified yet, the plugin is disabled
   if (this->dataPtr->heaveConeLinkEnt == gz::sim::kNullEntity ||
-    this->dataPtr->buoyLinkEnt == gz::sim::kNullEntity) {
+    this->dataPtr->buoyLinkEnt == gz::sim::kNullEntity)
+  {
     this->dataPtr->FindLinks(_ecm);
+    gzerr << "Could not find heave cone and buoy links in ECM.\n";
     return;
   }
 
@@ -240,9 +275,19 @@ void MooringForce::PreUpdate(
   this->dataPtr->UpdateVH(_ecm);
   // If buoy is not far enough from anchor for there to be a need to pull it
   // back, no need to apply mooring force
-  if (this->dataPtr->H < this->dataPtr->effectiveRadius) {
+  if (this->dataPtr->H < this->dataPtr->effectiveRadius)
+  {
+    if (!this->dataPtr->notifiedInsideEffectiveRadius)
+    {
+      this->dataPtr->notifiedInsideEffectiveRadius = true;
+      gzmsg << "Buoy horizontal radius H [" << this->dataPtr->H << "]"
+            << " is inside effective radius R ["
+            << this->dataPtr->effectiveRadius << "]"
+            << " skipping force update.\n";
+    }
     return;
   }
+  this->dataPtr->notifiedInsideEffectiveRadius = false;
 
   Eigen::HybridNonLinearSolver<CatenaryHSoln> catenarySolver(
     *this->dataPtr->catenarySoln);
@@ -277,31 +322,53 @@ void MooringForce::PreUpdate(
   // Unused at the moment
   double Tz = - this->dataPtr->w * (this->dataPtr->L - this->dataPtr->B[0U]);
 
-  // gzdbg << "HSolver solverInfo: " << solverInfo << "\n"
-  //   << " V: " << this->dataPtr->V << "\n"
-  //   << " H: " << this->dataPtr->H << "\n"
-  //   << " b: " << bMax << "\n"
-  //   << " B: " << this->dataPtr->B[0U] << "\n"
-  //   << " c: " << c << "\n"
-  //   << " theta: " << this->dataPtr->theta << "\n"
-  //   << " Tx: " << Tx << "\n"
-  //   << " Ty: " << Ty << "\n"
-  //   << " Tr: " << Tr << "\n"
-  //   << " Tz: " << Tz << "\n"
-  //   << " nfev: " << catenarySolver.nfev << "\n"
-  //   << " iter: " << catenarySolver.iter << "\n"
-  //   << " fnorm: " << catenarySolver.fnorm << "\n"
-  //   << "\n";
+  // Throttle update rate
+  auto elapsed = _info.simTime - this->dataPtr->lastDebugPrintTime;
+  if (elapsed > std::chrono::steady_clock::duration::zero() &&
+      elapsed >= this->dataPtr->debugPrintPeriod)
+  {
+    this->dataPtr->lastDebugPrintTime = _info.simTime;
+    gzdbg << "HSolver solverInfo: " << solverInfo << "\n"
+      << " t: " << std::chrono::duration_cast<
+          std::chrono::milliseconds>(_info.simTime).count()/1000.0 << "\n"
+      << " Anchor: " << this->dataPtr->anchorPos << "\n"
+      << " Buoy:   " << this->dataPtr->buoyPos << "\n"
+      << " R: " << this->dataPtr->effectiveRadius << "\n"
+      << " L: " << this->dataPtr->L << "\n"
+      << " V: " << this->dataPtr->V << "\n"
+      << " H: " << this->dataPtr->H << "\n"
+      << " b: " << bMax << "\n"
+      << " B: " << this->dataPtr->B[0U] << "\n"
+      << " c: " << c << "\n"
+      << " theta: " << this->dataPtr->theta << "\n"
+      << " Tx: " << Tx << "\n"
+      << " Ty: " << Ty << "\n"
+      << " Tr: " << Tr << "\n"
+      << " Tz: " << Tz << "\n"
+      << " nfev: " << catenarySolver.nfev << "\n"
+      << " iter: " << catenarySolver.iter << "\n"
+      << " fnorm: " << catenarySolver.fnorm << "\n"
+      << "\n";
+  }
 
   // Did not find solution. Maybe shouldn't apply a force that doesn't make sense
   if (solverInfo != 1) {
+    gzerr << "HSolver failed to converge, solverInfo: " << solverInfo << "\n";
     return;
   }
 
   // Apply forces to buoy heave cone link, where the mooring would be attached
   gz::math::Vector3d force(Tx, Ty, 0.0);
-  gz::math::Vector3d torque(0.0, 0.0, 0.0);
-  this->dataPtr->buoyLink.AddWorldWrench(_ecm, force, torque);
+  gz::math::Vector3d torque = gz::math::Vector3d::Zero;
+  if (force.IsFinite())
+  {
+    // this->dataPtr->buoyLink.SetVisualizationLabel("MooringForce");
+    this->dataPtr->buoyLink.AddWorldWrench(_ecm, force, torque);
+  }
+  else
+  {
+    gzerr << "Mooring force is not finite\n";
+  }
 }
 }  // namespace buoy_gazebo
 
