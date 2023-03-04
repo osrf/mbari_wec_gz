@@ -32,7 +32,7 @@
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/Model.hh>
 
-#include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
+#include "LinearIncidentWave.hpp"
 #include "IncWaveState.hpp"
 
 

@@ -27,8 +27,8 @@
 #include <gz/sim/components/Pose.hh>
 #include <gz/sim/components/Name.hh>
 
-#include "FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp"
-#include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
+#include "FS_Hydrodynamics.hpp"
+#include "LinearIncidentWave.hpp"
 
   double last_accel = 0;
 /* The rhs of x' = f(x) defined as a class */
