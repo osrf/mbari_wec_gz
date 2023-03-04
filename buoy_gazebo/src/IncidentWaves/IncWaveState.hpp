@@ -20,7 +20,7 @@
 #include <gz/sim/components/Factory.hh>
 #include <gz/sim/components/Component.hh>
 #include <gz/sim/config.hh>
-#include "FreeSurfaceHydrodynamics/LinearIncidentWave.hpp"
+#include "LinearIncidentWave.hpp"
 
 namespace buoy_gazebo
 {
