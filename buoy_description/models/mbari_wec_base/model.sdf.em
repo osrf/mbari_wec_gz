@@ -104,10 +104,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 2.03 0 0 0</pose>
         <mass>1400</mass>
         <inertia>
-          <ixx>1450.0</ixx>
+          <ixx>70200.0</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
-          <iyy>1450.0</iyy>
+          <iyy>70200.0</iyy>
           <iyz>0.0</iyz>
           <izz>670.0</izz>
         </inertia>
@@ -175,10 +175,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 -3.67 0 0 0</pose>
         <mass>600</mass>
         <inertia>
-          <ixx>3525.0</ixx>
+          <ixx>32600.0</ixx>
           <ixy>0.0</ixy>
           <ixz>-0.0</ixz>
-          <iyy>3525.0</iyy>
+          <iyy>32600.0</iyy>
           <iyz>0.0</iyz>
           <izz>10.0</izz>
         </inertia>
@@ -413,10 +413,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 -1.25 0 0 0</pose>
         <mass>@(heave_total_mass)</mass>
         <inertia>
-          <ixx>340.0</ixx>
+          <ixx>4200.0</ixx>
           <ixy>0.0</ixy>
-          <ixz>-1.0</ixz>
-          <iyy>340.0</iyy>
+          <ixz>0.0</ixz>
+          <iyy>4200.0</iyy>
           <iyz>0.0</iyz>
           <izz>610.0</izz>
         </inertia>
