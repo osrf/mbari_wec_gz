@@ -167,7 +167,11 @@ if(BUILD_TESTING)
     EXTRA_ROS_PKGS
       buoy_gazebo)
 
-  buoy_add_gtest(wave_body_interactions LAUNCH_TEST
+  buoy_add_gtest(wave_body_interactions_heaveonly LAUNCH_TEST
+    LOCALLY_INSTALLED_LIBS
+      FreeSurfaceHydrodynamics)
+
+  buoy_add_gtest(wave_body_interactions_pitchonly LAUNCH_TEST
     LOCALLY_INSTALLED_LIBS
       FreeSurfaceHydrodynamics)
 

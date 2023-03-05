@@ -28,7 +28,7 @@ def generate_test_description():
     # Test fixture
     gazebo_test_fixture = Node(
         package='buoy_tests',
-        executable='wave_body_interactions',
+        executable='wave_body_interactions_heaveonly',
         output='screen',
         on_exit=launch.actions.Shutdown()
     )

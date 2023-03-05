@@ -46,46 +46,44 @@
 
 
     <model name="SingleBuoy">
-      <!-- <pose relative_to="world">0 0 -2.0 0 0 0</pose> -->
-      <pose relative_to="world">0 0 -2.4 0 .174 0</pose>
+       <pose relative_to="world">-.22662185578 0 -2.25865945518  0 0.1 0</pose>  
 
     <self_collide>true</self_collide>
 
     <link name="Buoy">
       <pose relative_to="__model__">0 0 0 0 0 0</pose>
       <inertial>
-        <pose>0 0 2.03 0 0 0</pose>
-        <mass>1400</mass>
+        <pose>0 0 2.27 0 0 0</pose>
+        <mass>2449.75</mass>
         <inertia>
-          <ixx>7000.0</ixx>
+          <ixx>1430.0</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
-          <iyy>7040.0</iyy>
+          <iyy>1430.0</iyy>
           <iyz>0.0</iyz>
           <izz>670.0</izz>
         </inertia>
         <fluid_added_mass>
-           <xx>260.0</xx>
+           <xx>0.0</xx>
            <xy>0.0</xy>
            <xz>0.0</xz>
            <xp>0.0</xp>
-           <xq>370.0</xq>
+           <xq>0.0</xq>
            <xr>0.0</xr>
-           <yy>260.0</yy>
+           <yy>0.0</yy>
            <yz>0.0</yz>
-           <yp>-370.0</yp>
+           <yp>0.0</yp>
            <yq>0.0</yq>
            <yr>0.0</yr>
-           <zz>3080.0</zz>
+           <zz>0.0</zz>  
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>780.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>780.0</qq>
+           <qq>367.85</qq>
            <qr>0.0</qr>
-           <rr>0.0</rr>
+           <rr>50.0</rr>
        </fluid_added_mass>
       </inertial>
       <visual name="visual_Buoy">
@@ -109,7 +107,7 @@
           </box>
         </geometry>
       </collision>
- <sensor name='xbow_imu' type='imu'>
+   <sensor name='xbow_imu' type='imu'>
         <topic>Buoy_link/xbow_imu</topic>
         <update_rate>50</update_rate>
         <imu>
@@ -128,11 +126,11 @@
       <LinkName>Buoy</LinkName>
       <WaterplaneOrigin_x>0</WaterplaneOrigin_x>  <!-- Waterplane origin relative to link origin -->
       <WaterplaneOrigin_y>0</WaterplaneOrigin_y>
-      <WaterplaneOrigin_z>2.4</WaterplaneOrigin_z>
+      <WaterplaneOrigin_z>2.27</WaterplaneOrigin_z>
       <COB_x>0</COB_x>  <!-- COG relative to waterplance origin -->
       <COB_y>0</COB_y>
-      <COB_z>-.18</COB_z>
-      <Vol>1.3658536</Vol>
+      <COB_z>-.22</COB_z>
+      <Vol>2.39</Vol>
       <S>5.47</S>
       <S11>1.37</S11>
       <S22>1.37</S22>

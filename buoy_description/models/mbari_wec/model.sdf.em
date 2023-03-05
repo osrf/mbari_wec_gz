@@ -89,6 +89,7 @@ except NameError:
       <S>5.47</S>
       <S11>1.37</S11>
       <S22>1.37</S22>
+      <hydro_coeffs_uri>package://buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5</hydro_coeffs_uri> 
     </plugin>
 
 

@@ -71,27 +71,26 @@ public:
     accel(3) = 0;
     accel(4) = 0;
     accel(5) = 0;
-         std::cout << "# use last_accel = " << last_accel << std::endl;
     accel(mode) = last_accel;
     F_R = -FloatingBody->RadiationForce(accel);
     Eigen::VectorXd F_E(6);
     //F_E = FloatingBody->ExcitingForce();
     dxdt[0] = x[1];
-    //double b = 0.1;
-    std::cout << "# " << x[0] << "  " << x[1] << "  "  
-              << F_G(mode) << "  "  
-              << F_B(mode) << "  "
-              << F_R(mode) << "  "  
-              << (F_B(mode) + F_G(mode) + F_R(mode)) << "  "
-              << std::endl;
+    // double b = 0.1;
+    // std::cout << "# " << x[0] << "  " << x[1] << "  "  
+    //          << F_G(mode) << "  "  
+    //          << F_B(mode) << "  "
+    //          << F_R(mode) << "  "  
+    //          << (F_B(mode) + F_G(mode) + F_R(mode)) << "  "
+    //          << std::endl;
     dxdt[1] =
         //(F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
         (F_B(mode) + F_G(mode) + F_R(mode)) /
         (FloatingBody->M(mode, mode) +
          inf_freq_added_mass);
-         std::cout << "#dxdt = " << dxdt[1] << std::endl;
+         // std::cout << "#dxdt = " << dxdt[1] << std::endl;
     last_accel = dxdt[1];
-         std::cout << "#set last_accel = " << last_accel << std::endl;
+         // std::cout << "#set last_accel = " << last_accel << std::endl;
   }
 };
 
@@ -114,7 +113,7 @@ struct push_back_state_and_time
 };
 
 //////////////////////////////////////////////////
-TEST(WaveBodyInteractionTests, Motions)
+TEST(WaveBodyInteractionTests, HeaveMotions)
 {
   // Maximum verbosity helps with debugging
   gz::common::Console::SetVerbosity(1);
@@ -124,7 +123,7 @@ TEST(WaveBodyInteractionTests, Motions)
 
   // Setup fixture
   gz::sim::ServerConfig config;
-  config.SetSdfFile("singlefloatingbody.sdf");
+  config.SetSdfFile("singlefloatingbody_heave.sdf");
   config.SetUpdateRate(0.0);
   gz::sim::TestFixture fixture(config);
 
@@ -249,7 +248,7 @@ std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> (
     BuoyA5.SetDampingCoeffs(b);
 
   std::vector<double> x(2);
-  x[0] = -2.4+2.4; // initial position
+  x[0] = -2.0+2.4; // initial position
   x[1] = 0.0; // initial velocity
 
   double t_final = iterations*dt;
@@ -278,16 +277,22 @@ x_vec.push_back(xx);
 }
 
 
-
+double max_error = 0;
 for(int i = 0; i< GzSimHeavePos.size()-1;i++)
 {
-      std::cout << GzSimTime[i] * dt
-                << "    " << GzSimHeavePos[i]
-                << "    " << x_vec[i][0] - 2.4  
-                << "    " << GzSimHeavePos[i]-(x_vec[i][0]-2.4) << std::endl;
+  double err = fabs(GzSimHeavePos[i]-(x_vec[i][0]-2.4));
+  if(err > max_error)
+     max_error = err;
+
+   //   std::cout << GzSimTime[i] * dt
+   //             << "    " << GzSimHeavePos[i]
+   //             << "    " << x_vec[i][0] - 2.4  
+   //             << "    " << GzSimHeavePos[i]-(x_vec[i][0]-2.4) << std::endl;
 
 }
 
-  // Verify that the post update function was called 1000 times
+  // Verify that the post update function was called the correct number of times and that the
+  // error is small.
   EXPECT_EQ(1500, iterations);
+  EXPECT_LT(max_error,1e-5);
 }
