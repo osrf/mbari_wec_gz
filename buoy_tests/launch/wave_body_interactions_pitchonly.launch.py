@@ -28,32 +28,26 @@ def generate_test_description():
     # Test fixture
     gazebo_test_fixture = Node(
         package='buoy_tests',
-        executable='sc_commands_ros_feedback',
+        executable='wave_body_interactions_pitchonly',
         output='screen',
         on_exit=launch.actions.Shutdown()
     )
 
-    bridge = Node(package='ros_gz_bridge',
-                  executable='parameter_bridge',
-                  arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
-                  output='screen')
-
     return launch.LaunchDescription([
         gazebo_test_fixture,
-        bridge,
         launch_testing.util.KeepAliveProc(),
         launch_testing.actions.ReadyToTest()
     ]), locals()
 
 
-class SCCommandsROSTest(unittest.TestCase):
+class WaveBodyInteractionTest(unittest.TestCase):
 
     def test_termination(self, gazebo_test_fixture, proc_info):
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=900)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=200)
 
 
 @launch_testing.post_shutdown_test()
-class SCCommandsROSTestAfterShutdown(unittest.TestCase):
+class WaveBodyInteractionTestAfterShutdown(unittest.TestCase):
 
     def test_exit_code(self, gazebo_test_fixture, proc_info):
         launch_testing.asserts.assertExitCodes(

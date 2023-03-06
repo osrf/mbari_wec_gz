@@ -109,7 +109,7 @@ else:
       <is_upper>true</is_upper>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>7.77e-6</valve_absement>
-      <pump_absement>5.1e-8</pump_absement>
+      <pump_absement>6.0e-8</pump_absement>
       <pump_pressure>1.7e+6</pump_pressure>
       <stroke>2.03</stroke>
       <piston_area>0.0127</piston_area>
@@ -136,7 +136,7 @@ else:
       <is_upper>false</is_upper>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>7.77e-6</valve_absement>
-      <pump_absement>5.1e-8</pump_absement>
+      <pump_absement>6.0e-8</pump_absement>
       <pump_pressure>1.7e+6</pump_pressure>
       <stroke>2.03</stroke>
       <piston_area>0.0115</piston_area>
@@ -168,6 +168,7 @@ else:
       <S>5.47</S>
       <S11>1.37</S11>
       <S22>1.37</S22>
+      <hydro_coeffs_uri>package://buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5</hydro_coeffs_uri> 
     </plugin>
 
 

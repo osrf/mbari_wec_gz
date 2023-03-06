@@ -104,10 +104,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 2.03 0 0 0</pose>
         <mass>1400</mass>
         <inertia>
-          <ixx>7000.0</ixx>
+          <ixx>70200.0</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
-          <iyy>7040.0</iyy>
+          <iyy>70200.0</iyy>
           <iyz>0.0</iyz>
           <izz>670.0</izz>
         </inertia>
@@ -177,10 +177,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <inertia>
           <ixx>32600.0</ixx>
           <ixy>0.0</ixy>
-          <ixz>-2.0</ixz>
+          <ixz>-0.0</ixz>
           <iyy>32600.0</iyy>
-          <iyz>-3.0</iyz>
-          <izz>7.0</izz>
+          <iyz>0.0</iyz>
+          <izz>10.0</izz>
         </inertia>
         <fluid_added_mass>
            <xx>310.0</xx>
@@ -246,7 +246,6 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <mass>48.0</mass>
         <pose>0 0 -2.58 0 0 0</pose>
         <inertia>
-          <!-- TODO(hamilton) Refine values -->
           <ixx>100.0</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
@@ -416,7 +415,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <inertia>
           <ixx>4200.0</ixx>
           <ixy>0.0</ixy>
-          <ixz>-1.0</ixz>
+          <ixz>0.0</ixz>
           <iyy>4200.0</iyy>
           <iyz>0.0</iyz>
           <izz>610.0</izz>
