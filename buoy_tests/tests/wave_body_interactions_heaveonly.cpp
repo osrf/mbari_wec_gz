@@ -29,7 +29,6 @@
 #include <gz/sim/components/World.hh>
 #include <gz/sim/components/Gravity.hh>
 
-
 #include "FS_Hydrodynamics.hpp"
 #include "LinearIncidentWave.hpp"
 

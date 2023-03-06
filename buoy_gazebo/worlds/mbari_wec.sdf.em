@@ -1,10 +1,25 @@
 <?xml version="1.0" ?>
+@{
+
+# Check if physics_step was passed in via empy
+try:
+    physics_step
+except NameError:
+    physics_step = 0.001  # not defined so default
+
+# Check if physics_rtf was passed in via empy
+try:
+    physics_rtf
+except NameError:
+    physics_rtf = 1.0  # not defined so default
+
+}@
 <sdf version="1.8">
   <world name="world_demo">
 
     <physics name="1ms" type="ignored">
-      <max_step_size>0.001</max_step_size>
-      <real_time_factor>1.0</real_time_factor>
+      <max_step_size>@(physics_step)</max_step_size>
+      <real_time_factor>@(physics_rtf)</real_time_factor>
     </physics>
 
     <!-- rely on world plugins from server.config -->
