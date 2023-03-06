@@ -14,8 +14,8 @@
 
 #include <gtest/gtest.h>
 #include <Eigen/Dense>
-#include <boost/numeric/odeint.hpp>
 #include <cstdlib>
+#include <boost/numeric/odeint.hpp>
 
 #include <gz/common/Console.hh>
 #include <gz/sim/config.hh>
@@ -33,12 +33,12 @@
 #include "FS_Hydrodynamics.hpp"
 #include "LinearIncidentWave.hpp"
 
-  double last_accel = 0;
+double last_accel = 0;
 /* The rhs of x' = f(x) defined as a class */
 class SingleModeMotionRHS
 {
 public:
-  FS_HydroDynamics *FloatingBody = NULL;
+  FS_HydroDynamics * FloatingBody = NULL;
   int mode = 0;
   double inf_freq_added_mass = 0;
 
@@ -74,13 +74,13 @@ public:
     accel(mode) = last_accel;
     F_R = -FloatingBody->RadiationForce(accel);
     Eigen::VectorXd F_E(6);
-    //F_E = FloatingBody->ExcitingForce();
+    // F_E = FloatingBody->ExcitingForce();
     dxdt[0] = x[1];
     dxdt[1] =
-        //(F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
-        (F_B(mode) + F_G(mode) + F_R(mode)) /
-        (FloatingBody->M(mode, mode) +
-         inf_freq_added_mass);
+      // (F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
+      (F_B(mode) + F_G(mode) + F_R(mode)) /
+      (FloatingBody->M(mode, mode) +
+      inf_freq_added_mass);
     last_accel = dxdt[1];
   }
 };
@@ -106,13 +106,12 @@ struct push_back_state_and_time
 //////////////////////////////////////////////////
 TEST(WaveBodyInteractionTests, PitchMotions)
 {
-  // Maximum verbosity helps with debugging
-  gz::common::Console::SetVerbosity(1);
+  gz::common::Console::SetVerbosity(4);
 
   // Instantiate test fixture. It starts a server and provides hooks that we'll
   // use to inspect the running simulation.
 
-double initial_position = .1;  // Radians, about 5.7 degrees
+  double initial_position = .1;  // Radians, about 5.7 degrees
 
   // Setup fixture
   gz::sim::ServerConfig config;
@@ -135,7 +134,7 @@ double initial_position = .1;  // Radians, about 5.7 degrees
   fixture.
   // Use configure callback to get values at startup
   OnConfigure(
-    [&model, &linkEntity,&GzSimTime,&GzSimPitchPos,&gravity](const gz::sim::Entity & _entity,
+    [&model, &linkEntity, &GzSimTime, &GzSimPitchPos, &gravity](const gz::sim::Entity & _entity,
     const std::shared_ptr<const sdf::Element> & /*_sdf*/,
     gz::sim::EntityComponentManager & _ecm,
     gz::sim::EventManager & /*_eventMgr*/)
@@ -150,12 +149,12 @@ double initial_position = .1;  // Radians, about 5.7 degrees
 //    return;
 //  }
 //      linkEntity = model.LinkByName(_ecm, "Buoy");
-  // Get world and gravity
-  gz::sim::Entity worldEntity =
-   _ecm.EntityByComponents(gz::sim::components::World());
-  auto g = _ecm.Component<gz::sim::components::Gravity>(worldEntity);
-  gravity = -g->Data()[2];
-  
+      // Get world and gravity
+      gz::sim::Entity worldEntity =
+      _ecm.EntityByComponents(gz::sim::components::World());
+      auto g = _ecm.Component<gz::sim::components::Gravity>(worldEntity);
+      gravity = -g->Data()[2];
+
       linkEntity = _ecm.EntityByComponents(gz::sim::components::Name("Buoy"));
 
       if (!_ecm.HasEntity(linkEntity)) {
@@ -167,25 +166,25 @@ double initial_position = .1;  // Radians, about 5.7 degrees
     }).
   // Use post-update callback to get values at the end of every iteration
   OnPreUpdate(
-    [&iterations, &linkEntity,&dt](
+    [&iterations, &linkEntity, &dt](
       const gz::sim::UpdateInfo & _info,
       const gz::sim::EntityComponentManager & _ecm)
     {
-     auto SimTime = std::chrono::duration<double>(_info.simTime).count();
-     if (_info.iterations == 1) {  // First iteration, set timestep size.
-       dt = std::chrono::duration<double>(_info.dt).count();
-       } 
+      auto SimTime = std::chrono::duration<double>(_info.simTime).count();
+      if (_info.iterations == 1) {  // First iteration, set timestep size.
+        dt = std::chrono::duration<double>(_info.dt).count();
+      }
     }).
   // Use post-update callback to get values at the end of every iteration
   OnPostUpdate(
-    [&iterations, &linkEntity,&GzSimTime,&GzSimPitchPos](
+    [&iterations, &linkEntity, &GzSimTime, &GzSimPitchPos](
       const gz::sim::UpdateInfo & _info,
       const gz::sim::EntityComponentManager & _ecm)
     {
 //      std::cout << "In PostUpdate" << std::endl;
       auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
-      GzSimTime.push_back(iterations+1); 
-      GzSimPitchPos.push_back(w_Pose_b.Rot().Pitch()); 
+      GzSimTime.push_back(iterations + 1);
+      GzSimPitchPos.push_back(w_Pose_b.Rot().Pitch());
       iterations++;
     }).
   // The moment we finalize, the configure callback is called
@@ -195,32 +194,33 @@ double initial_position = .1;  // Radians, about 5.7 degrees
   fixture.Server()->Run(true, 1500, false);
 
 // Compute solution independently for comparison
-const char *modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
-std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> ();
+  const char * modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
+  std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave>();
 
   double buoy_mass = 2449.75;  // kg
   FS_HydroDynamics BuoyA5;
-  BuoyA5.SetGravity(gravity); //Use gravity that matches what was used by gz-sim
+  BuoyA5.SetGravity(gravity);  // Use gravity that matches what was used by gz-sim
 
-  //double omega = 2 * M_PI / Tp;
-  //double tf = 2.0 * Tp;
+  // double omega = 2 * M_PI / Tp;
+  // double tf = 2.0 * Tp;
+  // Inc->SetToMonoChromatic(A, Tp, phase, beta);
+  //  BuoyA5.AssignIncidentWave(Inc);
 
-// Inc->SetToMonoChromatic(A, Tp, phase, beta);
-//  BuoyA5.AssignIncidentWave(Inc);
-
-  BuoyA5.SetWaterplane(5.47, 1.37,
-                       1.37); // Set area and 2nd moments of area for waterplane
-  BuoyA5.SetCOB(0, 0,
-                -.22); // Set COB relative to waterplane coordinate system.
-  BuoyA5.SetCOG(0, 0,
-                0.0); // Set COG at waterplane for this test.
+  BuoyA5.SetWaterplane(
+    5.47, 1.37,
+    1.37);                    // Set area and 2nd moments of area for waterplane
+  BuoyA5.SetCOB(
+    0, 0,
+    -.22);             // Set COB relative to waterplane coordinate system.
+  BuoyA5.SetCOG(
+    0, 0,
+    0.0);             // Set COG at waterplane for this test.
   BuoyA5.SetVolume(2.39);
   BuoyA5.SetMass(buoy_mass);
 
-//  std::string HydrodynamicsBaseFilename =
-//      "./example_hydrodynamic_coeffs/BuoyA5";
   std::string HydrodynamicsBaseFilename =
-    "/home/hamilton/buoy_ws/src/buoy_sim/buoy_description/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
+    std::string("/home/hamilton/buoy_ws/src/buoy_sim/buoy_description/") +
+    std::string("models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5");
   //  ament_index_cpp::get_package_share_directory("buoy_description") +
   //  "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
 
@@ -231,20 +231,20 @@ std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> (
   Eigen::Matrix<double, 3, 3> I;
   I << 1430.0, 0, 0, 0, 1430.0, 0, 0, 0, 670.0;
   BuoyA5.SetI(I);
-    Eigen::VectorXd b(6);
-    b(0) = 300.0;
-    b(1) = 300.0;
-    b(2) = 900.0;
-    b(3) = 400.0;
-    b(4) = 400.0;
-    b(5) = 100.0;
-    BuoyA5.SetDampingCoeffs(b);
+  Eigen::VectorXd b(6);
+  b(0) = 300.0;
+  b(1) = 300.0;
+  b(2) = 900.0;
+  b(3) = 400.0;
+  b(4) = 400.0;
+  b(5) = 100.0;
+  BuoyA5.SetDampingCoeffs(b);
 
   std::vector<double> x(2);
-  x[0] = initial_position; // initial position
-  x[1] = 0.0; // initial velocity
+  x[0] = initial_position;  // initial position
+  x[1] = 0.0;  // initial velocity
 
-  double t_final = iterations*dt;
+  double t_final = iterations * dt;
   // integrate_observ
   std::vector<std::vector<double>> x_vec;
   std::vector<double> times;
@@ -253,40 +253,37 @@ std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave> (
   RHS.mode = 4;
   RHS.inf_freq_added_mass = 367.85;
 
-std::vector<double> ddxdt(2);
-std::vector<double> &_rhs = ddxdt;
-x_vec.push_back(x);  // Set initial conditions
-for(int n = 0; n< GzSimPitchPos.size();n++)
-{
-RHS(x_vec[n],_rhs,n*dt);
-std::vector<double> xx(2);
-xx[1] = x_vec[n][1] + _rhs[1]*dt;  // Step velocity
-xx[0] = x_vec[n][0] + xx[1] * dt;  //Step Position
-x_vec.push_back(xx);
-}
+  std::vector<double> ddxdt(2);
+  std::vector<double> & _rhs = ddxdt;
+  x_vec.push_back(x);  // Set initial conditions
+  for (int n = 0; n < GzSimPitchPos.size(); n++) {
+    RHS(x_vec[n], _rhs, n * dt);
+    std::vector<double> xx(2);
+    xx[1] = x_vec[n][1] + _rhs[1] * dt;  // Step velocity
+    xx[0] = x_vec[n][0] + xx[1] * dt;   // Step Position
+    x_vec.push_back(xx);
+  }
 
 
-double max_error = 0;
-for(int i = 0; i< GzSimPitchPos.size()-1;i++)
-{
-  double err = fabs(GzSimPitchPos[i]-(x_vec[i][0]));
-  if(err > max_error)
-     max_error = err;
-
-   //   std::cout << GzSimTime[i] * dt
-   //             << "    " << GzSimPitchPos[i]
-   //             << "    " << x_vec[i][0]  
-   //             << "    " << GzSimPitchPos[i]-(x_vec[i][0]) << std::endl;
-
-}
+  double max_error = 0;
+  for (int i = 0; i < GzSimPitchPos.size() - 1; i++) {
+    double err = fabs(GzSimPitchPos[i] - (x_vec[i][0]));
+    if (err > max_error) {
+      max_error = err;
+    }
+    gzdbg << GzSimTime[i] * dt
+          << "    " << GzSimPitchPos[i]
+          << "    " << x_vec[i][0]
+          << "    " << GzSimPitchPos[i] - (x_vec[i][0]) << std::endl;
+  }
 
   // Verify that the post update function was called the correct number of times and that the
   // error is small.
   EXPECT_EQ(1500, iterations);
-  EXPECT_LT(max_error,.015); // Relatively large error is expected as indepedent solution
-                             // computed here does not model the pitch/surge coupling that 
-                             // gz sim is including due to a transient at startup that imparts
-                             // a little bit of horizontal motion.
-                             // A serious problem that leads to a phase difference between the 
-                             // solutions will still be caught by this error bound
+  EXPECT_LT(max_error, .015);  // Relatively large error is expected as independent solution
+                               // computed here does not model the pitch/surge coupling that
+                               // gz sim is including due to a transient at startup that imparts
+                               // a little bit of horizontal motion.
+                               // A serious problem that leads to a phase difference between the
+                               // solutions will still be caught by this error bound
 }

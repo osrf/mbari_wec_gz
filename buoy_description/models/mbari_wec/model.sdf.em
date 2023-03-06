@@ -100,13 +100,11 @@ except NameError:
       <IncWaveSpectrumType>MonoChromatic</IncWaveSpectrumType>
       <A>1.0</A>
       <T>12.0</T>
--->
 
       <IncWaveSpectrumType>Bretschneider</IncWaveSpectrumType>
       <Hs>3.0</Hs>
       <Tp>14.0</Tp>
 
-<!--
       <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
       <w0>0</w0> <Szz0>0.0</Szz0>
       <w1>.2</w1> <Szz1>.4</Szz1>
