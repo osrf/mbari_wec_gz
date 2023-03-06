@@ -30,7 +30,7 @@ except NameError:
       <is_upper>true</is_upper>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>7.77e-6</valve_absement>
-      <pump_absement>5.1e-8</pump_absement>
+      <pump_absement>6.0e-8</pump_absement>
       <pump_pressure>1.7e+6</pump_pressure>
       <stroke>2.03</stroke>
       <piston_area>0.0127</piston_area>
@@ -57,7 +57,7 @@ except NameError:
       <is_upper>false</is_upper>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>7.77e-6</valve_absement>
-      <pump_absement>5.1e-8</pump_absement>
+      <pump_absement>6.0e-8</pump_absement>
       <pump_pressure>1.7e+6</pump_pressure>
       <stroke>2.03</stroke>
       <piston_area>0.0115</piston_area>

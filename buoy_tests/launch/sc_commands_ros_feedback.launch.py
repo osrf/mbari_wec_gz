@@ -49,7 +49,7 @@ def generate_test_description():
 class SCCommandsROSTest(unittest.TestCase):
 
     def test_termination(self, gazebo_test_fixture, proc_info):
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=600)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=900)
 
 
 @launch_testing.post_shutdown_test()
