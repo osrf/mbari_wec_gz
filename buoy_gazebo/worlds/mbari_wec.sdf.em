@@ -5,7 +5,7 @@
 try:
     physics_step
 except NameError:
-    physics_step = 0.001  # not defined so default
+    physics_step = 0.01  # not defined so default
 
 # Check if physics_rtf was passed in via empy
 try:
@@ -17,7 +17,7 @@ except NameError:
 <sdf version="1.8">
   <world name="world_demo">
 
-    <physics name="1ms" type="ignored">
+    <physics name="step" type="ignored">
       <max_step_size>@(physics_step)</max_step_size>
       <real_time_factor>@(physics_rtf)</real_time_factor>
     </physics>

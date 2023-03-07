@@ -35,7 +35,7 @@ def monochromatic_spectrum(A=1.0, T=12.0):
       <T>{T}</T>
 ''')
 
-def bretschneider_spectrum(Hs=3.0, Tp=14.0):
+def bretschneider_spectrum(Hs=2.0, Tp=13.0):
     ''' Prints the Bretschneider <IncWaveSpectrumType> block for the IncidentWave plugin. '''
     print(f'''
       <IncWaveSpectrumType>Bretschneider</IncWaveSpectrumType>
@@ -63,7 +63,7 @@ from functools import partial
 try:
     inc_wave_spectrum_type
 except NameError:
-    inc_wave_spectrum_type = ''  # not defined so default to no waves; TODO(hamilton) correct?
+    inc_wave_spectrum_type = 'Bretschneider'  # not defined so default to Bretschneider
 
 if 'MonoChromatic' in inc_wave_spectrum_type:
     try:
@@ -81,7 +81,7 @@ elif 'Custom' in inc_wave_spectrum_type:
     except NameError:
         inc_wave_spectrum = custom_spectrum  # default
 else:
-    inc_wave_spectrum = lambda : '<!-- No Waves -->'  # default no waves; TODO(hamilton) correct?
+    inc_wave_spectrum = lambda : '<!-- No Waves -->'
 
 }@
 

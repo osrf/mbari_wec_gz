@@ -27,8 +27,13 @@ from testing_utils import default_generate_test_description
 
 
 def generate_test_description():
+    sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
+                      physics_rtf=11.0,
+                      physics_step=0.001)
     return default_generate_test_description(enable_rosbag=True,
-                                             rosbag_name='rosbag2_pc_cmds_py')
+                                             rosbag_name='rosbag2_pc_cmds_py',
+                                             regen_models=True,
+                                             regen_kwargs=sim_params)
 
 
 config = os.path.join(
@@ -110,8 +115,8 @@ class BuoyPCPyTest(BuoyPyTests):
         time.sleep(0.5)
         clock = self.node.get_clock()
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
+        self.assertEqual(t, 0)
 
         preCmdIterations = 15000
         feedbackCheckIterations = 100

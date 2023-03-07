@@ -28,16 +28,8 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 
 
-def launch_mbari_wec(context, *args, **kwargs):
-    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
-    pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
-    pkg_buoy_description = get_package_share_directory('buoy_description')
-    model_dir = 'mbari_wec_ros'
-    model_name = 'MBARI_WEC_ROS'
-    ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
-
+def regenerate_models(context, *args, **kwargs):
     # Find packages
-    pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
 
     # Set templates to default values
@@ -45,18 +37,61 @@ def launch_mbari_wec(context, *args, **kwargs):
     if regenerate_models != 'false':
         # Find model templates
         model_dir = 'mbari_wec_base'
-        empy_base_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
+        empy_base_sdf_file = os.path.join(pkg_buoy_description,
+                                          'models', model_dir, 'model.sdf.em')
         base_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
         model_dir = 'mbari_wec'
         empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
         sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
-        
+
         # Return all files to defaults
         empy(['-o', base_sdf_file,
               empy_base_sdf_file])
         empy(['-o', sdf_file,
               empy_sdf_file])
+
+    return args
+
+
+def generate_launch_description():
+
+    gazebo_world_file_launch_arg = DeclareLaunchArgument(
+        'world_file', default_value=['mbari_wec.sdf'],
+        description='Gazebo world filename.sdf'
+    )
+
+    gazebo_world_name_launch_arg = DeclareLaunchArgument(
+        'world_name', default_value=['world_demo'],
+        description='Gazebo <world name>'
+    )
+
+    rviz_launch_arg = DeclareLaunchArgument(
+        'rviz', default_value='false',
+        description='Open RViz.'
+    )
+
+    gazebo_debugger_arg = DeclareLaunchArgument(
+        'debugger', default_value='false',
+        description='run gazebo in gdb'
+    )
+
+    extra_gz_args = DeclareLaunchArgument(
+        'extra_gz_args', default_value='',
+        description='extra_gz_args'
+    )
+
+    regenerate_models_arg = DeclareLaunchArgument(
+        'regenerate_models', default_value='true',
+        description='regenerate template models using defaults'
+    )
+
+    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
+    pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
+    pkg_buoy_description = get_package_share_directory('buoy_description')
+    model_dir = 'mbari_wec_ros'
+    model_name = 'MBARI_WEC_ROS'
+    ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
     with open(ros_sdf_file, 'r') as infp:
         robot_desc = infp.read()
@@ -125,43 +160,10 @@ def launch_mbari_wec(context, *args, **kwargs):
         ]
     )
 
-    return [gazebo,
-            bridge,
-            robot_state_publisher,
-            rviz]
-
-
-def generate_launch_description():
-
-    gazebo_world_file_launch_arg = DeclareLaunchArgument(
-        'world_file', default_value=['mbari_wec.sdf'],
-        description='Gazebo world filename.sdf'
-    )
-
-    gazebo_world_name_launch_arg = DeclareLaunchArgument(
-        'world_name', default_value=['world_demo'],
-        description='Gazebo <world name>'
-    )
-
-    rviz_launch_arg = DeclareLaunchArgument(
-        'rviz', default_value='false',
-        description='Open RViz.'
-    )
-
-    gazebo_debugger_arg = DeclareLaunchArgument(
-        'debugger', default_value='false',
-        description='run gazebo in gdb'
-    )
-
-    extra_gz_args = DeclareLaunchArgument(
-        'extra_gz_args', default_value='',
-        description='extra_gz_args'
-    )
-
-    regenerate_models_arg = DeclareLaunchArgument(
-        'regenerate_models', default_value='true',
-        description='regenerate template models using defaults'
-    )
+    dependent_nodes = [gazebo,
+                       bridge,
+                       robot_state_publisher,
+                       rviz]
 
     return LaunchDescription([
         gazebo_world_file_launch_arg,
@@ -170,5 +172,6 @@ def generate_launch_description():
         gazebo_debugger_arg,
         extra_gz_args,
         regenerate_models_arg,
-        OpaqueFunction(function=launch_mbari_wec),
+        OpaqueFunction(function=regenerate_models,
+                       args=dependent_nodes),
     ])

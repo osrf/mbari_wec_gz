@@ -15,3 +15,4 @@
 from .utils import BuoyPyTestAfterShutdown  # noqa F401
 from .utils import BuoyPyTests  # noqa F401
 from .utils import default_generate_test_description  # noqa F401
+from .utils import regenerate_models, regenerate_default_models  # noqa F401
