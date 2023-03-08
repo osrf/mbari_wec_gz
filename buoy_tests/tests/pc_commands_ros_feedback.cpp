@@ -214,7 +214,7 @@ protected:
 
     // Setup fixture
     gz::sim::ServerConfig config;
-    config.SetSdfFile("mbari_wec.sdf");
+    config.SetSdfFile("mbari_wec_test.sdf");
     config.SetUpdateRate(0.0);
 
     fixture = std::make_unique<gz::sim::TestFixture>(config);

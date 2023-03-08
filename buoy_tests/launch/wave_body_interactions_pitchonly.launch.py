@@ -16,11 +16,14 @@ import unittest
 
 import launch
 import launch.actions
+from launch.actions import OpaqueFunction
 
 from launch_ros.actions import Node
 
 import launch_testing
 import launch_testing.actions
+
+from testing_utils import regenerate_models
 
 
 def generate_test_description():
@@ -33,8 +36,15 @@ def generate_test_description():
         on_exit=launch.actions.Shutdown()
     )
 
+    nodes = [gazebo_test_fixture]
+    sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
+                      physics_rtf=11.0,
+                      physics_step=0.001)
+
     return launch.LaunchDescription([
-        gazebo_test_fixture,
+        OpaqueFunction(function=regenerate_models,
+                       args=nodes,
+                       kwargs=sim_params),
         launch_testing.util.KeepAliveProc(),
         launch_testing.actions.ReadyToTest()
     ]), locals()
