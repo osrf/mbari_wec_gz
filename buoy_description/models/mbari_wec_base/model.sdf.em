@@ -116,21 +116,21 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
            <xy>0.0</xy>
            <xz>0.0</xz>
            <xp>0.0</xp>
-           <xq>370.0</xq>
+           <xq>150.0</xq>
            <xr>0.0</xr>
            <yy>260.0</yy>
            <yz>0.0</yz>
-           <yp>-370.0</yp>
+           <yp>-150.0</yp>
            <yq>0.0</yq>
            <yr>0.0</yr>
            <zz>3080.0</zz>
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>780.0</pp>
+           <pp>330.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>780.0</qq>
+           <qq>330.0</qq>
            <qr>0.0</qr>
            <rr>0.0</rr>
        </fluid_added_mass>
@@ -187,21 +187,21 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
            <xy>0.0</xy>
            <xz>0.0</xz>
            <xp>0.0</xp>
-           <xq>1250.0</xq>
+           <xq>0.0</xq>
            <xr>0.0</xr>
            <yy>310.0</yy>
            <yz>0.0</yz>
-           <yp>-1250.0</yp>
+           <yp>0.0</yp>
            <yq>0.0</yq>
            <yr>0.0</yr>
            <zz>10.0</zz>
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>7040.0</pp>
+           <pp>2030.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>7040.0</qq>
+           <qq>2030.0</qq>
            <qr>0.0</qr>
            <rr>0.0</rr>
        </fluid_added_mass>
@@ -437,10 +437,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>3990.0</pp>
+           <pp>2870.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>3990.0</qq>
+           <qq>2870.0</qq>
            <qr>0.0</qr>
            <rr>10.0</rr>
        </fluid_added_mass>
