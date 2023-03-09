@@ -244,32 +244,30 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <link name="PTO_Buoyancy">
       <pose relative_to="PTO">0 0 0 0 0 0</pose>
       <inertial>
-        <pose>0 0 0 0 0 0</pose>
-        <mass>605</mass>
+        <pose>0 0 -4.0 0 0 0</pose>
+        <mass>10</mass>
         <inertia>
-          <ixx>32600.0</ixx>
+          <ixx>1.0</ixx>
           <ixy>0.0</ixy>
-          <ixz>-2.0</ixz>
-          <iyy>32600.0</iyy>
-          <iyz>-3.0</iyz>
-          <izz>7.0</izz>
+          <ixz>0.0</ixz>
+          <iyy>1.0</iyy>
+          <iyz>0.0</iyz>
+          <izz>1.0</izz>
         </inertia>
       </inertial>
       <visual name="visual">
         <geometry>
-          <cylinder>
-            <length>6.525</length>
-            <radius>0.1</radius>
-          </cylinder>
+          <box>
+            <size>1 1 1</size>
+          </box>
         </geometry>
       </visual>
       <collision name="collision">
-        <pose>0 0 0 0 0 0 </pose>
+        <pose>0 0 -3.0 0 0 0 </pose>
         <geometry>
-          <cylinder>
-            <length>6.525</length>
-            <radius>0.1</radius>
-          </cylinder>
+          <box>
+            <size>0.5 0.5 .82</size>
+          </box>
         </geometry>
       </collision>
     </link>
