@@ -7,6 +7,21 @@
       <real_time_factor>1.0</real_time_factor>
     </physics>
 
+    <plugin
+      filename="gz-sim-buoyancy-system"
+      name="gz::sim::systems::Buoyancy">
+      <graded_buoyancy>
+        <default_density>1025</default_density>
+        <density_change>
+          <above_depth>0</above_depth>
+          <density>1</density>
+        </density_change>
+      </graded_buoyancy>
+      <!-- <uniform_fluid_density>1025</uniform_fluid_density>
+      <enable>MBARI_WEC_ROS::PTO_Buoyancy</enable>
+      <enable>MBARI_WEC_ROS::HeaveCone</enable> -->
+    </plugin>
+
     <!-- rely on world plugins from server.config -->
 
     <light name="sun" type="directional">
