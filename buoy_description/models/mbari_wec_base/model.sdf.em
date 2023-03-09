@@ -571,6 +571,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
       </sensor>
     </joint>
 
+    <!-- TODO(quarkytale) enable joint -->
     <!-- <joint name="PTO_Dummy" type="fixed">
       <parent>PTO</parent>
       <child>PTO_Buoyancy</child>
