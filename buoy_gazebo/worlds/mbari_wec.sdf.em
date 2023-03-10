@@ -15,7 +15,7 @@ except NameError:
 
 }@
 <sdf version="1.8">
-  <world name="world_demo">
+  <world name="mbari_wec_world">
 
     <physics name="step" type="ignored">
       <max_step_size>@(physics_step)</max_step_size>
