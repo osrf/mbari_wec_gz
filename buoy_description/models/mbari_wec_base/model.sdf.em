@@ -94,6 +94,15 @@ def tether_joint_properties():
 # PTO
 pto_inner_radius = tether_radius + pto_gap
 pto_scale = pto_inner_radius / pto_stl_inner_radius
+
+# PTO Buoyancy (specify desired COB, computes location of extra volume above .stl collision mesh)
+pto_disp = .205  # m^3  (Specified)
+pto_cob = -3  # z-position, on centerline (Specified)
+stl_disp = .160443 # m^3  Specific to .stl file
+stl_cob = 0 # z-position, on centerline. Buoyancy plugin uses collisioin pose origin, not center of mesh volume
+buoyancy_disp = pto_disp - stl_disp
+buoyancy_cob = (pto_cob*pto_disp - stl_cob*stl_disp)/buoyancy_disp
+buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
 }@
 <sdf version="1.8">
   <model name="MBARI_WEC_BASE">
@@ -218,6 +227,14 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <specular>1 1 1 1</specular>
         </material>
       </visual>
+      <collision name="buoyancy">
+        <pose>0 0 @(buoyancy_cob) 0 0 0 </pose>
+        <geometry>
+          <sphere>
+            <radius>@(buoyancy_radius)</radius>
+          </sphere>
+        </geometry>
+      </collision>
       <collision name="collision">
         <geometry>
           <mesh>
@@ -237,38 +254,6 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
             <!--collide_bitmask>0x01</collide_bitmask-->
           </contact>
         </surface>
-      </collision>
-    </link>
-
-
-    <link name="PTO_Buoyancy">
-      <pose relative_to="PTO">0 0 0 0 0 0</pose>
-      <inertial>
-        <pose>0 0 -4.0 0 0 0</pose>
-        <mass>10</mass>
-        <inertia>
-          <ixx>1.0</ixx>
-          <ixy>0.0</ixy>
-          <ixz>0.0</ixz>
-          <iyy>1.0</iyy>
-          <iyz>0.0</iyz>
-          <izz>1.0</izz>
-        </inertia>
-      </inertial>
-      <visual name="visual">
-        <geometry>
-          <box>
-            <size>1 1 1</size>
-          </box>
-        </geometry>
-      </visual>
-      <collision name="collision">
-        <pose>0 0 -3.0 0 0 0 </pose>
-        <geometry>
-          <box>
-            <size>0.5 0.5 .82</size>
-          </box>
-        </geometry>
       </collision>
     </link>
 
@@ -570,13 +555,6 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         </force_torque>
       </sensor>
     </joint>
-
-    <!-- TODO(quarkytale) enable joint -->
-    <!-- <joint name="PTO_Dummy" type="fixed">
-      <parent>PTO</parent>
-      <child>PTO_Buoyancy</child>
-      <pose>0.0 0.0 0.0 0 0 0</pose>
-    </joint> -->
 
     <joint name="HydraulicRam" type="prismatic">
       <parent>PTO</parent>
