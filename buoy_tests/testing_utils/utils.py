@@ -235,13 +235,10 @@ def default_generate_test_description(server='fixture_server',
 
         nodes = [gazebo_test_fixture,
                  bridge,
-                 rosbag,
-                 launch_testing.util.KeepAliveProc(),
-                 launch_testing.actions.ReadyToTest()]
+                 rosbag]
     else:
         nodes = [gazebo_test_fixture,
-                 bridge,
-                 rosbag]
+                 bridge]
 
     if regen_models:
         ld = launch.LaunchDescription([

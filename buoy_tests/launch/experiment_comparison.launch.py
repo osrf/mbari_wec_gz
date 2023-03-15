@@ -18,7 +18,7 @@ import unittest
 from ament_index_python.packages import get_package_share_directory
 
 import launch
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, OpaqueFunction
 from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
@@ -57,6 +57,11 @@ def find_proc(ld):
         if type(entity) is Node:
             if type(entity._Action__condition) is UnlessCondition:
                 return entity
+        elif type(entity) is OpaqueFunction:
+            for node in entity._OpaqueFunction__args:
+                if type(node) is Node:
+                    if type(node._Action__condition) is UnlessCondition:
+                        return node
 
 
 class BuoyExperimentComparisonTest(unittest.TestCase):

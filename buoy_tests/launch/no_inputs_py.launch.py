@@ -58,6 +58,8 @@ def generate_test_description():
         OpaqueFunction(function=regenerate_models,
                        args=nodes,
                        kwargs=sim_params),
+        launch_testing.util.KeepAliveProc(),
+        launch_testing.actions.ReadyToTest()
     ]), locals()
 
 
