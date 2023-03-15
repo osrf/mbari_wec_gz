@@ -57,27 +57,19 @@ public:
     Eigen::VectorXd vel(6);
     vel(0) = 0; vel(1) = 0; vel(2) = 0; vel(3) = 0; vel(4) = 0; vel(5) = 0;
     vel(mode) = x[1];
-//    Eigen::VectorXd F_LinDamping(6);
-//    F_LinDamping = FloatingBody->LinearDampingForce(vel);
     Eigen::VectorXd F_B(6);
     F_B = FloatingBody->BuoyancyForce(pos);
     Eigen::VectorXd F_G(6);
     F_G = FloatingBody->GravityForce(pos);
     Eigen::VectorXd F_R(6);
     Eigen::VectorXd accel(6);
-    accel(0) = 0;
-    accel(1) = 0;
-    accel(2) = 0;
-    accel(3) = 0;
-    accel(4) = 0;
-    accel(5) = 0;
+    accel(0) = 0; accel(1) = 0; accel(2) = 0;
+    accel(3) = 0; accel(4) = 0; accel(5) = 0;
     accel(mode) = last_accel;
     F_R = -FloatingBody->RadiationForce(accel);
     Eigen::VectorXd F_E(6);
-    // F_E = FloatingBody->ExcitingForce();
     dxdt[0] = x[1];
     dxdt[1] =
-      // (F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
       (F_B(mode) + F_G(mode) + F_R(mode)) /
       (FloatingBody->M(mode, mode) +
       inf_freq_added_mass);
@@ -106,7 +98,7 @@ struct push_back_state_and_time
 //////////////////////////////////////////////////
 TEST(WaveBodyInteractionTests, PitchMotions)
 {
-  gz::common::Console::SetVerbosity(4);
+  gz::common::Console::SetVerbosity(1);
 
   // Instantiate test fixture. It starts a server and provides hooks that we'll
   // use to inspect the running simulation.
@@ -139,18 +131,8 @@ TEST(WaveBodyInteractionTests, PitchMotions)
     gz::sim::EntityComponentManager & _ecm,
     gz::sim::EventManager & /*_eventMgr*/)
     {
-      std::cout << "In OnConfigure " << std::endl;
-
-//      model = gz::sim::Model(_entity);
-//  if (!model.Valid(_ecm)) {
-//    ignerr <<
-//      "Invalid Model Entity. " <<
-//      "Failed to initialize." << std::endl;
-//    return;
-//  }
-//      linkEntity = model.LinkByName(_ecm, "Buoy");
-      // Get world and gravity
-      gz::sim::Entity worldEntity =
+      gzdbg << "In OnConfigure " << std::endl;
+      gz::sim::Entity worldEntity =         // Get world and gravity
       _ecm.EntityByComponents(gz::sim::components::World());
       auto g = _ecm.Component<gz::sim::components::Gravity>(worldEntity);
       gravity = -g->Data()[2];
@@ -181,7 +163,6 @@ TEST(WaveBodyInteractionTests, PitchMotions)
       const gz::sim::UpdateInfo & _info,
       const gz::sim::EntityComponentManager & _ecm)
     {
-//      std::cout << "In PostUpdate" << std::endl;
       auto w_Pose_b = gz::sim::worldPose(linkEntity, _ecm);
       GzSimTime.push_back(iterations + 1);
       GzSimPitchPos.push_back(w_Pose_b.Rot().Pitch());
@@ -189,22 +170,17 @@ TEST(WaveBodyInteractionTests, PitchMotions)
     }).
   // The moment we finalize, the configure callback is called
   Finalize();
-// Setup simulation server, this will call the post-update callbacks.
+  // Setup simulation server, this will call the post-update callbacks.
   // It also calls pre-update and update callbacks if those are being used.
   fixture.Server()->Run(true, 1500, false);
 
-// Compute solution independently for comparison
+  // Compute solution independently for comparison
   const char * modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
   std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave>();
 
   double buoy_mass = 2449.75;  // kg
   FS_HydroDynamics BuoyA5;
   BuoyA5.SetGravity(gravity);  // Use gravity that matches what was used by gz-sim
-
-  // double omega = 2 * M_PI / Tp;
-  // double tf = 2.0 * Tp;
-  // Inc->SetToMonoChromatic(A, Tp, phase, beta);
-  //  BuoyA5.AssignIncidentWave(Inc);
 
   BuoyA5.SetWaterplane(
     5.47, 1.37,
@@ -221,8 +197,6 @@ TEST(WaveBodyInteractionTests, PitchMotions)
   std::string HydrodynamicsBaseFilename =
     std::string("/home/hamilton/buoy_ws/src/buoy_sim/buoy_description/") +
     std::string("models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5");
-  //  ament_index_cpp::get_package_share_directory("buoy_description") +
-  //  "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
 
   BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
@@ -245,7 +219,6 @@ TEST(WaveBodyInteractionTests, PitchMotions)
   x[1] = 0.0;  // initial velocity
 
   double t_final = iterations * dt;
-  // integrate_observ
   std::vector<std::vector<double>> x_vec;
   std::vector<double> times;
   boost::numeric::odeint::euler<std::vector<double>> stepper;

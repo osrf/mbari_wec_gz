@@ -56,8 +56,6 @@ public:
     Eigen::VectorXd vel(6);
     vel(0) = 0; vel(1) = 0; vel(2) = 0; vel(3) = 0; vel(4) = 0; vel(5) = 0;
     vel(mode) = x[1];
-//    Eigen::VectorXd F_LinDamping(6);
-//    F_LinDamping = FloatingBody->LinearDampingForce(vel);
     Eigen::VectorXd F_B(6);
     F_B = FloatingBody->BuoyancyForce(pos);
     Eigen::VectorXd F_G(6);
@@ -73,27 +71,16 @@ public:
     accel(mode) = last_accel;
     F_R = -FloatingBody->RadiationForce(accel);
     Eigen::VectorXd F_E(6);
-    // F_E = FloatingBody->ExcitingForce();
     dxdt[0] = x[1];
-    // double b = 0.1;
-    // std::cout << "# " << x[0] << "  " << x[1] << "  "
-    //          << F_G(mode) << "  "
-    //          << F_B(mode) << "  "
-    //          << F_R(mode) << "  "
-    //          << (F_B(mode) + F_G(mode) + F_R(mode)) << "  "
-    //          << std::endl;
     dxdt[1] =
-      // (F_B(mode) + F_G(mode) + F_R(mode) + F_E(mode)) /
       (F_B(mode) + F_G(mode) + F_R(mode)) /
       (FloatingBody->M(mode, mode) +
       inf_freq_added_mass);
-    // std::cout << "#dxdt = " << dxdt[1] << std::endl;
     last_accel = dxdt[1];
-    // std::cout << "#set last_accel = " << last_accel << std::endl;
   }
 };
 
-// [ integrate_observer
+//  integrate_observer
 struct push_back_state_and_time
 {
   std::vector<std::vector<double>> & m_states;
@@ -126,7 +113,6 @@ TEST(WaveBodyInteractionTests, HeaveMotions)
   config.SetUpdateRate(0.0);
   gz::sim::TestFixture fixture(config);
 
-
   int iterations{0};
   gz::sim::Model model{gz::sim::kNullEntity};
   gz::sim::Entity linkEntity;
@@ -146,7 +132,7 @@ TEST(WaveBodyInteractionTests, HeaveMotions)
     gz::sim::EntityComponentManager & _ecm,
     gz::sim::EventManager & /*_eventMgr*/)
     {
-      std::cout << "In OnConfigure " << std::endl;
+      gzdbg << "In OnConfigure " << std::endl;
 
       // Get world and gravity
       gz::sim::Entity worldEntity =
@@ -191,7 +177,7 @@ TEST(WaveBodyInteractionTests, HeaveMotions)
   // It also calls pre-update and update callbacks if those are being used.
   fixture.Server()->Run(true, 1500, false);
 
-// Compute solution independently for comparison
+  // Compute solution independently for comparison
   const char * modes[6] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"};
   std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave>();
 
@@ -199,30 +185,18 @@ TEST(WaveBodyInteractionTests, HeaveMotions)
   FS_HydroDynamics BuoyA5;
   BuoyA5.SetGravity(gravity);  // Use gravity that matches what was used by gz-sim
 
-  // double omega = 2 * M_PI / Tp;
-  // double tf = 2.0 * Tp;
-  // Inc->SetToMonoChromatic(A, Tp, phase, beta);
-  //  BuoyA5.AssignIncidentWave(Inc);
-
-  BuoyA5.SetWaterplane(
-    5.47, 1.37,
-    1.37);             // Set area and 2nd moments of area for waterplane
-  BuoyA5.SetCOB(
-    0, 0,
-    -.18);             // Set COB relative to waterplane coordinate system.
-  BuoyA5.SetCOG(
-    0, 0,
-    2.03);             // Set COG relative to waterplane coordinate system.
+  // Set area and 2nd moments of area for waterplane
+  BuoyA5.SetWaterplane(5.47, 1.37, 1.37);
+  // Set COB relative to waterplane coordinate system.
+  BuoyA5.SetCOB(0, 0, -.18);
+  // Set COG relative to waterplane coordinate system.
+  BuoyA5.SetCOG(0, 0, 2.03);
   BuoyA5.SetVolume(1.3658536);
   BuoyA5.SetMass(buoy_mass);
 
-  //  std::string HydrodynamicsBaseFilename =
-  //      "./example_hydrodynamic_coeffs/BuoyA5";
   std::string HydrodynamicsBaseFilename =
     std::string("/home/hamilton/buoy_ws/src/buoy_sim/buoy_description/") +
     std::string("models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5");
-  //  ament_index_cpp::get_package_share_directory("buoy_description") +
-  //  "/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5";
 
   BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
@@ -245,7 +219,6 @@ TEST(WaveBodyInteractionTests, HeaveMotions)
   x[1] = 0.0;  // initial velocity
 
   double t_final = iterations * dt;
-  // integrate_observ
   std::vector<std::vector<double>> x_vec;
   std::vector<double> times;
   boost::numeric::odeint::euler<std::vector<double>> stepper;
