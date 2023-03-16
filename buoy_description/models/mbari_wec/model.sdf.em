@@ -87,11 +87,11 @@ else:
 # Mean Piston Position
 ############################
 
-# Check if x_des (m, mean piston position) was passed in via empy
+# Check if x_mean_pos (m, mean piston position) was passed in via empy
 try:
-    x_des
+    x_mean_pos
 except NameError:
-    x_des = 0.7  # m, not defined so default; measured from fully retracted (same as range_finder)
+    x_mean_pos = 0.7  # m, default; measured from fully retracted (same as range_finder)
 
 import math
 import scipy.optimize as spo
@@ -138,12 +138,12 @@ m_l = P0_l*V0_l / (R_specific*T0_l)
 
 
 m_delta_guess = 0.0
-m_delta = spo.fsolve(lambda m_delta: x_des - x_eq(Ap_u, Ap_l,
-                                                  m_u - m_delta,
-                                                  m_l + m_delta,
-                                                  Vd_u, Vd_l, c), m_delta_guess)[0]
-V0_u = Ap_u*x_des + Vd_u
-V0_l = Ap_l*(2.03 - x_des) + Vd_l
+m_delta = spo.fsolve(lambda m_delta: x_mean_pos - x_eq(Ap_u, Ap_l,
+                                                       m_u - m_delta,
+                                                       m_l + m_delta,
+                                                       Vd_u, Vd_l, c), m_delta_guess)[0]
+V0_u = Ap_u*x_mean_pos + Vd_u
+V0_l = Ap_l*(2.03 - x_mean_pos) + Vd_l
 m_u = m_u - m_delta
 m_l = m_l + m_delta
 P0_u = m_u*R_specific*T0_u / V0_u
