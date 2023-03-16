@@ -87,6 +87,13 @@ else:
 # Mean Piston Position
 ############################
 
+# Would like to specify piston mean position and set all other
+# air spring values from that. Start from curve-fitting PV
+# for polytropic index and initial setpoints. Determine piston
+# equilibrium position. Solve for mass shift between chambers
+# that brings the equilibrium to the desired mean piston position.
+# Recompute pressure and volume based on Ideal Gas Law.
+
 # Check if x_mean_pos (m, mean piston position) was passed in via empy
 try:
     x_mean_pos
@@ -95,6 +102,18 @@ except NameError:
 
 import math
 import scipy.optimize as spo
+
+# Balance of forces on piston at equilibrium
+# P_l + rho*g*V = P_u + m*g
+# P_u - P_l = g*(rho*V - m)
+#
+# m_u*R*T   m_l*R*T
+# ------- - ------- = g*(rho*V - m)
+#   V_u       V_l
+#
+#       m_u               m_l            g
+# ---------------- - ---------------- = ---*(rho*V - m) = C
+# Ap_u*x_eq + Vd_u   Ap_l*x_eq + Vd_l   R*T
 
 C = lambda g, R_specific, T_ocean, rho, V_hc, m: (g / (R_specific*T_ocean))*(rho*V_hc - m)
 x_eq = lambda Ap_u, Ap_l, m_u, m_l, Vd_u, Vd_l, C: -(0.005*(
@@ -111,37 +130,38 @@ x_eq = lambda Ap_u, Ap_l, m_u, m_l, Vd_u, Vd_l, C: -(0.005*(
 ) / (Ap_u*Ap_l*C)
 
 g = 9.81  # m/s^2
-R_specific = 0.2968
-T_ocean = 283.15  # K
-rho = 1025
-V_hc = 0.12
-m_hc = 820
-m_piston = 48
-m = m_hc + m_piston
+R_specific = 0.2968  # mass-specific gas constant for N2
+T_ocean = 283.15  # K, soak temp for equilibrium
+rho = 1025  # density of seawater
+V_hc = 0.12  # Displacement of heave cone
+m_hc = 820  # mass of heave cone
+m_piston = 48  # mass of piston
+m = m_hc + m_piston  # total mass
 
-Ap_u = 0.0127
-Ap_l = 0.0115
-Vd_u = 0.0226
-Vd_l = 0.0463
+Ap_u = 0.0127  # Area of piston in upper chamber
+Ap_l = 0.0115  # Area of piston in lower
+Vd_u = 0.0226  # Dead volume of upper
+Vd_l = 0.0463  # Dead volume of lower
 # TODO(andermi) unknown why 108.56 fudge factor is necessary
-c = 108.56*C(g, R_specific, T_ocean, rho, V_hc, m)
+c = 108.56*C(g, R_specific, T_ocean, rho, V_hc, m)  # RHS of equation above
 
-V0_u = 0.0431
-V0_l = 0.0574
-P0_u = 410152
-P0_l = 1212060
-T0_u = 263.15
-T0_l = 283.15
+V0_u = 0.0431  # Volume setpoint from upper chamber polytropic PV curves
+V0_l = 0.0574  # Volume setpoint from lower chamber polytropic PV curves
+P0_u = 410152  # Pressure setpoint from upper PV
+P0_l = 1212060  # Pressure setpoint from lower PV
+T0_u = 263.15  # Tempurature setpoint for upper heat transfer
+T0_l = 283.15  # Tempurature setpoint for lower heat transfer
 
-m_u = P0_u*V0_u / (R_specific*T0_u)
-m_l = P0_l*V0_l / (R_specific*T0_l)
+m_u = P0_u*V0_u / (R_specific*T0_u)  # mass of N2 in upper, Ideal Gas Law
+m_l = P0_l*V0_l / (R_specific*T0_l)  # mass of N2 in lower, Ideal Gas Law
 
-
+# shift mass between upper and lower to bring equilibrium point to desired x_mean_pos
 m_delta_guess = 0.0
 m_delta = spo.fsolve(lambda m_delta: x_mean_pos - x_eq(Ap_u, Ap_l,
                                                        m_u - m_delta,
                                                        m_l + m_delta,
                                                        Vd_u, Vd_l, c), m_delta_guess)[0]
+# recompute setpoints based on new x_mean_pos and new masses
 V0_u = Ap_u*x_mean_pos + Vd_u
 V0_l = Ap_l*(2.03 - x_mean_pos) + Vd_l
 m_u = m_u - m_delta
