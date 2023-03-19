@@ -169,11 +169,16 @@ if(BUILD_TESTING)
 
   buoy_add_gtest(wave_body_interactions_heaveonly LAUNCH_TEST
     LOCALLY_INSTALLED_LIBS
-      FreeSurfaceHydrodynamics)
+      FreeSurfaceHydrodynamics
+    EXTRA_ROS_PKGS
+      ament_index_cpp)
 
   buoy_add_gtest(wave_body_interactions_pitchonly LAUNCH_TEST
     LOCALLY_INSTALLED_LIBS
-      FreeSurfaceHydrodynamics)
+      FreeSurfaceHydrodynamics
+    EXTRA_ROS_PKGS
+      ament_index_cpp)
+
 
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)

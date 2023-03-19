@@ -29,6 +29,8 @@
 #include <gz/sim/components/World.hh>
 #include <gz/sim/components/Gravity.hh>
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
+
 #include "FS_Hydrodynamics.hpp"
 #include "LinearIncidentWave.hpp"
 
@@ -195,8 +197,8 @@ TEST(WaveBodyInteractionTests, HeaveMotions)
   BuoyA5.SetMass(buoy_mass);
 
   std::string HydrodynamicsBaseFilename =
-    std::string("/home/hamilton/buoy_ws/src/buoy_sim/buoy_description/") +
-    std::string("models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5");
+    ament_index_cpp::get_package_share_directory("buoy_description") +
+    std::string("/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5");
 
   BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
   BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
