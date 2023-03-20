@@ -38,6 +38,7 @@ if(BUILD_TESTING)
     set(multiValueArgs
       EXTRA_ROS_PKGS
       LOCALLY_INSTALLED_LIBS
+      FETCH_CONTENT_LIBS
       BOOST_COMPONENTS)
 
     cmake_parse_arguments(buoy_add_gtest "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -59,6 +60,17 @@ if(BUILD_TESTING)
       endforeach()
     endif()
 
+    if(buoy_add_gtest_FETCH_CONTENT_LIBS)
+      foreach(FETCH_CONTENT_LIB ${buoy_add_gtest_FETCH_CONTENT_LIBS})
+        include(FetchContent)
+	FetchContent_Declare(${FETCH_CONTENT_LIB}      # name
+        GIT_REPOSITORY https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git  # repository
+        GIT_TAG   v1.2.3  # tag
+        )
+        FetchContent_MakeAvailable(${FETCH_CONTENT_LIB})
+      endforeach()
+    endif()
+
     ament_add_gtest_executable(${TEST_NAME}
       tests/${TEST_NAME}.cpp
     )
@@ -70,6 +82,12 @@ if(BUILD_TESTING)
     if(buoy_add_gtest_LOCALLY_INSTALLED_LIBS)
       foreach(LOCAL_LIB ${buoy_add_gtest_LOCALLY_INSTALLED_LIBS})
         target_link_libraries(${TEST_NAME} ${LOCAL_LIB})
+      endforeach()
+    endif()
+
+    if(buoy_add_gtest_FETCH_CONTENT_LIBS)
+      foreach(FETCH_CONTENT_LIB ${buoy_add_gtest_FETCH_CONTENT_LIBS})
+	      target_link_libraries(${TEST_NAME} ${FETCH_CONTENT_LIB})
       endforeach()
     endif()
 
@@ -168,13 +186,13 @@ if(BUILD_TESTING)
       buoy_gazebo)
 
   buoy_add_gtest(wave_body_interactions_heaveonly LAUNCH_TEST
-    LOCALLY_INSTALLED_LIBS
+    FETCH_CONTENT_LIBS
       FreeSurfaceHydrodynamics
     EXTRA_ROS_PKGS
       ament_index_cpp)
 
   buoy_add_gtest(wave_body_interactions_pitchonly LAUNCH_TEST
-    LOCALLY_INSTALLED_LIBS
+    FETCH_CONTENT_LIBS
       FreeSurfaceHydrodynamics
     EXTRA_ROS_PKGS
       ament_index_cpp)
