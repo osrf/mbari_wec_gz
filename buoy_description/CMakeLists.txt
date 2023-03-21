@@ -31,16 +31,18 @@ add_custom_target(model_gen_target ALL
   DEPENDS model_gen_cmd
 )
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
-endif()
+install(PROGRAMS scripts/compute_polytropic.py DESTINATION lib/${PROJECT_NAME}/)
 
 install(DIRECTORY
   models
   ${CMAKE_CURRENT_BINARY_DIR}/models
   DESTINATION share/${PROJECT_NAME}/
 )
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
 
