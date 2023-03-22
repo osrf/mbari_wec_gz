@@ -112,6 +112,7 @@ def regenerate_models(context, *args, **kwargs):
                                         'inc_wave_seed',
                                         'battery_soc',
                                         'battery_emf',
+                                        'x_mean_pos',
                                         'inc_wave_spectrum']
     mbari_wec_model_params = []
     for world_param in supported_mbari_wec_model_params:
