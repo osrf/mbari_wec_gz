@@ -28,10 +28,8 @@ apt-get install -y git \
 
 cd $COLCON_WS_SRC
 cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
-wget https://raw.githubusercontent.com/osrf/buoy_entrypoint/main/buoy_all.yaml
-vcs import --skip-existing < buoy_all.yaml
-
-rm -rf buoy_examples
+wget https://raw.githubusercontent.com/osrf/mbari_wec_entrypoint/main/mbari_wec_all.yaml
+vcs import --skip-existing < mbari_wec_all.yaml
 
 rosdep init
 rosdep update
