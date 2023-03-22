@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
-  <world name="world_demo">
+  <world name="single_floating_body_ world">
 
     <physics name="1ms" type="ignored">
       <max_step_size>0.01</max_step_size>

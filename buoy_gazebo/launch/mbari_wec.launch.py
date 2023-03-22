@@ -62,7 +62,7 @@ def generate_launch_description():
     )
 
     gazebo_world_name_launch_arg = DeclareLaunchArgument(
-        'world_name', default_value=['world_demo'],
+        'world_name', default_value=['mbari_wec_world'],
         description='Gazebo <world name>'
     )
 

@@ -159,7 +159,6 @@ void IncidentWaves::PreUpdate(
       this->dataPtr->IncWaveEntity);
     this->dataPtr->inc_wave_state = buoy_gazebo::IncWaveState(inc_wave_state_comp->Data());
   }
-
   double deta_dx{0.0}, deta_dy{0.0};
   double eta = this->dataPtr->Inc->eta(
     this->dataPtr->inc_wave_state.x,
@@ -193,7 +192,7 @@ void IncidentWaves::PreUpdate(
     };
 
   gz::transport::Node node;
-  node.Request("/world/world_demo/set_pose", req, cb);
+  node.Request("/world/mbari_wec_world/set_pose", req, cb);
 
   return;
 }
