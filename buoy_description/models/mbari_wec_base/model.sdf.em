@@ -94,6 +94,15 @@ def tether_joint_properties():
 # PTO
 pto_inner_radius = tether_radius + pto_gap
 pto_scale = pto_inner_radius / pto_stl_inner_radius
+
+# PTO Buoyancy (specify desired COB, computes location of extra volume above .stl collision mesh)
+pto_disp = .205  # m^3  (Specified)
+pto_cob = -3  # z-position, on centerline (Specified)
+stl_disp = .160443 # m^3  Specific to .stl file
+stl_cob = 0 # z-position, on centerline. Buoyancy plugin uses collisioin pose origin, not center of mesh volume
+buoyancy_disp = pto_disp - stl_disp
+buoyancy_cob = (pto_cob*pto_disp - stl_cob*stl_disp)/buoyancy_disp
+buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
 }@
 <sdf version="1.8">
   <model name="MBARI_WEC_BASE">
@@ -116,21 +125,21 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
            <xy>0.0</xy>
            <xz>0.0</xz>
            <xp>0.0</xp>
-           <xq>370.0</xq>
+           <xq>150.0</xq>
            <xr>0.0</xr>
            <yy>260.0</yy>
            <yz>0.0</yz>
-           <yp>-370.0</yp>
+           <yp>-150.0</yp>
            <yq>0.0</yq>
            <yr>0.0</yr>
            <zz>3080.0</zz>
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>780.0</pp>
+           <pp>330.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>780.0</qq>
+           <qq>330.0</qq>
            <qr>0.0</qr>
            <rr>0.0</rr>
        </fluid_added_mass>
@@ -149,10 +158,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         </material>
       </visual>
       <collision name="collision">
-        <pose>0 0 2.46 0 0 0 </pose>
+        <pose>0 0 2.05 0 0 0 </pose>
         <geometry>
           <box>
-            <size>2.34 2.34 1</size>
+            <size>1.5 1.5 1.06</size>
           </box>
         </geometry>
       </collision>
@@ -172,7 +181,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
     <link name="PTO">
       <pose relative_to="Buoy">0 0 0 0 0 0</pose>
       <inertial>
-        <pose>0 0 -3.67 0 0 0</pose>
+        <pose>0 0 -4.0 0 0 0</pose>
         <mass>605</mass>
         <inertia>
           <ixx>32600.0</ixx>
@@ -187,21 +196,21 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
            <xy>0.0</xy>
            <xz>0.0</xz>
            <xp>0.0</xp>
-           <xq>1250.0</xq>
+           <xq>0.0</xq>
            <xr>0.0</xr>
            <yy>310.0</yy>
            <yz>0.0</yz>
-           <yp>-1250.0</yp>
+           <yp>0.0</yp>
            <yq>0.0</yq>
            <yr>0.0</yr>
            <zz>10.0</zz>
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>7040.0</pp>
+           <pp>2030.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>7040.0</qq>
+           <qq>2030.0</qq>
            <qr>0.0</qr>
            <rr>0.0</rr>
        </fluid_added_mass>
@@ -218,6 +227,14 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
           <specular>1 1 1 1</specular>
         </material>
       </visual>
+      <collision name="buoyancy">
+        <pose>0 0 @(buoyancy_cob) 0 0 0 </pose>
+        <geometry>
+          <sphere>
+            <radius>@(buoyancy_radius)</radius>
+          </sphere>
+        </geometry>
+      </collision>
       <collision name="collision">
         <geometry>
           <mesh>
@@ -414,10 +431,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 -1.25 0 0 0</pose>
         <mass>@(heave_total_mass)</mass>
         <inertia>
-          <ixx>4200.0</ixx>
+          <ixx>340.0</ixx>
           <ixy>0.0</ixy>
-          <ixz>-1.0</ixz>
-          <iyy>4200.0</iyy>
+          <ixz>0.0</ixz>
+          <iyy>340.0</iyy>
           <iyz>0.0</iyz>
           <izz>610.0</izz>
         </inertia>
@@ -437,10 +454,10 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
            <zp>0.0</zp>
            <zq>0.0</zq>
            <zr>0.0</zr>
-           <pp>3990.0</pp>
+           <pp>2870.0</pp>
            <pq>0.0</pq>
            <pr>0.0</pr>
-           <qq>3990.0</qq>
+           <qq>2870.0</qq>
            <qr>0.0</qr>
            <rr>10.0</rr>
        </fluid_added_mass>
@@ -462,7 +479,7 @@ pto_scale = pto_inner_radius / pto_stl_inner_radius
         <pose>0 0 -1.21 0 0 0 </pose>
         <geometry>
           <box>
-            <size>0.578 0.578 0.5771</size>
+            <size>0.5 0.5 .48</size>
           </box>
         </geometry>
       </collision>

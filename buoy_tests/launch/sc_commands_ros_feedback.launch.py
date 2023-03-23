@@ -16,11 +16,14 @@ import unittest
 
 import launch
 import launch.actions
+from launch.actions import OpaqueFunction
 
 from launch_ros.actions import Node
 
 import launch_testing
 import launch_testing.actions
+
+from testing_utils import regenerate_models
 
 
 def generate_test_description():
@@ -38,9 +41,16 @@ def generate_test_description():
                   arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                   output='screen')
 
+    nodes = [gazebo_test_fixture,
+             bridge]
+    sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
+                      physics_rtf=11.0,
+                      physics_step=0.001)
+
     return launch.LaunchDescription([
-        gazebo_test_fixture,
-        bridge,
+        OpaqueFunction(function=regenerate_models,
+                       args=nodes,
+                       kwargs=sim_params),
         launch_testing.util.KeepAliveProc(),
         launch_testing.actions.ReadyToTest()
     ]), locals()
@@ -49,7 +59,7 @@ def generate_test_description():
 class SCCommandsROSTest(unittest.TestCase):
 
     def test_termination(self, gazebo_test_fixture, proc_info):
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=600)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=900)
 
 
 @launch_testing.post_shutdown_test()

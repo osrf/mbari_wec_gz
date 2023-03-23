@@ -61,6 +61,8 @@ public:
   /// \brief Rotor Inertia
   double RotorInertia{1.0};
 
+  double Ve{300.0};
+
   /// \brief Default Scale Factor
   double DefaultScaleFactor{DEFAULT_SCALE_FACTOR};
 
@@ -71,7 +73,6 @@ public:
 
   Eigen::VectorXd x{};
 
-  static constexpr double Ve{315.0};
   static constexpr double Ri{7.0};
   static constexpr double I_BattChargeMax{7.0};
   static constexpr double MaxTargetVoltage{325.0};
@@ -140,6 +141,18 @@ void ElectroHydraulicPTO::Configure(
 
   this->dataPtr->DefaultScaleFactor =
     SdfParamDouble(_sdf, "ScaleFactor", this->dataPtr->DefaultScaleFactor);
+
+  if (_sdf->HasElement("BatterySoC")) {
+    double SoC =
+      SdfParamDouble(_sdf, "BatterySoC", 3.0 / 5.0);  // default to Ve = 300V
+    this->dataPtr->Ve = 50.0 * SoC + 270.0;  // SoC (0.0 to 1.0) gives Ve (270V to 320V)
+    gzdbg << "Battery SoC (" << SoC
+          << ") -> Battery EMF (" << this->dataPtr->Ve << "V)" << std::endl;
+  } else {
+    this->dataPtr->Ve =
+      SdfParamDouble(_sdf, "BatteryEMF", this->dataPtr->Ve);
+    gzdbg << "Battery EMF (" << this->dataPtr->Ve << "V)" << std::endl;
+  }
 
   if (_sdf->HasElement("VelMode")) {
     this->dataPtr->VelMode = true;

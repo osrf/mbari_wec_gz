@@ -203,7 +203,7 @@ protected:
   static int argc_;
   static char ** argv_;
   static constexpr double stroke{2.03};
-  static constexpr double lower_area{0.0115}, lower_dead_volume{0.0463};
+  static constexpr double lower_area{0.0115}, lower_dead_volume{0.0363};
   static constexpr double upper_area{0.0127}, upper_dead_volume{0.0226};
   static gz::sim::Entity jointEntity;
   static constexpr double timestep{0.01};
@@ -569,17 +569,18 @@ TEST_F(BuoyExperimentComparison, Spring)
       if (!std::binary_search(select_PV.begin(), select_PV.end(), i)) {
         continue;
       }
+      size_t offset{TestData::LOWER_SPRING_VOLUME - TestData::LOWER_SPRING_PRESSURE};
       Gnuplot gp;
-      gp << "set term X11 title  '" << InputData.names[i] << " vs " << InputData.names[i + 2U] <<
-        " Comparison'\n";
+      gp << "set term X11 title  '" << InputData.names[i] << " vs " <<
+        InputData.names[i + offset] << " Comparison'\n";
       gp << "set grid\n";
-      gp << "set xlabel '" << InputData.units[i + 2U] << "'\n";
+      gp << "set xlabel '" << InputData.units[i + offset] << "'\n";
       gp << "set ylabel '" << InputData.units[i] << "'\n";
       gp << "plot '-' w l title 'EXP " <<
         "','-' w l title 'TEST " << "'\n";
 
-      gp.send1d(boost::make_tuple(InputData.get_data(i + 2U), InputData.get_data(i)));
-      gp.send1d(boost::make_tuple(ResultsData.get_data(i + 2U), ResultsData.get_data(i)));
+      gp.send1d(boost::make_tuple(InputData.get_data(i + offset), InputData.get_data(i)));
+      gp.send1d(boost::make_tuple(ResultsData.get_data(i + offset), ResultsData.get_data(i)));
     }
   } else {  // Compare test results to input data and pass test if so.
     EXPECT_TRUE(CompareData(TestData::PISTON_POS, 1e-2, timestep));
@@ -587,6 +588,43 @@ TEST_F(BuoyExperimentComparison, Spring)
     EXPECT_TRUE(CompareData(TestData::UPPER_SPRING_PRESSURE, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::LOWER_SPRING_VOLUME, 1e-2, timestep));
     EXPECT_TRUE(CompareData(TestData::UPPER_SPRING_VOLUME, 1e-2, timestep));
+  }
+
+  if (manual_comparison) {
+    std::cout << "Save PV curves?  Enter y/n" << std::endl;
+
+    system("stty raw");     // Set terminal to raw mode
+    char key = getchar();   // Wait for single character
+    system("stty cooked");  // Reset terminal to normal "cooked" mode
+
+    if (key == 'y') {
+      std::vector<size_t> select_PV{
+        TestData::LOWER_SPRING_PRESSURE,
+        TestData::UPPER_SPRING_PRESSURE};
+      for (size_t idx = 1U; idx < TestData::NUM_VALUES; idx++) {
+        if (!std::binary_search(select_PV.begin(), select_PV.end(), idx)) {
+          continue;
+        }
+        size_t offset{TestData::LOWER_SPRING_VOLUME - TestData::LOWER_SPRING_PRESSURE};
+        std::string outputdata_filename =
+          InputData.names[idx] + std::string("_vs_") +
+          InputData.names[idx + offset] + std::string("_input.csv");
+        std::ofstream outputdata(outputdata_filename);
+        std::string pv_header_line =
+          InputData.names[idx + offset] + std::string(",") + InputData.names[idx];
+        if (outputdata.is_open()) {
+          outputdata << pv_header_line << std::endl;
+          std::cout << "Writing [" << InputData.get_data(idx).size() << "] PV data points to " <<
+            outputdata_filename << std::endl;
+          for (size_t jdx = 0U; jdx < InputData.get_data(idx).size(); ++jdx) {
+            outputdata << InputData.get_data_at(idx + offset, jdx) << ",";
+            outputdata << InputData.get_data_at(idx, jdx);
+            outputdata << std::endl;
+          }
+          outputdata.close();
+        }
+      }
+    }
   }
 }
 
