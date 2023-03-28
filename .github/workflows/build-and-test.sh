@@ -28,7 +28,7 @@ apt-get install -y git \
 
 cd $COLCON_WS_SRC
 cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
-wget https://raw.githubusercontent.com/osrf/mbari_wec_entrypoint/main/mbari_wec_all.yaml
+wget https://raw.githubusercontent.com/osrf/mbari_wec/main/mbari_wec_all.yaml
 vcs import --skip-existing < mbari_wec_all.yaml
 
 rosdep init
@@ -49,5 +49,5 @@ colcon build --packages-up-to buoy_tests --event-handlers console_direct+
 source $COLCON_WS/install/setup.bash
 
 # Test all buoy packages
-colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+ --retest-until-pass 10
+colcon test --packages-select-regex=buoy --packages-skip=mbari_wec_utils --event-handlers console_direct+ --retest-until-pass 10
 colcon test-result
