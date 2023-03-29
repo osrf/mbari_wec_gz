@@ -35,56 +35,55 @@ namespace buoy_gazebo
 {
 class MooringForcePrivate
 {
-public:
   /// \brief Buoy link entity
-  gz::sim::Entity buoyLinkEnt{gz::sim::kNullEntity};
+  public: gz::sim::Entity buoyLinkEnt{gz::sim::kNullEntity};
 
   /// \brief Buoy link on water surface
-  gz::sim::Link buoyLink;
+  public: gz::sim::Link buoyLink{gz::sim::kNullEntity};
 
   /// \brief World pose of buoy link
-  gz::math::Vector3d buoyPos;
+  public: gz::math::Vector3d buoyPos;
 
   /// \brief Heave cone link entity
-  gz::sim::Entity heaveConeLinkEnt{gz::sim::kNullEntity};
+  public: gz::sim::Entity heaveConeLinkEnt{gz::sim::kNullEntity};
 
   /// \brief Heave cone link to which the virtual mooring is attached
-  gz::sim::Link heaveConeLink;
+  public: gz::sim::Link heaveConeLink{gz::sim::kNullEntity};
 
   /// \brief A predefined pose we assume the anchor to be
-  gz::math::Vector3d anchorPos{20.0, 0.0, -77.0};
+  public: gz::math::Vector3d anchorPos{20.0, 0.0, -77.0};
 
   /// \brief Model interface
-  gz::sim::Model model{gz::sim::kNullEntity};
+  public: gz::sim::Model model{gz::sim::kNullEntity};
 
-  /// \brief Meters, vertical distance from buoy to anchor. Updated per
-  /// iteration
-  double V = 82.0;
+  /// \brief Vertical distance from buoy to anchor. Updated per
+  /// iteration (metres).
+  public: double V{std::nanf("")};
 
-  /// \brief Meters, total length of mooring chain
-  double L = 160.0;
+  /// \brief Total length of mooring chain (metres).
+  public: double L{std::nanf("")};
 
-  /// \brief Meters, horizontal distance from buoy to anchor. Updated per
-  /// iteration
-  double H = 120.0;
+  /// \brief Horizontal distance from buoy to anchor. Updated per
+  /// iteration  (metres).
+  public: double H{std::nanf("")};
 
   /// \brief Distance of buoy from anchor, beyond which (i.e. H > radius)
   /// mooring force is applied. Within the radius, no or negligible catenary
   /// curve is formed, and no mooring force will be applied.
-  double effectiveRadius = 90.0;
+  public: public: double effectiveRadius = 90.0;
 
   /// \brief N/m, weight of chain per unit length
-  double w = 20.0;
+  public: double w = 20.0;
 
   /// \brief radians, atan2 angle of buoy from anchor
-  double theta = 0.0;
+  public: double theta = 0.0;
 
   /// \brief Catenary equation to pass to solver
-  std::unique_ptr<CatenaryHSoln> catenarySoln{new CatenaryHSoln(V, H, L)};
+  public: std::unique_ptr<CatenaryHSoln> catenarySoln;
 
   /// \brief Solution to catenary equation. Meters, length of chain laying on
   /// the bottom, start of catenary.
-  Eigen::VectorXd B{};
+  public: Eigen::VectorXd B{};
 
   /// \brief If we have notified when inside effective radius.
   public: bool notifiedInsideEffectiveRadius{false};
@@ -95,14 +94,24 @@ public:
   /// \brief Last debug print simulation time
   public: std::chrono::steady_clock::duration lastDebugPrintTime{0};
 
+  /// \brief Constructor
+  public: MooringForcePrivate();
+
   /// \brief Look for buoy link to find input to catenary equation, and heave
   /// cone link to apply output force to
-  bool FindLinks(gz::sim::EntityComponentManager & _ecm);
+  public: bool FindLinks(gz::sim::EntityComponentManager & _ecm);
 
   /// \brief Update V and H for solver input
-  void UpdateVH(gz::sim::EntityComponentManager & _ecm);
+  public: void UpdateVH(gz::sim::EntityComponentManager & _ecm);
 };
 
+//////////////////////////////////////////////////
+MooringForcePrivate::MooringForcePrivate()
+  : catenarySoln{std::make_unique<CatenaryHSoln>(V, H, L)}
+{
+}
+
+//////////////////////////////////////////////////
 //////////////////////////////////////////////////
 MooringForce::MooringForce()
 : dataPtr(std::make_unique<MooringForcePrivate>())
@@ -114,8 +123,7 @@ bool MooringForcePrivate::FindLinks(
   gz::sim::EntityComponentManager & _ecm)
 {
   // Look for buoy link to get input for catenary equation
-  this->buoyLinkEnt = this->model.LinkByName(_ecm,
-    "Buoy");
+  this->buoyLinkEnt = this->model.LinkByName(_ecm, "Buoy");
   if (this->buoyLinkEnt != gz::sim::kNullEntity)
   {
     this->buoyLink = gz::sim::Link(
@@ -158,6 +166,7 @@ bool MooringForcePrivate::FindLinks(
   return true;
 }
 
+//////////////////////////////////////////////////
 //////////////////////////////////////////////////
 void MooringForcePrivate::UpdateVH(
   gz::sim::EntityComponentManager & _ecm)

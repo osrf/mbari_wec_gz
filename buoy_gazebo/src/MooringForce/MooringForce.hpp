@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MOORINGFORCE__MOORINGFORCE_HPP_
-#define MOORINGFORCE__MOORINGFORCE_HPP_
+#ifndef MOORINGFORCE_MOORINGFORCE_HPP_
+#define MOORINGFORCE_MOORINGFORCE_HPP_
 
 #include <gz/sim/System.hh>
 
@@ -53,4 +53,4 @@ private:
 };
 }  // namespace buoy_gazebo
 
-#endif  // MOORINGFORCE__MOORINGFORCE_HPP_
+#endif  // MOORINGFORCE_MOORINGFORCE_HPP_
