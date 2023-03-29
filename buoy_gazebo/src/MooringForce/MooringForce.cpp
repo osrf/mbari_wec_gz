@@ -44,12 +44,6 @@ class MooringForcePrivate
   /// \brief World pose of buoy link
   public: gz::math::Vector3d buoyPos;
 
-  /// \brief Heave cone link entity
-  public: gz::sim::Entity heaveConeLinkEnt{gz::sim::kNullEntity};
-
-  /// \brief Heave cone link to which the virtual mooring is attached
-  public: gz::sim::Link heaveConeLink{gz::sim::kNullEntity};
-
   /// \brief A predefined pose we assume the anchor to be
   public: gz::math::Vector3d anchorPos{20.0, 0.0, -77.0};
 
@@ -142,27 +136,6 @@ bool MooringForcePrivate::FindLinks(
     return false;
   }
 
-  // Look for heave cone link to apply force to
-  this->heaveConeLinkEnt = this->model.LinkByName(_ecm,
-    "HeaveCone");
-  if (this->heaveConeLinkEnt != gz::sim::kNullEntity)
-  {
-    this->heaveConeLink = gz::sim::Link(
-      this->heaveConeLinkEnt);
-    if (!this->heaveConeLink.Valid(_ecm))
-    {
-      gzwarn << "Could not find valid heave cone link. Mooring force may "
-        << "not be applied correctly." << std::endl;
-      return false;
-    }
-  }
-  else
-  {
-    gzwarn << "Could not find valid heave cone link. Mooring force may "
-      << "not be applied correctly." << std::endl;
-    return false;
-  }
-
   return true;
 }
 
@@ -172,8 +145,7 @@ void MooringForcePrivate::UpdateVH(
   gz::sim::EntityComponentManager & _ecm)
 {
   // If necessary links not found yet, nothing to do
-  if (this->heaveConeLinkEnt == gz::sim::kNullEntity ||
-    this->buoyLinkEnt == gz::sim::kNullEntity)
+  if (this->buoyLinkEnt == gz::sim::kNullEntity)
   {
     return;
   }
@@ -267,8 +239,7 @@ void MooringForce::PreUpdate(
   GZ_PROFILE("MooringForce::PreUpdate");
 
   // If necessary links have not been identified yet, the plugin is disabled
-  if (this->dataPtr->heaveConeLinkEnt == gz::sim::kNullEntity ||
-    this->dataPtr->buoyLinkEnt == gz::sim::kNullEntity)
+  if (this->dataPtr->buoyLinkEnt == gz::sim::kNullEntity)
   {
     this->dataPtr->FindLinks(_ecm);
     gzerr << "Could not find heave cone and buoy links in ECM." << std::endl;
