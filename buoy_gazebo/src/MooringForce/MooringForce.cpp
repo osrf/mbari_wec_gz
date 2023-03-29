@@ -35,20 +35,20 @@ namespace buoy_gazebo
 {
 class MooringForcePrivate
 {
-  /// \brief Buoy link entity
-  public: gz::sim::Entity buoyLinkEnt{gz::sim::kNullEntity};
+  /// \brief Model interface
+  public: gz::sim::Model model{gz::sim::kNullEntity};
 
-  /// \brief Buoy link on water surface
-  public: gz::sim::Link buoyLink{gz::sim::kNullEntity};
+  /// \brief The link attached to the mooring chain.
+  public: gz::sim::Link link{gz::sim::kNullEntity};
 
-  /// \brief World pose of buoy link
-  public: gz::math::Vector3d buoyPos;
+  /// \brief World position of the link
+  public: gz::math::Vector3d linkPos;
+
+  /// \brief Name of the link the mooring is attached to.
+  public: std::string linkName{"Buoy"};
 
   /// \brief A predefined pose we assume the anchor to be
   public: gz::math::Vector3d anchorPos{20.0, 0.0, -77.0};
-
-  /// \brief Model interface
-  public: gz::sim::Model model{gz::sim::kNullEntity};
 
   /// \brief Vertical distance from buoy to anchor. Updated per
   /// iteration (metres).
@@ -93,10 +93,10 @@ class MooringForcePrivate
 
   /// \brief Look for buoy link to find input to catenary equation, and heave
   /// cone link to apply output force to
-  public: bool FindLinks(gz::sim::EntityComponentManager & _ecm);
+  public: bool FindLinks(gz::sim::EntityComponentManager &_ecm);
 
   /// \brief Update V and H for solver input
-  public: void UpdateVH(gz::sim::EntityComponentManager & _ecm);
+  public: void UpdateVH(gz::sim::EntityComponentManager &_ecm);
 };
 
 //////////////////////////////////////////////////
@@ -106,33 +106,18 @@ MooringForcePrivate::MooringForcePrivate()
 }
 
 //////////////////////////////////////////////////
-//////////////////////////////////////////////////
-MooringForce::MooringForce()
-: dataPtr(std::make_unique<MooringForcePrivate>())
-{
-}
-
-//////////////////////////////////////////////////
 bool MooringForcePrivate::FindLinks(
-  gz::sim::EntityComponentManager & _ecm)
+  gz::sim::EntityComponentManager &_ecm)
 {
-  // Look for buoy link to get input for catenary equation
-  this->buoyLinkEnt = this->model.LinkByName(_ecm, "Buoy");
-  if (this->buoyLinkEnt != gz::sim::kNullEntity)
+  // Find link
+  auto entity = this->model.LinkByName(_ecm, this->linkName);
+  this->link = gz::sim::Link(entity);
+
+  if (!this->link.Valid(_ecm))
   {
-    this->buoyLink = gz::sim::Link(
-      this->buoyLinkEnt);
-    if (!this->buoyLink.Valid(_ecm))
-    {
-      gzwarn << "Could not find valid buoy link. Mooring force may "
-        << "not be calculated correctly." << std::endl;
-      return false;
-    }
-  }
-  else
-  {
-    gzwarn << "Could not find valid buoy link. Mooring force may "
-      << "not be calculated correctly." << std::endl;
+      gzwarn << "Could not find link[" << this->linkName << "]. "
+             << "Mooring force will not be calculated."
+             << std::endl;
     return false;
   }
 
@@ -140,42 +125,51 @@ bool MooringForcePrivate::FindLinks(
 }
 
 //////////////////////////////////////////////////
-//////////////////////////////////////////////////
 void MooringForcePrivate::UpdateVH(
-  gz::sim::EntityComponentManager & _ecm)
+  gz::sim::EntityComponentManager &_ecm)
 {
-  // If necessary links not found yet, nothing to do
-  if (this->buoyLinkEnt == gz::sim::kNullEntity)
+  // Skip if buoy link is not valid.
+  if (!this->link.Valid(_ecm))
   {
     return;
   }
 
   // Get buoy position in world
-  auto buoyPose = this->buoyLink.WorldPose(_ecm);
-  this->buoyPos = buoyPose->Pos();
+  auto linkPose = this->link.WorldPose(_ecm);
+  this->linkPos = linkPose->Pos();
 
   // Update vertical (z) distance between buoy and anchor
-  this->V = fabs(this->buoyPos[2U] - this->anchorPos[2U]);
+  this->V = fabs(this->linkPos[2U] - this->anchorPos[2U]);
 
   // Update horizontal distance between buoy and anchor
   this->H = sqrt(
-    (this->buoyPos[0U] - this->anchorPos[0U]) *
-    (this->buoyPos[0U] - this->anchorPos[0U]) +
-    (this->buoyPos[1U] - this->anchorPos[1U]) *
-    (this->buoyPos[1U] - this->anchorPos[1U]));
+    (this->linkPos[0U] - this->anchorPos[0U]) *
+    (this->linkPos[0U] - this->anchorPos[0U]) +
+    (this->linkPos[1U] - this->anchorPos[1U]) *
+    (this->linkPos[1U] - this->anchorPos[1U]));
 
   // Update angle between buoy and anchor
-  this->theta = atan2(this->buoyPos[1U] - this->anchorPos[1U],
-    this->buoyPos[0U] - this->anchorPos[0U]);
+  this->theta = atan2(this->linkPos[1U] - this->anchorPos[1U],
+    this->linkPos[0U] - this->anchorPos[0U]);
 
   this->catenarySoln.reset(new CatenaryHSoln(this->V, this->H, this->L));
 }
 
 //////////////////////////////////////////////////
+//////////////////////////////////////////////////
+MooringForce::~MooringForce() = default;
+
+//////////////////////////////////////////////////
+MooringForce::MooringForce()
+: System(), dataPtr(std::make_unique<MooringForcePrivate>())
+{
+}
+
+//////////////////////////////////////////////////
 void MooringForce::Configure(
-  const gz::sim::Entity & _entity,
-  const std::shared_ptr<const sdf::Element> & _sdf,
-  gz::sim::EntityComponentManager & _ecm,
+  const gz::sim::Entity &_entity,
+  const std::shared_ptr<const sdf::Element> &_sdf,
+  gz::sim::EntityComponentManager &_ecm,
   gz::sim::EventManager & /*_eventMgr*/)
 {
   // Skip debug messages to run faster TODO change to 3 before merge PR
@@ -233,20 +227,18 @@ void MooringForce::Configure(
 
 //////////////////////////////////////////////////
 void MooringForce::PreUpdate(
-  const gz::sim::UpdateInfo & _info,
-  gz::sim::EntityComponentManager & _ecm)
+  const gz::sim::UpdateInfo &_info,
+  gz::sim::EntityComponentManager &_ecm)
 {
   GZ_PROFILE("MooringForce::PreUpdate");
 
-  // If necessary links have not been identified yet, the plugin is disabled
-  if (this->dataPtr->buoyLinkEnt == gz::sim::kNullEntity)
+  // Skip if buoy link is not valid.
+  if (!this->dataPtr->link.Valid(_ecm))
   {
-    this->dataPtr->FindLinks(_ecm);
-    gzerr << "Could not find heave cone and buoy links in ECM." << std::endl;
     return;
   }
 
-  // TODO(anyone): Support rewind
+  // \todo(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero())
   {
     gzwarn << "Detected jump back in time [" <<
@@ -321,7 +313,7 @@ void MooringForce::PreUpdate(
       << " t: " << std::chrono::duration_cast<
           std::chrono::milliseconds>(_info.simTime).count()/1000.0 << "\n"
       << " Anchor: " << this->dataPtr->anchorPos << "\n"
-      << " Buoy:   " << this->dataPtr->buoyPos << "\n"
+      << " Buoy:   " << this->dataPtr->linkPos << "\n"
       << " R: " << this->dataPtr->effectiveRadius << "\n"
       << " L: " << this->dataPtr->L << "\n"
       << " V: " << this->dataPtr->V << "\n"
@@ -354,8 +346,8 @@ void MooringForce::PreUpdate(
   gz::math::Vector3d torque = gz::math::Vector3d::Zero;
   if (force.IsFinite())
   {
-    // this->dataPtr->buoyLink.SetVisualizationLabel("MooringForce");
-    this->dataPtr->buoyLink.AddWorldWrench(_ecm, force, torque);
+    // this->dataPtr->link.SetVisualizationLabel("MooringForce");
+    this->dataPtr->link.AddWorldWrench(_ecm, force, torque);
   }
   else
   {

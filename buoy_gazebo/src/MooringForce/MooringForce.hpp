@@ -33,7 +33,7 @@ public:
   MooringForce();
 
   /// \brief Destructor
-  ~MooringForce() override = default;
+  ~MooringForce() override;
 
   // Documentation inherited
   void Configure(
