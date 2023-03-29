@@ -310,7 +310,7 @@ void MooringForce::PreUpdate(
   // Initial estimate for B (upper bound).
   auto BMax = [](double V, double H, double L) -> double
   {
-    return (L*L - (V*V + H*H)) / (2 * (L - H));
+    return (L * L - (V * V + H * H)) / (2 * (L - H));
   };
 
   double bMax = BMax(this->dataPtr->V, this->dataPtr->H, this->dataPtr->L);
