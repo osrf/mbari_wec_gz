@@ -232,8 +232,8 @@ void MooringForce::Configure(
     if (_sdf->HasElement("debug_print_rate"))
     {
       rate = _sdf->Get<double>(
-        "debug_print_rate", this->dataPtr->L).first;
-      gzdbg << "Debug print rate set to " << this->dataPtr->L
+        "debug_print_rate", rate).first;
+      gzdbg << "Debug print rate set to " << rate
         << std::endl;
     }
     std::chrono::duration<double> period{rate > 0.0 ? 1.0 / rate : 0.0};
