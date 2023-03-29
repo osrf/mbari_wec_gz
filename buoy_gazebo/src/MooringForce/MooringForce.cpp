@@ -115,7 +115,8 @@ bool MooringForcePrivate::FindLinks(
   // Look for buoy link to get input for catenary equation
   this->buoyLinkEnt = this->model.LinkByName(_ecm,
     "Buoy");
-  if (this->buoyLinkEnt != gz::sim::kNullEntity) {
+  if (this->buoyLinkEnt != gz::sim::kNullEntity)
+  {
     this->buoyLink = gz::sim::Link(
       this->buoyLinkEnt);
     if (!this->buoyLink.Valid(_ecm))
@@ -125,7 +126,8 @@ bool MooringForcePrivate::FindLinks(
       return false;
     }
   }
-  else {
+  else
+  {
     gzwarn << "Could not find valid buoy link. Mooring force may "
       << "not be calculated correctly." << std::endl;
     return false;
@@ -134,7 +136,8 @@ bool MooringForcePrivate::FindLinks(
   // Look for heave cone link to apply force to
   this->heaveConeLinkEnt = this->model.LinkByName(_ecm,
     "HeaveCone");
-  if (this->heaveConeLinkEnt != gz::sim::kNullEntity) {
+  if (this->heaveConeLinkEnt != gz::sim::kNullEntity)
+  {
     this->heaveConeLink = gz::sim::Link(
       this->heaveConeLinkEnt);
     if (!this->heaveConeLink.Valid(_ecm))
@@ -144,7 +147,8 @@ bool MooringForcePrivate::FindLinks(
       return false;
     }
   }
-  else {
+  else
+  {
     gzwarn << "Could not find valid heave cone link. Mooring force may "
       << "not be applied correctly." << std::endl;
     return false;
@@ -159,7 +163,8 @@ void MooringForcePrivate::UpdateVH(
 {
   // If necessary links not found yet, nothing to do
   if (this->heaveConeLinkEnt == gz::sim::kNullEntity ||
-    this->buoyLinkEnt == gz::sim::kNullEntity) {
+    this->buoyLinkEnt == gz::sim::kNullEntity)
+  {
     return;
   }
 
@@ -195,7 +200,8 @@ void MooringForce::Configure(
   gz::common::Console::SetVerbosity(4);
 
   this->dataPtr->model = gz::sim::Model(_entity);
-  if (!this->dataPtr->model.Valid(_ecm)) {
+  if (!this->dataPtr->model.Valid(_ecm))
+  {
     gzerr << "MooringForce plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
@@ -234,7 +240,7 @@ void MooringForce::Configure(
       rate = _sdf->Get<double>(
         "debug_print_rate", rate).first;
       gzdbg << "Debug print rate set to " << rate
-        << std::endl;
+            << std::endl;
     }
     std::chrono::duration<double> period{rate > 0.0 ? 1.0 / rate : 0.0};
     this->dataPtr->debugPrintPeriod = std::chrono::duration_cast<
@@ -260,14 +266,16 @@ void MooringForce::PreUpdate(
   }
 
   // TODO(anyone): Support rewind
-  if (_info.dt < std::chrono::steady_clock::duration::zero()) {
+  if (_info.dt < std::chrono::steady_clock::duration::zero())
+  {
     gzwarn << "Detected jump back in time [" <<
       std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count() <<
       "s]. System may not work properly." << std::endl;
   }
 
   // Nothing left to do if paused.
-  if (_info.paused) {
+  if (_info.paused)
+  {
     return;
   }
 
@@ -352,7 +360,8 @@ void MooringForce::PreUpdate(
   }
 
   // Did not find solution. Maybe shouldn't apply a force that doesn't make sense
-  if (solverInfo != 1) {
+  if (solverInfo != 1)
+  {
     gzerr << "HSolver failed to converge, solverInfo: " << solverInfo << "\n";
     return;
   }

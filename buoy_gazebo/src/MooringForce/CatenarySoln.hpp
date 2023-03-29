@@ -111,7 +111,8 @@ public:
   // Know 0 <= B < L - V. Take in B = L - V - b as initial guess
   int operator()(const Eigen::VectorXd & B, Eigen::VectorXd & fvec) const
   {
-    if (B.size() < 1) {
+    if (B.size() < 1)
+    {
       ignerr << "Invalid input size for CatenaryHSoln::operator()" << std::endl;
       return -1;
     }
