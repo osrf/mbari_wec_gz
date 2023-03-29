@@ -362,7 +362,7 @@ void MooringForce::PreUpdate(
   // Did not find solution. Maybe shouldn't apply a force that doesn't make sense
   if (solverInfo != 1)
   {
-    gzerr << "HSolver failed to converge, solverInfo: " << solverInfo << "\n";
+    gzerr << "HSolver failed to converge, solverInfo: " << solverInfo << " No mooring force will be applied." << std::endl;
     return;
   }
 
