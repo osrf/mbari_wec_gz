@@ -1,4 +1,5 @@
-// Copyright 2022 Open Source Robotics Foundation, Inc. and Monterey Bay Aquarium Research Institute
+// Copyright 2022 Open Source Robotics Foundation, Inc.
+//                and Monterey Bay Aquarium Research Institute
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -261,7 +262,7 @@ void MooringForce::PreUpdate(
     this->dataPtr->buoyLinkEnt == gz::sim::kNullEntity)
   {
     this->dataPtr->FindLinks(_ecm);
-    gzerr << "Could not find heave cone and buoy links in ECM.\n";
+    gzerr << "Could not find heave cone and buoy links in ECM." << std::endl;
     return;
   }
 
@@ -291,7 +292,7 @@ void MooringForce::PreUpdate(
       gzmsg << "Buoy horizontal radius H [" << this->dataPtr->H << "]"
             << " is inside effective radius R ["
             << this->dataPtr->effectiveRadius << "]"
-            << " skipping force update.\n";
+            << " skipping force update." << std::endl;
     }
     return;
   }
@@ -356,13 +357,15 @@ void MooringForce::PreUpdate(
       << " nfev: " << catenarySolver.nfev << "\n"
       << " iter: " << catenarySolver.iter << "\n"
       << " fnorm: " << catenarySolver.fnorm << "\n"
-      << "\n";
+      << std::endl;
   }
 
-  // Did not find solution. Maybe shouldn't apply a force that doesn't make sense
+  // Did not find solution.
+  // Maybe shouldn't apply a force that doesn't make sense
   if (solverInfo != 1)
   {
-    gzerr << "HSolver failed to converge, solverInfo: " << solverInfo << " No mooring force will be applied." << std::endl;
+    gzerr << "HSolver failed to converge, solverInfo: " << solverInfo
+          << " No mooring force will be applied." << std::endl;
     return;
   }
 
@@ -376,7 +379,7 @@ void MooringForce::PreUpdate(
   }
   else
   {
-    gzerr << "Mooring force is not finite\n";
+    gzerr << "Mooring force is not finite" << std::endl;
   }
 }
 }  // namespace buoy_gazebo

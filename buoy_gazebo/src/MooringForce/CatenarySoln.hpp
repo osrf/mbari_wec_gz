@@ -113,7 +113,7 @@ public:
   {
     if (B.size() < 1)
     {
-      ignerr << "Invalid input size for CatenaryHSoln::operator()" << std::endl;
+      gzerr << "Invalid input size for CatenaryHSoln::operator()" << std::endl;
       return -1;
     }
 
