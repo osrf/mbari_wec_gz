@@ -13,6 +13,7 @@
   <depend>buoy_description</depend>
   <depend>buoy_interfaces</depend>
   <depend>gz-sim7</depend>
+  <depend>mbari_wec_utils</depend>
   <depend>rclcpp</depend>
   <depend>robot_state_publisher</depend>
   <depend>ros_gz_bridge</depend>
