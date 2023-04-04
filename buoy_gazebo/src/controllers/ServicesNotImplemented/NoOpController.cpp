@@ -326,7 +326,7 @@ struct NoOpControllerPrivate
       };
     services_->tfwatchdog_command_service_ =
       ros_->node_->create_service<buoy_interfaces::srv::TFWatchDogCommand>(
-      "tf_watch_dog_command",
+      "tf_watchdog_command",
       services_->tfwatchdog_command_handler_);
   }
 };
