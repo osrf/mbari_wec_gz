@@ -500,7 +500,7 @@ def generate_simulations(sim_params_yaml):
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Batch running for buoy_sim')
+    parser = argparse.ArgumentParser(description='Batch running for mbari_wec_gz')
     parser.add_argument('sim_params_yaml',
                         help='yaml file with batch parameters')
     args, unknown = parser.parse_known_args()
