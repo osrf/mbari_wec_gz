@@ -4,9 +4,19 @@
   <name>buoy_gazebo</name>
   <version>0.0.0</version>
   <description>Gazebo simulation plugins and worlds for buoy.</description>
-  <maintainer email="louise@openrobotics.org">Louise Poubel</maintainer>
+
+  <maintainer email="hamilton@mbari.org">Andrew Hamilton</maintainer>
+  <maintainer email="dharini@openrobotics.org">Dharini Dutia</maintainer>
+  <maintainer email="mabel@openrobotics.org">Mabel Zhang</maintainer>
+  <maintainer email="anderson@mbari.org">Michael Anderson</maintainer>
+
   <license>Apache 2.0</license>
+
   <author>Louise Poubel</author>
+  <author>Joan Aguilar Mayans</author>
+  <author email="michael@openrobotics.org">Michael Caroll</author>
+  <author email="rhys.mainwaring@me.com">Rhys Mainwaring</author>
+  <author email="rob@mbari.org">Robert McEwen</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
