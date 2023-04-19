@@ -6,14 +6,13 @@
   <description>Tests for buoy simulation.</description>
 
   <maintainer email="hamilton@mbari.org">Andrew Hamilton</maintainer>
-  <maintainer email="dharini@openrobotics.org">Dharini Dutia</maintainer>
   <maintainer email="anderson@mbari.org">Michael Anderson</maintainer>
 
   <license>Apache 2.0</license>
 
+  <author email="dharini@openrobotics.org">Dharini Dutia</author>
   <author>Louise Poubel</author>
   <author email="michael@openrobotics.org">Michael Caroll</author>
-  <author email="rhys.mainwaring@me.com">Rhys Mainwaring</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
