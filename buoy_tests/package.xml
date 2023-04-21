@@ -12,7 +12,7 @@
 
   <author email="dharini@openrobotics.org">Dharini Dutia</author>
   <author>Louise Poubel</author>
-  <author email="michael@openrobotics.org">Michael Caroll</author>
+  <author email="michael@openrobotics.org">Michael Carroll</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
