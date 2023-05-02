@@ -36,7 +36,7 @@ vcs import --skip-existing < mbari_wec_all.yaml
 
 rosdep init
 rosdep update
-rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
+rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO --skip-keys=ros-humble-actuator-msgs
 
 git clone https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
 cd FreeSurfaceHydrodynamics
