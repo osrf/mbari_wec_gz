@@ -17,6 +17,7 @@ echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-nightly `lsb_release -
 wget https://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
 
 echo "deb http://packages.ros.org/ros2/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/ros2-latest.list
+echo "deb http://packages.ros.org/ros2-testing/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/ros2-testing.list
 curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
 # curl -s --compressed "https://hamilton8415.github.io/ppa/KEY.gpg" | gpg --dearmor | tee /etc/apt/trusted.gpg.d/ppa.gpg >/dev/null
 # curl -s --compressed -o /etc/apt/sources.list.d/my_list_file.list "https://hamilton8415.github.io/ppa/my_list_file.list"
@@ -36,7 +37,7 @@ vcs import --skip-existing < mbari_wec_all.yaml
 
 rosdep init
 rosdep update
-rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO --skip-keys=ros-humble-actuator-msgs
+rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
 
 git clone https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
 cd FreeSurfaceHydrodynamics
