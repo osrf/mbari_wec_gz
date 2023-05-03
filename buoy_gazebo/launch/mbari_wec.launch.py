@@ -87,7 +87,7 @@ def generate_launch_description():
     )
 
     pblog_loghome_launch_arg = DeclareLaunchArgument(
-        'pbloghome', default_value=['.'],
+        'pbloghome', default_value=['~/.pblogs'],
         description='root pblog directory'
     )
 

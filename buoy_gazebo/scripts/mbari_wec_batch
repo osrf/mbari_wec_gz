@@ -449,6 +449,12 @@ def generate_simulations(sim_params_yaml):
         run_results_dir = f'results_run_{idx}_{start_time}'
         os.makedirs(os.path.join(batch_results_dir, run_results_dir))
 
+        # python workaround for 'ln -sf'
+        os.symlink(os.path.join(run_results_dir, rosbag2_dir),
+                   os.path.join(batch_results_dir, f'latest_rosbag_{start_time}'), target_is_directory=True)
+        os.replace(os.path.join(batch_results_dir, f'latest_rosbag_{start_time}'),
+                   os.path.join(batch_results_dir, f'latest_rosbag'))
+
         def generate_launch_description():
             mbari_wec = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
