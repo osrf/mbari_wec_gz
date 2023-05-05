@@ -4,13 +4,18 @@
   <name>buoy_tests</name>
   <version>0.0.0</version>
   <description>Tests for buoy simulation.</description>
-  <maintainer email="louise@openrobotics.org">Louise Poubel</maintainer>
+
+  <maintainer email="hamilton@mbari.org">Andrew Hamilton</maintainer>
+  <maintainer email="anderson@mbari.org">Michael Anderson</maintainer>
+
   <license>Apache 2.0</license>
+
+  <author email="dharini@openrobotics.org">Dharini Dutia</author>
   <author>Louise Poubel</author>
+  <author email="michael@openrobotics.org">Michael Carroll</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
-
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
