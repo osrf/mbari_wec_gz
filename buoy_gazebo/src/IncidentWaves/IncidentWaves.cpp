@@ -74,12 +74,18 @@ void IncidentWaves::Configure(
   gz::sim::EntityComponentManager & _ecm,
   gz::sim::EventManager & /*_eventMgr*/)
 {
+
   this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
     ignerr << "IncidentWaves plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
   }
+
+  double seed = SdfParamDouble(_sdf, "IncWaveSeed", 0.0);
+  this->dataPtr->Inc->SetSeed(seed);
+
+  auto linkName = _sdf->Get<std::string>("LinkName");
 
   auto SpectrumType = _sdf->Get<std::string>("IncWaveSpectrumType");
 
