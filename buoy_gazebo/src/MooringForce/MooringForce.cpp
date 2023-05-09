@@ -61,11 +61,6 @@ class MooringForcePrivate
   /// iteration  (metres).
   public: double H{std::nanf("")};
 
-  /// \brief Distance of buoy from anchor, beyond which (i.e. H > radius)
-  /// mooring force is applied. Within the radius, no or negligible catenary
-  /// curve is formed, and no mooring force will be applied.
-  public: public: double effectiveRadius = 90.0;
-
   /// \brief N/m, weight of chain per unit length
   public: double w = 20.0;
 
@@ -79,8 +74,8 @@ class MooringForcePrivate
   /// the bottom, start of catenary.
   public: Eigen::VectorXd B{};
 
-  /// \brief If we have notified when inside effective radius.
-  public: bool notifiedInsideEffectiveRadius{false};
+  /// \brief If we have notified skipping force update
+  public: bool notifiedSkipForceUpdate{false};
 
   /// \brief Debug print period calculated from <debug_print_rate>
   public: std::chrono::steady_clock::duration debugPrintPeriod{0};
@@ -188,11 +183,6 @@ void MooringForce::Configure(
   gzdbg << "Anchor position set to " << this->dataPtr->anchorPos
     << std::endl;
 
-  this->dataPtr->effectiveRadius = _sdf->Get<double>(
-    "enable_beyond_radius", this->dataPtr->effectiveRadius).first;
-  gzdbg << "Effective radius set to beyond " << this->dataPtr->effectiveRadius
-    << std::endl;
-
   if (_sdf->HasElement("chain_length"))
   {
     this->dataPtr->L = _sdf->Get<double>(
@@ -254,21 +244,37 @@ void MooringForce::PreUpdate(
 
   // Update V and H based on latest buoy position
   this->dataPtr->UpdateVH(_ecm);
-  // If buoy is not far enough from anchor for there to be a need to pull it
-  // back, no need to apply mooring force
-  if (this->dataPtr->H < this->dataPtr->effectiveRadius)
+
+  // Skip solver if the chain can drop vertically (within tolerance).
+  double toleranceL = 0.1;
+  if (this->dataPtr->V + this->dataPtr->H <= this->dataPtr->L + toleranceL)
   {
-    if (!this->dataPtr->notifiedInsideEffectiveRadius)
+    if (!this->dataPtr->notifiedSkipForceUpdate)
     {
-      this->dataPtr->notifiedInsideEffectiveRadius = true;
-      gzmsg << "Buoy horizontal radius H [" << this->dataPtr->H << "]"
-            << " is inside effective radius R ["
-            << this->dataPtr->effectiveRadius << "]"
-            << " skipping force update." << std::endl;
+      this->dataPtr->notifiedSkipForceUpdate = true;
+      gzmsg << "Buoy chain can drop vertically. Skipping force update."
+            << std::endl;
     }
+
+    /* Tz unused at the moment, so no force to apply
+    // Assume all force is vertical.
+    double Tz = - this->dataPtr->w * this->dataPtr->V;
+
+    gz::math::Vector3d force(0.0, 0.0, Tz);
+    gz::math::Vector3d torque = gz::math::Vector3d::Zero;
+    if (force.IsFinite() && torque.IsFinite())
+    {
+      // this->dataPtr->link.SetVisualizationLabel("Mooring");
+      this->dataPtr->link.AddWorldWrench(_ecm, force, torque);
+    }
+    else
+    {
+      gzerr << "Mooring force and/or torque is not finite.\n";
+    }
+    */
     return;
   }
-  this->dataPtr->notifiedInsideEffectiveRadius = false;
+  this->dataPtr->notifiedSkipForceUpdate = false;
 
   Eigen::HybridNonLinearSolver<CatenaryHSoln> catenarySolver(
     *this->dataPtr->catenarySoln);
@@ -311,10 +317,9 @@ void MooringForce::PreUpdate(
     this->dataPtr->lastDebugPrintTime = _info.simTime;
     gzdbg << "HSolver solverInfo: " << solverInfo << "\n"
       << " t: " << std::chrono::duration_cast<
-          std::chrono::milliseconds>(_info.simTime).count()/1000.0 << "\n"
+          std::chrono::milliseconds>(_info.simTime).count() / 1000.0 << "\n"
       << " Anchor: " << this->dataPtr->anchorPos << "\n"
       << " Buoy:   " << this->dataPtr->linkPos << "\n"
-      << " R: " << this->dataPtr->effectiveRadius << "\n"
       << " L: " << this->dataPtr->L << "\n"
       << " V: " << this->dataPtr->V << "\n"
       << " H: " << this->dataPtr->H << "\n"
@@ -342,6 +347,7 @@ void MooringForce::PreUpdate(
   }
 
   // Apply forces to buoy heave cone link, where the mooring would be attached
+  // Tz unused at the moment
   gz::math::Vector3d force(Tx, Ty, 0.0);
   gz::math::Vector3d torque = gz::math::Vector3d::Zero;
   if (force.IsFinite())
