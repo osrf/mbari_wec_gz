@@ -4,15 +4,24 @@
   <name>buoy_gazebo</name>
   <version>0.0.0</version>
   <description>Gazebo simulation plugins and worlds for buoy.</description>
-  <maintainer email="louise@openrobotics.org">Louise Poubel</maintainer>
+
+  <maintainer email="hamilton@mbari.org">Andrew Hamilton</maintainer>
+  <maintainer email="dharini@openrobotics.org">Dharini Dutia</maintainer>
+  <maintainer email="mabel@openrobotics.org">Mabel Zhang</maintainer>
+  <maintainer email="anderson@mbari.org">Michael Anderson</maintainer>
+
   <license>Apache 2.0</license>
+
   <author>Louise Poubel</author>
+  <author>Joan Aguilar Mayans</author>
+  <author email="michael@openrobotics.org">Michael Carroll</author>
+  <author email="rhys.mainwaring@me.com">Rhys Mainwaring</author>
+  <author email="rob@mbari.org">Robert McEwen</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>buoy_description</depend>
   <depend>buoy_interfaces</depend>
-  <depend>buoy_msgs</depend>
   <depend>gz-sim7</depend>
   <depend>rclcpp</depend>
   <depend>robot_state_publisher</depend>
@@ -22,6 +31,7 @@
   <depend>sdformat_urdf</depend>
   <depend>simple_interp</depend>
   <depend>gnuplot-iostream</depend>
+  <depend>libfshydrodynamics</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

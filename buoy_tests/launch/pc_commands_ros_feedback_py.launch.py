@@ -27,7 +27,13 @@ from testing_utils import default_generate_test_description
 
 
 def generate_test_description():
-    return default_generate_test_description()
+    sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
+                      physics_rtf=11.0,
+                      physics_step=0.001)
+    return default_generate_test_description(enable_rosbag=True,
+                                             rosbag_name='rosbag2_pc_cmds_py',
+                                             regen_models=True,
+                                             regen_kwargs=sim_params)
 
 
 config = os.path.join(
@@ -65,7 +71,8 @@ class BuoyPCPyTest(BuoyPyTests):
     def winding_current_limiter(self, current):
         LimitedI = current
         AdjustedN = self.node.rpm_
-        RamPosition = (self.SC_RANGE_MAX - (self.node.range_finder_ / 0.0254))
+        # TODO(anyone) hook back up to range_finder_ after dynamically updated in EHPTO.cpp
+        RamPosition = 40.0  # self.node.range_finder_ / 0.0254
         if self.node.rpm_ >= 0.0:  # Retracting
             min_region = self.SC_RANGE_MIN + self.STOP_RANGE
             if RamPosition < min_region:
@@ -108,8 +115,8 @@ class BuoyPCPyTest(BuoyPyTests):
         time.sleep(0.5)
         clock = self.node.get_clock()
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
+        self.assertEqual(t, 0)
 
         preCmdIterations = 15000
         feedbackCheckIterations = 100
@@ -161,8 +168,9 @@ class BuoyPCPyTest(BuoyPyTests):
         t, _ = clock.now().seconds_nanoseconds()
         self.assertEqual(t, self.test_helper.iterations // 1000)
 
-        self.assertGreater(self.node.wind_curr_, wc - 0.1)
-        self.assertLess(self.node.wind_curr_, wc + 0.1)
+        expected_wind_curr = self.winding_current_limiter(wc)
+        self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.1)
+        self.assertLess(self.node.wind_curr_, expected_wind_curr + 0.1)
 
         ##############################################
         # Scale
@@ -260,8 +268,7 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertGreater(self.node.bias_curr_, bc - 0.1)
         self.assertLess(self.node.bias_curr_, bc + 0.1)
 
-        # TODO(andermi) fix this comparison when motor mode is fixed
-        self.assertLess(self.node.range_finder_, 2.03)  # meters
+        self.assertLess(self.node.range_finder_, 0.97)  # meters
 
         self.test_helper.run(bias_curr_timeout_iterations - bias_curr_iterations +
                              feedbackCheckIterations)

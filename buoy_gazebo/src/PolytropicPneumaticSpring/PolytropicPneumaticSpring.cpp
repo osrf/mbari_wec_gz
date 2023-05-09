@@ -64,9 +64,6 @@ struct PolytropicPneumaticSpringConfig
   /// \brief piston stroke (m)
   double stroke{2.03};
 
-  /// \brief initial piston position (m)
-  double x0{0.9921}, x1{0.9921}, x2{0.9921};
-
   /// \brief piston area (m^3)
   double piston_area{0.0127};
 
@@ -101,7 +98,7 @@ struct PolytropicPneumaticSpringConfig
   double c_p{1.04};
 
   /// \brief initial Volume (m^3)
-  double V0{dead_volume}, V1{dead_volume}, V2{dead_volume};
+  double V0{dead_volume};
 
   /// \brief move piston along prescribed velocity for sysID
   bool debug_prescribed_velocity{false};
@@ -121,7 +118,7 @@ struct PolytropicPneumaticSpringPrivate
   double n{PolytropicPneumaticSpringConfig::ADIABATIC_INDEX};
 
   /// \brief initial Pressure (Pa)
-  double P0{410240}, P1{410240}, P2{410240};
+  double P0{410240};
 
   /// \brief mass of gas (kg)
   double mass{0.0};
@@ -170,23 +167,13 @@ void PolytropicPneumaticSpring::openValve(
   const int dt_nano, const double & pressure_diff,
   double & P0, const double & V0)
 {
-  double _P{0.0}, _V{this->dataPtr->config_->dead_volume};  // dummy vars
-  openValve(dt_nano, pressure_diff, P0, V0, _P, _V);
-}
-
-void PolytropicPneumaticSpring::openValve(
-  const int dt_nano, const double & pressure_diff,
-  double & P1, const double & V1,
-  double & P2, const double & V2)
-{
-  GZ_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
-  GZ_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V0 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
 
   const double dt_sec = dt_nano * GZ_NANO_TO_SEC;
 
   // want piston to drop 1 inch per second
   // so let mass flow from lower chamber to upper
-  // results in initial pressure change (P0 -- or P1, P2 with hysteresis) via ideal gas law
+  // results in initial pressure change (P0) via ideal gas law
 
   // P in Pascals (kg/(m*s^2)
   // multiply by absement (meter-seconds) to get mass_flow in kg/s
@@ -202,8 +189,7 @@ void PolytropicPneumaticSpring::openValve(
   // Ideal Gas Law
   this->dataPtr->c = this->dataPtr->mass * this->dataPtr->config_->R;
   const double mRT = this->dataPtr->c * this->dataPtr->T;
-  P1 = mRT / V1;
-  P2 = mRT / V2;
+  P0 = mRT / V0;
 }
 
 ////////////////////////////////////////////////
@@ -211,23 +197,13 @@ void PolytropicPneumaticSpring::pumpOn(
   const int dt_nano,
   double & P0, const double & V0)
 {
-  double _P{0.0}, _V{this->dataPtr->config_->dead_volume};  // dummy vars
-  pumpOn(dt_nano, P0, V0, _P, _V);
-}
-
-void PolytropicPneumaticSpring::pumpOn(
-  const int dt_nano,
-  double & P1, const double & V1,
-  double & P2, const double & V2)
-{
-  GZ_ASSERT(V1 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
-  GZ_ASSERT(V2 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
+  GZ_ASSERT(V0 >= this->dataPtr->config_->dead_volume, "volume of chamber must be >= dead volume");
 
   const double dt_sec = dt_nano * GZ_NANO_TO_SEC;
 
   // want piston to raise 2 inches per minute
   // so pump mass flow from upper chamber to lower
-  // results in initial pressure change (P0 -- or P1, P2 with hysteresis) via ideal gas law
+  // results in initial pressure change (P0) via ideal gas law
 
   const double delta_mass = dt_sec * this->dataPtr->config_->pump_mass_flow;  // kg of gas per step
 
@@ -240,8 +216,7 @@ void PolytropicPneumaticSpring::pumpOn(
   // Ideal Gas Law
   this->dataPtr->c = this->dataPtr->mass * this->dataPtr->config_->R;
   const double mRT = this->dataPtr->c * this->dataPtr->T;
-  P1 = mRT / V1;
-  P2 = mRT / V2;
+  P0 = mRT / V0;
 }
 
 void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const int & dt_nano)
@@ -349,24 +324,6 @@ void PolytropicPneumaticSpring::Configure(
       config.is_adiabatic = false;
     }
     this->dataPtr->n = config.n1;
-    this->dataPtr->P1 = SdfParamDouble(_sdf, "P1", this->dataPtr->P1);
-    this->dataPtr->P2 = SdfParamDouble(_sdf, "P2", this->dataPtr->P2);
-    this->dataPtr->P0 = this->dataPtr->P1;
-    config.x1 = SdfParamDouble(_sdf, "x1", config.x1);
-    config.x2 = SdfParamDouble(_sdf, "x2", config.x2);
-
-    config.V1 = config.dead_volume +
-      config.x1 * config.piston_area;
-    gzdbg << "V1: " << config.V1 << std::endl;
-    config.V2 = config.dead_volume +
-      config.x2 * config.piston_area;
-    gzdbg << "V2: " << config.V2 << std::endl;
-    this->dataPtr->V0 = config.V1;
-
-    this->dataPtr->c = this->dataPtr->P1 * config.V1 / config.T0;
-    gzdbg << "c: " << this->dataPtr->c << std::endl;
-    this->dataPtr->mass = this->dataPtr->c / config.R;
-    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
   } else {  // no hysteresis
     config.n0 = SdfParamDouble(_sdf, "n", PolytropicPneumaticSpringConfig::ADIABATIC_INDEX);
     if (fabs(config.n0 - PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) < 1.0e-7) {
@@ -374,19 +331,18 @@ void PolytropicPneumaticSpring::Configure(
     } else {
       config.is_adiabatic = false;
     }
-    this->dataPtr->n = config.n0;
-    this->dataPtr->P0 = SdfParamDouble(_sdf, "P0", this->dataPtr->P0);
-    config.x0 = SdfParamDouble(_sdf, "x0", config.x0);
-    config.V0 = config.dead_volume +
-      config.x0 * config.piston_area;
-    this->dataPtr->V0 = config.V0;
-
-    gzdbg << "V0: " << config.V0 << std::endl;
-    this->dataPtr->c = this->dataPtr->P0 * config.V0 / config.T0;
-    gzdbg << "c: " << this->dataPtr->c << std::endl;
-    this->dataPtr->mass = this->dataPtr->c / config.R;
-    gzdbg << "mass: " << this->dataPtr->mass << std::endl;
   }
+
+  this->dataPtr->n = config.n0;
+  this->dataPtr->P0 = SdfParamDouble(_sdf, "P0", this->dataPtr->P0);
+  config.V0 = SdfParamDouble(_sdf, "V0", config.V0);
+  this->dataPtr->V0 = config.V0;
+
+  gzdbg << "V0: " << config.V0 << std::endl;
+  this->dataPtr->c = this->dataPtr->P0 * config.V0 / config.T0;
+  gzdbg << "c: " << this->dataPtr->c << std::endl;
+  this->dataPtr->mass = this->dataPtr->c / config.R;
+  gzdbg << "mass: " << this->dataPtr->mass << std::endl;
 
   this->dataPtr->V = this->dataPtr->V0;
   this->dataPtr->P = this->dataPtr->P0;

@@ -35,7 +35,46 @@ import rclpy
 from rclpy.node import Node
 
 
-PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
+DEFAULT_PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
+
+
+class MonoChromatic(object):
+    def __init__(self, A, T):
+        self.A, self.T = A, T
+        self.name = "MonoChromatic"
+
+    def __str__(self):
+        if self.A is not None:
+            return f'{self.name};A:{self.A};T:{self.T}'
+        else:
+            return f'{self.name};A:default;T:default'
+
+
+class Bretschneider(object):
+    def __init__(self, Hs, Tp):
+        self.Hs, self.Tp = Hs, Tp
+        self.name = "Bretschneider"
+
+    def __str__(self):
+        if self.Hs is not None:
+            return f'{self.name};Hs:{self.Hs};Tp:{self.Tp}'
+        else:
+            return f'{self.name};Hs:default;Tp:default'
+
+
+class Custom(object):
+    def __init__(self, w, Szz):
+        self.w, self.Szz = w, Szz
+        self.name = "Custom"
+
+    def __str__(self):
+        if self.w is not None:
+            return f'{self.name};' + \
+                   f'w:{":".join([str(w) for w in self.w])};' + \
+                   f'Szz:{":".join([str(Szz) for Szz in self.Szz])}'
+        else:
+            return f'{self.name};w:defaults;Szz:defaults'
+
 
 def generate_simulations(sim_params_yaml):
 
@@ -45,85 +84,281 @@ def generate_simulations(sim_params_yaml):
     with open(sim_params_yaml, 'r') as fd:
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
+    print_optional = lambda param: str(param) if param is not None else ""  # noqa: E731
+
     # Grab params from yaml
-    # seed
+    # physics time step (seconds)
+    if 'physics_step' in sim_params:
+        physics_step = np.array(sim_params['physics_step'], dtype=float)
+        physics_step = np.atleast_1d(physics_step)
+    else:
+        physics_step = [None]
+        node.get_logger().warn(
+            'sim_params_yaml: optional physics_step parameter not specified -- defaulting'
+        )
+
+    # physics real-time factor (RTF)
+    try:
+        if 'physics_rtf' in sim_params:
+            physics_rtf = float(sim_params['physics_rtf'])
+        else:
+            physics_rtf = None
+            node.get_logger().warn(
+                'sim_params_yaml: optional physics_rtf parameter not specified -- defaulting'
+            )
+    except TypeError:
+        node.get_logger().error('sim_params_yaml: physics_rtf parameter' +
+                                ' must be a single value')
+        sys.exit(-1)
+
+    # Enable GUI
+    try:
+        if 'enable_gui' in sim_params:
+            enable_gui = bool(sim_params['enable_gui'])
+        else:
+            enable_gui = False
+            node.get_logger().debug(
+                'sim_params_yaml: optional enable_gui parameter not specified' +
+                ' -- defaulting to headless'
+            )
+    except TypeError:
+        node.get_logger().error('sim_params_yaml: enable_gui parameter' +
+                                ' must be a single value')
+        sys.exit(-1)
+
+    # seed (random seed for incident waves plugin)
     try:
         if 'seed' in sim_params:
             seed = int(sim_params['seed'])
-            # TODO(anyone) remove warning and `seed = None` when --seed
-            # supported by gz sim
-            node.get_logger().warn('sim_params_yaml: seed parameter not yet supported -- ignoring')
-            seed = None
         else:
             seed = None
             node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
-    except TypeError as err:
-        node.get_logger().error('sim_params_yaml: seed parameter ' +
-                                'must be a single value')
+    except TypeError:
+        node.get_logger().error('sim_params_yaml: seed parameter' +
+                                ' must be a single value')
         sys.exit(-1)
 
-    # duration
+    # duration (seconds)
     try:
         if 'duration' not in sim_params:
             node.get_logger().error('sim_params_yaml: required duration parameter not specified')
             sys.exit(-1)
         duration = float(sim_params['duration'])
-    except TypeError as err:
-        node.get_logger().error('sim_params_yaml: duration parameter ' +
-                                'must be a single value in seconds')
+    except TypeError:
+        node.get_logger().error('sim_params_yaml: duration parameter' +
+                                ' must be a single value in seconds')
         sys.exit(-1)
 
-    # convert duration to iterations
-    iterations = int(round(duration / PHYSICS_MAX_STEP_SIZE))
-
-    # door state
+    # door state ('open', 'closed')
     if 'door_state' in sim_params:
         door_state = sim_params['door_state']
+        if any(['open' not in ds and 'closed' not in ds for ds in door_state]):
+            node.get_logger().error(
+                "sim_params_yaml: all door_state parameters must be either 'open' or 'closed'"
+            )
+            sys.exit(-1)
     else:
         node.get_logger().warn(
             "sim_params_yaml: door_state parameter not specified -- defaulting to 'closed'"
         )
         door_state = ['closed']
 
-    # scale factor
+    # scale factor (0.5 - 1.4)
     if 'scale_factor' in sim_params:
         scale_factor = np.array(sim_params['scale_factor'], dtype=float)
+        scale_factor = np.atleast_1d(scale_factor)
+        if not np.all((0.5 <= scale_factor) & (scale_factor <= 1.4)):
+            node.get_logger().error(
+                'sim_params_yaml: all scale_factor parameters must be between 0.5 to 1.4'
+            )
+            sys.exit(-1)
     else:
         node.get_logger().warn(
             'sim_params_yaml: scale_factor parameter not specified -- defaulting to 1.0'
         )
         scale_factor = [1.0]
 
+    # Battery State
+    # State of Charge (0.0 [270V] to 1.0 [320V])
+    if 'battery_soc' in sim_params:
+        battery_state = np.array(sim_params['battery_soc'], dtype=float)
+        battery_state = np.atleast_1d(battery_state)
+        if np.all((0.0 <= battery_state) & (battery_state <= 1.0)):
+            batt_state_type = 'SoC'
+        else:
+            node.get_logger().error(
+                'sim_params_yaml: all battery_soc parameters must be between 0.0 to 1.0'
+            )
+            sys.exit(-1)
+    # EMF (270V to 320V)
+    elif 'battery_emf' in sim_params:
+        battery_state = np.array(sim_params['battery_emf'], dtype=float)
+        battery_state = np.atleast_1d(battery_state)
+        if np.all((270.0 <= battery_state) & (battery_state <= 300.0)):
+            batt_state_type = 'EMF'
+        else:
+            node.get_logger().error(
+                'sim_params_yaml: all battery_emf parameters must be between 300V to 270V'
+            )
+            sys.exit(-1)
+    else:
+        node.get_logger().warn(
+            'sim_params_yaml: optional battery_emf or battery_soc parameter not specified'
+        )
+        battery_state = [None]
+        batt_state_type = ''
+
+    # mean_piston_position (meters)
+    if 'mean_piston_position' in sim_params:
+        mean_piston_position = np.array(sim_params['mean_piston_position'], dtype=float)
+        mean_piston_position = np.atleast_1d(mean_piston_position)
+    else:
+        mean_piston_position = [None]
+        node.get_logger().warn(
+            'sim_params_yaml: optional mean_piston_position parameter not specified' + \
+            ' -- defaulting'
+        )
+
+    # IncWaveSpectrumType
+    if 'IncidentWaveSpectrumType' in sim_params:
+        inc_wave_spectrum_types = sim_params['IncidentWaveSpectrumType']
+        incident_waves = []
+        for inc_wave_spectrum_type in inc_wave_spectrum_types:
+            if 'MonoChromatic' in inc_wave_spectrum_type:
+                monochromatic_spectrum = inc_wave_spectrum_type['MonoChromatic']
+                if 'A' in monochromatic_spectrum:
+                    A = np.array(monochromatic_spectrum['A'], dtype=float)
+                    A = np.atleast_1d(A)
+                else:
+                    A = None
+                if 'T' in monochromatic_spectrum:
+                    T = np.array(monochromatic_spectrum['T'], dtype=float)
+                    T = np.atleast_1d(T)
+                else:
+                    T = None
+
+                if (A is None) ^ (T is None):
+                    node.get_logger().error(
+                        'sim_params_yaml: MonoChromatic: A or T unspecified.' +
+                        ' Please specify both or neither'
+                    )
+                    sys.exit(-1)
+                if A.shape != T.shape:
+                    node.get_logger().error(
+                        'sim_params_yaml: MonoChromatic: A and T have different length'
+                    )
+                    sys.exit(-1)
+                incident_waves.extend([MonoChromatic(a, t) for a, t in zip(A, T)])
+            elif 'Bretschneider' in inc_wave_spectrum_type:
+                bretschneider_spectrum = inc_wave_spectrum_type['Bretschneider']
+                if 'Hs' in bretschneider_spectrum:
+                    Hs = np.array(bretschneider_spectrum['Hs'], dtype=float)
+                    Hs = np.atleast_1d(Hs)
+                else:
+                    Hs = None
+                if 'Tp' in bretschneider_spectrum:
+                    Tp = np.array(bretschneider_spectrum['Tp'], dtype=float)
+                    Tp = np.atleast_1d(Tp)
+                else:
+                    Tp = None
+
+                if (Hs is None) ^ (Tp is None):
+                    node.get_logger().error(
+                        'sim_params_yaml: Bretschneider: Hs or Tp unspecified.' +
+                        ' Please specify both or neither'
+                    )
+                    sys.exit(-1)
+                if Hs.shape != Tp.shape:
+                    node.get_logger().error(
+                        'sim_params_yaml: Bretschneider: Hs and Tp have different length.'
+                    )
+                    sys.exit(-1)
+                incident_waves.extend([Bretschneider(hs, tp) for hs, tp in zip(Hs, Tp)])
+            elif 'Custom' in inc_wave_spectrum_type:
+                custom_spectrum = inc_wave_spectrum_type['Custom']
+                if 'w' in custom_spectrum:
+                    w = np.array(custom_spectrum['w'], dtype=float)
+                    w = np.atleast_1d(w)
+                else:
+                    w = None
+                if 'Szz' in custom_spectrum:
+                    Szz = np.array(custom_spectrum['Szz'], dtype=float)
+                    Szz = np.atleast_1d(Szz)
+                else:
+                    Szz = None
+
+                if (w is None) ^ (Szz is None):
+                    node.get_logger().error(
+                        'sim_params_yaml: Custom: w or Szz unspecified.' +
+                        ' Please specify both or neither'
+                    )
+                    sys.exit(-1)
+                if w is not None and Szz is not None:
+                    if w.shape != Szz.shape:
+                        node.get_logger().error(
+                            'sim_params_yaml: Custom: w.shape != Szz.shape'
+                        )
+                        sys.exit(-1)
+                incident_waves.append(Custom(w, Szz))
+            else:
+                node.get_logger().error(
+                    f'sim_params_yaml: IncWaveSpectrumType [{inc_wave_spectrum_type}]' +
+                    ' did not match supported types:\n    ' +
+                    '\n    '.join(['MonoChromatic', 'Bretschneider', 'Custom'])
+                )
+                sys.exit(-1)
+    else:
+        node.get_logger().warn(
+            'sim_params_yaml: optional IncWaveSpectrumType parameter not specified' +
+            ' -- defaulting to No Waves'
+        )
+        incident_waves = [None]
+
     # create batch results directory
     timestr = time.strftime("%Y%m%d%H%M%S")
     batch_results_dir = f'batch_results_{timestr}'
     node.get_logger().info(f'Creating batch results directory: {batch_results_dir}')
     os.makedirs(batch_results_dir)
+    # python workaround for 'ln -sf'
+    os.symlink(batch_results_dir, f'latest_batch_results_{timestr}', target_is_directory=True)
+    os.replace(f'latest_batch_results_{timestr}', 'latest_batch_results')
 
     sim_params_name, dot_yaml = os.path.splitext(os.path.basename(sim_params_yaml))
     sim_params_date_yaml = sim_params_name + f'_{timestr}' + dot_yaml
-    node.get_logger().info('Copying sim params yaml to batch results directory: ' +
-                           os.path.join(batch_results_dir,
-                                        sim_params_date_yaml))
+    node.get_logger().debug('Copying sim params yaml to batch results directory: ' +
+                            os.path.join(batch_results_dir,
+                                         sim_params_date_yaml))
     shutil.copy(sim_params_yaml,
                 os.path.join(batch_results_dir,
                              sim_params_date_yaml))
 
     # generate test matrix
-    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(door_state,
-                                                                     scale_factor)]))
+    batch_params = list(zip(*[param.ravel() for param in np.meshgrid(physics_step,
+                                                                     door_state,
+                                                                     scale_factor,
+                                                                     battery_state,
+                                                                     mean_piston_position,
+                                                                     incident_waves)]))
 
-    node.get_logger().info(f'Generated {len(batch_params)} simulation runs:')
-    node.get_logger().info('Seed, Duration, Door State, Scale Factor')
-    [node.get_logger().info(f'{seed if seed is not None else ""}, {duration}, {ds}, {sf}')
-        for ds, sf in batch_params]
+    node.get_logger().info(f'Generated {len(batch_params)} simulation runs')
+    node.get_logger().debug('PhysicsStep, PhysicsRTF, Seed, Duration, DoorState, ScaleFactor' +
+                            ', BatteryState, MeanPistonPosition' +
+                            ', IncWaveSpectrumType;IncWaveSpectrumParams')
+    [node.get_logger().debug(f'{print_optional(ps)}, {print_optional(physics_rtf)}' +
+                             f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
+                             f', {print_optional(bs)}' +
+                             f', {print_optional(mpp)}' +
+                             f', {print_optional(iw)}')
+        for ps, ds, sf, bs, mpp, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
-                           os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'))
-    with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'w') as fd:
+                           os.path.join(batch_results_dir, 'batch_runs.log'))
+    with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
-        fd.write('Run Index, Start Time, rosbag2 File Name,' +
-                 ' Seed, Duration, Door State, Scale Factor\n')
+        fd.write('RunIndex, SimReturnCode, StartTime, rosbag2FileName' +
+                 ', PhysicsStep, PhysicsRTF' +
+                 ', Seed, Duration, DoorState, ScaleFactor, BatteryState' +
+                 ', MeanPistonPosition, IncWaveSpectrumType;IncWaveSpectrumParams\n')
 
     # Find packages
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
@@ -138,50 +373,99 @@ def generate_simulations(sim_params_yaml):
     empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
-    # Start batch runs
-    for idx, (ds, sf) in enumerate(batch_params):
-        node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
-                               f" door state='{ds}', scale factor={sf}\n")
+    # Find world file template
+    empy_world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf.em')
+    world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec_batch.sdf')
 
-        # fill model templates with params
+    # Start batch runs
+    for idx, (ps, ds, sf, bs, mpp, iw) in enumerate(batch_params):
+        node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
+                               f" door state='{ds}', scale factor={sf}" +
+                               f", battery state={bs if bs is not None else 'None'}" +
+                               f", mean piston position={mpp if mpp is not None else 'None'}" +
+                               ', IncidentWaveSpectrumType=' +
+                               f"{str(iw) if iw is not None else 'None'}\n")
+
+        # fill mbari_wec_base model template with params
         empy(['-D', f"door_state = '{ds}'",
               '-o', base_sdf_file,
               empy_base_sdf_file])
 
-        empy(['-D', f"scale_factor = {sf}",
-              '-o', sdf_file,
-              empy_sdf_file])
+        # fill mbari_wec world template with params
+        mbari_wec_world_params = []
+        if ps is not None:
+            mbari_wec_world_params.extend(['-D', f'physics_step = {ps}'])
+        if physics_rtf is not None:
+            mbari_wec_world_params.extend(['-D', f'physics_rtf = {physics_rtf}'])
+        mbari_wec_world_params.extend(['-o', world_file,
+                                       empy_world_file])
+        empy(mbari_wec_world_params)
 
-        node.get_logger().info('running gz-sim with gz_args:=' +
-                       '-rs' +
-                       f' --iterations {iterations}' +
-                       (f' --seed {seed}' if seed is not None else ''))
+        # fill mbari_wec model template with params
+        mbari_wec_model_params = ['-D', f'scale_factor = {sf}']
+        if seed is not None:
+            mbari_wec_model_params.extend(['-D', f'inc_wave_seed = {seed}'])
+        if bs is not None:
+            if 'SoC' in batt_state_type:
+                mbari_wec_model_params.extend(['-D', f'battery_soc = {bs}'])
+            elif 'EMF' in batt_state_type:
+                mbari_wec_model_params.extend(['-D', f'battery_emf = {bs}'])
+        if mpp is not None:
+            mbari_wec_model_params.extend(['-D', f'x_mean_pos = {mpp}'])
+        if iw is not None:
+            mbari_wec_model_params.extend(['-D', f'inc_wave_spectrum_type = "{iw.name}"'])
+            if 'MonoChromatic' in iw.name:
+                if iw.A is not None:
+                    mbari_wec_model_params.extend(['-D', f'A = {iw.A}'])
+                    mbari_wec_model_params.extend(['-D', f'T = {iw.T}'])
+            if 'Bretschneider' in iw.name:
+                if iw.Hs is not None:
+                    mbari_wec_model_params.extend(['-D', f'Hs = {iw.Hs}'])
+                    mbari_wec_model_params.extend(['-D', f'Tp = {iw.Tp}'])
+            if 'Custom' in iw.name:
+                if iw.w is not None:
+                    mbari_wec_model_params.extend(['-D', f'w = {iw.w.tolist()}'])
+                    mbari_wec_model_params.extend(['-D', f'Szz = {iw.Szz.tolist()}'])
+        mbari_wec_model_params.extend(['-o', sdf_file,
+                                       empy_sdf_file])
+        node.get_logger().debug(mbari_wec_model_params)
+        empy(mbari_wec_model_params)
+
+        # convert duration to iterations
+        if ps is None:
+            step_size = DEFAULT_PHYSICS_MAX_STEP_SIZE
+        else:
+            step_size = ps
+        iterations = int(round(duration / step_size))
+
+        node.get_logger().debug('running gz-sim with gz_args:=' +
+                                '-r' if enable_gui else '-rs' +
+                                f' --iterations {iterations}')
 
         # Dynamically create launch file
+        start_time = time.strftime("%Y%m%d%H%M%S")
+        rosbag2_name = 'rosbag2'
+        run_results_dir = f'results_run_{idx}_{start_time}'
+        # TODO(anyone) also path for pblog when ready
+        os.makedirs(os.path.join(batch_results_dir, run_results_dir))
+
         def generate_launch_description():
             mbari_wec = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
                 ),
-                launch_arguments={'extra_gz_args': '-rs' +
-                                                  f' --iterations {iterations}' +
-                                                 (f' --seed {seed}' if seed is not None else '')
-                                 }.items(),
+                launch_arguments={'extra_gz_args': '-r' if enable_gui else '-rs' +
+                                                   f' --iterations {iterations}',
+                                  'world_file': 'mbari_wec_batch.sdf',
+                                  'regenerate_models': 'false'}.items(),
             )
 
             # record all topics with rosbag2
-            start_time = time.strftime("%Y%m%d%H%M%S")
-            rosbag2_name = f'rosbag2_batch_sim_{idx}_{start_time}'
             rosbag2 = ExecuteProcess(
                 cmd=['ros2', 'bag', 'record',
-                     '-o', os.path.join(batch_results_dir, rosbag2_name), '-a'],
+                     '-o', os.path.join(batch_results_dir, run_results_dir, rosbag2_name), '-a'],
                 output='screen'
             )
-
-            # Write to log
-            with open(os.path.join(batch_results_dir, f'batch_runs_{timestr}.log'), 'a') as fd:
-                fd.write(f'{idx}, {start_time}, {rosbag2_name}' +
-                         f', {seed if seed is not None else ""}, {duration}, {ds}, {sf}\n')
 
             return LaunchDescription([
                 rosbag2,
@@ -195,10 +479,28 @@ def generate_simulations(sim_params_yaml):
         if result:
             node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
                                     f'return code [{result}]')
+        # Write to log
+        with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'a') as fd:
+            fd.write(f'{idx}, {result}, {start_time}' +
+                     f', {os.path.join(run_results_dir, rosbag2_name)}' +
+                     f', {print_optional(ps)}, {print_optional(physics_rtf)}' +
+                     f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
+                     f', {print_optional(bs)}' +
+                     f', {print_optional(mpp)}' +
+                     f', {print_optional(iw)}\n')
 
-if __name__=='__main__':
+    # Return all files to defaults
+    empy(['-o', base_sdf_file,
+          empy_base_sdf_file])
+    empy(['-o', world_file,
+          empy_world_file])
+    empy(['-o', sdf_file,
+          empy_sdf_file])
+
+
+if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Batch running for buoy_sim')
+    parser = argparse.ArgumentParser(description='Batch running for mbari_wec_gz')
     parser.add_argument('sim_params_yaml',
                         help='yaml file with batch parameters')
     args, unknown = parser.parse_known_args()

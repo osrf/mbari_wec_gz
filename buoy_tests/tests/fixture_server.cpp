@@ -24,7 +24,6 @@
 #include <gz/sim/Server.hh>
 #include <gz/sim/Util.hh>
 #include <gz/sim/TestFixture.hh>
-#include <gz/transport/Node.hh>
 
 #include <buoy_tests/srv/run_server.hpp>
 
@@ -41,7 +40,7 @@ TEST(BuoyTests, RunServer)
 
   // Setup fixture
   gz::sim::ServerConfig config;
-  config.SetSdfFile("mbari_wec.sdf");
+  config.SetSdfFile("mbari_wec_test.sdf");
   config.SetUpdateRate(0.0);
 
   size_t iterations{0U};

@@ -86,20 +86,10 @@ private:
   void openValve(
     const int dt_nano, const double & pressure_diff,
     double & P0, const double & V0);
-  /// \brief (with hysteresis) open valve to vent gas from lower to upper chamber
-  void openValve(
-    const int dt_nano, const double & pressure_diff,
-    double & P1, const double & V1,
-    double & P2, const double & V2);
   /// \brief pump gas from upper to lower chamber
   void pumpOn(
     const int dt_nano,
     double & P0, const double & V0);
-  /// \brief (with hysteresis) pump gas from upper to lower chamber
-  void pumpOn(
-    const int dt_nano,
-    double & P1, const double & V1,
-    double & P2, const double & V2);
   void computeLawOfCoolingForce(const double & x, const int & dt_nano);
   void computePolytropicForce(const double & x, const double & v);
 

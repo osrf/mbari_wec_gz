@@ -125,7 +125,8 @@ public:
   {
     double LimitedI = I;
     double AdjustedN = rpm_;
-    const double RamPosition = (SC_RANGE_MAX - (range_finder_ / 0.0254));
+    // TODO(anyone) hook this up when ram position is dynamic in EHPTO.cpp
+    const double RamPosition = 40.0;  // range_finder_ / 0.0254;
     if (rpm_ >= 0.0) {  // Retracting
       const double min_region = SC_RANGE_MIN + STOP_RANGE;
       if (RamPosition < min_region) {
@@ -213,7 +214,7 @@ protected:
 
     // Setup fixture
     gz::sim::ServerConfig config;
-    config.SetSdfFile("mbari_wec.sdf");
+    config.SetSdfFile("mbari_wec_test.sdf");
     config.SetUpdateRate(0.0);
 
     fixture = std::make_unique<gz::sim::TestFixture>(config);
@@ -324,8 +325,9 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     static_cast<int>(node->clock_->now().seconds()),
     static_cast<int>(iterations / 1000.0F));
 
-  EXPECT_GT(node->wind_curr_, wc - 0.1F);
-  EXPECT_LT(node->wind_curr_, wc + 0.1F);
+  expected_wind_curr = node->winding_current_limiter(wc);
+  EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1F);
+  EXPECT_LT(node->wind_curr_, expected_wind_curr + 0.1F);
 
   ///////////////////////////////////////////
   // Scale
@@ -430,8 +432,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_GT(node->bias_curr_, bc - 0.1F);
   EXPECT_LT(node->bias_curr_, bc + 0.1F);
 
-  // TODO(andermi) fix this comparison when motor mode is fixed
-  EXPECT_LT(node->range_finder_, 2.03);  // meters
+  EXPECT_LT(node->range_finder_, 0.97);  // meters
 
   // Let bias curr command timeout
   fixture->Server()->Run(
