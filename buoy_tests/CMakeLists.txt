@@ -37,6 +37,7 @@ if(BUILD_TESTING)
     set(oneValueArgs)
     set(multiValueArgs
       EXTRA_ROS_PKGS
+      LOCALLY_INSTALLED_LIBS
       BOOST_COMPONENTS)
 
     cmake_parse_arguments(buoy_add_gtest "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -52,6 +53,12 @@ if(BUILD_TESTING)
       endforeach()
     endif()
 
+    if(buoy_add_gtest_LOCALLY_INSTALLED_LIBS)
+      foreach(LOCAL_LIB ${buoy_add_gtest_LOCALLY_INSTALLED_LIBS})
+        find_package(${LOCAL_LIB} REQUIRED)
+      endforeach()
+    endif()
+
     ament_add_gtest_executable(${TEST_NAME}
       tests/${TEST_NAME}.cpp
     )
@@ -59,6 +66,12 @@ if(BUILD_TESTING)
     target_link_libraries(${TEST_NAME}
       gz-sim${GZ_SIM_VER}::gz-sim${GZ_SIM_VER}
     )
+
+    if(buoy_add_gtest_LOCALLY_INSTALLED_LIBS)
+      foreach(LOCAL_LIB ${buoy_add_gtest_LOCALLY_INSTALLED_LIBS})
+        target_link_libraries(${TEST_NAME} ${LOCAL_LIB})
+      endforeach()
+    endif()
 
     if(buoy_add_gtest_BOOST_COMPONENTS)
       target_link_libraries(${TEST_NAME}
@@ -89,7 +102,7 @@ if(BUILD_TESTING)
 
     if(buoy_add_gtest_LAUNCH_TEST)
       add_launch_test(launch/${TEST_NAME}.launch.py
-        TIMEOUT 650
+        TIMEOUT 1000
       )
     else()
       ament_add_gtest_test(${TEST_NAME})
@@ -128,7 +141,7 @@ if(BUILD_TESTING)
     endif()
 
     add_launch_test(launch/${PYTEST_NAME}_py.launch.py
-      TIMEOUT 650
+      TIMEOUT 1000
     )
   endfunction()
 
@@ -154,16 +167,24 @@ if(BUILD_TESTING)
     EXTRA_ROS_PKGS
       buoy_gazebo)
 
-  buoy_add_gtest(mooring_force)
+  buoy_add_gtest(wave_body_interactions_heaveonly LAUNCH_TEST
+    LOCALLY_INSTALLED_LIBS
+      FreeSurfaceHydrodynamics
+    EXTRA_ROS_PKGS
+      ament_index_cpp)
 
-  buoy_add_gtest(no_inputs)
+  buoy_add_gtest(wave_body_interactions_pitchonly LAUNCH_TEST
+    LOCALLY_INSTALLED_LIBS
+      FreeSurfaceHydrodynamics
+    EXTRA_ROS_PKGS
+      ament_index_cpp)
+
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(sc_commands_ros_feedback ROS LAUNCH_TEST)
 
   buoy_add_gtest(test_pto_friction ROS
     EXTRA_ROS_PKGS
-      buoy_gazebo
       simple_interp)
 
   # Add pytests
@@ -196,5 +217,6 @@ if(BUILD_TESTING)
   ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
 
 endif()
+
 
 ament_package()

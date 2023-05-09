@@ -18,24 +18,35 @@ wget https://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
 
 echo "deb http://packages.ros.org/ros2/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/ros2-latest.list
 curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
-apt-get update -qq
-apt-get install -y git \
-                   gz-garden \
-                   python3-colcon-common-extensions \
-                   python3-rosdep \
-                   python3-vcstool \
-                   wget
+# curl -s --compressed "https://hamilton8415.github.io/ppa/KEY.gpg" | gpg --dearmor | tee /etc/apt/trusted.gpg.d/ppa.gpg >/dev/null
+# curl -s --compressed -o /etc/apt/sources.list.d/my_list_file.list "https://hamilton8415.github.io/ppa/my_list_file.list"
+apt update -qq
+apt install -y git \
+               gz-garden \
+               python3-colcon-common-extensions \
+               python3-rosdep \
+               python3-vcstool \
+               wget  # \
+#               libfshydrodynamics
 
 cd $COLCON_WS_SRC
 cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
-wget https://raw.githubusercontent.com/osrf/buoy_entrypoint/main/buoy_all.yaml
-vcs import --skip-existing < buoy_all.yaml
-
-rm -rf buoy_examples
+wget https://raw.githubusercontent.com/osrf/mbari_wec/main/mbari_wec_all.yaml
+vcs import --skip-existing < mbari_wec_all.yaml
 
 rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
+
+git clone https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
+cd FreeSurfaceHydrodynamics
+touch COLCON_IGNORE
+mkdir build
+cd build
+cmake ..
+make
+make install
+cd $COLCON_WS_SRC
 
 # For rosbag2 test artifacts
 apt install -y ros-humble-ros2cli ros-humble-rosbag2 ros-humble-rosbag2-transport

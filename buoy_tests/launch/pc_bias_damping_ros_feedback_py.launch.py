@@ -36,7 +36,12 @@ def generate_test_description():
         ),
     )
 
-    ld, locals_ = default_generate_test_description(server='fixture_server_sinusoidal_piston')
+    sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
+                      physics_rtf=11.0,
+                      physics_step=0.001)
+    ld, locals_ = default_generate_test_description(server='fixture_server_sinusoidal_piston',
+                                                    regen_models=True,
+                                                    regen_kwargs=sim_params)
     ld.add_entity(bias_damping)
 
     return ld, {**locals_, 'bias_damping': bias_damping}

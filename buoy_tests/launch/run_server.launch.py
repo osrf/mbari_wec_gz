@@ -13,8 +13,11 @@
 # limitations under the License.
 
 import launch
+from launch.actions import OpaqueFunction
 
 from launch_ros.actions import Node as launchNode
+
+from testing_utils import regenerate_models
 
 
 def generate_launch_description():
@@ -32,7 +35,14 @@ def generate_launch_description():
                         arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                         output='screen')
 
+    nodes = [gazebo_test_fixture,
+             bridge]
+    sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
+                      physics_rtf=11.0,
+                      physics_step=0.001)
+
     return launch.LaunchDescription([
-        gazebo_test_fixture,
-        bridge
-    ])
+        OpaqueFunction(function=regenerate_models,
+                       args=nodes,
+                       kwargs=sim_params),
+    ]), locals()
