@@ -440,6 +440,10 @@ SpringController::SpringController()
 SpringController::~SpringController()
 {
   // Stop ros2 threads
+  if(rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+
   this->dataPtr->stop_ = true;
   if (this->dataPtr->ros_->executor_) {
     this->dataPtr->ros_->executor_->cancel();

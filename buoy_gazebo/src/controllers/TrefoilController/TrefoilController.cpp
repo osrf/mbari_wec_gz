@@ -111,6 +111,10 @@ TrefoilController::TrefoilController()
 TrefoilController::~TrefoilController()
 {
   // Stop ros2 threads
+  if(rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+
   this->dataPtr->stop_ = true;
   this->dataPtr->executor_->cancel();
   this->dataPtr->thread_executor_spin_.join();
