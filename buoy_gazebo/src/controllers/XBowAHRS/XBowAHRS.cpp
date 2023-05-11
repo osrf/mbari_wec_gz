@@ -31,7 +31,9 @@
 #include <buoy_interfaces/msg/xb_record.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 
+#include "buoy_utils/Rate.hpp"
 #include "XBowAHRS.hpp"
+
 
 struct buoy_gazebo::XBowAHRSPrivate
 {
@@ -43,7 +45,7 @@ struct buoy_gazebo::XBowAHRSPrivate
   rclcpp::Publisher<buoy_interfaces::msg::XBRecord>::SharedPtr xb_pub_{nullptr};
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_{nullptr};
   double pub_rate_hz_{10.0};
-  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  std::unique_ptr<buoy_utils::SimRate> pub_rate_{nullptr};
   std::chrono::steady_clock::duration current_time_;
   buoy_interfaces::msg::XBRecord xb_record_;
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
@@ -182,7 +184,8 @@ void XBowAHRS::Configure(
 
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
-  this->dataPtr->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
+  this->dataPtr->pub_rate_ = std::make_unique<buoy_utils::SimRate>(this->dataPtr->pub_rate_hz_,
+                                                                   this->dataPtr->rosnode_->get_clock());
 
   auto publish = [this]()
     {

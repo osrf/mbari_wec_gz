@@ -33,8 +33,10 @@
 
 #include <buoy_interfaces/msg/bc_record.hpp>
 
+#include "buoy_utils/Rate.hpp"
 #include "ElectroHydraulicPTO/BatteryState.hpp"
 #include "BatteryController.hpp"
+
 
 using namespace std::chrono_literals;
 
@@ -48,7 +50,7 @@ struct BatteryControllerROS2
   bool use_sim_time_{true};
 
   rclcpp::Publisher<buoy_interfaces::msg::BCRecord>::SharedPtr bc_pub_{nullptr};
-  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  std::unique_ptr<buoy_utils::SimRate> pub_rate_{nullptr};
   buoy_interfaces::msg::BCRecord bc_record_;
   double pub_rate_hz_{10.0};
 };
@@ -122,7 +124,8 @@ struct BatteryControllerPrivate
             std::unique_lock next(next_access_mutex_);
             std::unique_lock data(data_mutex_);
             next.unlock();
-            ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(ros_->pub_rate_hz_);
+            ros_->pub_rate_ = std::make_unique<buoy_utils::SimRate>(ros_->pub_rate_hz_,
+                                                                    ros_->node_->get_clock());
             data.unlock();
           }
         }

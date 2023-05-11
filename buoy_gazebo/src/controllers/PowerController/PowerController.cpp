@@ -40,6 +40,7 @@
 #include <buoy_interfaces/srv/pc_bias_curr_command.hpp>
 #include <buoy_interfaces/msg/pb_command_response.hpp>
 
+#include "buoy_utils/Rate.hpp"
 #include "ElectroHydraulicPTO/ElectroHydraulicState.hpp"
 #include "PowerController.hpp"
 
@@ -56,7 +57,7 @@ struct PowerControllerROS2
   bool use_sim_time_{true};
 
   rclcpp::Publisher<buoy_interfaces::msg::PCRecord>::SharedPtr pc_pub_{nullptr};
-  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  std::unique_ptr<buoy_utils::SimRate> pub_rate_{nullptr};
   static const rcl_interfaces::msg::FloatingPointRange valid_pub_rate_range_;
   buoy_interfaces::msg::PCRecord pc_record_;
   double pub_rate_hz_{10.0};
@@ -200,7 +201,8 @@ struct PowerControllerPrivate
     std::unique_lock next(next_access_mutex_);
     std::unique_lock data(data_mutex_);
     next.unlock();
-    ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(ros_->pub_rate_hz_);
+    ros_->pub_rate_ = std::make_unique<buoy_utils::SimRate>(ros_->pub_rate_hz_,
+                                                            ros_->node_->get_clock());
     data.unlock();
   }
 
@@ -580,6 +582,10 @@ PowerController::PowerController()
 PowerController::~PowerController()
 {
   // Stop ros2 threads
+  if(rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+
   this->dataPtr->stop_ = true;
   if (this->dataPtr->ros_->executor_) {
     this->dataPtr->ros_->executor_->cancel();

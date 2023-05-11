@@ -32,7 +32,9 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
 
+#include "buoy_utils/Rate.hpp"
 #include "TrefoilController.hpp"
+
 
 struct buoy_gazebo::TrefoilControllerPrivate
 {
@@ -51,7 +53,7 @@ struct buoy_gazebo::TrefoilControllerPrivate
   std::function<void(const gz::msgs::IMU &)> imu_cb_;
   std::function<void(const gz::msgs::Magnetometer &)> mag_cb_;
   double pub_rate_hz_{10.0};
-  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  std::unique_ptr<buoy_utils::SimRate> pub_rate_{nullptr};
   buoy_interfaces::msg::TFRecord tf_record_;
 
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
@@ -223,7 +225,8 @@ void TrefoilController::Configure(
 
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
-  this->dataPtr->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
+  this->dataPtr->pub_rate_ = std::make_unique<buoy_utils::SimRate>(this->dataPtr->pub_rate_hz_,
+                                                                   this->dataPtr->rosnode_->get_clock());
 
   auto publish = [this]()
     {
