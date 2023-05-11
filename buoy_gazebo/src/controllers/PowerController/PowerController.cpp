@@ -201,8 +201,9 @@ struct PowerControllerPrivate
     std::unique_lock next(next_access_mutex_);
     std::unique_lock data(data_mutex_);
     next.unlock();
-    ros_->pub_rate_ = std::make_unique<buoy_utils::SimRate>(ros_->pub_rate_hz_,
-                                                            ros_->node_->get_clock());
+    ros_->pub_rate_ = std::make_unique<buoy_utils::SimRate>(
+      ros_->pub_rate_hz_,
+      ros_->node_->get_clock());
     data.unlock();
   }
 
@@ -582,7 +583,7 @@ PowerController::PowerController()
 PowerController::~PowerController()
 {
   // Stop ros2 threads
-  if(rclcpp::ok()) {
+  if (rclcpp::ok()) {
     rclcpp::shutdown();
   }
 

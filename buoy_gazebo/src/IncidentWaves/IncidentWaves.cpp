@@ -74,7 +74,6 @@ void IncidentWaves::Configure(
   gz::sim::EntityComponentManager & _ecm,
   gz::sim::EventManager & /*_eventMgr*/)
 {
-
   this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
     ignerr << "IncidentWaves plugin should be attached to a model entity. " <<

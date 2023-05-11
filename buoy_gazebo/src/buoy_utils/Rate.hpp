@@ -20,8 +20,6 @@
 
 #include <rclcpp/macros.hpp>
 #include <rclcpp/rate.hpp>
-//#include <rclcpp/utilities.hpp>
-//#include <rclcpp/visibility_control.hpp>
 
 
 namespace buoy_utils
@@ -40,16 +38,17 @@ public:
   : SimRate(
       duration_cast<nanoseconds>(duration<double>(1.0 / rate)),
       _clock
-    )
+  )
   {}
 
-  explicit SimRate(const std::chrono::nanoseconds & period,
-                   rclcpp::Clock::SharedPtr _clock)
+  explicit SimRate(
+    const std::chrono::nanoseconds & period,
+    rclcpp::Clock::SharedPtr _clock)
   : clock(_clock),
     period_(period),
     last_interval_(
       rclcpp::Time(_clock->now(),
-                   _clock->get_clock_type())
+      _clock->get_clock_type())
     )
   {}
 

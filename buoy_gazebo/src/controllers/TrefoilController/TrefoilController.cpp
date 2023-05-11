@@ -111,7 +111,7 @@ TrefoilController::TrefoilController()
 TrefoilController::~TrefoilController()
 {
   // Stop ros2 threads
-  if(rclcpp::ok()) {
+  if (rclcpp::ok()) {
     rclcpp::shutdown();
   }
 
@@ -229,8 +229,9 @@ void TrefoilController::Configure(
 
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
-  this->dataPtr->pub_rate_ = std::make_unique<buoy_utils::SimRate>(this->dataPtr->pub_rate_hz_,
-                                                                   this->dataPtr->rosnode_->get_clock());
+  this->dataPtr->pub_rate_ = std::make_unique<buoy_utils::SimRate>(
+    this->dataPtr->pub_rate_hz_,
+    this->dataPtr->rosnode_->get_clock());
 
   auto publish = [this]()
     {
