@@ -108,8 +108,7 @@ bool MooringForcePrivate::FindLinks(
   auto entity = this->model.LinkByName(_ecm, this->linkName);
   this->link = gz::sim::Link(entity);
 
-  if (!this->link.Valid(_ecm))
-  {
+  if (!this->link.Valid(_ecm)) {
       gzwarn << "Could not find link[" << this->linkName << "]. "
              << "Mooring force will not be calculated."
              << std::endl;
@@ -124,8 +123,7 @@ void MooringForcePrivate::UpdateVH(
   gz::sim::EntityComponentManager &_ecm)
 {
   // Skip if buoy link is not valid.
-  if (!this->link.Valid(_ecm))
-  {
+  if (!this->link.Valid(_ecm)) {
     return;
   }
 
@@ -171,8 +169,7 @@ void MooringForce::Configure(
   gz::common::Console::SetVerbosity(4);
 
   this->dataPtr->model = gz::sim::Model(_entity);
-  if (!this->dataPtr->model.Valid(_ecm))
-  {
+  if (!this->dataPtr->model.Valid(_ecm)) {
     gzerr << "MooringForce plugin should be attached to a model entity. " <<
       "Failed to initialize." << std::endl;
     return;
@@ -183,8 +180,7 @@ void MooringForce::Configure(
   gzdbg << "Anchor position set to " << this->dataPtr->anchorPos
     << std::endl;
 
-  if (_sdf->HasElement("chain_length"))
-  {
+  if (_sdf->HasElement("chain_length")) {
     this->dataPtr->L = _sdf->Get<double>(
       "chain_length", this->dataPtr->L).first;
     gzdbg << "Mooring chain length set to " << this->dataPtr->L
@@ -201,8 +197,7 @@ void MooringForce::Configure(
   // debug print throttle, default 1Hz
   {
     double rate(1.0);
-    if (_sdf->HasElement("debug_print_rate"))
-    {
+    if (_sdf->HasElement("debug_print_rate")) {
       rate = _sdf->Get<double>(
         "debug_print_rate", rate).first;
       gzdbg << "Debug print rate set to " << rate
@@ -223,22 +218,19 @@ void MooringForce::PreUpdate(
   GZ_PROFILE("MooringForce::PreUpdate");
 
   // Skip if buoy link is not valid.
-  if (!this->dataPtr->link.Valid(_ecm))
-  {
+  if (!this->dataPtr->link.Valid(_ecm)) {
     return;
   }
 
   // \todo(anyone): Support rewind
-  if (_info.dt < std::chrono::steady_clock::duration::zero())
-  {
+  if (_info.dt < std::chrono::steady_clock::duration::zero()) {
     gzwarn << "Detected jump back in time [" <<
       std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count() <<
       "s]. System may not work properly." << std::endl;
   }
 
   // Nothing left to do if paused.
-  if (_info.paused)
-  {
+  if (_info.paused) {
     return;
   }
 
@@ -247,10 +239,8 @@ void MooringForce::PreUpdate(
 
   // Skip solver if the chain can drop vertically (within tolerance).
   double toleranceL = 0.1;
-  if (this->dataPtr->V + this->dataPtr->H <= this->dataPtr->L + toleranceL)
-  {
-    if (!this->dataPtr->notifiedSkipForceUpdate)
-    {
+  if (this->dataPtr->V + this->dataPtr->H <= this->dataPtr->L + toleranceL) {
+    if (!this->dataPtr->notifiedSkipForceUpdate) {
       this->dataPtr->notifiedSkipForceUpdate = true;
       gzmsg << "Buoy chain can drop vertically. Skipping force update."
             << std::endl;
@@ -262,13 +252,11 @@ void MooringForce::PreUpdate(
 
     gz::math::Vector3d force(0.0, 0.0, Tz);
     gz::math::Vector3d torque = gz::math::Vector3d::Zero;
-    if (force.IsFinite() && torque.IsFinite())
-    {
+    if (force.IsFinite() && torque.IsFinite()) {
       // this->dataPtr->link.SetVisualizationLabel("Mooring");
       this->dataPtr->link.AddWorldWrench(_ecm, force, torque);
     }
-    else
-    {
+    else {
       gzerr << "Mooring force and/or torque is not finite.\n";
     }
     */
@@ -287,8 +275,7 @@ void MooringForce::PreUpdate(
   catenarySolver.useExternalScaling = true;
 
   // Initial estimate for B (upper bound).
-  auto BMax = [](double V, double H, double L) -> double
-  {
+  auto BMax = [](double V, double H, double L) -> double {
     return (L * L - (V * V + H * H)) / (2 * (L - H));
   };
 
@@ -312,8 +299,7 @@ void MooringForce::PreUpdate(
   // Throttle update rate
   auto elapsed = _info.simTime - this->dataPtr->lastDebugPrintTime;
   if (elapsed > std::chrono::steady_clock::duration::zero() &&
-      elapsed >= this->dataPtr->debugPrintPeriod)
-  {
+      elapsed >= this->dataPtr->debugPrintPeriod) {
     this->dataPtr->lastDebugPrintTime = _info.simTime;
     gzdbg << "HSolver solverInfo: " << solverInfo << "\n"
       << " t: " << std::chrono::duration_cast<
@@ -339,8 +325,7 @@ void MooringForce::PreUpdate(
 
   // Did not find solution.
   // Maybe shouldn't apply a force that doesn't make sense
-  if (solverInfo != 1)
-  {
+  if (solverInfo != 1) {
     gzerr << "HSolver failed to converge, solverInfo: " << solverInfo
           << " No mooring force will be applied." << std::endl;
     return;
@@ -350,13 +335,11 @@ void MooringForce::PreUpdate(
   // Tz unused at the moment
   gz::math::Vector3d force(Tx, Ty, 0.0);
   gz::math::Vector3d torque = gz::math::Vector3d::Zero;
-  if (force.IsFinite())
-  {
+  if (force.IsFinite()) {
     // this->dataPtr->link.SetVisualizationLabel("MooringForce");
     this->dataPtr->link.AddWorldWrench(_ecm, force, torque);
   }
-  else
-  {
+  else {
     gzerr << "Mooring force is not finite" << std::endl;
   }
 }

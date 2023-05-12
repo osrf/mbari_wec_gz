@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MOORINGFORCE_CATENARYSOLN_HPP_
-#define MOORINGFORCE_CATENARYSOLN_HPP_
+#ifndef MOORINGFORCE__CATENARYSOLN_HPP_
+#define MOORINGFORCE__CATENARYSOLN_HPP_
 
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
@@ -118,8 +118,7 @@ struct CatenaryHSoln : Functor<double>
   // Know 0 <= B < L - V. Take in B = L - V - b as initial guess
   int operator()(const Eigen::VectorXd &_B, Eigen::VectorXd &_fvec) const
   {
-    if (_B.size() < 1)
-    {
+    if (_B.size() < 1) {
       gzerr << "Invalid input size for CatenaryHSoln::operator()" << std::endl;
       return -1;
     }
@@ -133,4 +132,4 @@ struct CatenaryHSoln : Functor<double>
 
 }  // namespace buoy_gazebo
 
-#endif  // MOORINGFORCE_CATENARYSOLN_HPP_
+#endif  // MOORINGFORCE__CATENARYSOLN_HPP_
