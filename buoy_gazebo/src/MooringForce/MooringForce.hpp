@@ -1,4 +1,5 @@
-// Copyright 2022 Open Source Robotics Foundation, Inc. and Monterey Bay Aquarium Research Institute
+// Copyright 2022 Open Source Robotics Foundation, Inc.
+//                and Monterey Bay Aquarium Research Institute
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MOORINGFORCE__MOORINGFORCE_HPP_
-#define MOORINGFORCE__MOORINGFORCE_HPP_
+#ifndef MOORINGFORCE_MOORINGFORCE_HPP_
+#define MOORINGFORCE_MOORINGFORCE_HPP_
 
 #include <gz/sim/System.hh>
 
@@ -32,7 +33,7 @@ public:
   MooringForce();
 
   /// \brief Destructor
-  ~MooringForce() override = default;
+  ~MooringForce() override;
 
   // Documentation inherited
   void Configure(
@@ -52,4 +53,4 @@ private:
 };
 }  // namespace buoy_gazebo
 
-#endif  // MOORINGFORCE__MOORINGFORCE_HPP_
+#endif  // MOORINGFORCE_MOORINGFORCE_HPP_

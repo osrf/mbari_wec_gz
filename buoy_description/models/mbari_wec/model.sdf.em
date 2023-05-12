@@ -269,6 +269,8 @@ if not ignore_piston_mean_pos:
     <plugin filename="MooringForce" name="buoy_gazebo::MooringForce">
       <anchor_position>80.0 100.0 -84.0</anchor_position>
       <enable_beyond_radius>90.0</enable_beyond_radius>
+      <chain_length>160.0</chain_length>
+      <debug_print_rate>1.0</debug_print_rate>
     </plugin>
 
   </model>
