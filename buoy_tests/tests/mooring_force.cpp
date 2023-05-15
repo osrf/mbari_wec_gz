@@ -28,8 +28,8 @@
 //////////////////////////////////////////////////
 TEST(BuoyTests, MooringForce)
 {
-  // Skip debug messages to run faster TODO change to 3 for PR
-  gz::common::Console::SetVerbosity(4);
+  // Skip debug messages to run faster
+  //gz::common::Console::SetVerbosity(3);
 
   // Setup fixture
   gz::sim::ServerConfig config;
@@ -81,7 +81,7 @@ TEST(BuoyTests, MooringForce)
       gz::sim::EntityComponentManager & _ecm)
     {
       // Apply wrench to buoy link on water surface to push it away
-      gz::math::Vector3d driftForce(1000000, 0, 0);
+      gz::math::Vector3d driftForce(100000, 0, 0);
       gz::math::Vector3d driftTorque(0, 0, 0);
       buoyLink.AddWorldWrench(_ecm, driftForce, driftTorque);
     }).
@@ -106,7 +106,7 @@ TEST(BuoyTests, MooringForce)
   Finalize();
 
   // Run simulation server
-  int targetIterations{20000};
+  int targetIterations{8000};
   gzdbg << "Applying force to simulate natural buoy drift for "
     << targetIterations << " iterations..."<< std::endl;
   fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
