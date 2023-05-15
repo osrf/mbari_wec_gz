@@ -132,14 +132,18 @@ const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_win
   .set__to_value(35.0F);
 
 // never time out on scale
-const rclcpp::Duration PowerControllerServices::SCALE_COMMAND_TIMEOUT{std::numeric_limits<int>::max(), 0U};
+const rclcpp::Duration PowerControllerServices::SCALE_COMMAND_TIMEOUT{
+  std::numeric_limits<int>::max(),
+  0U};
 const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_scale_range_ =
   rcl_interfaces::msg::FloatingPointRange()
   .set__from_value(0.5F)
   .set__to_value(1.4F);
 
 // never time out on retract
-const rclcpp::Duration PowerControllerServices::RETRACT_COMMAND_TIMEOUT{std::numeric_limits<int>::max(), 0U};
+const rclcpp::Duration PowerControllerServices::RETRACT_COMMAND_TIMEOUT{
+  std::numeric_limits<int>::max(),
+  0U};
 const rcl_interfaces::msg::FloatingPointRange PowerControllerServices::valid_retract_range_ =
   rcl_interfaces::msg::FloatingPointRange()
   .set__from_value(0.4F)
