@@ -31,19 +31,22 @@
 #include <buoy_interfaces/msg/xb_record.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 
+#include "buoy_utils/Rate.hpp"
 #include "XBowAHRS.hpp"
+
 
 struct buoy_gazebo::XBowAHRSPrivate
 {
   gz::sim::Entity entity_;
   gz::sim::Entity linkEntity_;
   rclcpp::Node::SharedPtr rosnode_{nullptr};
+  bool use_sim_time_{true};
   gz::transport::Node node_;
   std::function<void(const gz::msgs::IMU &)> imu_cb_;
   rclcpp::Publisher<buoy_interfaces::msg::XBRecord>::SharedPtr xb_pub_{nullptr};
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_{nullptr};
   double pub_rate_hz_{10.0};
-  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  std::unique_ptr<buoy_utils::SimRate> pub_rate_{nullptr};
   std::chrono::steady_clock::duration current_time_;
   buoy_interfaces::msg::XBRecord xb_record_;
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
@@ -54,8 +57,8 @@ struct buoy_gazebo::XBowAHRSPrivate
 
   void set_xb_record_imu(const gz::msgs::IMU & _imu)
   {
-    xb_record_.header.stamp.sec = _imu.header().stamp().sec();
-    xb_record_.header.stamp.nanosec = _imu.header().stamp().nsec();
+    // xb_record_.header.stamp.sec = _imu.header().stamp().sec();
+    // xb_record_.header.stamp.nanosec = _imu.header().stamp().nsec();
     xb_record_.header.frame_id = "Buoy";
     xb_record_.imu.header = xb_record_.header;
     xb_record_.imu.orientation.x = _imu.orientation().x();
@@ -94,6 +97,10 @@ XBowAHRS::XBowAHRS()
 XBowAHRS::~XBowAHRS()
 {
   // Stop ros2 threads
+  if (rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+
   this->dataPtr->stop_ = true;
   this->dataPtr->executor_->cancel();
   this->dataPtr->thread_executor_spin_.join();
@@ -135,6 +142,11 @@ void XBowAHRS::Configure(
   }
   std::string node_name = _sdf->Get<std::string>("node_name", "xbow_ahrs").first;
   this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name, ns);
+  
+  this->dataPtr->rosnode_->set_parameter(
+      rclcpp::Parameter(
+        "use_sim_time",
+        this->dataPtr->use_sim_time_));
 
   this->dataPtr->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
   this->dataPtr->executor_->add_node(this->dataPtr->rosnode_);
@@ -182,7 +194,9 @@ void XBowAHRS::Configure(
 
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
-  this->dataPtr->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
+  this->dataPtr->pub_rate_ = std::make_unique<buoy_utils::SimRate>(
+    this->dataPtr->pub_rate_hz_,
+    this->dataPtr->rosnode_->get_clock());
 
   auto publish = [this]()
     {
@@ -227,11 +241,18 @@ void XBowAHRS::PostUpdate(
   gz::sim::Link link(link_entity);
   auto v_world = link.WorldLinearVelocity(_ecm);  // assume x,y,z == ENU
 
+  this->dataPtr->current_time_ = _info.simTime;
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
+
   // low prio data access
   std::unique_lock low(this->dataPtr->low_prio_mutex_);
   std::unique_lock next(this->dataPtr->next_access_mutex_);
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
+
+  this->dataPtr->xb_record_.header.stamp.sec = sec_nsec.first;
+  this->dataPtr->xb_record_.header.stamp.nanosec = sec_nsec.second;
+
   if (v_world) {
     this->dataPtr->xb_record_.ned_velocity.x = v_world->Y();
     this->dataPtr->xb_record_.ned_velocity.y = v_world->X();
