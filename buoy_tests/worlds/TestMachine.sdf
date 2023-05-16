@@ -1,5 +1,14 @@
 <sdf version="1.8">
   <world name="PTO_TestBench">
+
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>36.743850</latitude_deg>
+      <longitude_deg>-121.876233</longitude_deg>
+      <elevation>0.0</elevation>
+    </spherical_coordinates>
+
     <physics name="1ms" type="ignored">
         <max_step_size>.01</max_step_size>
         <real_time_factor>10000.0</real_time_factor>

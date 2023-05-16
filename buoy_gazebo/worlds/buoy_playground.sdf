@@ -1,6 +1,15 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
   <world name="playground">
+
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>36.743850</latitude_deg>
+      <longitude_deg>-121.876233</longitude_deg>
+      <elevation>0.0</elevation>
+    </spherical_coordinates>
+
     <physics name="1ms" type="ignored">
       <real_time_factor>0</real_time_factor>
       <max_step_size>0.001</max_step_size>
