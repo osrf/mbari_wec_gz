@@ -40,6 +40,7 @@ struct buoy_gazebo::XBowAHRSPrivate
   gz::sim::Entity entity_;
   gz::sim::Entity linkEntity_;
   rclcpp::Node::SharedPtr rosnode_{nullptr};
+  bool use_sim_time_{true};
   gz::transport::Node node_;
   std::function<void(const gz::msgs::IMU &)> imu_cb_;
   rclcpp::Publisher<buoy_interfaces::msg::XBRecord>::SharedPtr xb_pub_{nullptr};
@@ -141,6 +142,11 @@ void XBowAHRS::Configure(
   }
   std::string node_name = _sdf->Get<std::string>("node_name", "xbow_ahrs").first;
   this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name, ns);
+  
+  this->dataPtr->rosnode_->set_parameter(
+      rclcpp::Parameter(
+        "use_sim_time",
+        this->dataPtr->use_sim_time_));
 
   this->dataPtr->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
   this->dataPtr->executor_->add_node(this->dataPtr->rosnode_);
@@ -235,14 +241,15 @@ void XBowAHRS::PostUpdate(
   gz::sim::Link link(link_entity);
   auto v_world = link.WorldLinearVelocity(_ecm);  // assume x,y,z == ENU
 
+  this->dataPtr->current_time_ = _info.simTime;
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
+
   // low prio data access
   std::unique_lock low(this->dataPtr->low_prio_mutex_);
   std::unique_lock next(this->dataPtr->next_access_mutex_);
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
 
-  this->dataPtr->current_time_ = _info.simTime;
-  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
   this->dataPtr->xb_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->xb_record_.header.stamp.nanosec = sec_nsec.second;
 
