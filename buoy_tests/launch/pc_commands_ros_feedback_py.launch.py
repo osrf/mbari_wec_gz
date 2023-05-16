@@ -200,12 +200,12 @@ class BuoyPCPyTest(BuoyPyTests):
         retract = 0.75
         self.assertNotEqual(self.node.retract_, retract)
 
-        # Now send scale command
+        # Now send retract command
         self.node.send_pc_retract_command(retract)
         self.assertEqual(self.node.pc_retract_future_.result().result.value,
                          self.node.pc_retract_future_.result().result.OK)
 
-        # Run to let scale process
+        # Run to let retract process
         self.test_helper.run(feedbackCheckIterations)
         self.assertTrue(self.test_helper.run_status)
         self.assertEqual(preCmdIterations + 4 * feedbackCheckIterations,
