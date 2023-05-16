@@ -47,6 +47,9 @@ class MooringForcePrivate
   /// \brief Name of the link the mooring is attached to.
   public: std::string linkName{"Buoy"};
 
+  /// \brief Whether this plugin is enabled
+  public: bool enabled{false};
+
   /// \brief A predefined pose we assume the anchor to be
   public: gz::math::Vector3d anchorPos{20.0, 0.0, -77.0};
 
@@ -175,6 +178,9 @@ void MooringForce::Configure(
     return;
   }
 
+  this->dataPtr->enabled = _sdf->Get<bool>(
+    "enabled", this->dataPtr->enabled).first;
+
   this->dataPtr->anchorPos = _sdf->Get<gz::math::Vector3d>(
     "anchor_position", this->dataPtr->anchorPos).first;
   gzdbg << "Anchor position set to " << this->dataPtr->anchorPos
@@ -194,7 +200,7 @@ void MooringForce::Configure(
 
   this->dataPtr->B.resize(1U);
 
-  // debug print throttle, default 1Hz
+  // Debug print throttle, default 1Hz
   {
     double rate(1.0);
     if (_sdf->HasElement("debug_print_rate")) {
@@ -217,8 +223,8 @@ void MooringForce::PreUpdate(
 {
   GZ_PROFILE("MooringForce::PreUpdate");
 
-  // Skip if buoy link is not valid.
-  if (!this->dataPtr->link.Valid(_ecm)) {
+  // Skip if plugin disabled, or if buoy link is not valid.
+  if (!this->dataPtr->enabled || !this->dataPtr->link.Valid(_ecm)) {
     return;
   }
 
