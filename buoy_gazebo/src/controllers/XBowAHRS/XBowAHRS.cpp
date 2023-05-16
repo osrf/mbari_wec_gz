@@ -142,11 +142,11 @@ void XBowAHRS::Configure(
   }
   std::string node_name = _sdf->Get<std::string>("node_name", "xbow_ahrs").first;
   this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name, ns);
-  
+
   this->dataPtr->rosnode_->set_parameter(
-      rclcpp::Parameter(
-        "use_sim_time",
-        this->dataPtr->use_sim_time_));
+    rclcpp::Parameter(
+      "use_sim_time",
+      this->dataPtr->use_sim_time_));
 
   this->dataPtr->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
   this->dataPtr->executor_->add_node(this->dataPtr->rosnode_);
