@@ -56,8 +56,8 @@ struct buoy_gazebo::XBowAHRSPrivate
 
   void set_xb_record_imu(const gz::msgs::IMU & _imu)
   {
-    xb_record_.header.stamp.sec = _imu.header().stamp().sec();
-    xb_record_.header.stamp.nanosec = _imu.header().stamp().nsec();
+    // xb_record_.header.stamp.sec = _imu.header().stamp().sec();
+    // xb_record_.header.stamp.nanosec = _imu.header().stamp().nsec();
     xb_record_.header.frame_id = "Buoy";
     xb_record_.imu.header = xb_record_.header;
     xb_record_.imu.orientation.x = _imu.orientation().x();
@@ -240,6 +240,12 @@ void XBowAHRS::PostUpdate(
   std::unique_lock next(this->dataPtr->next_access_mutex_);
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
+
+  this->dataPtr->current_time_ = _info.simTime;
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
+  this->dataPtr->xb_record_.header.stamp.sec = sec_nsec.first;
+  this->dataPtr->xb_record_.header.stamp.nanosec = sec_nsec.second;
+
   if (v_world) {
     this->dataPtr->xb_record_.ned_velocity.x = v_world->Y();
     this->dataPtr->xb_record_.ned_velocity.y = v_world->X();
