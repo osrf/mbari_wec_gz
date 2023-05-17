@@ -192,8 +192,8 @@ void TrefoilController::Configure(
       this->dataPtr->imu_data_valid_ = true;
       data.unlock();
     };
-  if (!this->dataPtr->node_.Subscribe("/Trefoil_link/trefoil_imu", this->dataPtr->imu_cb_)) {
-    gzerr << "Error subscribing to topic [" << "/Trefoil_link/trefoil_imu" << "]" << std::endl;
+  if (!this->dataPtr->node_.Subscribe("/HeaveCone_link/tf_imu", this->dataPtr->imu_cb_)) {
+    gzerr << "Error subscribing to topic [" << "/HeaveCone_link/tf_imu" << "]" << std::endl;
     return;
   }
 
@@ -209,8 +209,8 @@ void TrefoilController::Configure(
       this->dataPtr->mag_data_valid_ = true;
       data.unlock();
     };
-  if (!this->dataPtr->node_.Subscribe("/Trefoil_link/trefoil_mag", this->dataPtr->mag_cb_)) {
-    gzerr << "Error subscribing to topic [" << "/Trefoil_link/trefoil_mag" << "]" << std::endl;
+  if (!this->dataPtr->node_.Subscribe("/HeaveCone_link/tf_mag", this->dataPtr->mag_cb_)) {
+    gzerr << "Error subscribing to topic [" << "/HeaveCone_link/tf_mag" << "]" << std::endl;
     return;
   }
 
@@ -283,7 +283,7 @@ void TrefoilController::PostUpdate(
 
   //  Get Trefoil link's pose
   auto model = gz::sim::Model(this->dataPtr->entity_);
-  auto link = model.LinkByName(_ecm, "Trefoil");
+  auto link = model.LinkByName(_ecm, "HeaveCone");
   auto pose = gz::sim::worldPose(link, _ecm);
   double depth = pose.Pos().Z();
 

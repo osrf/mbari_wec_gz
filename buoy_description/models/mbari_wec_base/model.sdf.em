@@ -483,6 +483,25 @@ buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
           </box>
         </geometry>
       </collision>
+      <sensor name='tf_imu' type='imu'>
+        <!-- Physical IMU rotated 90 with y/z horizontal -->
+        <pose>0.0 0.0 0.0 0.0 1.570796 0.0</pose>
+        <topic>HeaveCone_link/tf_imu</topic>
+        <update_rate>50</update_rate>
+        <imu>
+          <orientation_reference_frame>
+            <localization>ENU</localization>
+          </orientation_reference_frame>
+        </imu>
+        <always_on>1</always_on>
+        <visualize>true</visualize>
+      </sensor>
+      <sensor name='tf_mag' type='magnetometer'>
+        <topic>HeaveCone_link/tf_mag</topic>
+        <update_rate>50</update_rate>
+        <always_on>1</always_on>
+        <visualize>true</visualize>
+      </sensor>
     </link>
 
     <link name="Trefoil">
@@ -512,23 +531,6 @@ buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
           <specular>0.1 0.1 .1 1</specular>
         </material>
       </visual>
-      <sensor name='trefoil_imu' type='imu'>
-        <topic>Trefoil_link/trefoil_imu</topic>
-        <update_rate>50</update_rate>
-        <imu>
-          <orientation_reference_frame>
-            <localization>ENU</localization>
-          </orientation_reference_frame>
-        </imu>
-        <always_on>1</always_on>
-        <visualize>true</visualize>
-      </sensor>
-      <sensor name='trefoil_mag' type='magnetometer'>
-        <topic>Trefoil_link/trefoil_mag</topic>
-        <update_rate>50</update_rate>
-        <always_on>1</always_on>
-        <visualize>true</visualize>
-      </sensor>
     </link>
 
     <joint name="Universal" type="universal">
