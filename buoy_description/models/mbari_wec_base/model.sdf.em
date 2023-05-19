@@ -176,6 +176,15 @@ buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
         <always_on>1</always_on>
         <visualize>true</visualize>
       </sensor>
+      <sensor name='xbow_gps' type='navsat'>
+        <topic>Buoy_link/xbow_gps</topic>
+        <update_rate>50</update_rate>
+        <navsat>
+          <!-- add noise? -->
+        </navsat>
+        <always_on>1</always_on>
+        <visualize>true</visualize>
+      </sensor>
     </link>
 
     <link name="PTO">

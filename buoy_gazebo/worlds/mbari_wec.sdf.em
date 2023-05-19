@@ -29,6 +29,7 @@ except NameError:
       <latitude_deg>@(lat_lon[0])</latitude_deg>
       <longitude_deg>@(lat_lon[1])</longitude_deg>
       <elevation>0.0</elevation>
+      <heading_deg>0.0</heading_deg>
     </spherical_coordinates>
 
     <physics name="step" type="ignored">
