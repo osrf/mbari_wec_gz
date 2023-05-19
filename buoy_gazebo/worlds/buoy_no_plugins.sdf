@@ -2,6 +2,14 @@
 <sdf version="1.6">
   <world name="buoy_no_plugins">
 
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>36.743850</latitude_deg>
+      <longitude_deg>-121.876233</longitude_deg>
+      <elevation>0.0</elevation>
+    </spherical_coordinates>
+
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>

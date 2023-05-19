@@ -129,9 +129,9 @@ def generate_simulations(sim_params_yaml):
     # seed (random seed for incident waves plugin)
     try:
         if 'seed' in sim_params:
-            seed = int(sim_params['seed'])
+            seed_ = int(sim_params['seed'])
         else:
-            seed = None
+            seed_ = None
             node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
     except TypeError:
         node.get_logger().error('sim_params_yaml: seed parameter' +
@@ -345,7 +345,7 @@ def generate_simulations(sim_params_yaml):
                             ', BatteryState, MeanPistonPosition' +
                             ', IncWaveSpectrumType;IncWaveSpectrumParams')
     [node.get_logger().debug(f'{print_optional(ps)}, {print_optional(physics_rtf)}' +
-                             f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
+                             f', {print_optional(seed_)}, {duration}, {ds}, {sf}' +
                              f', {print_optional(bs)}' +
                              f', {print_optional(mpp)}' +
                              f', {print_optional(iw)}')
@@ -378,7 +378,9 @@ def generate_simulations(sim_params_yaml):
     world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec_batch.sdf')
 
     # Start batch runs
+    rng = np.random.default_rng()
     for idx, (ps, ds, sf, bs, mpp, iw) in enumerate(batch_params):
+        seed = rng.integers(2**32-1) if seed_==0 else seed_
         node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
                                f" door state='{ds}', scale factor={sf}" +
                                f", battery state={bs if bs is not None else 'None'}" +
