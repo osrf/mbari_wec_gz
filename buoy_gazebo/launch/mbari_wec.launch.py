@@ -40,7 +40,7 @@ def regenerate_models(context, *args, **kwargs):
         launch.actions.OpaqueFunction(function=regenerate_models,
                                       args=dependent_nodes)
 
-    Will grab overriden parameters from launch arguments via context object
+    Will grab overridden parameters from launch arguments via context object
     """
     regenerate_models = LaunchConfiguration('regenerate_models').perform(context)
     if regenerate_models == 'false':
