@@ -380,6 +380,8 @@ def generate_simulations(sim_params_yaml):
     # Start batch runs
     rng = np.random.default_rng()
     for idx, (ps, ds, sf, bs, mpp, iw) in enumerate(batch_params):
+        if not rclpy.ok():
+            break  # Shutting down
         seed = rng.integers(2**32-1) if seed_==0 else seed_
         node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
                                f" door state='{ds}', scale factor={sf}" +
