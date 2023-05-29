@@ -36,9 +36,12 @@
 #include <buoy_interfaces/msg/sc_record.hpp>
 #include <buoy_interfaces/srv/valve_command.hpp>
 #include <buoy_interfaces/srv/pump_command.hpp>
+#include <buoy_interfaces/srv/sc_pack_rate_command.hpp>
 
+#include "buoy_utils/Rate.hpp"
 #include "PolytropicPneumaticSpring/SpringState.hpp"
 #include "SpringController.hpp"
+
 
 using namespace std::chrono_literals;
 
@@ -52,13 +55,23 @@ struct SpringControllerROS2
   bool use_sim_time_{true};
 
   rclcpp::Publisher<buoy_interfaces::msg::SCRecord>::SharedPtr sc_pub_{nullptr};
-  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  std::unique_ptr<buoy_utils::SimRate> pub_rate_{nullptr};
+  static const rcl_interfaces::msg::FloatingPointRange valid_pub_rate_range_;
   buoy_interfaces::msg::SCRecord sc_record_;
   double pub_rate_hz_{10.0};
 };
+const rcl_interfaces::msg::FloatingPointRange SpringControllerROS2::valid_pub_rate_range_ =
+  rcl_interfaces::msg::FloatingPointRange()
+  .set__from_value(10.0F)
+  .set__to_value(50.0F);
 
 struct SpringControllerServices
 {
+  rclcpp::Service<buoy_interfaces::srv::SCPackRateCommand>::SharedPtr packrate_command_service_{
+    nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::SCPackRateCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::SCPackRateCommand::Response>)> packrate_command_handler_;
+
   rclcpp::Service<buoy_interfaces::srv::ValveCommand>::SharedPtr valve_command_service_{nullptr};
   std::function<void(std::shared_ptr<buoy_interfaces::srv::ValveCommand::Request>,
     std::shared_ptr<buoy_interfaces::srv::ValveCommand::Response>)> valve_command_handler_;
@@ -100,6 +113,40 @@ struct SpringControllerPrivate
     return spring_data_valid_ && load_cell_data_valid_;
   }
 
+  void handle_publish_rate(const rclcpp::Parameter & parameter)
+  {
+    double rate_hz = parameter.as_double();
+    RCLCPP_INFO_STREAM(
+      ros_->node_->get_logger(),
+      "[ROS 2 Spring Control] setting publish_rate: " << rate_hz);
+
+    if (SpringControllerROS2::valid_pub_rate_range_.from_value > rate_hz ||
+      rate_hz > SpringControllerROS2::valid_pub_rate_range_.to_value)
+    {
+      RCLCPP_WARN_STREAM(
+        ros_->node_->get_logger(),
+        "[ROS 2 Spring Control] publish_rate out of bounds -- clipped between [" <<
+          SpringControllerROS2::valid_pub_rate_range_.from_value << ", " <<
+          SpringControllerROS2::valid_pub_rate_range_.to_value << "] Hz");
+    }
+
+    ros_->pub_rate_hz_ = std::min(
+      std::max(
+        rate_hz,
+        SpringControllerROS2::valid_pub_rate_range_.from_value),
+      SpringControllerROS2::valid_pub_rate_range_.to_value);
+
+    // low prio data access
+    std::unique_lock low(low_prio_mutex_);
+    std::unique_lock next(next_access_mutex_);
+    std::unique_lock data(data_mutex_);
+    next.unlock();
+    ros_->pub_rate_ = std::make_unique<buoy_utils::SimRate>(
+      ros_->pub_rate_hz_,
+      ros_->node_->get_clock());
+    data.unlock();
+  }
+
   void ros2_setup(const std::string & node_name, const std::string & ns)
   {
     if (!rclcpp::ok()) {
@@ -129,26 +176,7 @@ struct SpringControllerPrivate
             parameter.get_name() == "publish_rate" &&
             parameter.get_type() == rclcpp::PARAMETER_DOUBLE)
           {
-            double rate_hz = parameter.as_double();
-            RCLCPP_INFO_STREAM(
-              ros_->node_->get_logger(),
-              "[ROS 2 Spring Control] setting publish_rate: " << rate_hz);
-
-            if (rate_hz < 10.0 || rate_hz > 50.0) {
-              RCLCPP_WARN_STREAM(
-                ros_->node_->get_logger(),
-                "[ROS 2 Spring Control] publish_rate out of bounds -- clipped between [10,50]");
-            }
-
-            ros_->pub_rate_hz_ = std::min(std::max(rate_hz, 10.0), 50.0);
-
-            // low prio data access
-            std::unique_lock low(low_prio_mutex_);
-            std::unique_lock next(next_access_mutex_);
-            std::unique_lock data(data_mutex_);
-            next.unlock();
-            ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(ros_->pub_rate_hz_);
-            data.unlock();
+            handle_publish_rate(parameter);
           }
         }
         return result;
@@ -171,6 +199,22 @@ struct SpringControllerPrivate
 
   void setup_services()
   {
+    // Pack Rate
+    services_->packrate_command_handler_ =
+      [this](const std::shared_ptr<buoy_interfaces::srv::SCPackRateCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::SCPackRateCommand::Response> response)
+      {
+        RCLCPP_DEBUG_STREAM(
+          ros_->node_->get_logger(),
+          "[ROS 2 Spring Control] SCPackRateCommand Received [" << request->rate_hz << " Hz]");
+        rclcpp::Parameter parameter("publish_rate", static_cast<double>(request->rate_hz));
+        handle_publish_rate(parameter);
+      };
+    services_->packrate_command_service_ =
+      ros_->node_->create_service<buoy_interfaces::srv::SCPackRateCommand>(
+      "sc_pack_rate_command",
+      services_->packrate_command_handler_);
+
     services_->command_watch_.SetClock(ros_->node_->get_clock());
 
     // ValveCommand
@@ -437,6 +481,10 @@ SpringController::SpringController()
 SpringController::~SpringController()
 {
   // Stop ros2 threads
+  if (rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+
   this->dataPtr->stop_ = true;
   if (this->dataPtr->ros_->executor_) {
     this->dataPtr->ros_->executor_->cancel();

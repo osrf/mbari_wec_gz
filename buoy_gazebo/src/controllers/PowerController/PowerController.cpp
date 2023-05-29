@@ -34,12 +34,14 @@
 #include <ros_gz_sim/Stopwatch.hpp>
 
 #include <buoy_interfaces/msg/pc_record.hpp>
+#include <buoy_interfaces/srv/pc_pack_rate_command.hpp>
 #include <buoy_interfaces/srv/pc_wind_curr_command.hpp>
 #include <buoy_interfaces/srv/pc_scale_command.hpp>
 #include <buoy_interfaces/srv/pc_retract_command.hpp>
 #include <buoy_interfaces/srv/pc_bias_curr_command.hpp>
 #include <buoy_interfaces/msg/pb_command_response.hpp>
 
+#include "buoy_utils/Rate.hpp"
 #include "ElectroHydraulicPTO/ElectroHydraulicState.hpp"
 #include "PowerController.hpp"
 
@@ -56,7 +58,7 @@ struct PowerControllerROS2
   bool use_sim_time_{true};
 
   rclcpp::Publisher<buoy_interfaces::msg::PCRecord>::SharedPtr pc_pub_{nullptr};
-  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  std::unique_ptr<buoy_utils::SimRate> pub_rate_{nullptr};
   static const rcl_interfaces::msg::FloatingPointRange valid_pub_rate_range_;
   buoy_interfaces::msg::PCRecord pc_record_;
   double pub_rate_hz_{10.0};
@@ -68,6 +70,12 @@ const rcl_interfaces::msg::FloatingPointRange PowerControllerROS2::valid_pub_rat
 
 struct PowerControllerServices
 {
+  // PCPackRateCommand
+  rclcpp::Service<buoy_interfaces::srv::PCPackRateCommand>::SharedPtr packrate_command_service_{
+    nullptr};
+  std::function<void(std::shared_ptr<buoy_interfaces::srv::PCPackRateCommand::Request>,
+    std::shared_ptr<buoy_interfaces::srv::PCPackRateCommand::Response>)> packrate_command_handler_;
+
   // PCWindCurrCommand -- Winding Current (Torque)
   rclcpp::Service<buoy_interfaces::srv::PCWindCurrCommand>::SharedPtr torque_command_service_{
     nullptr};
@@ -206,7 +214,9 @@ struct PowerControllerPrivate
     std::unique_lock next(next_access_mutex_);
     std::unique_lock data(data_mutex_);
     next.unlock();
-    ros_->pub_rate_ = std::make_unique<rclcpp::Rate>(ros_->pub_rate_hz_);
+    ros_->pub_rate_ = std::make_unique<buoy_utils::SimRate>(
+      ros_->pub_rate_hz_,
+      ros_->node_->get_clock());
     data.unlock();
   }
 
@@ -296,6 +306,22 @@ struct PowerControllerPrivate
 
   void setupServices()
   {
+    // Pack Rate
+    services_->packrate_command_handler_ =
+      [this](const std::shared_ptr<buoy_interfaces::srv::PCPackRateCommand::Request> request,
+        std::shared_ptr<buoy_interfaces::srv::PCPackRateCommand::Response> response)
+      {
+        RCLCPP_DEBUG_STREAM(
+          ros_->node_->get_logger(),
+          "[ROS 2 Power Control] PCPackRateCommand Received [" << request->rate_hz << " Hz]");
+        rclcpp::Parameter parameter("publish_rate", static_cast<double>(request->rate_hz));
+        handle_publish_rate(parameter);
+      };
+    services_->packrate_command_service_ =
+      ros_->node_->create_service<buoy_interfaces::srv::PCPackRateCommand>(
+      "pc_pack_rate_command",
+      services_->packrate_command_handler_);
+
     // PCWindCurrCommand
     services_->torque_command_watch_.SetClock(ros_->node_->get_clock());
     services_->torque_command_handler_ =
@@ -586,6 +612,10 @@ PowerController::PowerController()
 PowerController::~PowerController()
 {
   // Stop ros2 threads
+  if (rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+
   this->dataPtr->stop_ = true;
   if (this->dataPtr->ros_->executor_) {
     this->dataPtr->ros_->executor_->cancel();

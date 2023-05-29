@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <gz/msgs/imu.pb.h>
+#include <gz/msgs/navsat.pb.h>
 
 #include <memory>
 #include <string>
@@ -30,34 +31,39 @@
 
 #include <buoy_interfaces/msg/xb_record.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
 
+#include "buoy_utils/Rate.hpp"
 #include "XBowAHRS.hpp"
+
 
 struct buoy_gazebo::XBowAHRSPrivate
 {
   gz::sim::Entity entity_;
   gz::sim::Entity linkEntity_;
   rclcpp::Node::SharedPtr rosnode_{nullptr};
+  bool use_sim_time_{true};
   gz::transport::Node node_;
   std::function<void(const gz::msgs::IMU &)> imu_cb_;
+  std::function<void(const gz::msgs::NavSat &)> gps_cb_;
   rclcpp::Publisher<buoy_interfaces::msg::XBRecord>::SharedPtr xb_pub_{nullptr};
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_{nullptr};
+  rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr gps_pub_{nullptr};
   double pub_rate_hz_{10.0};
-  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  std::unique_ptr<buoy_utils::SimRate> pub_rate_{nullptr};
   std::chrono::steady_clock::duration current_time_;
   buoy_interfaces::msg::XBRecord xb_record_;
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
-  std::atomic<bool> imu_data_valid_{false}, velocity_data_valid_{false};
+  std::atomic<bool> imu_data_valid_{false}, velocity_data_valid_{false}, gps_data_valid_{false};
   std::thread thread_executor_spin_, thread_publish_;
   rclcpp::executors::MultiThreadedExecutor::SharedPtr executor_;
   std::atomic<bool> stop_{false}, paused_{true};
 
   void set_xb_record_imu(const gz::msgs::IMU & _imu)
   {
-    xb_record_.header.stamp.sec = _imu.header().stamp().sec();
-    xb_record_.header.stamp.nanosec = _imu.header().stamp().nsec();
-    xb_record_.header.frame_id = "Buoy";
-    xb_record_.imu.header = xb_record_.header;
+    xb_record_.imu.header.stamp.sec = _imu.header().stamp().sec();
+    xb_record_.imu.header.stamp.nanosec = _imu.header().stamp().nsec();
+    xb_record_.imu.header.frame_id = xb_record_.header.frame_id;
     xb_record_.imu.orientation.x = _imu.orientation().x();
     xb_record_.imu.orientation.y = _imu.orientation().y();
     xb_record_.imu.orientation.z = _imu.orientation().z();
@@ -70,9 +76,19 @@ struct buoy_gazebo::XBowAHRSPrivate
     xb_record_.imu.linear_acceleration.z = _imu.linear_acceleration().z();
   }
 
+  void set_xb_record_gps(const gz::msgs::NavSat & _gps)
+  {
+    xb_record_.gps.header.stamp.nanosec = _gps.header().stamp().nsec();
+    xb_record_.gps.header.frame_id = xb_record_.header.frame_id;
+    xb_record_.gps.header = xb_record_.header;
+    xb_record_.gps.latitude = _gps.latitude_deg();
+    xb_record_.gps.longitude = _gps.longitude_deg();
+    xb_record_.gps.altitude = _gps.altitude();
+  }
+
   bool data_valid() const
   {
-    return velocity_data_valid_ && imu_data_valid_;
+    return velocity_data_valid_ && imu_data_valid_ && gps_data_valid_;
   }
 };
 
@@ -94,6 +110,10 @@ XBowAHRS::XBowAHRS()
 XBowAHRS::~XBowAHRS()
 {
   // Stop ros2 threads
+  if (rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+
   this->dataPtr->stop_ = true;
   this->dataPtr->executor_->cancel();
   this->dataPtr->thread_executor_spin_.join();
@@ -136,6 +156,11 @@ void XBowAHRS::Configure(
   std::string node_name = _sdf->Get<std::string>("node_name", "xbow_ahrs").first;
   this->dataPtr->rosnode_ = rclcpp::Node::make_shared(node_name, ns);
 
+  this->dataPtr->rosnode_->set_parameter(
+    rclcpp::Parameter(
+      "use_sim_time",
+      this->dataPtr->use_sim_time_));
+
   this->dataPtr->executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
   this->dataPtr->executor_->add_node(this->dataPtr->rosnode_);
   this->dataPtr->stop_ = false;
@@ -171,6 +196,23 @@ void XBowAHRS::Configure(
     return;
   }
 
+  // GPS Sensor
+  this->dataPtr->gps_cb_ = [this](const gz::msgs::NavSat & _gps)
+    {
+      // low prio data access
+      std::unique_lock low(this->dataPtr->low_prio_mutex_);
+      std::unique_lock next(this->dataPtr->next_access_mutex_);
+      std::unique_lock data(this->dataPtr->data_mutex_);
+      next.unlock();
+      this->dataPtr->set_xb_record_gps(_gps);
+      this->dataPtr->gps_data_valid_ = true;
+      data.unlock();
+    };
+  if (!this->dataPtr->node_.Subscribe("/Buoy_link/xbow_gps", this->dataPtr->gps_cb_)) {
+    gzerr << "Error subscribing to topic [" << "/Buoy_link/xbow_gps" << "]" << std::endl;
+    return;
+  }
+
   // Publisher
   std::string xb_topic = _sdf->Get<std::string>("xb_topic", "ahrs_data").first;
   this->dataPtr->xb_pub_ = \
@@ -180,15 +222,22 @@ void XBowAHRS::Configure(
   this->dataPtr->imu_pub_ = \
     this->dataPtr->rosnode_->create_publisher<sensor_msgs::msg::Imu>(imu_topic, 10);
 
+  std::string gps_topic = _sdf->Get<std::string>("gps_topic", "xb_gps").first;
+  this->dataPtr->gps_pub_ = \
+    this->dataPtr->rosnode_->create_publisher<sensor_msgs::msg::NavSatFix>(gps_topic, 10);
+
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
-  this->dataPtr->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
+  this->dataPtr->pub_rate_ = std::make_unique<buoy_utils::SimRate>(
+    this->dataPtr->pub_rate_hz_,
+    this->dataPtr->rosnode_->get_clock());
 
   auto publish = [this]()
     {
       while (rclcpp::ok() && !this->dataPtr->stop_) {
         if (this->dataPtr->xb_pub_->get_subscription_count() <= 0 && \
-          this->dataPtr->imu_pub_->get_subscription_count() <= 0) {continue;}
+          this->dataPtr->imu_pub_->get_subscription_count() <= 0 && \
+          this->dataPtr->gps_pub_->get_subscription_count() <= 0) {continue;}
         // Only update and publish if not paused.
         if (this->dataPtr->paused_) {continue;}
 
@@ -206,6 +255,9 @@ void XBowAHRS::Configure(
           }
           if (this->dataPtr->imu_pub_->get_subscription_count() > 0) {
             this->dataPtr->imu_pub_->publish(xb_record.imu);
+          }
+          if (this->dataPtr->gps_pub_->get_subscription_count() > 0) {
+            this->dataPtr->gps_pub_->publish(xb_record.gps);
           }
         } else {
           data.unlock();
@@ -227,11 +279,19 @@ void XBowAHRS::PostUpdate(
   gz::sim::Link link(link_entity);
   auto v_world = link.WorldLinearVelocity(_ecm);  // assume x,y,z == ENU
 
+  this->dataPtr->current_time_ = _info.simTime;
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
+
   // low prio data access
   std::unique_lock low(this->dataPtr->low_prio_mutex_);
   std::unique_lock next(this->dataPtr->next_access_mutex_);
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
+
+  this->dataPtr->xb_record_.header.frame_id = "Buoy";
+  this->dataPtr->xb_record_.header.stamp.sec = sec_nsec.first;
+  this->dataPtr->xb_record_.header.stamp.nanosec = sec_nsec.second;
+
   if (v_world) {
     this->dataPtr->xb_record_.ned_velocity.x = v_world->Y();
     this->dataPtr->xb_record_.ned_velocity.y = v_world->X();
