@@ -37,12 +37,10 @@ def regenerate_models(context, *args, **kwargs):
                            bridge,
                            robot_state_publisher,
                            rviz]
-        override_params = dict(door_state='open',
-                               inc_wave_spectrum=\
-                                   'inc_wave_spectrum_type:MonoChromatic;A:1.0;T:12.0')
         launch.actions.OpaqueFunction(function=regenerate_models,
-                                      args=dependent_nodes,
-                                      kwargs=override_params)
+                                      args=dependent_nodes)
+
+    Will grab overriden parameters from launch arguments via context object
     """
     regenerate_models = LaunchConfiguration('regenerate_models').perform(context)
     if regenerate_models == 'false':
