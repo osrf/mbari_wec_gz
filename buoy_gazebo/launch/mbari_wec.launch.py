@@ -29,7 +29,159 @@ from launch_ros.actions import Node
 
 
 def regenerate_models(context, *args, **kwargs):
+    """
+    Regenerate models in buoy_description to set parameters default unless otherwise specified.
+
+    For use as an OpaqueFunction:
+        dependent_nodes = [gazebo,
+                           bridge,
+                           robot_state_publisher,
+                           rviz]
+        override_params = dict(door_state='open',
+                               inc_wave_spectrum=\
+                                   'inc_wave_spectrum_type:MonoChromatic;A:1.0;T:12.0')
+        launch.actions.OpaqueFunction(function=regenerate_models,
+                                      args=dependent_nodes,
+                                      kwargs=override_params)
+    """
+    regenerate_models = LaunchConfiguration('regenerate_models').perform(context)
+    if regenerate_models == 'false':
+        return args
+    regenerate_default_models(context)
+
+    supported_mbari_wec_base_params = ['door_state']
+    supported_mbari_wec_world_params = ['physics_step',
+                                        'physics_rtf']
+    supported_mbari_wec_model_params = ['scale_factor',
+                                        'inc_wave_seed',
+                                        'battery_soc',
+                                        'battery_emf',
+                                        'x_mean_pos',
+                                        'inc_wave_spectrum']
+    float_params = ['physics_step',
+                    'physics_rtf',
+                    'scale_factor',
+                    'inc_wave_seed',
+                    'battery_soc',
+                    'battery_emf',
+                    'x_mean_pos']
+    all_params = supported_mbari_wec_base_params \
+                 + supported_mbari_wec_world_params \
+                 + supported_mbari_wec_model_params
+    override_params = {param: LaunchConfiguration(param).perform(context) for param in all_params}
+    override_params = {k: v for k, v in override_params.items() if v != 'None'}
+    # override_params = {k: (float(v) if k in float_params else v) for k, v in override_params.items()}
+    print('Sim Parameter Overrides:', override_params)
+
     # Find packages
+    pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
+    pkg_buoy_description = get_package_share_directory('buoy_description')
+
+    # Set templates to values
+    # Find model templates
+    model_dir = 'mbari_wec_base'
+    empy_base_sdf_file = os.path.join(pkg_buoy_description,
+                                      'models', model_dir, 'model.sdf.em')
+    base_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
+
+    model_dir = 'mbari_wec'
+    empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
+    sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
+
+    # Find world file template
+    empy_world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf.em')
+    world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf')
+
+    # fill mbari_wec_base model template with params
+    mbari_wec_base_params = []
+    for wec_base_param in supported_mbari_wec_base_params:
+        if wec_base_param in override_params:
+            mbari_wec_base_params.extend(['-D',
+                                          f'{wec_base_param}' \
+                                          f" = '{override_params[wec_base_param]}'"])
+
+    mbari_wec_base_params.extend(['-o', base_sdf_file,
+                                  empy_base_sdf_file])
+    empy(mbari_wec_base_params)
+    print('base params done')
+
+    # fill mbari_wec world template with params
+    mbari_wec_world_params = []
+    for world_param in supported_mbari_wec_world_params:
+        if world_param in override_params:
+            mbari_wec_world_params.extend(['-D',
+                                           f'{world_param}' \
+                                           + f' = {float(override_params[world_param])}'])
+    mbari_wec_world_params.extend(['-o', world_file,
+                                   empy_world_file])
+    empy(mbari_wec_world_params)
+    print('world params done')
+
+    # fill mbari_wec model template with params
+    mbari_wec_model_params = []
+    for world_param in supported_mbari_wec_model_params:
+        if world_param in override_params:
+            print(f'{world_param = }\n{override_params[world_param] = }')
+            if 'inc_wave_spectrum_type' in override_params[world_param]:
+                print('here inc wave')
+                inc_wave_spectrum = override_params[world_param].split(';')
+                print(f'{inc_wave_spectrum = }')
+                no_params = len(inc_wave_spectrum) > 1
+                print(f'{no_params = } : {len(inc_wave_spectrum) = }')
+                inc_wave_spectrum_type = inc_wave_spectrum[0].split(':')
+                print(f'{inc_wave_spectrum_type = }')
+                no_type = \
+                    len(inc_wave_spectrum_type) < 2 \
+                    or 'None' in inc_wave_spectrum_type[1]
+                print(f'{no_type = }')
+                if len(inc_wave_spectrum_type) == 2:
+                    mbari_wec_model_params.extend(['-D',
+                                                   f'{inc_wave_spectrum_type[0]} = ' \
+                                                   + f"'{inc_wave_spectrum_type[1]}'"])
+                else:
+                    mbari_wec_model_params.extend(['-D',
+                                                   f'{inc_wave_spectrum_type[0]} =' \
+                                                   + "''"])
+                if not no_params and not no_type:
+                    for spectrum_param in inc_wave_spectrum[1:]:
+                        spectrum_param = spectrum_param.split(':')
+                        if len(spectrum_param) < 2 or 'default' in spectrum_param[1]:
+                            pass  # just default
+                        elif len(spectrum_param) == 2:
+                            name, value = spectrum_param[0], float(spectrum_param[1])
+                            mbari_wec_model_params.extend(['-D',
+                                                           f'{name} = ' \
+                                                           + f'{value}'])
+                        else:  # Custom Spectrum
+                            name, values = spectrum_param[0], spectrum_param[1:]
+                            values = [float(v) for v in values]
+                            print(f'{name = } : {values = }')
+                            values_str_arr = ','.join([str(v) for v in values])
+                            mbari_wec_model_params.extend(['-D',
+                                                           f'{name} = ' \
+                                                           + f'[{values_str_arr}]'])
+            else:
+                print('here no inc wave')
+                mbari_wec_model_params.extend(['-D',
+                                               f'{world_param}' \
+                                               + (f' = {float(override_params[world_param])}' \
+                                                      if world_param in float_params else \
+                                                  f" = '{override_params[world_param]}'")
+                                               ])
+    mbari_wec_model_params.extend(['-o', sdf_file,
+                                   empy_sdf_file])
+
+    print(f'{mbari_wec_model_params}')
+
+    empy(mbari_wec_model_params)
+    print('model params done')
+
+    return args
+
+
+def regenerate_default_models(context, *args, **kwargs):
+    # Find packages
+    pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_buoy_description = get_package_share_directory('buoy_description')
 
     # Set templates to default values
@@ -45,11 +197,17 @@ def regenerate_models(context, *args, **kwargs):
         empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
         sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
+        # Find world file template
+        empy_world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf.em')
+        world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf')
+
         # Return all files to defaults
         empy(['-o', base_sdf_file,
               empy_base_sdf_file])
         empy(['-o', sdf_file,
               empy_sdf_file])
+        empy(['-o', world_file,
+              empy_world_file])
 
     return args
 
@@ -85,6 +243,24 @@ def generate_launch_description():
         'regenerate_models', default_value='true',
         description='regenerate template models using defaults'
     )
+    supported_params = {'door_state': 'open or closed',
+                        'physics_step': 'step size in seconds',
+                        'physics_rtf': 'sim real-time factor',
+                        'scale_factor': 'target winding current scale factor',
+                        'inc_wave_seed': 'random seed for incident wave computation',
+                        'battery_soc': 'initial battery state of charge as pct (0-1)',
+                        'battery_emf': 'initial battery emf in Volts',
+                        'x_mean_pos': 'desired mean piston position in meters',
+                        'inc_wave_spectrum': 'incident wave spectrum defined as' \
+                                             + 'type;p1:v1:v2;p2:v1:v2'}
+    supported_params_args = []
+    for param in supported_params:
+        supported_params_args.append(
+            DeclareLaunchArgument(
+                param, default_value='None',
+                description=supported_params[param]
+            )
+        )
 
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
@@ -172,6 +348,8 @@ def generate_launch_description():
         gazebo_debugger_arg,
         extra_gz_args,
         regenerate_models_arg,
+        OpaqueFunction(function=lambda context, *args, **kwargs: args,
+                       args=supported_params_args),
         OpaqueFunction(function=regenerate_models,
                        args=dependent_nodes),
     ])

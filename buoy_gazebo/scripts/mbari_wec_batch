@@ -225,7 +225,10 @@ def generate_simulations(sim_params_yaml):
         incident_waves = []
         for inc_wave_spectrum_type in inc_wave_spectrum_types:
             if 'MonoChromatic' in inc_wave_spectrum_type:
-                monochromatic_spectrum = inc_wave_spectrum_type['MonoChromatic']
+                try:
+                    monochromatic_spectrum = inc_wave_spectrum_type['MonoChromatic']
+                except TypeError:  # just default params
+                    monochromatic_spectrum = {}
                 if 'A' in monochromatic_spectrum:
                     A = np.array(monochromatic_spectrum['A'], dtype=float)
                     A = np.atleast_1d(A)
@@ -250,7 +253,10 @@ def generate_simulations(sim_params_yaml):
                     sys.exit(-1)
                 incident_waves.extend([MonoChromatic(a, t) for a, t in zip(A, T)])
             elif 'Bretschneider' in inc_wave_spectrum_type:
-                bretschneider_spectrum = inc_wave_spectrum_type['Bretschneider']
+                try:
+                    bretschneider_spectrum = inc_wave_spectrum_type['Bretschneider']
+                except TypeError:  # just default params
+                    bretschneider_spectrum = {}
                 if 'Hs' in bretschneider_spectrum:
                     Hs = np.array(bretschneider_spectrum['Hs'], dtype=float)
                     Hs = np.atleast_1d(Hs)
@@ -275,7 +281,10 @@ def generate_simulations(sim_params_yaml):
                     sys.exit(-1)
                 incident_waves.extend([Bretschneider(hs, tp) for hs, tp in zip(Hs, Tp)])
             elif 'Custom' in inc_wave_spectrum_type:
-                custom_spectrum = inc_wave_spectrum_type['Custom']
+                try:
+                    custom_spectrum = inc_wave_spectrum_type['Custom']
+                except TypeError:  # just default params
+                    custom_spectrum = {}
                 if 'w' in custom_spectrum:
                     w = np.array(custom_spectrum['w'], dtype=float)
                     w = np.atleast_1d(w)
