@@ -104,22 +104,22 @@ void IncidentWaves::Configure(
 
   if (!SpectrumType.compare("Custom")) {
     gzwarn << "SpectrumType " << SpectrumType << "Custom Defined" << std::endl;
-    std::vector<double> omega;
+    std::vector<double> freq;
     std::vector<double> S;
 
     for (int i = 0;; i++) {
-      std::string w_tag = "w" + std::to_string(i);
+      std::string f_tag = "f" + std::to_string(i);
       std::string Szz_tag = "Szz" + std::to_string(i);
-      if (_sdf->HasElement(w_tag) && _sdf->HasElement(Szz_tag)) {
-        omega.push_back(_sdf->Get<double>(w_tag));
+      if (_sdf->HasElement(f_tag) && _sdf->HasElement(Szz_tag)) {
+        freq.push_back(_sdf->Get<double>(f_tag));
         S.push_back(_sdf->Get<double>(Szz_tag));
       } else {
         break;
       }
     }
 
-    if (omega.size() > 2) {  // \TODO(anyone):  Add more checks on validity of spectrum
-      this->dataPtr->Inc->SetToCustomSpectrum(omega, S, beta);
+    if (freq.size() > 2) {  // \TODO(anyone):  Add more checks on validity of spectrum
+      this->dataPtr->Inc->SetToCustomSpectrum(freq, S, beta);
     } else {
       gzwarn << "Ill-formed custom wave-spectrum specification, no waves added" << std::endl;
     }

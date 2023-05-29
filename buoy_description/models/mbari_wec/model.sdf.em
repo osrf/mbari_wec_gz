@@ -43,15 +43,15 @@ def bretschneider_spectrum(Hs=2.0, Tp=13.0):
       <Tp>{Tp}</Tp>
 ''')
 
-def custom_spectrum(w=None, Szz=None):
+def custom_spectrum(f=None, Szz=None):
     ''' Prints the Custom <IncWaveSpectrumType> block for the IncidentWave plugin. '''
-    if w is None:
-        w = [0.0, 0.2, 0.4, 0.6, 2.0]
+    if f is None:
+        f = [0.0, 0.2, 0.4, 0.6, 2.0]
     if Szz is None:
         Szz = [0.0, 0.4, 1.0, 1.0, 0.0]
     coefs = \
-        ('\n' + 6*' ').join([f'<w{idx}>{wn}</w{idx}> <Szz{idx}>{Szzn}</Szz{idx}>'
-            for idx, (wn, Szzn) in enumerate(zip(w, Szz))])
+        ('\n' + 6*' ').join([f'<f{idx}>{fn}</f{idx}> <Szz{idx}>{Szzn}</Szz{idx}>'
+            for idx, (fn, Szzn) in enumerate(zip(f, Szz))])
     print(f'''
       <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
       {coefs}
@@ -77,7 +77,7 @@ elif 'Bretschneider' in inc_wave_spectrum_type:
         inc_wave_spectrum = bretschneider_spectrum  # default
 elif 'Custom' in inc_wave_spectrum_type:
     try:
-        inc_wave_spectrum = partial(custom_spectrum, w, Szz)
+        inc_wave_spectrum = partial(custom_spectrum, f, Szz)
     except NameError:
         inc_wave_spectrum = custom_spectrum  # default
 else:

@@ -63,17 +63,17 @@ class Bretschneider(object):
 
 
 class Custom(object):
-    def __init__(self, w, Szz):
-        self.w, self.Szz = w, Szz
+    def __init__(self, f, Szz):
+        self.f, self.Szz = f, Szz
         self.name = "Custom"
 
     def __str__(self):
-        if self.w is not None:
+        if self.f is not None:
             return f'{self.name};' + \
-                   f'w:{":".join([str(w) for w in self.w])};' + \
+                   f'f:{":".join([str(f) for f in self.f])};' + \
                    f'Szz:{":".join([str(Szz) for Szz in self.Szz])}'
         else:
-            return f'{self.name};w:defaults;Szz:defaults'
+            return f'{self.name};f:defaults;Szz:defaults'
 
 
 def generate_simulations(sim_params_yaml):
@@ -84,7 +84,7 @@ def generate_simulations(sim_params_yaml):
     with open(sim_params_yaml, 'r') as fd:
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
-    print_optional = lambda param: str(param) if param is not None else ""  # noqa: E731
+    print_optional = lambda param: str(param) if param is not None else ''  # noqa: E731
 
     # Grab params from yaml
     # physics time step (seconds)
@@ -285,30 +285,30 @@ def generate_simulations(sim_params_yaml):
                     custom_spectrum = inc_wave_spectrum_type['Custom']
                 except TypeError:  # just default params
                     custom_spectrum = {}
-                if 'w' in custom_spectrum:
-                    w = np.array(custom_spectrum['w'], dtype=float)
-                    w = np.atleast_1d(w)
+                if 'f' in custom_spectrum:
+                    f = np.array(custom_spectrum['f'], dtype=float)
+                    f = np.atleast_1d(f)
                 else:
-                    w = None
+                    f = None
                 if 'Szz' in custom_spectrum:
                     Szz = np.array(custom_spectrum['Szz'], dtype=float)
                     Szz = np.atleast_1d(Szz)
                 else:
                     Szz = None
 
-                if (w is None) ^ (Szz is None):
+                if (f is None) ^ (Szz is None):
                     node.get_logger().error(
-                        'sim_params_yaml: Custom: w or Szz unspecified.' +
+                        'sim_params_yaml: Custom: f or Szz unspecified.' +
                         ' Please specify both or neither'
                     )
                     sys.exit(-1)
-                if w is not None and Szz is not None:
-                    if w.shape != Szz.shape:
+                if f is not None and Szz is not None:
+                    if f.shape != Szz.shape:
                         node.get_logger().error(
-                            'sim_params_yaml: Custom: w.shape != Szz.shape'
+                            'sim_params_yaml: Custom: f.shape != Szz.shape'
                         )
                         sys.exit(-1)
-                incident_waves.append(Custom(w, Szz))
+                incident_waves.append(Custom(f, Szz))
             else:
                 node.get_logger().error(
                     f'sim_params_yaml: IncWaveSpectrumType [{inc_wave_spectrum_type}]' +
@@ -434,8 +434,8 @@ def generate_simulations(sim_params_yaml):
                     mbari_wec_model_params.extend(['-D', f'Hs = {iw.Hs}'])
                     mbari_wec_model_params.extend(['-D', f'Tp = {iw.Tp}'])
             if 'Custom' in iw.name:
-                if iw.w is not None:
-                    mbari_wec_model_params.extend(['-D', f'w = {iw.w.tolist()}'])
+                if iw.f is not None:
+                    mbari_wec_model_params.extend(['-D', f'f = {iw.f.tolist()}'])
                     mbari_wec_model_params.extend(['-D', f'Szz = {iw.Szz.tolist()}'])
         mbari_wec_model_params.extend(['-o', sdf_file,
                                        empy_sdf_file])
