@@ -64,11 +64,10 @@ def regenerate_models(context, *args, **kwargs):
                     'battery_emf',
                     'x_mean_pos']
     all_params = supported_mbari_wec_base_params \
-                 + supported_mbari_wec_world_params \
-                 + supported_mbari_wec_model_params
+        + supported_mbari_wec_world_params \
+        + supported_mbari_wec_model_params
     override_params = {param: LaunchConfiguration(param).perform(context) for param in all_params}
     override_params = {k: v for k, v in override_params.items() if v != 'None'}
-    # override_params = {k: (float(v) if k in float_params else v) for k, v in override_params.items()}
     print('Sim Parameter Overrides:', override_params)
 
     # Find packages
@@ -95,25 +94,23 @@ def regenerate_models(context, *args, **kwargs):
     for wec_base_param in supported_mbari_wec_base_params:
         if wec_base_param in override_params:
             mbari_wec_base_params.extend(['-D',
-                                          f'{wec_base_param}' \
-                                          f" = '{override_params[wec_base_param]}'"])
+                                          f'{wec_base_param}'
+                                          + f" = '{override_params[wec_base_param]}'"])
 
     mbari_wec_base_params.extend(['-o', base_sdf_file,
                                   empy_base_sdf_file])
     empy(mbari_wec_base_params)
-    print('base params done')
 
     # fill mbari_wec world template with params
     mbari_wec_world_params = []
     for world_param in supported_mbari_wec_world_params:
         if world_param in override_params:
             mbari_wec_world_params.extend(['-D',
-                                           f'{world_param}' \
+                                           f'{world_param}'
                                            + f' = {float(override_params[world_param])}'])
     mbari_wec_world_params.extend(['-o', world_file,
                                    empy_world_file])
     empy(mbari_wec_world_params)
-    print('world params done')
 
     # fill mbari_wec model template with params
     mbari_wec_model_params = []
@@ -121,24 +118,19 @@ def regenerate_models(context, *args, **kwargs):
         if world_param in override_params:
             print(f'{world_param = }\n{override_params[world_param] = }')
             if 'inc_wave_spectrum_type' in override_params[world_param]:
-                print('here inc wave')
                 inc_wave_spectrum = override_params[world_param].split(';')
-                print(f'{inc_wave_spectrum = }')
                 no_params = len(inc_wave_spectrum) > 1
-                print(f'{no_params = } : {len(inc_wave_spectrum) = }')
                 inc_wave_spectrum_type = inc_wave_spectrum[0].split(':')
-                print(f'{inc_wave_spectrum_type = }')
                 no_type = \
                     len(inc_wave_spectrum_type) < 2 \
                     or 'None' in inc_wave_spectrum_type[1]
-                print(f'{no_type = }')
                 if len(inc_wave_spectrum_type) == 2:
                     mbari_wec_model_params.extend(['-D',
-                                                   f'{inc_wave_spectrum_type[0]} = ' \
+                                                   f'{inc_wave_spectrum_type[0]} = '
                                                    + f"'{inc_wave_spectrum_type[1]}'"])
                 else:
                     mbari_wec_model_params.extend(['-D',
-                                                   f'{inc_wave_spectrum_type[0]} =' \
+                                                   f'{inc_wave_spectrum_type[0]} ='
                                                    + "''"])
                 if not no_params and not no_type:
                     for spectrum_param in inc_wave_spectrum[1:]:
@@ -148,31 +140,25 @@ def regenerate_models(context, *args, **kwargs):
                         elif len(spectrum_param) == 2:
                             name, value = spectrum_param[0], float(spectrum_param[1])
                             mbari_wec_model_params.extend(['-D',
-                                                           f'{name} = ' \
+                                                           f'{name} = '
                                                            + f'{value}'])
                         else:  # Custom Spectrum
                             name, values = spectrum_param[0], spectrum_param[1:]
                             values = [float(v) for v in values]
-                            print(f'{name = } : {values = }')
                             values_str_arr = ','.join([str(v) for v in values])
                             mbari_wec_model_params.extend(['-D',
-                                                           f'{name} = ' \
+                                                           f'{name} = '
                                                            + f'[{values_str_arr}]'])
             else:
-                print('here no inc wave')
                 mbari_wec_model_params.extend(['-D',
-                                               f'{world_param}' \
-                                               + (f' = {float(override_params[world_param])}' \
-                                                      if world_param in float_params else \
+                                               f'{world_param}'
+                                               + (f' = {float(override_params[world_param])}'
+                                                  if world_param in float_params else
                                                   f" = '{override_params[world_param]}'")
                                                ])
     mbari_wec_model_params.extend(['-o', sdf_file,
                                    empy_sdf_file])
-
-    print(f'{mbari_wec_model_params}')
-
     empy(mbari_wec_model_params)
-    print('model params done')
 
     return args
 
@@ -249,7 +235,7 @@ def generate_launch_description():
                         'battery_soc': 'initial battery state of charge as pct (0-1)',
                         'battery_emf': 'initial battery emf in Volts',
                         'x_mean_pos': 'desired mean piston position in meters',
-                        'inc_wave_spectrum': 'incident wave spectrum defined as' \
+                        'inc_wave_spectrum': 'incident wave spectrum defined as'
                                              + 'type;p1:v1:v2;p2:v1:v2'}
     supported_params_args = []
     for param in supported_params:
