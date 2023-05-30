@@ -508,10 +508,10 @@ def generate_simulations(sim_params_yaml):
         gzsim_result = 0
         for info in [proc_info[item] for item in procs]:
             gzsim_result = info.returncode
-        if gzsim_result != 0:
-            node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
-                                    f'gz-sim return code [{gzsim_result}]')
-            result = gzsim_result
+            if gzsim_result != 0:
+                node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
+                                        f'gz-sim return code [{gzsim_result}]')
+                result = gzsim_result
 
         # Write to log
         with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'a') as fd:
