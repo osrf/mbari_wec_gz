@@ -29,7 +29,13 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch import LaunchService
 from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnProcessExit
+
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+
+from launch_testing.proc_info_handler import ActiveProcInfoHandler
+from launch_testing.util import resolveProcesses
 
 import rclpy
 from rclpy.node import Node
@@ -462,6 +468,7 @@ def generate_simulations(sim_params_yaml):
         # TODO(anyone) also path for pblog when ready
         os.makedirs(os.path.join(batch_results_dir, run_results_dir))
 
+        proc_info = ActiveProcInfoHandler()
         def generate_launch_description():
             mbari_wec = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -482,16 +489,30 @@ def generate_simulations(sim_params_yaml):
 
             return LaunchDescription([
                 rosbag2,
-                mbari_wec
+                mbari_wec,
+                RegisterEventHandler(
+                    OnProcessExit(on_exit=lambda info, unused: proc_info.append(info))
+                ),
             ])
 
         # Launch sim instance
         ls = LaunchService()
         ls.include_launch_description(generate_launch_description())
         result = ls.run()
-        if result:
+
+        if result != 0:
             node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
-                                    f'return code [{result}]')
+                                    f'batch launch return code [{result}]')
+
+        procs = resolveProcesses(proc_info, process='ruby $(which gz) sim')
+        gzsim_result = 0
+        for info in [proc_info[item] for item in procs]:
+            gzsim_result = info.returncode
+        if gzsim_result != 0:
+            node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
+                                    f'gz-sim return code [{gzsim_result}]')
+            result = gzsim_result
+
         # Write to log
         with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'a') as fd:
             fd.write(f'{idx}, {result}, {start_time}' +
