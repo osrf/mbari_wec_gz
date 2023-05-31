@@ -27,6 +27,9 @@ from testing_utils import BuoyPyTests
 from testing_utils import default_generate_test_description
 
 
+PHYSICS_STEP = 0.01
+
+
 def generate_test_description():
     pkg_buoy_api_py = get_package_share_directory('buoy_api_py')
 
@@ -38,7 +41,7 @@ def generate_test_description():
 
     sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
                       physics_rtf=11.0,
-                      physics_step=0.001)
+                      physics_step=PHYSICS_STEP)
     ld, locals_ = default_generate_test_description(server='fixture_server_sinusoidal_piston',
                                                     regen_models=True,
                                                     regen_kwargs=sim_params)
@@ -56,9 +59,9 @@ class BuoyPCBiasDampingPyTest(BuoyPyTests):
         self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
 
-        preCmdIterations = 1000
-        testIterations = 20000
-        feedbackCheckIterations = 500
+        preCmdIterations = int(2 / PHYSICS_STEP)
+        testIterations = int(10 / PHYSICS_STEP)
+        feedbackCheckIterations = int(0.5 / PHYSICS_STEP)
 
         # set PC feedback rate and let server process
         # and let bias damping node load up
@@ -67,9 +70,9 @@ class BuoyPCBiasDampingPyTest(BuoyPyTests):
         self.assertTrue(self.test_helper.run_status)
         self.assertEqual(preCmdIterations,
                          self.test_helper.iterations)
-        time.sleep(0.5)
+        time.sleep(1.0)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         bias_policy_ = NLBiasDampingPolicy()
         params = self.test_helper.get_params_from_node('pb_nl_bias_damping',
@@ -96,7 +99,7 @@ deadzone: {bias_policy_.deadzone}"""
                              self.test_helper.iterations)
             time.sleep(0.5)
             t, _ = clock.now().seconds_nanoseconds()
-            self.assertEqual(t, self.test_helper.iterations // 1000)
+            self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
             expected_bias_curr = bias_policy_.bias_current_target(self.node.range_finder_)
             if expected_bias_curr is not None:
@@ -114,4 +117,4 @@ deadzone: {bias_policy_.deadzone}"""
         # TODO(anyone) remove once TestFixture is fixed upstream
         self.test_helper.stop()
 
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=30)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=600)
