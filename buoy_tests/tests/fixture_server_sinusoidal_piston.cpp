@@ -131,8 +131,8 @@ TEST(BuoyTests, RunServer)
   RCLCPP_INFO(rclcpp::get_logger("run_server"), "Ready to run test server.");
 
   // rclcpp::spin(node);
-  rclcpp::executors::MultiThreadedExecutor::SharedPtr executor =
-    std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+  rclcpp::executors::SingleThreadedExecutor::SharedPtr executor =
+    std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
   executor->add_node(node);
 
   rclcpp::Rate rate(50.0);
