@@ -34,12 +34,14 @@
 // NOLINTNEXTLINE
 using namespace std::chrono;
 
+constexpr double PHYSICS_STEP{0.001};
 constexpr double INCHES_TO_METERS{0.0254};
 
 class SCROSNode final : public buoy_api::Interface<SCROSNode>
 {
 public:
   rclcpp::Clock::SharedPtr clock_{nullptr};
+  double physics_step{PHYSICS_STEP};
   float range_finder_{0.0F};
   std::atomic<uint16_t> status_{0U};
 
@@ -54,6 +56,7 @@ public:
         "use_sim_time",
         true));
 
+    this->set_params();
     node_ = std::shared_ptr<SCROSNode>(this, [](SCROSNode *) {});  // null deleter
     clock_ = this->get_clock();
 
@@ -95,6 +98,12 @@ private:
     status_ = data.status;
   }
 
+  void set_params()
+  {
+    this->declare_parameter("physics_step", this->physics_step);
+    this->physics_step = this->get_parameter("physics_step").as_double();
+  }
+
   std::thread thread_executor_spin_;
   std::atomic<bool> stop_{false};
   rclcpp::Node::SharedPtr node_{nullptr};
@@ -109,6 +118,28 @@ protected:
   std::unique_ptr<gz::sim::TestFixture> fixture{nullptr};
   std::unique_ptr<SCROSNode> node{nullptr};
   gz::sim::Entity buoyEntity{gz::sim::kNullEntity};
+  static int argc_;
+  static char ** argv_;
+
+public:
+  static void init(int argc, char * argv[])
+  {
+    argc_ = argc;
+    argv_ = argv;
+  }
+
+protected:
+  // runs once and is preserved for all `TEST_F`
+  static void SetUpTestCase()
+  {
+    rclcpp::init(argc_, argv_);
+  }
+
+  // runs once after all `TEST_F` have completed
+  static void TearDownTestCase()
+  {
+    rclcpp::shutdown();
+  }
 
   virtual void SetUp()
   {
@@ -163,10 +194,16 @@ protected:
   }
 };
 
+int BuoySCTests::argc_;
+char ** BuoySCTests::argv_;
+
+
 //////////////////////////////////////////////////
 TEST_F(BuoySCTests, SCValveROS)
 {
-  int preCmdIterations{45000}, statusCheckIterations{1000}, postCmdIterations{5000};
+  int preCmdIterations{static_cast<int>(45 / node->physics_step)};
+  int statusCheckIterations{static_cast<int>(1 / node->physics_step)};
+  int postCmdIterations{static_cast<int>(5 / node->physics_step)};
 
   // Run simulation server and wait for piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
@@ -175,7 +212,7 @@ TEST_F(BuoySCTests, SCValveROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   // Before Valve command
   float pre_valve_range_finder = node->range_finder_;
@@ -221,7 +258,7 @@ TEST_F(BuoySCTests, SCValveROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   // Check status field
   EXPECT_TRUE(
@@ -264,7 +301,7 @@ TEST_F(BuoySCTests, SCValveROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   // Check Status goes back to normal
   EXPECT_FALSE(
@@ -315,7 +352,9 @@ TEST_F(BuoySCTests, SCValveROS)
 //////////////////////////////////////////////////
 TEST_F(BuoySCTests, SCPumpROS)
 {
-  int preCmdIterations{45000}, statusCheckIterations{1000}, postCmdIterations{60000};
+  int preCmdIterations{static_cast<int>(45 / node->physics_step)};
+  int statusCheckIterations{static_cast<int>(1 / node->physics_step)};
+  int postCmdIterations{static_cast<int>(60 / node->physics_step)};
 
   // Run simulation server and allow piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
@@ -324,7 +363,7 @@ TEST_F(BuoySCTests, SCPumpROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   // Before Pump command
   float pre_pump_range_finder = node->range_finder_;
@@ -371,7 +410,7 @@ TEST_F(BuoySCTests, SCPumpROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   // Check status field
   EXPECT_FALSE(
@@ -407,7 +446,7 @@ TEST_F(BuoySCTests, SCPumpROS)
     std::this_thread::sleep_for(500ms);
     EXPECT_EQ(
       static_cast<int>(node->clock_->now().seconds()),
-      static_cast<int>(iterations / 1000.0F));
+      static_cast<int>(iterations * node->physics_step));
 
     if (n % 2U == 1) {
       EXPECT_FALSE(
@@ -435,7 +474,7 @@ TEST_F(BuoySCTests, SCPumpROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   // Check piston motion
   float post_pump_range_finder = node->range_finder_;
@@ -455,4 +494,13 @@ TEST_F(BuoySCTests, SCPumpROS)
 
   // Sanity check that the test ran
   EXPECT_NE(gz::sim::kNullEntity, buoyEntity);
+  std::this_thread::sleep_for(1s);  // needed for launch_test to know we shut down
+}
+
+
+int main(int argc, char * argv[])
+{
+  ::testing::InitGoogleTest(&argc, argv);
+  BuoySCTests::init(argc, argv);  // pass args to rclcpp init
+  return RUN_ALL_TESTS();
 }

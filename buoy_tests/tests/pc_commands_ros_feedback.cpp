@@ -58,6 +58,7 @@
 // NOLINTNEXTLINE
 using namespace std::chrono;
 
+constexpr double PHYSICS_STEP{0.001};
 constexpr double INCHES_TO_METERS{0.0254};
 
 class PCROSNode final : public buoy_api::Interface<PCROSNode>
@@ -65,11 +66,13 @@ class PCROSNode final : public buoy_api::Interface<PCROSNode>
 public:
   rclcpp::Clock::SharedPtr clock_{nullptr};
 
-  float rpm_{0.0};
+  double physics_step{PHYSICS_STEP};
+
+  float rpm_{0.0F};
   float wind_curr_{0.0F};
   float bias_curr_{0.0F};
-  float scale_{1.0};
-  float retract_{0.6};
+  float scale_{1.0F};
+  float retract_{0.6F};
   float range_finder_{0.0F};
 
   PBTorqueControlPolicy torque_policy_;
@@ -171,6 +174,9 @@ private:
 
   void set_params()
   {
+    this->declare_parameter("physics_step", this->physics_step);
+    this->physics_step = this->get_parameter("physics_step").as_double();
+
     this->declare_parameter("torque_constant", torque_policy_.Torque_constant);
     torque_policy_.Torque_constant = this->get_parameter("torque_constant").as_double();
 
@@ -206,6 +212,28 @@ protected:
   std::unique_ptr<gz::sim::TestFixture> fixture{nullptr};
   std::unique_ptr<PCROSNode> node{nullptr};
   gz::sim::Entity buoyEntity{gz::sim::kNullEntity};
+  static int argc_;
+  static char ** argv_;
+
+public:
+  static void init(int argc, char * argv[])
+  {
+    argc_ = argc;
+    argv_ = argv;
+  }
+
+protected:
+  // runs once and is preserved for all `TEST_F`
+  static void SetUpTestCase()
+  {
+    rclcpp::init(argc_, argv_);
+  }
+
+  // runs once after all `TEST_F` have completed
+  static void TearDownTestCase()
+  {
+    rclcpp::shutdown();
+  }
 
   virtual void SetUp()
   {
@@ -261,17 +289,22 @@ protected:
   }
 };
 
+int BuoyPCTests::argc_;
+char ** BuoyPCTests::argv_;
+
+
 //////////////////////////////////////////////////
 TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
 {
-  int preCmdIterations{15000}, feedbackCheckIterations{100};
+  int preCmdIterations{static_cast<int>(15 / node->physics_step)};
+  int feedbackCheckIterations{static_cast<int>(0.1 / node->physics_step)};
 
   EXPECT_EQ(0U, iterations);
 
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   ///////////////////////////////////////////
   // Check Default Winding Current Damping
@@ -281,7 +314,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   std::cout << node->torque_policy_ << std::endl;
 
@@ -301,7 +334,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   ///////////////////////////////////////////
   // Winding Current
@@ -323,7 +356,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   expected_wind_curr = node->winding_current_limiter(wc);
   EXPECT_GT(node->wind_curr_, expected_wind_curr - 0.1F);
@@ -349,7 +382,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   EXPECT_GT(node->scale_, scale - 0.01F);
   EXPECT_LT(node->scale_, scale + 0.01F);
@@ -374,14 +407,14 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   EXPECT_GT(node->retract_, retract - 0.01F);
   EXPECT_LT(node->retract_, retract + 0.01F);
 
   ///////////////////////////////////////////////////////
   // Check Return to Default Winding Current Damping
-  int torque_timeout_iterations{2000};
+  int torque_timeout_iterations{static_cast<int>(2 / node->physics_step)};
   fixture->Server()->Run(
     true /*blocking*/,
     torque_timeout_iterations - 2 * feedbackCheckIterations, false /*paused*/);
@@ -392,7 +425,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   expected_wind_curr =
     node->torque_policy_.WindingCurrentTarget(
@@ -417,7 +450,8 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
     node->pc_bias_curr_response_future_.get()->result.OK);
 
   // Run a bit for bias curr command to move piston
-  int bias_curr_iterations{9000}, bias_curr_timeout_iterations{10000};
+  int bias_curr_iterations{static_cast<int>(9 / node->physics_step)};
+  int bias_curr_timeout_iterations{static_cast<int>(10 / node->physics_step)};
   fixture->Server()->Run(true /*blocking*/, bias_curr_iterations, false /*paused*/);
   EXPECT_EQ(
     preCmdIterations + 2 * feedbackCheckIterations +
@@ -427,7 +461,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   EXPECT_GT(node->bias_curr_, bc - 0.1F);
   EXPECT_LT(node->bias_curr_, bc + 0.1F);
@@ -447,7 +481,7 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations / 1000.0F));
+    static_cast<int>(iterations * node->physics_step));
 
   // check default bias curr
   EXPECT_GT(node->bias_curr_, -0.1F);
@@ -461,4 +495,12 @@ TEST_F(BuoyPCTests, PCCommandsInROSFeedback)
   EXPECT_NE(gz::sim::kNullEntity, buoyEntity);
 
   std::this_thread::sleep_for(1s);  // needed for launch_test to know we shut down
+}
+
+
+int main(int argc, char * argv[])
+{
+  ::testing::InitGoogleTest(&argc, argv);
+  BuoyPCTests::init(argc, argv);  // pass args to rclcpp init
+  return RUN_ALL_TESTS();
 }

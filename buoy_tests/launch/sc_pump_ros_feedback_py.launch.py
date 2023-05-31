@@ -21,10 +21,13 @@ from testing_utils import BuoyPyTests
 from testing_utils import default_generate_test_description
 
 
+PHYSICS_STEP = 0.01
+
+
 def generate_test_description():
     sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
                       physics_rtf=11.0,
-                      physics_step=0.001)
+                      physics_step=PHYSICS_STEP)
     return default_generate_test_description(enable_rosbag=True,
                                              rosbag_name='rosbag2_sc_pump_py',
                                              regen_models=True,
@@ -39,9 +42,9 @@ class BuoySCPumpPyTest(BuoyPyTests):
         self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
 
-        preCmdIterations = 45000
-        statusCheckIterations = 1000
-        postCmdIterations = 60000
+        preCmdIterations = int(45 / PHYSICS_STEP)
+        statusCheckIterations = int(1 / PHYSICS_STEP)
+        postCmdIterations = int(60 / PHYSICS_STEP)
 
         # Run simulation server and allow piston to settle
         self.test_helper.run(preCmdIterations)
@@ -50,7 +53,7 @@ class BuoySCPumpPyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         # Before Pump command
         pre_pump_range_finder = self.node.range_finder_
@@ -84,7 +87,7 @@ class BuoySCPumpPyTest(BuoyPyTests):
         self.assertEqual(preCmdIterations + 500, self.test_helper.iterations)
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         # Check status field
         self.assertFalse(self.node.sc_status_ & SCRecord.RELIEF_VALVE_REQUEST,
@@ -112,7 +115,7 @@ class BuoySCPumpPyTest(BuoyPyTests):
                              self.test_helper.iterations)
             time.sleep(0.5)
             t, _ = clock.now().seconds_nanoseconds()
-            self.assertEqual(t, self.test_helper.iterations // 1000)
+            self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
             if n % 2 == 1:
                 self.assertFalse(self.node.sc_status_ & SCRecord.PUMP_TOGGLE,
@@ -133,7 +136,7 @@ class BuoySCPumpPyTest(BuoyPyTests):
                          self.test_helper.iterations)
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         # Check piston motion
         post_pump_range_finder = self.node.range_finder_

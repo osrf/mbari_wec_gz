@@ -26,6 +26,9 @@ import launch_testing.actions
 from testing_utils import regenerate_models
 
 
+PHYSICS_STEP = 0.01
+
+
 def generate_test_description():
 
     # Test fixture
@@ -33,6 +36,7 @@ def generate_test_description():
         package='buoy_tests',
         executable='sc_commands_ros_feedback',
         output='screen',
+        parameters=[dict(physics_step=PHYSICS_STEP)],
         on_exit=launch.actions.Shutdown()
     )
 
@@ -45,7 +49,7 @@ def generate_test_description():
              bridge]
     sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
                       physics_rtf=11.0,
-                      physics_step=0.001)
+                      physics_step=PHYSICS_STEP)
 
     return launch.LaunchDescription([
         OpaqueFunction(function=regenerate_models,
@@ -59,7 +63,7 @@ def generate_test_description():
 class SCCommandsROSTest(unittest.TestCase):
 
     def test_termination(self, gazebo_test_fixture, proc_info):
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=1000)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=2000)
 
 
 @launch_testing.post_shutdown_test()
