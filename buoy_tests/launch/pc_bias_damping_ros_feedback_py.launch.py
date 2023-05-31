@@ -66,6 +66,7 @@ class BuoyPCBiasDampingPyTest(BuoyPyTests):
         # set PC feedback rate and let server process
         # and let bias damping node load up
         self.node.set_pc_pack_rate_param(50.0)
+        self.node.get_logger().info(f'running fixture server for {preCmdIterations} iterations')
         self.test_helper.run(preCmdIterations)
         self.assertTrue(self.test_helper.run_status)
         self.assertEqual(preCmdIterations,
@@ -93,6 +94,8 @@ deadzone: {bias_policy_.deadzone}"""
         # sinusoidal force plugin is running in fixture
         prev_is_None = False
         for idx, _ in enumerate(range(0, testIterations, feedbackCheckIterations)):
+            self.node.get_logger().info('running fixture server for'
+                                        + f' {feedbackCheckIterations} iterations')
             self.test_helper.run(feedbackCheckIterations)
             self.assertTrue(self.test_helper.run_status)
             self.assertEqual(preCmdIterations + (idx + 1) * feedbackCheckIterations,

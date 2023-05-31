@@ -328,6 +328,7 @@ class TestHelper(rclpyNode):
         req = RunServer.Request()
         req.iterations = _iterations
         future = self.fixture_client.call_async(req)
+        self.get_logger().info('waiting for fixture server run future response...')
         await future
         self.run_status = future.result().success
         self.iterations += future.result().iterations

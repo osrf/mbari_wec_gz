@@ -108,7 +108,7 @@ TEST(BuoyTests, RunServer)
         response->success = true;
         return;
       } else {
-        RCLCPP_DEBUG_STREAM(
+        RCLCPP_INFO_STREAM(
           rclcpp::get_logger("run_server"),
           "Incoming request\niterations: " << request->iterations);
       }
