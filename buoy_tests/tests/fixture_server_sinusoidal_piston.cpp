@@ -122,7 +122,7 @@ TEST(BuoyTests, RunServer)
 
       EXPECT_EQ(iterations - initial_iterations, request->iterations);
 
-      RCLCPP_DEBUG_STREAM(
+      RCLCPP_INFO_STREAM(
         rclcpp::get_logger("run_server"),
         "Response: " << std::boolalpha << response->success << std::noboolalpha);
     }
