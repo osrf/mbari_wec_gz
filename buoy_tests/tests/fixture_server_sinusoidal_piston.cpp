@@ -36,7 +36,7 @@ using namespace std::chrono;
 TEST(BuoyTests, RunServer)
 {
   // Skip debug messages to run faster
-  gz::common::Console::SetVerbosity(3);
+  gz::common::Console::SetVerbosity(4);
 
   // Setup fixture
   gz::sim::ServerConfig config;
