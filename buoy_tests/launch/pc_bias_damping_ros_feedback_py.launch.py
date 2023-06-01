@@ -65,7 +65,7 @@ class BuoyPCBiasDampingPyTest(BuoyPyTests):
 
         # set PC feedback rate and let server process
         # and let bias damping node load up
-        self.node.set_pc_pack_rate_param(50.0)
+        self.node.set_pc_pack_rate(50.0)
         self.node.get_logger().info(f'running fixture server for {preCmdIterations} iterations')
         self.test_helper.run(preCmdIterations)
         self.assertTrue(self.test_helper.run_status)
