@@ -10,7 +10,7 @@ except NameError:
 try:
     inc_wave_seed
 except NameError:
-    inc_wave_seed = 42  # not defined so default
+    inc_wave_seed = 0  # not defined so default to 0 which changes seed every run
 
 # Check if battery state (battery_soc or battery_emf) was passed in via empy
 try:

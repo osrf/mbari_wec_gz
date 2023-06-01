@@ -246,8 +246,19 @@ def generate_launch_description():
             )
         )
 
+    pblog_loghome_launch_arg = DeclareLaunchArgument(
+        'pbloghome', default_value=['~/.pblogs'],
+        description='root pblog directory'
+    )
+
+    pblog_logdir_launch_arg = DeclareLaunchArgument(
+        'pblogdir', default_value=[''],
+        description='specific pblog directory in pbloghome'
+    )
+
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
+    pkg_pblog = get_package_share_directory('sim_pblog')
     pkg_buoy_description = get_package_share_directory('buoy_description')
     model_dir = 'mbari_wec_ros'
     model_name = 'MBARI_WEC_ROS'
@@ -297,6 +308,14 @@ def generate_launch_description():
         output='screen'
     )
 
+    pblog = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_pblog, 'launch', 'sim_pblog.launch.py'),
+        ),
+        launch_arguments={'loghome': LaunchConfiguration('pbloghome'),
+                          'logdir': LaunchConfiguration('pblogdir')}.items(),
+    )
+
     # Get the parser plugin convert sdf to urdf using robot_description topic
     robot_state_publisher = Node(
         package='robot_state_publisher',
@@ -322,12 +341,15 @@ def generate_launch_description():
 
     dependent_nodes = [gazebo,
                        bridge,
+                       pblog,
                        robot_state_publisher,
                        rviz]
 
     return LaunchDescription([
         gazebo_world_file_launch_arg,
         gazebo_world_name_launch_arg,
+        pblog_loghome_launch_arg,
+        pblog_logdir_launch_arg,
         rviz_launch_arg,
         gazebo_debugger_arg,
         extra_gz_args,

@@ -81,6 +81,11 @@ void IncidentWaves::Configure(
     return;
   }
 
+  double seed = SdfParamDouble(_sdf, "IncWaveSeed", 0.0);
+  this->dataPtr->Inc->SetSeed(seed);
+
+  auto linkName = _sdf->Get<std::string>("LinkName");
+
   auto SpectrumType = _sdf->Get<std::string>("IncWaveSpectrumType");
 
 //  double beta = SdfParamDouble(_sdf, "WaveDir", 180.0);  // Not yet implemented
