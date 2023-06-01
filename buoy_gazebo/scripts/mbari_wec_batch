@@ -129,9 +129,9 @@ def generate_simulations(sim_params_yaml):
     # seed (random seed for incident waves plugin)
     try:
         if 'seed' in sim_params:
-            seed = int(sim_params['seed'])
+            seed_ = int(sim_params['seed'])
         else:
-            seed = None
+            seed_ = None
             node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
     except TypeError:
         node.get_logger().error('sim_params_yaml: seed parameter' +
@@ -345,7 +345,7 @@ def generate_simulations(sim_params_yaml):
                             ', BatteryState, MeanPistonPosition' +
                             ', IncWaveSpectrumType;IncWaveSpectrumParams')
     [node.get_logger().debug(f'{print_optional(ps)}, {print_optional(physics_rtf)}' +
-                             f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
+                             f', {print_optional(seed_)}, {duration}, {ds}, {sf}' +
                              f', {print_optional(bs)}' +
                              f', {print_optional(mpp)}' +
                              f', {print_optional(iw)}')
@@ -355,7 +355,7 @@ def generate_simulations(sim_params_yaml):
                            os.path.join(batch_results_dir, 'batch_runs.log'))
     with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'w') as fd:
         fd.write(f'# Generated {len(batch_params)} simulation runs\n')
-        fd.write('RunIndex, SimReturnCode, StartTime, rosbag2FileName' +
+        fd.write('RunIndex, SimReturnCode, StartTime, rosbag2Filename, pblogFilename' +
                  ', PhysicsStep, PhysicsRTF' +
                  ', Seed, Duration, DoorState, ScaleFactor, BatteryState' +
                  ', MeanPistonPosition, IncWaveSpectrumType;IncWaveSpectrumParams\n')
@@ -378,7 +378,9 @@ def generate_simulations(sim_params_yaml):
     world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec_batch.sdf')
 
     # Start batch runs
+    rng = np.random.default_rng()
     for idx, (ps, ds, sf, bs, mpp, iw) in enumerate(batch_params):
+        seed = rng.integers(2**32-1) if seed_==0 else seed_
         node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
                                f" door state='{ds}', scale factor={sf}" +
                                f", battery state={bs if bs is not None else 'None'}" +
@@ -444,10 +446,16 @@ def generate_simulations(sim_params_yaml):
 
         # Dynamically create launch file
         start_time = time.strftime("%Y%m%d%H%M%S")
-        rosbag2_name = 'rosbag2'
+        rosbag2_dir = 'rosbag2'
+        pblog_dir = 'pblog'
         run_results_dir = f'results_run_{idx}_{start_time}'
-        # TODO(anyone) also path for pblog when ready
         os.makedirs(os.path.join(batch_results_dir, run_results_dir))
+
+        # python workaround for 'ln -sf'
+        os.symlink(os.path.join(run_results_dir, rosbag2_dir),
+                   os.path.join(batch_results_dir, f'latest_rosbag_{start_time}'), target_is_directory=True)
+        os.replace(os.path.join(batch_results_dir, f'latest_rosbag_{start_time}'),
+                   os.path.join(batch_results_dir, f'latest_rosbag'))
 
         def generate_launch_description():
             mbari_wec = IncludeLaunchDescription(
@@ -457,13 +465,15 @@ def generate_simulations(sim_params_yaml):
                 launch_arguments={'extra_gz_args': '-r' if enable_gui else '-rs' +
                                                    f' --iterations {iterations}',
                                   'world_file': 'mbari_wec_batch.sdf',
-                                  'regenerate_models': 'false'}.items(),
+                                  'regenerate_models': 'false',
+                                  'pbloghome': batch_results_dir,
+                                  'pblogdir': os.path.join(run_results_dir, pblog_dir)}.items(),
             )
 
             # record all topics with rosbag2
             rosbag2 = ExecuteProcess(
                 cmd=['ros2', 'bag', 'record',
-                     '-o', os.path.join(batch_results_dir, run_results_dir, rosbag2_name), '-a'],
+                     '-o', os.path.join(batch_results_dir, run_results_dir, rosbag2_dir), '-a'],
                 output='screen'
             )
 
@@ -482,7 +492,8 @@ def generate_simulations(sim_params_yaml):
         # Write to log
         with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'a') as fd:
             fd.write(f'{idx}, {result}, {start_time}' +
-                     f', {os.path.join(run_results_dir, rosbag2_name)}' +
+                     f', {os.path.join(run_results_dir, rosbag2_dir)}' +
+                     f', {os.path.join(run_results_dir, pblog_dir)}' +
                      f', {print_optional(ps)}, {print_optional(physics_rtf)}' +
                      f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
                      f', {print_optional(bs)}' +

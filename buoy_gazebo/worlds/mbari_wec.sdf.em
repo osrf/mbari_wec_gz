@@ -13,9 +13,24 @@ try:
 except NameError:
     physics_rtf = 1.0  # not defined so default
 
+# Check if lat_lon was passed in via empy
+try:
+    lat_lon
+except NameError:
+    lat_lon = [36.743850, -121.876233]  # not defined so default
+
 }@
 <sdf version="1.8">
   <world name="mbari_wec_world">
+
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>@(lat_lon[0])</latitude_deg>
+      <longitude_deg>@(lat_lon[1])</longitude_deg>
+      <elevation>0.0</elevation>
+      <heading_deg>0.0</heading_deg>
+    </spherical_coordinates>
 
     <physics name="step" type="ignored">
       <max_step_size>@(physics_step)</max_step_size>
