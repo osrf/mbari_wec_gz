@@ -41,7 +41,6 @@ class SCROSNode final : public buoy_api::Interface<SCROSNode>
 {
 public:
   rclcpp::Clock::SharedPtr clock_{nullptr};
-  double physics_step{PHYSICS_STEP};
   float range_finder_{0.0F};
   std::atomic<uint16_t> status_{0U};
 
@@ -98,12 +97,6 @@ private:
     status_ = data.status;
   }
 
-  void set_params()
-  {
-    this->declare_parameter("physics_step", this->physics_step);
-    this->physics_step = this->get_parameter("physics_step").as_double();
-  }
-
   std::thread thread_executor_spin_;
   std::atomic<bool> stop_{false};
   rclcpp::Node::SharedPtr node_{nullptr};
@@ -118,6 +111,7 @@ protected:
   std::unique_ptr<gz::sim::TestFixture> fixture{nullptr};
   std::unique_ptr<SCROSNode> node{nullptr};
   gz::sim::Entity buoyEntity{gz::sim::kNullEntity};
+  static double physics_step;
   static int argc_;
   static char ** argv_;
 
@@ -133,6 +127,9 @@ protected:
   static void SetUpTestCase()
   {
     rclcpp::init(argc_, argv_);
+    std::unique_ptr<rclcpp::Node> node = std::make_unique<rclcpp::Node>("physics_step_param_node");
+    node->declare_parameter("physics_step", PHYSICS_STEP);
+    physics_step = node->get_parameter("physics_step").as_double();
   }
 
   // runs once after all `TEST_F` have completed
@@ -194,6 +191,7 @@ protected:
   }
 };
 
+double BuoySCTests::physics_step;
 int BuoySCTests::argc_;
 char ** BuoySCTests::argv_;
 
@@ -201,9 +199,9 @@ char ** BuoySCTests::argv_;
 //////////////////////////////////////////////////
 TEST_F(BuoySCTests, SCValveROS)
 {
-  int preCmdIterations{static_cast<int>(45 / node->physics_step)};
-  int statusCheckIterations{static_cast<int>(1 / node->physics_step)};
-  int postCmdIterations{static_cast<int>(5 / node->physics_step)};
+  int preCmdIterations{static_cast<int>(45 / this->physics_step)};
+  int statusCheckIterations{static_cast<int>(1 / this->physics_step)};
+  int postCmdIterations{static_cast<int>(5 / this->physics_step)};
 
   // Run simulation server and wait for piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
@@ -212,7 +210,7 @@ TEST_F(BuoySCTests, SCValveROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations * node->physics_step));
+    static_cast<int>(iterations * this->physics_step));
 
   // Before Valve command
   float pre_valve_range_finder = node->range_finder_;
@@ -258,7 +256,7 @@ TEST_F(BuoySCTests, SCValveROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations * node->physics_step));
+    static_cast<int>(iterations * this->physics_step));
 
   // Check status field
   EXPECT_TRUE(
@@ -301,7 +299,7 @@ TEST_F(BuoySCTests, SCValveROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations * node->physics_step));
+    static_cast<int>(iterations * this->physics_step));
 
   // Check Status goes back to normal
   EXPECT_FALSE(
@@ -352,9 +350,9 @@ TEST_F(BuoySCTests, SCValveROS)
 //////////////////////////////////////////////////
 TEST_F(BuoySCTests, SCPumpROS)
 {
-  int preCmdIterations{static_cast<int>(45 / node->physics_step)};
-  int statusCheckIterations{static_cast<int>(1 / node->physics_step)};
-  int postCmdIterations{static_cast<int>(60 / node->physics_step)};
+  int preCmdIterations{static_cast<int>(45 / this->physics_step)};
+  int statusCheckIterations{static_cast<int>(1 / this->physics_step)};
+  int postCmdIterations{static_cast<int>(60 / this->physics_step)};
 
   // Run simulation server and allow piston to settle
   fixture->Server()->Run(true /*blocking*/, preCmdIterations, false /*paused*/);
@@ -363,7 +361,7 @@ TEST_F(BuoySCTests, SCPumpROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations * node->physics_step));
+    static_cast<int>(iterations * this->physics_step));
 
   // Before Pump command
   float pre_pump_range_finder = node->range_finder_;
@@ -410,7 +408,7 @@ TEST_F(BuoySCTests, SCPumpROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations * node->physics_step));
+    static_cast<int>(iterations * this->physics_step));
 
   // Check status field
   EXPECT_FALSE(
@@ -446,7 +444,7 @@ TEST_F(BuoySCTests, SCPumpROS)
     std::this_thread::sleep_for(500ms);
     EXPECT_EQ(
       static_cast<int>(node->clock_->now().seconds()),
-      static_cast<int>(iterations * node->physics_step));
+      static_cast<int>(iterations * this->physics_step));
 
     if (n % 2U == 1) {
       EXPECT_FALSE(
@@ -474,7 +472,7 @@ TEST_F(BuoySCTests, SCPumpROS)
   std::this_thread::sleep_for(500ms);
   EXPECT_EQ(
     static_cast<int>(node->clock_->now().seconds()),
-    static_cast<int>(iterations * node->physics_step));
+    static_cast<int>(iterations * this->physics_step));
 
   // Check piston motion
   float post_pump_range_finder = node->range_finder_;

@@ -15,7 +15,6 @@
 import asyncio
 import os
 from threading import Thread
-import time
 import unittest
 
 from ament_index_python.packages import get_package_share_directory
@@ -329,7 +328,6 @@ class TestHelper(rclpyNode):
         req = RunServer.Request()
         req.iterations = _iterations
         future = self.fixture_client.call_async(req)
-        self.get_logger().info('waiting for fixture server run future response...')
         await future
         self.run_status = future.result().success
         self.iterations += future.result().iterations
@@ -370,12 +368,6 @@ class BuoyPyTests(unittest.TestCase):
     NODE_NAME = 'test_interface_py'
     CLI_ARGS = None
 
-    def executor_spin(self):
-        # rate = self.node.create_rate(50)
-        while rclpy.ok():
-            self.executor.spin_once()
-            time.sleep(1./50.)
-
     def setUp(self):
         rclpy.init()
         self.test_helper = TestHelper()
@@ -385,7 +377,7 @@ class BuoyPyTests(unittest.TestCase):
         self.executor = MultiThreadedExecutor()
         self.executor.add_node(self.node)
         self.executor.add_node(self.test_helper)
-        self.executor_thread = Thread(target=self.executor_spin)
+        self.executor_thread = Thread(target=self.executor.spin)
         self.executor_thread.daemon = True
         self.executor_thread.start()
         # TODO(anyone) put back when TestFixture fixed upstream
