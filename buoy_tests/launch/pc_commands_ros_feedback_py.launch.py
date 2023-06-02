@@ -292,4 +292,4 @@ class BuoyPCPyTest(BuoyPyTests):
         # TODO(anyone) remove once TestFixture is fixed upstream
         self.test_helper.stop()
 
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=2000)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=600)
