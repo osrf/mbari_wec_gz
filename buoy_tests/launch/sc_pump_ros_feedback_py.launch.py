@@ -27,7 +27,9 @@ PHYSICS_STEP = 0.01
 def generate_test_description():
     sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
                       physics_rtf=11.0,
-                      physics_step=PHYSICS_STEP)
+                      physics_step=PHYSICS_STEP,
+                      initial_piston_position=2.03,
+                      initial_buoy_height=2.0)
     return default_generate_test_description(enable_rosbag=True,
                                              rosbag_name='rosbag2_sc_pump_py',
                                              regen_models=True,

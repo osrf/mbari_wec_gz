@@ -19,6 +19,12 @@ try:
 except NameError:
     lat_lon = [36.743850, -121.876233]  # not defined so default
 
+# Check if initial_buoy_height was passed in via empy
+try:
+    initial_buoy_height
+except NameError:
+    initial_buoy_height = 2.8  # not defined so default
+
 }@
 <sdf version="1.8">
   <world name="mbari_wec_world">
@@ -73,7 +79,7 @@ except NameError:
     </model>
 
     <model name="MBARI_WEC_ROS">
-      <pose relative_to="world">0 0 -2 0 0 0</pose>
+      <pose relative_to="world">0 0 -@(initial_buoy_height) 0 0 0</pose>
 
       <include merge="true">
         <uri>package://buoy_description/models/mbari_wec_ros</uri>

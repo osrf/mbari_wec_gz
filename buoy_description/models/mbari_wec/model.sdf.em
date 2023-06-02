@@ -84,7 +84,7 @@ else:
     inc_wave_spectrum = lambda : '<!-- No Waves -->'
 
 ############################
-# Mean Piston Position
+# Piston Position
 ############################
 
 # Would like to specify piston mean position and set all other
@@ -94,12 +94,19 @@ else:
 # that brings the equilibrium to the desired mean piston position.
 # Recompute pressure and volume based on Ideal Gas Law.
 
+# Check if initial piston position (m) was passed in via empy
+try:
+    initial_piston_position
+except NameError:
+    initial_piston_position = 0.7  # m, default;
+                                   # measured from fully retracted (same as range_finder)
+
 # Check if x_mean_pos (m, mean piston position) was passed in via empy
-# with the current parameters, the mean position settles around 1.21m
 try:
     x_mean_pos
 except NameError:
     x_mean_pos = 0.7  # m, default; measured from fully retracted (same as range_finder)
+
 
 import math
 import scipy.optimize as spo
@@ -195,6 +202,7 @@ if not ignore_piston_mean_pos:
       <JointName>HydraulicRam</JointName>
       <chamber>upper_polytropic</chamber>
       <is_upper>true</is_upper>
+      <initial_piston_position>@(initial_piston_position)</initial_piston_position>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>7.77e-6</valve_absement>
       <pump_absement>4.3e-8</pump_absement>
