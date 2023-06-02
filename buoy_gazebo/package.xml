@@ -22,6 +22,7 @@
 
   <depend>buoy_description</depend>
   <depend>buoy_interfaces</depend>
+  <depend>sim_pblog</depend>
   <depend>gz-sim7</depend>
   <depend>rclcpp</depend>
   <depend>robot_state_publisher</depend>

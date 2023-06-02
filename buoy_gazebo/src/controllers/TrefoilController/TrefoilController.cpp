@@ -32,7 +32,9 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
 
+#include "buoy_utils/Rate.hpp"
 #include "TrefoilController.hpp"
+
 
 struct buoy_gazebo::TrefoilControllerPrivate
 {
@@ -51,7 +53,7 @@ struct buoy_gazebo::TrefoilControllerPrivate
   std::function<void(const gz::msgs::IMU &)> imu_cb_;
   std::function<void(const gz::msgs::Magnetometer &)> mag_cb_;
   double pub_rate_hz_{10.0};
-  std::unique_ptr<rclcpp::Rate> pub_rate_{nullptr};
+  std::unique_ptr<buoy_utils::SimRate> pub_rate_{nullptr};
   buoy_interfaces::msg::TFRecord tf_record_;
 
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
@@ -109,6 +111,10 @@ TrefoilController::TrefoilController()
 TrefoilController::~TrefoilController()
 {
   // Stop ros2 threads
+  if (rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+
   this->dataPtr->stop_ = true;
   this->dataPtr->executor_->cancel();
   this->dataPtr->thread_executor_spin_.join();
@@ -186,8 +192,8 @@ void TrefoilController::Configure(
       this->dataPtr->imu_data_valid_ = true;
       data.unlock();
     };
-  if (!this->dataPtr->node_.Subscribe("/Trefoil_link/trefoil_imu", this->dataPtr->imu_cb_)) {
-    gzerr << "Error subscribing to topic [" << "/Trefoil_link/trefoil_imu" << "]" << std::endl;
+  if (!this->dataPtr->node_.Subscribe("/HeaveCone_link/tf_imu", this->dataPtr->imu_cb_)) {
+    gzerr << "Error subscribing to topic [" << "/HeaveCone_link/tf_imu" << "]" << std::endl;
     return;
   }
 
@@ -203,8 +209,8 @@ void TrefoilController::Configure(
       this->dataPtr->mag_data_valid_ = true;
       data.unlock();
     };
-  if (!this->dataPtr->node_.Subscribe("/Trefoil_link/trefoil_mag", this->dataPtr->mag_cb_)) {
-    gzerr << "Error subscribing to topic [" << "/Trefoil_link/trefoil_mag" << "]" << std::endl;
+  if (!this->dataPtr->node_.Subscribe("/HeaveCone_link/tf_mag", this->dataPtr->mag_cb_)) {
+    gzerr << "Error subscribing to topic [" << "/HeaveCone_link/tf_mag" << "]" << std::endl;
     return;
   }
 
@@ -223,7 +229,9 @@ void TrefoilController::Configure(
 
   this->dataPtr->pub_rate_hz_ = \
     _sdf->Get<double>("publish_rate", this->dataPtr->pub_rate_hz_).first;
-  this->dataPtr->pub_rate_ = std::make_unique<rclcpp::Rate>(this->dataPtr->pub_rate_hz_);
+  this->dataPtr->pub_rate_ = std::make_unique<buoy_utils::SimRate>(
+    this->dataPtr->pub_rate_hz_,
+    this->dataPtr->rosnode_->get_clock());
 
   auto publish = [this]()
     {
@@ -275,9 +283,12 @@ void TrefoilController::PostUpdate(
 
   //  Get Trefoil link's pose
   auto model = gz::sim::Model(this->dataPtr->entity_);
-  auto link = model.LinkByName(_ecm, "Trefoil");
+  auto link = model.LinkByName(_ecm, "HeaveCone");
   auto pose = gz::sim::worldPose(link, _ecm);
   double depth = pose.Pos().Z();
+
+  this->dataPtr->current_time_ = _info.simTime;
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
 
   // low prio data access
   std::unique_lock low(this->dataPtr->low_prio_mutex_);
@@ -285,13 +296,11 @@ void TrefoilController::PostUpdate(
   std::unique_lock data(this->dataPtr->data_mutex_);
   next.unlock();
 
-  this->dataPtr->current_time_ = _info.simTime;
-  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
-
   this->dataPtr->tf_record_.header.stamp.sec = sec_nsec.first;
   this->dataPtr->tf_record_.header.stamp.nanosec = sec_nsec.second;
+
   //  Sea pressure: depth*rho*g, Pascal to psi
-  this->dataPtr->tf_record_.pressure = (depth * 1025 * 9.8) / 6894.75729;
+  this->dataPtr->tf_record_.pressure = (depth * 1025.0 * 9.8) / 6894.75729;
 
   //  Constants
   this->dataPtr->tf_record_.power_timeouts = 60;
