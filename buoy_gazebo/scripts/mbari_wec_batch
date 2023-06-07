@@ -21,6 +21,7 @@ import yaml
 
 import os
 import shutil
+import subprocess
 import sys
 import time
 
@@ -30,7 +31,7 @@ from launch import LaunchDescription
 from launch import LaunchService
 from launch.actions import ExecuteProcess, IncludeLaunchDescription
 from launch.actions import RegisterEventHandler
-from launch.event_handlers import OnProcessExit
+from launch.event_handlers import OnProcessExit, OnProcessStart
 
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
@@ -47,7 +48,7 @@ DEFAULT_PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
 class MonoChromatic(object):
     def __init__(self, A, T):
         self.A, self.T = A, T
-        self.name = "MonoChromatic"
+        self.name = 'MonoChromatic'
 
     def __str__(self):
         if self.A is not None:
@@ -59,7 +60,7 @@ class MonoChromatic(object):
 class Bretschneider(object):
     def __init__(self, Hs, Tp):
         self.Hs, self.Tp = Hs, Tp
-        self.name = "Bretschneider"
+        self.name = 'Bretschneider'
 
     def __str__(self):
         if self.Hs is not None:
@@ -71,7 +72,7 @@ class Bretschneider(object):
 class Custom(object):
     def __init__(self, f, Szz):
         self.f, self.Szz = f, Szz
-        self.name = "Custom"
+        self.name = 'Custom'
 
     def __str__(self):
         if self.f is not None:
@@ -158,6 +159,7 @@ def generate_simulations(sim_params_yaml):
     # door state ('open', 'closed')
     if 'door_state' in sim_params:
         door_state = sim_params['door_state']
+        door_state = np.atleast_1d(door_state)
         if any(['open' not in ds and 'closed' not in ds for ds in door_state]):
             node.get_logger().error(
                 "sim_params_yaml: all door_state parameters must be either 'open' or 'closed'"
@@ -468,8 +470,9 @@ def generate_simulations(sim_params_yaml):
         run_results_dir = f'results_run_{idx}_{start_time}'
         os.makedirs(os.path.join(batch_results_dir, run_results_dir))
 
-        # get return codes from processes
-        proc_info = ActiveProcInfoHandler()
+        # get info from processes
+        proc_start_info = ActiveProcInfoHandler()
+        proc_exit_info = ActiveProcInfoHandler()
 
         # python workaround for 'ln -sf'
         os.symlink(os.path.join(run_results_dir, rosbag2_dir),
@@ -497,11 +500,25 @@ def generate_simulations(sim_params_yaml):
                 output='screen'
             )
 
+            def capture_start_pids(info_, unused):
+                proc_start_info.append(info_)
+                start_procs = resolveProcesses(proc_start_info, process='ruby $(which gz) sim')
+                for info in [proc_start_info[item] for item in start_procs]:
+                    print(f'{info.pid}')
+                    print(f'{info.cmd}')
+                    import subprocess
+                    output = subprocess.run(['ps', 'h', '--ppid', f'{info.pid}', '-o', 'pid'])
+                    print(f'{output.stdout}')
+                    print(f'{output.stderr}')
+
             return LaunchDescription([
                 rosbag2,
                 mbari_wec,
+                RegisterEventHandler(  # get info from processes
+                    OnProcessStart(on_start=lambda info, unused: proc_start_info.append(info))
+                ),
                 RegisterEventHandler(  # get return codes from processes
-                    OnProcessExit(on_exit=lambda info, unused: proc_info.append(info))
+                    OnProcessExit(on_exit=lambda info, unused: proc_exit_info.append(info))
                 ),
             ])
 
@@ -515,14 +532,33 @@ def generate_simulations(sim_params_yaml):
                                     f'batch launch return code [{result}]')
 
         # get return codes from processes
-        procs = resolveProcesses(proc_info, process='ruby $(which gz) sim')
+        procs = resolveProcesses(proc_exit_info, process='ruby $(which gz) sim')
         gzsim_result = 0
-        for info in [proc_info[item] for item in procs]:
+        for info in [proc_exit_info[item] for item in procs]:
             gzsim_result = info.returncode
             if gzsim_result != 0:
                 node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
                                         f'gz-sim return code [{gzsim_result}]')
                 result = gzsim_result
+                if info.returncode < -2:
+                    node.get_logger().error(f'gz sim process may still be running...')
+                    start_procs = resolveProcesses(proc_start_info, process='ruby $(which gz) sim')
+                    for info in [proc_start_info[item] for item in start_procs]:
+                        for proc in ['ruby', 'sim_pblog']:
+                            # kill whole process tree
+                            # kill_proc = 'ps x -o "%r %c"' \
+                            #             + f' | grep {proc}' \
+                            #             + ' | cut -d " " -f 2' \
+                            #             + ' | xargs -I{} kill -9 -- -{}'
+
+                            # kill just process
+                            kill_proc = 'ps x -o "%p %c"' \
+                                        + f' | grep {proc}' \
+                                        + ' | cut -d " " -f 2' \
+                                        + ' | xargs -I{} kill -9 {}'
+
+                            output = subprocess.run(kill_proc, shell=True, check=True)
+                            print(f'{output.args}')
 
         # Write to log
         with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'a') as fd:
