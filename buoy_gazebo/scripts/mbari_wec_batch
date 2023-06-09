@@ -554,7 +554,7 @@ def generate_simulations(sim_params_yaml):
                             # kill just process
                             kill_proc = 'ps x -o "%p %c"' \
                                         + f' | grep {proc}' \
-                                        + ' | cut -d " " -f 2' \
+                                        + " | awk '{ print $1 }'" \
                                         + ' | xargs -I{} kill -9 {}'
 
                             output = subprocess.run(kill_proc, shell=True, check=True)
