@@ -24,12 +24,14 @@
 #include <gz/sim/Server.hh>
 #include <gz/sim/Util.hh>
 #include <gz/sim/TestFixture.hh>
-#include <gz/transport/Node.hh>
 
 #include <buoy_tests/srv/run_server.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 
+
+// NOLINTNEXTLINE
+using namespace std::chrono;
 
 TEST(BuoyTests, RunServer)
 {
@@ -89,6 +91,7 @@ TEST(BuoyTests, RunServer)
   }
 
   std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("gz_fixture_server");
+  std::atomic<bool> stop = false;
 
   rclcpp::Service<buoy_tests::srv::RunServer>::SharedPtr service =
     node->create_service<buoy_tests::srv::RunServer>(
@@ -100,6 +103,7 @@ TEST(BuoyTests, RunServer)
         RCLCPP_INFO(
           rclcpp::get_logger("run_server"),
           "Incoming request to shutdown");
+        stop = true;
         rclcpp::shutdown();
         response->success = true;
         return;
@@ -114,10 +118,9 @@ TEST(BuoyTests, RunServer)
       static const bool blocking = true;
       static const bool paused = false;
       response->success = fixture->Server()->Run(blocking, request->iterations, paused);
-      response->success = fixture->Server()->RunOnce(true);
-      response->iterations = iterations - initial_iterations - 1U;
+      response->iterations = iterations - initial_iterations;
 
-      EXPECT_EQ(response->iterations, request->iterations);
+      EXPECT_EQ(iterations - initial_iterations, request->iterations);
 
       RCLCPP_DEBUG_STREAM(
         rclcpp::get_logger("run_server"),
@@ -127,6 +130,22 @@ TEST(BuoyTests, RunServer)
 
   RCLCPP_INFO(rclcpp::get_logger("run_server"), "Ready to run test server.");
 
-  rclcpp::spin(node);
+  // rclcpp::spin(node);
+  rclcpp::executors::SingleThreadedExecutor::SharedPtr executor =
+    std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+  executor->add_node(node);
+
+  rclcpp::Rate rate(50.0);
+  while (rclcpp::ok() && !stop) {
+    executor->spin_once();
+    rate.sleep();
+  }
+
+  if (executor) {
+    executor->cancel();
+  }
+
+  std::this_thread::sleep_for(1s);  // needed for launch_test to know we shut down
+
   RCLCPP_INFO(rclcpp::get_logger("run_server"), "Shutting down test server.");
 }

@@ -96,10 +96,10 @@ pto_inner_radius = tether_radius + pto_gap
 pto_scale = pto_inner_radius / pto_stl_inner_radius
 
 # PTO Buoyancy (specify desired COB, computes location of extra volume above .stl collision mesh)
-pto_disp = .205  # m^3  (Specified)
-pto_cob = -3  # z-position, on centerline (Specified)
-stl_disp = .160443 # m^3  Specific to .stl file
-stl_cob = 0 # z-position, on centerline. Buoyancy plugin uses collisioin pose origin, not center of mesh volume
+pto_disp = 0.205  # m^3  (Specified)
+pto_cob = -3.0  # z-position, on centerline (Specified)
+stl_disp = 0.160443 # m^3  Specific to .stl file
+stl_cob = 0.0 # z-position, on centerline. Buoyancy plugin uses collisioin pose origin, not center of mesh volume
 buoyancy_disp = pto_disp - stl_disp
 buoyancy_cob = (pto_cob*pto_disp - stl_cob*stl_disp)/buoyancy_disp
 buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
@@ -574,7 +574,6 @@ buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
       <axis>
         <limit>
           <lower>0.0</lower>
-          <!-- TODO(chapulina) Check why it's only going up to ~1.16-->
           <upper>2.03</upper>
           <effort>1e6</effort>
         </limit>

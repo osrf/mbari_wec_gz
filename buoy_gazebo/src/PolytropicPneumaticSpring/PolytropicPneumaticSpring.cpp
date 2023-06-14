@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #include <gz/common/Profiler.hh>
 #include <gz/math/PID.hh>
@@ -30,6 +31,8 @@
 #include <gz/sim/components/JointPosition.hh>
 #include <gz/sim/components/JointVelocity.hh>
 #include <gz/sim/components/JointVelocityCmd.hh>
+
+#include <gz/sim/Joint.hh>
 #include <gz/sim/Model.hh>
 
 #include "PolytropicPneumaticSpring.hpp"
@@ -55,6 +58,9 @@ struct PolytropicPneumaticSpringConfig
 
   /// \brief adiabatic index (gamma) == 1.4 for diatomic gas (e.g. N2)
   static constexpr double ADIABATIC_INDEX{1.4};
+
+  /// \brief initial piston position
+  static constexpr double INITIAL_PISTON_POSITION{0.7};
 
   /// \brief polytropic index
   double n0{ADIABATIC_INDEX}, n1{ADIABATIC_INDEX}, n2{ADIABATIC_INDEX};
@@ -371,6 +377,20 @@ void PolytropicPneumaticSpring::Configure(
     gzerr << "Joint with name[" << jointName << "] not found. " <<
       "The PolytropicPneumaticSpring may not influence this joint.\n";
     return;
+  }
+
+  // set initial piston position
+  if (config.is_upper) {
+    double initial_piston_position =
+      SdfParamDouble(
+      _sdf,
+      "initial_piston_position",
+      PolytropicPneumaticSpringConfig::INITIAL_PISTON_POSITION);
+    gz::sim::Joint joint(config.jointEntity);
+    if (joint.Valid(_ecm)) {
+      std::vector<double> pos{config.stroke - initial_piston_position};
+      joint.ResetPosition(_ecm, pos);
+    }
   }
 
   this->dataPtr->config_ = std::make_unique<const PolytropicPneumaticSpringConfig>(config);

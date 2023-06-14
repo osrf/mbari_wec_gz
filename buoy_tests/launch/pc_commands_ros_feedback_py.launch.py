@@ -26,10 +26,15 @@ from testing_utils import BuoyPyTests
 from testing_utils import default_generate_test_description
 
 
+PHYSICS_STEP = 0.01
+
+
 def generate_test_description():
     sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
                       physics_rtf=11.0,
-                      physics_step=0.001)
+                      physics_step=PHYSICS_STEP,
+                      initial_piston_position=2.03,
+                      initial_buoy_height=2.0)
     return default_generate_test_description(enable_rosbag=True,
                                              rosbag_name='rosbag2_pc_cmds_py',
                                              regen_models=True,
@@ -118,8 +123,8 @@ class BuoyPCPyTest(BuoyPyTests):
         self.assertEqual(self.test_helper.iterations, 0)
         self.assertEqual(t, 0)
 
-        preCmdIterations = 15000
-        feedbackCheckIterations = 100
+        preCmdIterations = int(15 / PHYSICS_STEP)
+        feedbackCheckIterations = int(0.1 / PHYSICS_STEP)
 
         #######################################
         # Check Default Winding Current Damping
@@ -129,7 +134,7 @@ class BuoyPCPyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         expected_wind_curr = \
             torque_policy_.winding_current_target(self.node.rpm_,
@@ -146,7 +151,7 @@ class BuoyPCPyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         ##################################################
         # Winding Current
@@ -166,7 +171,7 @@ class BuoyPCPyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         expected_wind_curr = self.winding_current_limiter(wc)
         self.assertGreater(self.node.wind_curr_, expected_wind_curr - 0.1)
@@ -190,7 +195,7 @@ class BuoyPCPyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         self.assertGreater(self.node.scale_, scale - 0.01)
         self.assertLess(self.node.scale_, scale + 0.01)
@@ -213,14 +218,14 @@ class BuoyPCPyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         self.assertGreater(self.node.retract_, retract - 0.01)
         self.assertLess(self.node.retract_, retract + 0.01)
 
         ##################################################
         # Check return to default winding current damping
-        torque_timeout_iterations = 2500
+        torque_timeout_iterations = int(2.5 / PHYSICS_STEP)
 
         # Run to let winding current finish
         self.test_helper.run(torque_timeout_iterations - 2 * feedbackCheckIterations)
@@ -232,7 +237,7 @@ class BuoyPCPyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         expected_wind_curr = \
             torque_policy_.winding_current_target(self.node.rpm_,
@@ -253,8 +258,8 @@ class BuoyPCPyTest(BuoyPyTests):
                          self.node.pc_retract_future_.result().result.OK)
 
         # Run to let bias curr process
-        bias_curr_iterations = 9000
-        bias_curr_timeout_iterations = 10000
+        bias_curr_iterations = int(9 / PHYSICS_STEP)
+        bias_curr_timeout_iterations = int(10 / PHYSICS_STEP)
         self.test_helper.run(bias_curr_iterations)
         self.assertTrue(self.test_helper.run_status)
         self.assertEqual(preCmdIterations + 2 * feedbackCheckIterations +
@@ -263,7 +268,7 @@ class BuoyPCPyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         self.assertGreater(self.node.bias_curr_, bc - 0.1)
         self.assertLess(self.node.bias_curr_, bc + 0.1)
@@ -279,7 +284,7 @@ class BuoyPCPyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         self.assertGreater(self.node.bias_curr_, -0.1)
         self.assertLess(self.node.bias_curr_, 0.1)
@@ -287,4 +292,4 @@ class BuoyPCPyTest(BuoyPyTests):
         # TODO(anyone) remove once TestFixture is fixed upstream
         self.test_helper.stop()
 
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=30)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=600)

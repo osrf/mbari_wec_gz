@@ -97,7 +97,8 @@ def regenerate_models(context, *args, **kwargs):
 
     # fill mbari_wec world template with params
     supported_mbari_wec_world_params = ['physics_step',
-                                        'physics_rtf']
+                                        'physics_rtf',
+                                        'initial_buoy_height']
     mbari_wec_world_params = []
     for world_param in supported_mbari_wec_world_params:
         if world_param in kwargs:
@@ -112,12 +113,13 @@ def regenerate_models(context, *args, **kwargs):
                                         'inc_wave_seed',
                                         'battery_soc',
                                         'battery_emf',
+                                        'initial_piston_position',
                                         'x_mean_pos',
                                         'inc_wave_spectrum']
     mbari_wec_model_params = []
     for world_param in supported_mbari_wec_model_params:
         if world_param in kwargs:
-            if 'inc_wave_spectrum_type' in kwargs[world_param]:
+            if 'inc_wave_spectrum_type' in str(kwargs[world_param]):
                 inc_wave_spectrum = kwargs[world_param].split(';')
                 no_params = len(inc_wave_spectrum) > 1
                 inc_wave_spectrum_type = inc_wave_spectrum[0].split(':')

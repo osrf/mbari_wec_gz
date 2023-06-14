@@ -29,9 +29,13 @@
 #include <buoy_api/interface.hpp>
 
 
+constexpr double PHYSICS_STEP{0.001};
+
 class NoInputsROSNode final : public buoy_api::Interface<NoInputsROSNode>
 {
 public:
+  double physics_step{PHYSICS_STEP};
+
   float rpm_{10000.0F}, wcurrent_{10000.0F};
   explicit NoInputsROSNode(const std::string & node_name)
   : buoy_api::Interface<NoInputsROSNode>(node_name)
@@ -40,6 +44,8 @@ public:
       rclcpp::Parameter(
         "use_sim_time",
         true));
+
+    this->set_params();
 
     node_ = std::shared_ptr<NoInputsROSNode>(this, [](NoInputsROSNode *) {});  // null deleter
     executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
@@ -78,6 +84,12 @@ private:
   {
     rpm_ = data.rpm;
     wcurrent_ = data.wcurrent;
+  }
+
+  void set_params()
+  {
+    this->declare_parameter("physics_step", this->physics_step);
+    this->physics_step = this->get_parameter("physics_step").as_double();
   }
 
   std::thread thread_executor_spin_;
@@ -141,17 +153,27 @@ TEST(BuoyTests, NoInputsROS)
   Finalize();
 
   // Run simulation server
-  int targetIterations{15000};
+  int targetIterations{static_cast<int>(15 / node.physics_step)};
   fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
   EXPECT_LT(node.rpm_, 1000.0F);
   EXPECT_LT(node.wcurrent_, 0.1F);
   rclcpp::Clock::SharedPtr clock = node.get_clock();
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  EXPECT_EQ(static_cast<int>(clock->now().seconds()), static_cast<int>(iterations / 1000.0F));
+  EXPECT_EQ(
+    static_cast<int>(clock->now().seconds()),
+    static_cast<int>(iterations * node.physics_step));
   node.stop();
 
   // Sanity check that the test ran
   EXPECT_EQ(targetIterations, iterations);
   EXPECT_NE(gz::sim::kNullEntity, buoyEntity);
+}
+
+
+int main(int argc, char * argv[])
+{
+  ::testing::InitGoogleTest(&argc, argv);
+  rclcpp::init(argc, argv);  // pass args to rclcpp init
+  return RUN_ALL_TESTS();
 }

@@ -21,10 +21,15 @@ from testing_utils import BuoyPyTests
 from testing_utils import default_generate_test_description
 
 
+PHYSICS_STEP = 0.01
+
+
 def generate_test_description():
     sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
                       physics_rtf=11.0,
-                      physics_step=0.001)
+                      physics_step=PHYSICS_STEP,
+                      initial_piston_position=2.03,
+                      initial_buoy_height=2.0)
     return default_generate_test_description(regen_models=True,
                                              regen_kwargs=sim_params)
 
@@ -37,9 +42,9 @@ class BuoySCValvePyTest(BuoyPyTests):
         self.assertEqual(t, 0)
         self.assertEqual(self.test_helper.iterations, 0)
 
-        preCmdIterations = 45000
-        statusCheckIterations = 1000
-        postCmdIterations = 5000
+        preCmdIterations = int(45 / PHYSICS_STEP)
+        statusCheckIterations = int(1 / PHYSICS_STEP)
+        postCmdIterations = int(5 / PHYSICS_STEP)
 
         # Run simulation server and wait for piston to settle
         self.test_helper.run(preCmdIterations)
@@ -48,7 +53,7 @@ class BuoySCValvePyTest(BuoyPyTests):
 
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         # Before Valve command
         pre_valve_range_finder = self.node.range_finder_
@@ -82,7 +87,7 @@ class BuoySCValvePyTest(BuoyPyTests):
         self.assertEqual(preCmdIterations + statusCheckIterations, self.test_helper.iterations)
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         # Check status field
         self.assertTrue(self.node.sc_status_ & SCRecord.RELIEF_VALVE_REQUEST,
@@ -114,7 +119,7 @@ class BuoySCValvePyTest(BuoyPyTests):
                          self.test_helper.iterations)
         time.sleep(0.5)
         t, _ = clock.now().seconds_nanoseconds()
-        self.assertEqual(t, self.test_helper.iterations // 1000)
+        self.assertEqual(t, int(self.test_helper.iterations * PHYSICS_STEP))
 
         # Check Status goes back to normal
         self.assertFalse(self.node.sc_status_ & SCRecord.RELIEF_VALVE_REQUEST,
@@ -150,4 +155,4 @@ class BuoySCValvePyTest(BuoyPyTests):
         # TODO(anyone) remove once TestFixture is fixed upstream
         self.test_helper.stop()
 
-        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=30)
+        proc_info.assertWaitForShutdown(process=gazebo_test_fixture, timeout=600)

@@ -21,6 +21,7 @@ import yaml
 
 import os
 import shutil
+import subprocess
 import sys
 import time
 
@@ -29,7 +30,13 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch import LaunchService
 from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnProcessExit, OnProcessStart
+
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+
+from launch_testing.proc_info_handler import ActiveProcInfoHandler
+from launch_testing.util import resolveProcesses
 
 import rclpy
 from rclpy.node import Node
@@ -41,7 +48,7 @@ DEFAULT_PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
 class MonoChromatic(object):
     def __init__(self, A, T):
         self.A, self.T = A, T
-        self.name = "MonoChromatic"
+        self.name = 'MonoChromatic'
 
     def __str__(self):
         if self.A is not None:
@@ -53,7 +60,7 @@ class MonoChromatic(object):
 class Bretschneider(object):
     def __init__(self, Hs, Tp):
         self.Hs, self.Tp = Hs, Tp
-        self.name = "Bretschneider"
+        self.name = 'Bretschneider'
 
     def __str__(self):
         if self.Hs is not None:
@@ -63,17 +70,17 @@ class Bretschneider(object):
 
 
 class Custom(object):
-    def __init__(self, w, Szz):
-        self.w, self.Szz = w, Szz
-        self.name = "Custom"
+    def __init__(self, f, Szz):
+        self.f, self.Szz = f, Szz
+        self.name = 'Custom'
 
     def __str__(self):
-        if self.w is not None:
+        if self.f is not None:
             return f'{self.name};' + \
-                   f'w:{":".join([str(w) for w in self.w])};' + \
+                   f'f:{":".join([str(f) for f in self.f])};' + \
                    f'Szz:{":".join([str(Szz) for Szz in self.Szz])}'
         else:
-            return f'{self.name};w:defaults;Szz:defaults'
+            return f'{self.name};f:defaults;Szz:defaults'
 
 
 def generate_simulations(sim_params_yaml):
@@ -84,7 +91,7 @@ def generate_simulations(sim_params_yaml):
     with open(sim_params_yaml, 'r') as fd:
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
-    print_optional = lambda param: str(param) if param is not None else ""  # noqa: E731
+    print_optional = lambda param: str(param) if param is not None else ''  # noqa: E731
 
     # Grab params from yaml
     # physics time step (seconds)
@@ -152,6 +159,7 @@ def generate_simulations(sim_params_yaml):
     # door state ('open', 'closed')
     if 'door_state' in sim_params:
         door_state = sim_params['door_state']
+        door_state = np.atleast_1d(door_state)
         if any(['open' not in ds and 'closed' not in ds for ds in door_state]):
             node.get_logger().error(
                 "sim_params_yaml: all door_state parameters must be either 'open' or 'closed'"
@@ -225,7 +233,10 @@ def generate_simulations(sim_params_yaml):
         incident_waves = []
         for inc_wave_spectrum_type in inc_wave_spectrum_types:
             if 'MonoChromatic' in inc_wave_spectrum_type:
-                monochromatic_spectrum = inc_wave_spectrum_type['MonoChromatic']
+                try:
+                    monochromatic_spectrum = inc_wave_spectrum_type['MonoChromatic']
+                except TypeError:  # just default params
+                    monochromatic_spectrum = {}
                 if 'A' in monochromatic_spectrum:
                     A = np.array(monochromatic_spectrum['A'], dtype=float)
                     A = np.atleast_1d(A)
@@ -250,7 +261,10 @@ def generate_simulations(sim_params_yaml):
                     sys.exit(-1)
                 incident_waves.extend([MonoChromatic(a, t) for a, t in zip(A, T)])
             elif 'Bretschneider' in inc_wave_spectrum_type:
-                bretschneider_spectrum = inc_wave_spectrum_type['Bretschneider']
+                try:
+                    bretschneider_spectrum = inc_wave_spectrum_type['Bretschneider']
+                except TypeError:  # just default params
+                    bretschneider_spectrum = {}
                 if 'Hs' in bretschneider_spectrum:
                     Hs = np.array(bretschneider_spectrum['Hs'], dtype=float)
                     Hs = np.atleast_1d(Hs)
@@ -275,31 +289,34 @@ def generate_simulations(sim_params_yaml):
                     sys.exit(-1)
                 incident_waves.extend([Bretschneider(hs, tp) for hs, tp in zip(Hs, Tp)])
             elif 'Custom' in inc_wave_spectrum_type:
-                custom_spectrum = inc_wave_spectrum_type['Custom']
-                if 'w' in custom_spectrum:
-                    w = np.array(custom_spectrum['w'], dtype=float)
-                    w = np.atleast_1d(w)
+                try:
+                    custom_spectrum = inc_wave_spectrum_type['Custom']
+                except TypeError:  # just default params
+                    custom_spectrum = {}
+                if 'f' in custom_spectrum:
+                    f = np.array(custom_spectrum['f'], dtype=float)
+                    f = np.atleast_1d(f)
                 else:
-                    w = None
+                    f = None
                 if 'Szz' in custom_spectrum:
                     Szz = np.array(custom_spectrum['Szz'], dtype=float)
                     Szz = np.atleast_1d(Szz)
                 else:
                     Szz = None
 
-                if (w is None) ^ (Szz is None):
+                if (f is None) ^ (Szz is None):
                     node.get_logger().error(
-                        'sim_params_yaml: Custom: w or Szz unspecified.' +
+                        'sim_params_yaml: Custom: f or Szz unspecified.' +
                         ' Please specify both or neither'
                     )
                     sys.exit(-1)
-                if w is not None and Szz is not None:
-                    if w.shape != Szz.shape:
+                if f is not None and Szz is not None:
+                    if f.shape != Szz.shape:
                         node.get_logger().error(
-                            'sim_params_yaml: Custom: w.shape != Szz.shape'
+                            'sim_params_yaml: Custom: f.shape != Szz.shape'
                         )
                         sys.exit(-1)
-                incident_waves.append(Custom(w, Szz))
+                incident_waves.append(Custom(f, Szz))
             else:
                 node.get_logger().error(
                     f'sim_params_yaml: IncWaveSpectrumType [{inc_wave_spectrum_type}]' +
@@ -380,6 +397,8 @@ def generate_simulations(sim_params_yaml):
     # Start batch runs
     rng = np.random.default_rng()
     for idx, (ps, ds, sf, bs, mpp, iw) in enumerate(batch_params):
+        if not rclpy.ok():
+            break  # Shutting down
         seed = rng.integers(2**32-1) if seed_==0 else seed_
         node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
                                f" door state='{ds}', scale factor={sf}" +
@@ -425,8 +444,8 @@ def generate_simulations(sim_params_yaml):
                     mbari_wec_model_params.extend(['-D', f'Hs = {iw.Hs}'])
                     mbari_wec_model_params.extend(['-D', f'Tp = {iw.Tp}'])
             if 'Custom' in iw.name:
-                if iw.w is not None:
-                    mbari_wec_model_params.extend(['-D', f'w = {iw.w.tolist()}'])
+                if iw.f is not None:
+                    mbari_wec_model_params.extend(['-D', f'f = {iw.f.tolist()}'])
                     mbari_wec_model_params.extend(['-D', f'Szz = {iw.Szz.tolist()}'])
         mbari_wec_model_params.extend(['-o', sdf_file,
                                        empy_sdf_file])
@@ -450,6 +469,10 @@ def generate_simulations(sim_params_yaml):
         pblog_dir = 'pblog'
         run_results_dir = f'results_run_{idx}_{start_time}'
         os.makedirs(os.path.join(batch_results_dir, run_results_dir))
+
+        # get info from processes
+        proc_start_info = ActiveProcInfoHandler()
+        proc_exit_info = ActiveProcInfoHandler()
 
         # python workaround for 'ln -sf'
         os.symlink(os.path.join(run_results_dir, rosbag2_dir),
@@ -477,18 +500,66 @@ def generate_simulations(sim_params_yaml):
                 output='screen'
             )
 
+            def capture_start_pids(info_, unused):
+                proc_start_info.append(info_)
+                start_procs = resolveProcesses(proc_start_info, process='ruby $(which gz) sim')
+                for info in [proc_start_info[item] for item in start_procs]:
+                    print(f'{info.pid}')
+                    print(f'{info.cmd}')
+                    import subprocess
+                    output = subprocess.run(['ps', 'h', '--ppid', f'{info.pid}', '-o', 'pid'])
+                    print(f'{output.stdout}')
+                    print(f'{output.stderr}')
+
             return LaunchDescription([
                 rosbag2,
-                mbari_wec
+                mbari_wec,
+                RegisterEventHandler(  # get info from processes
+                    OnProcessStart(on_start=lambda info, unused: proc_start_info.append(info))
+                ),
+                RegisterEventHandler(  # get return codes from processes
+                    OnProcessExit(on_exit=lambda info, unused: proc_exit_info.append(info))
+                ),
             ])
 
         # Launch sim instance
         ls = LaunchService()
         ls.include_launch_description(generate_launch_description())
         result = ls.run()
-        if result:
+
+        if result != 0:
             node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
-                                    f'return code [{result}]')
+                                    f'batch launch return code [{result}]')
+
+        # get return codes from processes
+        procs = resolveProcesses(proc_exit_info, process='ruby $(which gz) sim')
+        gzsim_result = 0
+        for info in [proc_exit_info[item] for item in procs]:
+            gzsim_result = info.returncode
+            if gzsim_result != 0:
+                node.get_logger().error(f'Simulation run [{idx}] was not successful: ' +
+                                        f'gz-sim return code [{gzsim_result}]')
+                result = gzsim_result
+                if info.returncode < -2:
+                    node.get_logger().error(f'gz sim process may still be running...')
+                    start_procs = resolveProcesses(proc_start_info, process='ruby $(which gz) sim')
+                    for info in [proc_start_info[item] for item in start_procs]:
+                        for proc in ['ruby', 'sim_pblog']:
+                            # kill whole process tree
+                            # kill_proc = 'ps x -o "%r %c"' \
+                            #             + f' | grep {proc}' \
+                            #             + ' | cut -d " " -f 2' \
+                            #             + ' | xargs -I{} kill -9 -- -{}'
+
+                            # kill just process
+                            kill_proc = 'ps x -o "%p %c"' \
+                                        + f' | grep {proc}' \
+                                        + " | awk '{ print $1 }'" \
+                                        + ' | xargs -I{} kill -9 {}'
+
+                            output = subprocess.run(kill_proc, shell=True, check=True)
+                            print(f'{output.args}')
+
         # Write to log
         with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'a') as fd:
             fd.write(f'{idx}, {result}, {start_time}' +

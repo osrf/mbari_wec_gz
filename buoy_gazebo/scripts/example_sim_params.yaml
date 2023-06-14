@@ -1,7 +1,7 @@
 #
 # Batch-Specific Scalar Parameters
 #
-seed: 42
+seed: 42  # Set `seed: 0` to have different seed per run
 duration: 5
 physics_rtf: 11
 enable_gui: False
@@ -26,8 +26,8 @@ IncidentWaveSpectrumType:
       # May omit Hs & Tp to use default values
       Hs: 3.0
       Tp: 14.0
-  # Multiple Custom Spectra must be listed individually (w & Szz are already vectors of same size)
+  # Multiple Custom Spectra must be listed individually (f & Szz are already vectors of same size)
   - Custom:
-      # May omit w & Szz to use default values
-      w: [0.0, 0.2, 0.4, 0.6, 2.0]
+      # May omit f & Szz to use default values
+      f: [0.0, 0.03, 0.06, 0.09, 0.3]
       Szz: [0.0, 0.4, 1.0, 1.0, 0.0]
