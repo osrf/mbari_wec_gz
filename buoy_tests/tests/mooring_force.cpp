@@ -17,7 +17,7 @@
 #include <gz/msgs/boolean.pb.h>
 
 // For logging verbosity level
-//#include <gz/common/Console.hh>
+// #include <gz/common/Console.hh>
 
 #include <gz/sim/Link.hh>
 #include <gz/sim/Model.hh>
@@ -32,7 +32,7 @@
 TEST(BuoyTests, MooringForce)
 {
   // Skip debug messages to run faster
-  //gz::common::Console::SetVerbosity(3);
+  // gz::common::Console::SetVerbosity(3);
 
   // Setup fixture
   gz::sim::ServerConfig config;
@@ -50,7 +50,7 @@ TEST(BuoyTests, MooringForce)
   const double DEPTH = 82.0;
   const double MOORING_LENGTH = 160.0;
   // Horizontal distance by pythagorean
-  //double maxRadius = sqrt(MOORING_LENGTH * MOORING_LENGTH - DEPTH * DEPTH);
+  // double maxRadius = sqrt(MOORING_LENGTH * MOORING_LENGTH - DEPTH * DEPTH);
   // Just use length of the mooring line, as buoy can get pulled to bottom
   double maxRadius = MOORING_LENGTH;
 
@@ -69,8 +69,7 @@ TEST(BuoyTests, MooringForce)
     {
       auto world = gz::sim::World(_worldEntity);
 
-      gz::sim::Entity buoyModelEnt = world.ModelByName(_ecm,
-        "MBARI_WEC_ROS");
+      gz::sim::Entity buoyModelEnt = world.ModelByName(_ecm, "MBARI_WEC_ROS");
       EXPECT_NE(gz::sim::kNullEntity, buoyModelEnt);
       auto buoyModel = gz::sim::Model(buoyModelEnt);
 
@@ -88,12 +87,11 @@ TEST(BuoyTests, MooringForce)
       gz::msgs::Boolean rep;
       bool result;
       gzdbg << "Calling service to enable mooring plugin" << std::endl;
-      bool executed = node.Request("/mooring_force/enable", enableMsg,
-        5, rep, result);
-      if (!executed || !result)
-      {
+      bool executed = node.Request(
+        "/mooring_force/enable", enableMsg, 5, rep, result);
+      if (!executed || !result) {
         gzerr << "Cannot call service to enable mooring plugin"
-          << std::endl;
+              << std::endl;
       }
     }).
   OnPreUpdate(
@@ -120,7 +118,7 @@ TEST(BuoyTests, MooringForce)
 
       // Expect mooring plugin to apply force on buoy to pull it back toward
       // anchor, such that buoy stays horizontal distance within maxRadius.
-      //gzdbg << "iter " << iterations
+      // gzdbg << "iter " << iterations
       //       << ", buoy link pose: " << buoyLinkPose.Pos() << std::endl;
       EXPECT_LT((buoyXY - anchorXY).Length(), maxRadius);
     }).
@@ -129,14 +127,14 @@ TEST(BuoyTests, MooringForce)
   // Run simulation server
   int targetIterations{8000};
   gzdbg << "Applying force to simulate natural buoy drift for "
-    << targetIterations << " iterations..."<< std::endl;
+        << targetIterations << " iterations..." << std::endl;
   fixture.Server()->Run(true /*blocking*/, targetIterations, false /*paused*/);
 
   gz::math::Vector2d finalAnchorXY(anchorPos.X(), anchorPos.Y());
   gz::math::Vector2d finalBuoyXY(buoyLinkPose.Pos().X(), buoyLinkPose.Pos().Y());
   gzdbg << "Final buoy link pose: " << buoyLinkPose.Pos()
-    << " Final horizontal distance between buoy and anchor: "
-    << (finalBuoyXY - finalAnchorXY).Length() << std::endl;
+        << " Final horizontal distance between buoy and anchor: "
+        << (finalBuoyXY - finalAnchorXY).Length() << std::endl;
 
   // Sanity check that the test ran
   EXPECT_EQ(targetIterations, iterations);
@@ -150,11 +148,10 @@ TEST(BuoyTests, MooringForce)
   gz::msgs::Boolean rep;
   bool result;
   gzdbg << "Calling service to disable mooring plugin" << std::endl;
-  bool executed = node.Request("/mooring_force/enable", disableMsg,
-    5, rep, result);
-  if (!executed || !result)
-  {
+  bool executed = node.Request(
+    "/mooring_force/enable", disableMsg, 5, rep, result);
+  if (!executed || !result) {
     gzerr << "Cannot call service to disable mooring plugin"
-      << std::endl;
+          << std::endl;
   }
 }

@@ -47,7 +47,7 @@ struct Functor
 
   /// \brief Constructor
   Functor(int _inputs, int _values)
-    : m_inputs(_inputs), m_values(_values)
+  : m_inputs(_inputs), m_values(_values)
   {
   }
 
@@ -78,7 +78,9 @@ struct CatenaryFunction
   /// \param _L: Total length of mooring chain (metres).
   /// \return c, scaling factor, ratio of horizontal component of chain tension
   /// and weight of cable per unit length (N/m).
-  public: static double CatenaryScalingFactor(double _V, double _B, double _L)
+
+public:
+  static double CatenaryScalingFactor(double _V, double _B, double _L)
   {
     // Scaling factor c
     return (pow((_L - _B), 2) - pow(_V, 2)) / (2.0 * _V);
@@ -88,18 +90,26 @@ struct CatenaryFunction
 /////////////////////////////////////////////////
 struct CatenaryHSoln : Functor<double>
 {
-   /// \brief Vertical distance from buoy to anchor (meters).
-   private: double V{std::nanf("")};
+  /// \brief Vertical distance from buoy to anchor (meters).
 
-   /// \brief Horizontal distance from buoy to anchor (meters).
-   private: double H{std::nanf("")};
+private:
+  double V{std::nanf("")};
 
-   /// \brief Total length of mooring chain (metres).
-   private: double L{std::nanf("")};
+  /// \brief Horizontal distance from buoy to anchor (meters).
+
+private:
+  double H{std::nanf("")};
+
+  /// \brief Total length of mooring chain (metres).
+
+private:
+  double L{std::nanf("")};
 
   /// \brief Constructor.
-  public: CatenaryHSoln(double _V, double _H, double _L)
-    : Functor<double>(1, 1),
+
+public:
+  CatenaryHSoln(double _V, double _H, double _L)
+  : Functor<double>(1, 1),
     V(_V),
     H(_H),
     L(_L)
@@ -116,7 +126,7 @@ struct CatenaryHSoln : Functor<double>
   }
 
   // Know 0 <= B < L - V. Take in B = L - V - b as initial guess
-  int operator()(const Eigen::VectorXd &_B, Eigen::VectorXd &_fvec) const
+  int operator()(const Eigen::VectorXd & _B, Eigen::VectorXd & _fvec) const
   {
     if (_B.size() < 1) {
       gzerr << "Invalid input size for CatenaryHSoln::operator()" << std::endl;
