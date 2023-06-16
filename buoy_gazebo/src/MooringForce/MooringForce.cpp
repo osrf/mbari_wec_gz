@@ -16,8 +16,10 @@
 #include "CatenarySoln.hpp"
 #include "MooringForce.hpp"
 
-// Only for debug level TODO remove before merge PR
-#include <gz/common/Console.hh>
+#include <gz/msgs/boolean.pb.h>
+
+// For logging verbosity level
+//#include <gz/common/Console.hh>
 
 #include <gz/common/Profiler.hh>
 #include <gz/plugin/Register.hh>
@@ -25,6 +27,8 @@
 #include <gz/sim/Link.hh>
 #include <gz/sim/Model.hh>
 #include <gz/sim/World.hh>
+
+#include <gz/transport/Node.hh>
 
 #include <memory>
 #include <string>
@@ -50,6 +54,9 @@ class MooringForcePrivate
   /// \brief Whether this plugin is enabled
   public: bool enabled{false};
 
+  /// \brief Whether warning has been printed
+  public: bool warnedDisabled{false};
+
   /// \brief A predefined pose we assume the anchor to be
   public: gz::math::Vector3d anchorPos{20.0, 0.0, -77.0};
 
@@ -61,7 +68,7 @@ class MooringForcePrivate
   public: double L{std::nanf("")};
 
   /// \brief Horizontal distance from buoy to anchor. Updated per
-  /// iteration  (metres).
+  /// iteration (metres).
   public: double H{std::nanf("")};
 
   /// \brief N/m, weight of chain per unit length
@@ -85,6 +92,9 @@ class MooringForcePrivate
 
   /// \brief Last debug print simulation time
   public: std::chrono::steady_clock::duration lastDebugPrintTime{0};
+
+  /// \brief Transport node
+  public: gz::transport::Node node;
 
   /// \brief Constructor
   public: MooringForcePrivate();
@@ -168,8 +178,8 @@ void MooringForce::Configure(
   gz::sim::EntityComponentManager &_ecm,
   gz::sim::EventManager & /*_eventMgr*/)
 {
-  // Skip debug messages to run faster TODO change to 3 before merge PR
-  gz::common::Console::SetVerbosity(4);
+  // Skip debug messages to run faster
+  //gz::common::Console::SetVerbosity(3);
 
   this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
@@ -179,7 +189,7 @@ void MooringForce::Configure(
   }
 
   this->dataPtr->enabled = _sdf->Get<bool>(
-    "enabled", this->dataPtr->enabled).first;
+    "enable", this->dataPtr->enabled).first;
 
   this->dataPtr->anchorPos = _sdf->Get<gz::math::Vector3d>(
     "anchor_position", this->dataPtr->anchorPos).first;
@@ -192,6 +202,18 @@ void MooringForce::Configure(
     gzdbg << "Mooring chain length set to " << this->dataPtr->L
       << std::endl;
   }
+
+  // Advertise service to enable this plugin
+  std::function<bool(const gz::msgs::Boolean &, gz::msgs::Boolean &)> EnableCb =
+      [this](const gz::msgs::Boolean &_req, gz::msgs::Boolean &_rep)
+      {
+        gzdbg << "Got service call to enable mooring" << std::endl;
+        this->dataPtr->enabled = _req.data();
+        _rep.set_data(true);
+        return true;
+      };
+  this->dataPtr->node.Advertise("/mooring_force/enable",
+    EnableCb);
 
   // Find necessary model links
   if (this->dataPtr->FindLinks(_ecm)) {
@@ -225,7 +247,16 @@ void MooringForce::PreUpdate(
 
   // Skip if plugin disabled, or if buoy link is not valid.
   if (!this->dataPtr->enabled || !this->dataPtr->link.Valid(_ecm)) {
+    // Print only once after being disabled
+    if (!this->dataPtr->warnedDisabled) {
+      gzerr << "Mooring plugin not enabled" << std::endl;
+      this->dataPtr->warnedDisabled = true;
+    }
     return;
+  }
+  else {
+    // Reset flag
+    this->dataPtr->warnedDisabled = false;
   }
 
   // \todo(anyone): Support rewind

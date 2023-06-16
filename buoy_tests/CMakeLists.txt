@@ -179,7 +179,7 @@ if(BUILD_TESTING)
     EXTRA_ROS_PKGS
       ament_index_cpp)
 
-  #buoy_add_gtest(mooring_force)
+  buoy_add_gtest(mooring_force)
 
   buoy_add_gtest(no_inputs_ros_feedback ROS LAUNCH_TEST)
   buoy_add_gtest(pc_commands_ros_feedback ROS LAUNCH_TEST)

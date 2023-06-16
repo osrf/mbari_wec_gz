@@ -14,7 +14,10 @@
 
 #include <gtest/gtest.h>
 
-#include <gz/common/Console.hh>
+#include <gz/msgs/boolean.pb.h>
+
+// For logging verbosity level
+//#include <gz/common/Console.hh>
 
 #include <gz/sim/Link.hh>
 #include <gz/sim/Model.hh>
@@ -46,7 +49,9 @@ TEST(BuoyTests, MooringForce)
   // hypotenuse that is the length of the mooring line L.
   const double DEPTH = 82.0;
   const double MOORING_LENGTH = 160.0;
+  // Horizontal distance by pythagorean
   //double maxRadius = sqrt(MOORING_LENGTH * MOORING_LENGTH - DEPTH * DEPTH);
+  // Just use length of the mooring line, as buoy can get pulled to bottom
   double maxRadius = MOORING_LENGTH;
 
   int iterations{0};
@@ -74,6 +79,22 @@ TEST(BuoyTests, MooringForce)
       EXPECT_NE(gz::sim::kNullEntity, buoyLinkEnt);
       buoyLink = gz::sim::Link(buoyLinkEnt);
       ASSERT_TRUE(buoyLink.Valid(_ecm));
+
+      // Enable mooring plugin, so that we can test it!
+      gz::transport::Node node;
+      gz::msgs::Boolean enableMsg;
+      enableMsg.set_data(true);
+
+      gz::msgs::Boolean rep;
+      bool result;
+      gzdbg << "Calling service to enable mooring plugin" << std::endl;
+      bool executed = node.Request("/mooring_force/enable", enableMsg,
+        5, rep, result);
+      if (!executed || !result)
+      {
+        gzerr << "Cannot call service to enable mooring plugin"
+          << std::endl;
+      }
     }).
   OnPreUpdate(
     [&](
@@ -120,4 +141,20 @@ TEST(BuoyTests, MooringForce)
   // Sanity check that the test ran
   EXPECT_EQ(targetIterations, iterations);
   EXPECT_NE(gz::sim::kNullEntity, buoyLinkEnt);
+
+  // Disable mooring plugin
+  gz::transport::Node node;
+  gz::msgs::Boolean disableMsg;
+  disableMsg.set_data(false);
+
+  gz::msgs::Boolean rep;
+  bool result;
+  gzdbg << "Calling service to disable mooring plugin" << std::endl;
+  bool executed = node.Request("/mooring_force/enable", disableMsg,
+    5, rep, result);
+  if (!executed || !result)
+  {
+    gzerr << "Cannot call service to disable mooring plugin"
+      << std::endl;
+  }
 }
