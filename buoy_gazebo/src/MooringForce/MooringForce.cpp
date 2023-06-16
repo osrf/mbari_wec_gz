@@ -249,7 +249,7 @@ void MooringForce::PreUpdate(
   if (!this->dataPtr->enabled || !this->dataPtr->link.Valid(_ecm)) {
     // Print only once after being disabled
     if (!this->dataPtr->warnedDisabled) {
-      gzerr << "Mooring plugin not enabled" << std::endl;
+      gzwarn << "Mooring plugin not enabled" << std::endl;
       this->dataPtr->warnedDisabled = true;
     }
     return;
