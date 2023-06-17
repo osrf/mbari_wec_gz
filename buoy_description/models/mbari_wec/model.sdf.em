@@ -43,15 +43,15 @@ def bretschneider_spectrum(Hs=2.0, Tp=13.0):
       <Tp>{Tp}</Tp>
 ''')
 
-def custom_spectrum(w=None, Szz=None):
+def custom_spectrum(f=None, Szz=None):
     ''' Prints the Custom <IncWaveSpectrumType> block for the IncidentWave plugin. '''
-    if w is None:
-        w = [0.0, 0.2, 0.4, 0.6, 2.0]
+    if f is None:
+        f = [0.0, 0.2, 0.4, 0.6, 2.0]
     if Szz is None:
         Szz = [0.0, 0.4, 1.0, 1.0, 0.0]
     coefs = \
-        ('\n' + 6*' ').join([f'<w{idx}>{wn}</w{idx}> <Szz{idx}>{Szzn}</Szz{idx}>'
-            for idx, (wn, Szzn) in enumerate(zip(w, Szz))])
+        ('\n' + 6*' ').join([f'<f{idx}>{fn}</f{idx}> <Szz{idx}>{Szzn}</Szz{idx}>'
+            for idx, (fn, Szzn) in enumerate(zip(f, Szz))])
     print(f'''
       <IncWaveSpectrumType>Custom</IncWaveSpectrumType>
       {coefs}
@@ -77,14 +77,14 @@ elif 'Bretschneider' in inc_wave_spectrum_type:
         inc_wave_spectrum = bretschneider_spectrum  # default
 elif 'Custom' in inc_wave_spectrum_type:
     try:
-        inc_wave_spectrum = partial(custom_spectrum, w, Szz)
+        inc_wave_spectrum = partial(custom_spectrum, f, Szz)
     except NameError:
         inc_wave_spectrum = custom_spectrum  # default
 else:
     inc_wave_spectrum = lambda : '<!-- No Waves -->'
 
 ############################
-# Mean Piston Position
+# Piston Position
 ############################
 
 # Would like to specify piston mean position and set all other
@@ -94,12 +94,19 @@ else:
 # that brings the equilibrium to the desired mean piston position.
 # Recompute pressure and volume based on Ideal Gas Law.
 
+# Check if initial piston position (m) was passed in via empy
+try:
+    initial_piston_position
+except NameError:
+    initial_piston_position = 0.7  # m, default;
+                                   # measured from fully retracted (same as range_finder)
+
 # Check if x_mean_pos (m, mean piston position) was passed in via empy
-# with the current parameters, the mean position settles around 1.21m
 try:
     x_mean_pos
 except NameError:
     x_mean_pos = 0.7  # m, default; measured from fully retracted (same as range_finder)
+
 
 import math
 import scipy.optimize as spo
@@ -195,6 +202,7 @@ if not ignore_piston_mean_pos:
       <JointName>HydraulicRam</JointName>
       <chamber>upper_polytropic</chamber>
       <is_upper>true</is_upper>
+      <initial_piston_position>@(initial_piston_position)</initial_piston_position>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>7.77e-6</valve_absement>
       <pump_absement>4.3e-8</pump_absement>

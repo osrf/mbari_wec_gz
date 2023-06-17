@@ -59,7 +59,9 @@ def generate_launch_description():
              incident_wave_manual]
     sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
                       physics_rtf=11.0,
-                      physics_step=0.001)
+                      physics_step=0.001,
+                      initial_piston_position=2.03,
+                      initial_buoy_height=2.0)
 
     return launch.LaunchDescription([
         manual_arg,

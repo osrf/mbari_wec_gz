@@ -64,3 +64,6 @@ source $COLCON_WS/install/setup.bash
 # Test all buoy packages
 colcon test --packages-select-regex=buoy --packages-skip=buoy_msgs --event-handlers console_direct+ --retest-until-pass 10
 colcon test-result
+
+# Debug specific test
+# launch_test $COLCON_WS/install/buoy_tests/share/buoy_tests/launch/pc_bias_damping_ros_feedback_py.launch.py

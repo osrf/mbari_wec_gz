@@ -10,8 +10,8 @@
       <elevation>0.0</elevation>
     </spherical_coordinates>
 
-    <physics name="1ms" type="ignored">
-      <max_step_size>.001</max_step_size>
+    <physics name="step" type="ignored">
+      <max_step_size>0.01</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
 

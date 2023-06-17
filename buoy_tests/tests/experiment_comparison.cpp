@@ -233,7 +233,7 @@ protected:
     return true;
   }
 
-// runs once and is preserved for all `TEST_F`
+  // runs once and is preserved for all `TEST_F`
   static void SetUpTestCase()
   {
     rclcpp::init(argc_, argv_);
