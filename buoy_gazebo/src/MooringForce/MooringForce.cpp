@@ -1,5 +1,4 @@
-// Copyright 2023 Open Source Robotics Foundation, Inc.
-//                and Monterey Bay Aquarium Research Institute
+// Copyright 2023 Open Source Robotics Foundation, Inc. and Monterey Bay Aquarium Research Institute
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
