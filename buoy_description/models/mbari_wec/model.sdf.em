@@ -148,19 +148,19 @@ m = m_hc + m_piston  # total mass
 
 Ap_u = 0.0127  # Area of piston in upper chamber
 Ap_l = 0.0115  # Area of piston in lower
-Vd_u = 0.0226  # Dead volume of upper
-Vd_l = 0.0463  # Dead volume of lower
+Vd_u = 0.0266  # Dead volume of upper
+Vd_l = 0.0523  # Dead volume of lower
 # TODO(andermi) unknown why 108.56 fudge factor is necessary
 c = 107.56*C(g, R_specific, T_ocean, rho, V_hc, m)  # RHS of equation above
 
-V0_u = 0.0338  # Volume setpoint from upper chamber polytropic PV curves
-V0_l = 0.0537  # Volume setpoint from lower chamber polytropic PV curves
-P0_u = 409962  # Pressure setpoint from upper PV
-P0_l = 1211960  # Pressure setpoint from lower PV
-T0_u = 273.15  # Tempurature setpoint for upper heat transfer
-T0_l = 283.15  # Tempurature setpoint for lower heat transfer
+V0_u = 0.0397  # Volume setpoint from upper chamber polytropic PV curves
+V0_l = 0.0661  # Volume setpoint from lower chamber polytropic PV curves
+P0_u = 422156  # Pressure setpoint from upper PV
+P0_l = 1212098  # Pressure setpoint from lower PV
+T0_u = 283.15  # Temperature setpoint for upper heat transfer
+T0_l = 283.15  # Temperature setpoint for lower heat transfer
 
-ignore_piston_mean_pos = False
+ignore_piston_mean_pos = True
 if not ignore_piston_mean_pos:
     m_u = P0_u*V0_u / (R_specific*T0_u)  # mass of N2 in upper, Ideal Gas Law
     m_l = P0_l*V0_l / (R_specific*T0_l)  # mass of N2 in lower, Ideal Gas Law
@@ -217,8 +217,8 @@ if not ignore_piston_mean_pos:
       <hysteresis>true</hysteresis>
       <velocity_deadzone_lower>-0.10</velocity_deadzone_lower>
       <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
-      <n1>1.1084</n1>
-      <n2>1.1445</n2>
+      <n1>1.4309</n1>
+      <n2>1.4367</n2>
       <V0>@(V0_u)</V0>
       <P0>@(print(f'{P0_u:.00f}', end=''))</P0>
     </plugin>
@@ -242,8 +242,8 @@ if not ignore_piston_mean_pos:
       <hysteresis>true</hysteresis>
       <velocity_deadzone_lower>-0.10</velocity_deadzone_lower>
       <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
-      <n1>1.1079</n1>
-      <n2>1.1332</n2>
+      <n1>1.3771</n1>
+      <n2>1.3755</n2>
       <V0>@(V0_l)</V0>
       <P0>@(print(f'{P0_l:.00f}', end=''))</P0>
     </plugin>

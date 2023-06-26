@@ -495,7 +495,7 @@ def generate_simulations(sim_params_yaml):
 
             # record all topics with rosbag2
             rosbag2 = ExecuteProcess(
-                cmd=['ros2', 'bag', 'record',
+                cmd=['ros2', 'bag', 'record', '-s', 'mcap',
                      '-o', os.path.join(batch_results_dir, run_results_dir, rosbag2_dir), '-a'],
                 output='screen'
             )
