@@ -31,8 +31,12 @@ m_hc = 820  # mass of heave cone
 m_piston = 48  # mass of piston
 m = m_hc + m_piston  # total mass
 
-Ap_u = 0.0127  # Area of piston in upper chamber
-Ap_l = 0.0115  # Area of piston in lower
+Ap_u = 0.25*np.pi*5.0**2.0
+Ap_l = Ap_u - 0.25*np.pi*1.5**2.0
+Ap_u *= 0.0254**2.0
+Ap_l *= 0.0254**2.0
+# Ap_u = 0.0127  # Area of piston in upper chamber
+# Ap_l = 0.0115  # Area of piston in lower
 Vd_u = 0.0266  # Dead volume of upper
 Vd_l = 0.0523  # Dead volume of lower
 
@@ -85,7 +89,7 @@ def load_atsea_logs(logs, plot=False):
     #                 '2022.09.13T20.26.35',
     #                 '2022.09.15T19.29.42']
 
-    df = [pd.read_csv(csv) for csv in sorted(logs)]
+    df = [pd.read_csv(csv) for csv in logs]
     df = [df_.set_index('Source ID') for df_ in df]
     sc_df = [df_.loc[1] for df_ in df]  # SpringController: Source ID == 1
     spring_data = [df_.loc[(1, [' Timestamp',
@@ -105,14 +109,14 @@ def load_atsea_logs(logs, plot=False):
     spring_data.uv = spring_data.p*Ap_u + Vd_u
     spring_data.lv = (2.03 - spring_data.p)*Ap_l + Vd_l
 
-    ax = None
+    fig, ax = None, None
     if plot:
         fig, ax = plt.subplots(2, 1)
-        ax[0].plot(spring_data.uv, spring_data.up)
-        ax[1].plot(spring_data.lv, spring_data.lp)
+        ax[0].plot(spring_data.uv, spring_data.up, label='AtSea')
+        ax[1].plot(spring_data.lv, spring_data.lp, label='AtSea')
         # plt.show()
 
-    return spring_data, ax
+    return spring_data, fig, ax
 
 
 def set_piston_position(V0_u,  # Volume setpoint from upper chamber polytropic PV curves
@@ -269,8 +273,8 @@ def model_thermal(PV, dt,
         else:
             v = 1
 
-        if is_upper:
-            v *= -1.0
+        #if is_upper:
+        #    v *= -1.0
 
         if v >= vel_dz_u:
             n = n1
@@ -282,19 +286,25 @@ def model_thermal(PV, dt,
             print('cooling')
             F, P, V, T = computeLawOfCoolingForce(V_, T, c, dt, is_upper)
 
-        if is_upper:
-            F *= -1.0
+        #if is_upper:
+        #    F *= -1.0
         P_data.append(P)
         V_data.append(V)
         T_data.append(T)
         F_data.append(F)
 
-    ax1[0 if is_upper else 1].plot(V_data, P_data)
-    ax2[0 if is_upper else 1].plot(dt*np.arange(len(P_data)), P_data)
-    ax2[0 if is_upper else 1].plot(dt*np.arange(PV[:, 1].shape[0]), PV[:, 1])
+    ax1[0 if is_upper else 1].plot(V_data, P_data, label='Sim')
+    ax2[0 if is_upper else 1].plot(dt*np.arange(len(P_data)), P_data, label='Sim')
+    ax2[0 if is_upper else 1].plot(dt*np.arange(PV[:, 1].shape[0]), PV[:, 1], label='AtSea')
 
-    print('Diff in mean pressure (PSI):', (np.mean(PV[:, 1]) - np.mean(P_data))/6894.757)
-    print('RMSE pressure (PSI):', np.sqrt(np.mean((PV[:, 1] - np.array(P_data))**2.0))/6894.757)
+    diff_means = (np.mean(PV[:, 1]) - np.mean(P_data))/6894.757
+    rmse = np.sqrt(np.mean((PV[:, 1] - np.array(P_data))**2.0))/6894.757
+    ax2[0 if is_upper else 1].set_title(f"{'Upper' if is_upper else 'Lower'} Pressure\n"
+                                        f'Diff means (PSI) = {diff_means:.2f}\n'
+                                        f'RMSE (PSI) = {rmse:.2f}')
+    
+    print('Diff in mean pressure (PSI):', diff_means)
+    print('RMSE pressure (PSI):', rmse)
 
     x = PV[:, 0]
     x -= Vd_u if is_upper else Vd_l
@@ -306,12 +316,21 @@ def model_thermal(PV, dt,
 
     print('Diff in mean piston (should be zero):', np.mean(x) - np.mean(x_))
 
+    return np.array(F_data)
+
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='Compute polytropic curves for Pneumatic Spring')
     parser.add_argument('atsea_logs', nargs='+')
     parser.add_argument('--plot', action='store_true')
+    parser.add_argument('--override', action='store_true')
+    parser.add_argument('--polytropic_u', nargs=6, type=float)  # n1_u, n2_u,
+                                                                # P0_u, V0_u,
+                                                                # C1_u, C2_u
+    parser.add_argument('--polytropic_l', nargs=6, type=float)  # n1_l, n2_l
+                                                                # P0_l, V0_l,
+                                                                # C1_l, C2_l
     parser.add_argument('--model_thermal', action='store_true')
     parser.add_argument('--thermal_params_u', nargs=3, type=float)  # T0
                                                                     # velocity_deadzone_upper
@@ -325,34 +344,46 @@ def main():
     args, unknown = parser.parse_known_args()
 
     print(f'Loading: {args.atsea_logs}')
-    spring_data, plot_ax = load_atsea_logs(args.atsea_logs,
-                                           True if args.model_thermal else args.plot)
+    spring_data, fig1, ax1 = load_atsea_logs(args.atsea_logs,
+                                             True if args.model_thermal else args.plot)
 
-    n1_u, n2_u, P0_u, V0_u, C1_u, C2_u = compute_polytropic(
-                                             spring_data.loc[(1, ('uv', 'up'))].to_numpy(),
-                                             target_P=410000)
+    if args.override:
+        n1_u, n2_u, P0_u, V0_u, C1_u, C2_u = args.polytropic_u
+    else:
+        n1_u, n2_u, P0_u, V0_u, C1_u, C2_u = compute_polytropic(
+                                                 spring_data.loc[(1, ('uv', 'up'))].to_numpy(),
+                                                 target_P=410000)
     print('Upper Polytropic Parameters:' +
-          f'n1={n1_u:.04f} n2={n2_u:.04f} P0={P0_u:.00f} V0={V0_u:.04f}')
+          f'n1={n1_u:.04f} n2={n2_u:.04f} P0={P0_u:.00f}' +
+          f' V0={V0_u:.04f} C1={C1_u:.04f} C2={C2_u:.04f}')
 
-    n1_l, n2_l, P0_l, V0_l, C1_l, C2_l = compute_polytropic(
-                                             spring_data.loc[(1, ('lv', 'lp'))].to_numpy(),
-                                             target_P=1212000)
+    if args.override:
+        n1_l, n2_l, P0_l, V0_l, C1_l, C2_l = args.polytropic_l
+    else:
+        n1_l, n2_l, P0_l, V0_l, C1_l, C2_l = compute_polytropic(
+                                                 spring_data.loc[(1, ('lv', 'lp'))].to_numpy(),
+                                                 target_P=1212000)
     print('Lower Polytropic Parameters:' +
-          f'n1={n1_l:.04f} n2={n2_l:.04f} P0={P0_l:.00f} V0={V0_l:.04f}')
+          f'n1={n1_l:.04f} n2={n2_l:.04f} P0={P0_l:.00f}' +
+          f' V0={V0_l:.04f} C1={C1_l:.04f} C2={C2_l:.04f}')
 
-    if plot_ax is not None:
+    if ax1 is not None:
         inc_u = np.where(np.diff(spring_data.uv) >= 0)
         dec_u = np.where(np.diff(spring_data.uv) < 0)
         inc_l = np.where(np.diff(spring_data.lv) >= 0)
         dec_l = np.where(np.diff(spring_data.lv) < 0)
-        plot_ax[0].plot(spring_data.uv.to_numpy()[inc_u],
-                        np.exp(C1_u)/spring_data.uv.to_numpy()[inc_u]**n1_u)
-        plot_ax[0].plot(spring_data.uv.to_numpy()[dec_u],
-                        np.exp(C2_u)/spring_data.uv.to_numpy()[dec_u]**n2_u)
-        plot_ax[1].plot(spring_data.lv.to_numpy()[inc_l],
-                        np.exp(C1_l)/spring_data.lv.to_numpy()[inc_l]**n1_l)
-        plot_ax[1].plot(spring_data.lv.to_numpy()[dec_l],
-                        np.exp(C2_l)/spring_data.lv.to_numpy()[dec_l]**n2_l)
+        ax1[0].plot(spring_data.uv.to_numpy()[inc_u],
+                    np.exp(C1_u)/spring_data.uv.to_numpy()[inc_u]**n1_u,
+                    label='Polytropic Fit (Increasing Volume)')
+        ax1[0].plot(spring_data.uv.to_numpy()[dec_u],
+                    np.exp(C2_u)/spring_data.uv.to_numpy()[dec_u]**n2_u,
+                    label='Polytropic Fit (Decreasing Volume)')
+        ax1[1].plot(spring_data.lv.to_numpy()[inc_l],
+                    np.exp(C1_l)/spring_data.lv.to_numpy()[inc_l]**n1_l,
+                    label='Polytropic Fit (Increasing Volume)')
+        ax1[1].plot(spring_data.lv.to_numpy()[dec_l],
+                    np.exp(C2_l)/spring_data.lv.to_numpy()[dec_l]**n2_l,
+                    label='Polytropic Fit (Decreasing Volume)')
 
     if args.set_piston_pos:
         init_pos = x_mean_pos = np.mean(spring_data.p)
@@ -365,18 +396,63 @@ def main():
     if args.model_thermal:
         fig2, ax2 = plt.subplots(2, 1)
         dt = np.mean(np.diff(spring_data.t))
-        model_thermal(spring_data.loc[(1, ('uv', 'up'))].to_numpy(),
-                      dt,
-                      P0_u, V0_u, n1_u, n2_u,
-                      *args.thermal_params_u,
-                      is_upper=True, ax1=plot_ax, ax2=ax2)
-        model_thermal(spring_data.loc[(1, ('lv', 'lp'))].to_numpy(),
-                      dt,
-                      P0_l, V0_l, n1_l, n2_l,
-                      *args.thermal_params_l,
-                      is_upper=False, ax1=plot_ax, ax2=ax2)
+        F_u = model_thermal(spring_data.loc[(1, ('uv', 'up'))].to_numpy(),
+                           dt,
+                           P0_u, V0_u, n1_u, n2_u,
+                           *args.thermal_params_u,
+                           is_upper=True, ax1=ax1, ax2=ax2)
+        F_l = model_thermal(spring_data.loc[(1, ('lv', 'lp'))].to_numpy(),
+                           dt,
+                           P0_l, V0_l, n1_l, n2_l,
+                           *args.thermal_params_l,
+                           is_upper=False, ax1=ax1, ax2=ax2)
 
-    if plot_ax is not None:
+        fig3, ax3 = plt.subplots(1, 1)
+        ax3.plot(spring_data.p/0.0254,
+                 (Ap_l*spring_data.lp - Ap_u*spring_data.up)*0.2248,
+                 label='AtSea')
+        ax3.plot(spring_data.p/0.0254,
+                 (F_l - F_u)*0.2248, '--',
+                 label='Sim')
+        atsea_stiffness, _ = np.polyfit(spring_data.p/0.0254,
+                                        (Ap_l*spring_data.lp - Ap_u*spring_data.up)*0.2248, 1)
+        sim_stiffness, _ = np.polyfit(spring_data.p/0.0254,
+                                      (F_l - F_u)*0.2248, 1)
+        print(f'Stiffness: atsea={atsea_stiffness} sim={sim_stiffness}')
+        ax3.set_title(f'Stiffness: AtSea={atsea_stiffness:.2f} Sim={sim_stiffness:.2f}')
+
+    if ax1 is not None:
+        import os
+        for ax1_ in ax1:
+            ax1_.legend()
+            ax1_.set_xlabel('Volume (m^3)')
+            ax1_.set_ylabel('Pressure (Pascals)')
+        ax1[0].set_title(f'Upper Pressure vs Volume\n'
+                         f'n1={n1_u:.4f} n2={n2_u:.4f} P0={int(round(P0_u))} V0={V0_u:.4f}\n'
+                         f'T0={args.thermal_params_u[0]} Tenv={Tenv}'
+                         f' vel_dz_u={args.thermal_params_u[1]}'
+                         f' vel_dz_l={args.thermal_params_u[2]}')
+        ax1[1].set_title(f'Lower Pressure vs Volume\n'
+                         f'n1={n1_l:.4f} n2={n2_l:.4f} P0={int(round(P0_l))} V0={V0_l:.4f}\n'
+                         f'T0={args.thermal_params_l[0]} Tenv={Tenv}'
+                         f' vel_dz_u={args.thermal_params_l[1]}'
+                         f' vel_dz_l={args.thermal_params_l[2]}')
+        fig1.tight_layout()
+        #fig1.savefig(os.path.basename(args.atsea_logs[0])+'.PVPolytropicFit.png',
+        #             dpi=fig1.dpi, bbox_inches='tight')
+        for ax2_ in ax2:
+            ax2_.legend()
+            ax2_.set_xlabel('Time from start (sec)')
+            ax2_.set_ylabel('Pressure (Pascals)')
+        fig2.tight_layout()
+        #fig2.savefig(os.path.basename(args.atsea_logs[0])+'.PressureDiff.png',
+        #             dpi=fig2.dpi, bbox_inches='tight')
+        ax3.set_ylabel('Piston Position (in)')
+        ax3.set_xlabel('Force (pound-force)')
+        ax3.legend()
+        fig3.tight_layout()
+        #fig3.savefig(os.path.basename(args.atsea_logs[0])+'.Stiffness.png',
+        #             dpi=fig3.dpi, bbox_inches='tight')
         plt.show()
 
 

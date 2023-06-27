@@ -150,15 +150,32 @@ Ap_u = 0.0127  # Area of piston in upper chamber
 Ap_l = 0.0115  # Area of piston in lower
 Vd_u = 0.0266  # Dead volume of upper
 Vd_l = 0.0523  # Dead volume of lower
-# TODO(andermi) unknown why 108.56 fudge factor is necessary
+# TODO(andermi) unknown why fudge factor is necessary (prev 108.56)
 c = 107.56*C(g, R_specific, T_ocean, rho, V_hc, m)  # RHS of equation above
 
-V0_u = 0.0397  # Volume setpoint from upper chamber polytropic PV curves
-V0_l = 0.0661  # Volume setpoint from lower chamber polytropic PV curves
-P0_u = 422156  # Pressure setpoint from upper PV
-P0_l = 1212098  # Pressure setpoint from lower PV
-T0_u = 283.15  # Temperature setpoint for upper heat transfer
-T0_l = 283.15  # Temperature setpoint for lower heat transfer
+# Check if upper_polytropic_params was passed in via empy
+try:
+    upper_polytropic_params
+except NameError:
+    upper_polytropic_params = [1.4309, 1.4367, 422156, 0.0397, 283.15]
+(n1_u,  # upper polytropic index for increasing volume
+n2_u,  # upper polytropic index for decreasing volume
+P0_u,  # Pressure (Pa) setpoint from upper PV
+V0_u,  # Volume (m^3) setpoint from upper chamber polytropic PV curves
+T0_u  # Temperature (K) setpoint for upper heat transfer
+) = upper_polytropic_params
+
+# Check if lower_polytropic_params was passed in via empy
+try:
+    lower_polytropic_params
+except NameError:
+    lower_polytropic_params = [1.3771, 1.3755, 1212098, 0.0661, 283.15]
+(n1_l,  # lower polytropic index for increasing volume
+n2_l,  # lower polytropic index for decreasing volume
+P0_l,  # Pressure (Pa) setpoint from lower PV
+V0_l,  # Volume (m^3) setpoint from lower chamber polytropic PV curves
+T0_l  # Temperature (K) setpoint for lower heat transfer
+) = lower_polytropic_params
 
 ignore_piston_mean_pos = True
 if not ignore_piston_mean_pos:
@@ -217,8 +234,8 @@ if not ignore_piston_mean_pos:
       <hysteresis>true</hysteresis>
       <velocity_deadzone_lower>-0.10</velocity_deadzone_lower>
       <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
-      <n1>1.4309</n1>
-      <n2>1.4367</n2>
+      <n1>@(n1_u)</n1>
+      <n2>@(n2_u)</n2>
       <V0>@(V0_u)</V0>
       <P0>@(print(f'{P0_u:.00f}', end=''))</P0>
     </plugin>
@@ -242,8 +259,8 @@ if not ignore_piston_mean_pos:
       <hysteresis>true</hysteresis>
       <velocity_deadzone_lower>-0.10</velocity_deadzone_lower>
       <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
-      <n1>1.3771</n1>
-      <n2>1.3755</n2>
+      <n1>@(n1_l)</n1>
+      <n2>@(n2_l)</n2>
       <V0>@(V0_l)</V0>
       <P0>@(print(f'{P0_l:.00f}', end=''))</P0>
     </plugin>
