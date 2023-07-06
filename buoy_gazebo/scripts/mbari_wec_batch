@@ -643,6 +643,8 @@ def generate_simulations(sim_params_yaml):
                      f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
                      f', {print_optional(bs)}' +
                      f', {print_optional(mpp)}' +
+                     f', {print_optional(SpringParams("upper", usp))}' +
+                     f', {print_optional(SpringParams("lower", lsp))}' +
                      f', {print_optional(iw)}\n')
 
     # Return all files to defaults

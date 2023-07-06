@@ -74,7 +74,7 @@ struct PolytropicPneumaticSpringConfig
   double piston_area{0.0127};
 
   /// \brief Piston-End Dead Volume (m^3)
-  double dead_volume{0.0226};
+  double dead_volume{0.0266};
 
   /// \brief measure of valve opening cross-section and duration (meter-seconds)
   double valve_absement{49e-7};

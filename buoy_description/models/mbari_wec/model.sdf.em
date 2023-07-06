@@ -148,8 +148,8 @@ m = m_hc + m_piston  # total mass
 
 Ap_u = 0.0127  # Area of piston in upper chamber
 Ap_l = 0.0115  # Area of piston in lower
-Vd_u = 0.0266  # Dead volume of upper
-Vd_l = 0.0523  # Dead volume of lower
+Vd_u = 0.0226 # 0.0172  # 0.0226  # Dead volume of upper
+Vd_l = 0.0463 # 0.0546  # 0.0463  # Dead volume of lower
 # TODO(andermi) unknown why fudge factor is necessary (prev 108.56)
 c = 107.56*C(g, R_specific, T_ocean, rho, V_hc, m)  # RHS of equation above
 
@@ -177,7 +177,7 @@ V0_l,  # Volume (m^3) setpoint from lower chamber polytropic PV curves
 T0_l  # Temperature (K) setpoint for lower heat transfer
 ) = lower_polytropic_params
 
-ignore_piston_mean_pos = True
+ignore_piston_mean_pos = False
 if not ignore_piston_mean_pos:
     m_u = P0_u*V0_u / (R_specific*T0_u)  # mass of N2 in upper, Ideal Gas Law
     m_l = P0_l*V0_l / (R_specific*T0_l)  # mass of N2 in lower, Ideal Gas Law
@@ -232,8 +232,8 @@ if not ignore_piston_mean_pos:
       <R_specific>0.2968</R_specific>
       <c_p>1.04</c_p>
       <hysteresis>true</hysteresis>
-      <velocity_deadzone_lower>-0.10</velocity_deadzone_lower>
-      <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
+      <velocity_deadzone_lower>-0.005</velocity_deadzone_lower>
+      <velocity_deadzone_upper>0.005</velocity_deadzone_upper>
       <n1>@(n1_u)</n1>
       <n2>@(n2_u)</n2>
       <V0>@(V0_u)</V0>
@@ -257,8 +257,8 @@ if not ignore_piston_mean_pos:
       <R_specific>0.2968</R_specific>
       <c_p>1.04</c_p>
       <hysteresis>true</hysteresis>
-      <velocity_deadzone_lower>-0.10</velocity_deadzone_lower>
-      <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
+      <velocity_deadzone_lower>-0.005</velocity_deadzone_lower>
+      <velocity_deadzone_upper>0.005</velocity_deadzone_upper>
       <n1>@(n1_l)</n1>
       <n2>@(n2_l)</n2>
       <V0>@(V0_l)</V0>
