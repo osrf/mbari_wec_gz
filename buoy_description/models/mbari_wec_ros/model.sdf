@@ -53,6 +53,11 @@
       <publish_rate>10</publish_rate>
     </plugin>
 
+    <plugin filename="IncWaveHeight" name="buoy_gazebo::IncWaveHeight">
+      <namespace>/</namespace>
+      <node_name>inc_wave_service</node_name>
+    </plugin>
+
     <plugin
       filename="gz-sim-joint-state-publisher-system"
       name="gz::sim::systems::JointStatePublisher">

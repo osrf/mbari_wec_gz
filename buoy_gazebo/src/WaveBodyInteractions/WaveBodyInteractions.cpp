@@ -45,8 +45,8 @@
 
 #include "IncidentWaves/IncWaveState.hpp"
 
-#include "FS_Hydrodynamics.hpp"
-#include "LinearIncidentWave.hpp"
+#include <FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp>
+#include <FreeSurfaceHydrodynamics/LinearIncidentWave.hpp>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
@@ -209,7 +209,9 @@ void WaveBodyInteractions::PreUpdate(
       _ecm.Component<buoy_gazebo::components::IncWaveState>(
       this->dataPtr->IncWaveEntity);
     inc_wave_state = buoy_gazebo::IncWaveState(inc_wave_state_comp->Data());
-    this->dataPtr->FloatingBody.AssignIncidentWave(inc_wave_state.Inc);
+    const std::shared_ptr<IncidentWave> Inc(dynamic_cast<IncidentWave *>(new LinearIncidentWave(
+        inc_wave_state.Inc)));
+    this->dataPtr->FloatingBody.AssignIncidentWave(Inc);
   }
 
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
