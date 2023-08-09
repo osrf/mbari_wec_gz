@@ -45,8 +45,8 @@
 
 #include "IncidentWaves/IncWaveState.hpp"
 
-#include "FS_Hydrodynamics.hpp"
-#include "LinearIncidentWave.hpp"
+#include <FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp>
+#include <FreeSurfaceHydrodynamics/LinearIncidentWave.hpp>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
