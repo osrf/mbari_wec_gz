@@ -31,8 +31,8 @@
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
-#include "FS_Hydrodynamics.hpp"
-#include "LinearIncidentWave.hpp"
+#include <FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp>
+#include <FreeSurfaceHydrodynamics/LinearIncidentWave.hpp>
 
 double last_accel = 0;
 /* The rhs of x' = f(x) defined as a class */
