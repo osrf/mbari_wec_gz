@@ -156,6 +156,11 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/PTOFriction
   FILES_MATCHING PATTERN "*.hpp"
 )
 
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/MooringForce
+  DESTINATION include/buoy_gazebo
+  FILES_MATCHING PATTERN "*.hpp"
+)
+
 ament_export_targets(export_BuoyECMStateData)
 
 # Resources

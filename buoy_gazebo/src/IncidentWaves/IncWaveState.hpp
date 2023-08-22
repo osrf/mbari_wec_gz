@@ -23,6 +23,7 @@
 
 #include <FreeSurfaceHydrodynamics/LinearIncidentWave.hpp>
 
+
 namespace buoy_gazebo
 {
 /// \brief Structure that holds shared ptr to incident wave object(s), and other data

@@ -185,8 +185,6 @@ void ElectroHydraulicPTO::PreUpdate(
 
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
 
-  GZ_PROFILE("#ElectroHydraulicPTO::PreUpdate");
-
   // If the joints haven't been identified yet, the plugin is disabled
   if (this->dataPtr->PrismaticJointEntity == gz::sim::kNullEntity) {
     return;
