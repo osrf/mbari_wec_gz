@@ -35,6 +35,7 @@ struct IncWaveHeightPrivate;
 class IncWaveHeight
   : public gz::sim::System,
   public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPreUpdate,
   public gz::sim::ISystemPostUpdate
 {
 public:
@@ -50,6 +51,11 @@ public:
     const std::shared_ptr<const sdf::Element> & _sdf,
     gz::sim::EntityComponentManager & _ecm,
     gz::sim::EventManager & _eventMgr) override;
+
+  // Documentation inherited
+  void PreUpdate(
+    const gz::sim::UpdateInfo & _info,
+    gz::sim::EntityComponentManager & _ecm) override;
 
   // Documentation inherited
   void PostUpdate(

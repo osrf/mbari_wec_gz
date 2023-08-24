@@ -29,6 +29,7 @@
 #include <buoy_interfaces/srv/inc_wave_height.hpp>
 
 #include <IncidentWaves/IncWaveState.hpp>
+#include <LatentData/LatentData.hpp>
 
 
 using namespace std::chrono_literals;
@@ -54,10 +55,16 @@ struct IncWaveHeightPrivate
   gz::sim::Entity IncWaveEntity{gz::sim::kNullEntity};
   buoy_gazebo::IncWaveState inc_wave_state;
 
+  gz::sim::Entity entity{gz::sim::kNullEntity};
+  gz::sim::Model model{gz::sim::kNullEntity};
+
   std::chrono::steady_clock::duration current_time_;
+
+  buoy_gazebo::IncWaveHeights inc_wave_heights;
 
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
   std::atomic<bool> inc_wave_valid_{false};
+  std::atomic<bool> got_new_request_{false};
 
   std::thread thread_executor_spin_;
   std::atomic<bool> stop_{false}, paused_{true};
@@ -93,6 +100,32 @@ struct IncWaveHeightPrivate
     thread_executor_spin_ = std::thread(spin);
   }
 
+  std::tuple<double, gz::math::Quaternion<double> > compute_eta(const double & _x,
+                                                                const double & _y,
+                                                                const double & SimTime,
+                                                                const bool use_buoy_origin)
+  {
+    double x = _x;
+    double y = _y;
+    if (use_buoy_origin) {
+      x += this->inc_wave_state.x;
+      y += this->inc_wave_state.y;
+    }
+
+    double deta_dx{0.0}, deta_dy{0.0};
+    double eta = this->inc_wave_state.Inc.eta(
+      x, y, SimTime, &deta_dx, &deta_dy);
+
+    double roll = atan(deta_dx);
+    double pitch = atan(deta_dy);
+    double yaw = 0.0;
+
+    gz::math::Quaternion<double> q =
+      gz::math::Quaternion<double>::EulerToQuaternion(roll, pitch, yaw);
+
+    return std::make_tuple(eta, q);
+  }
+
   void setup_services()
   {
     // IncWaveHeight
@@ -110,43 +143,50 @@ struct IncWaveHeightPrivate
         std::unique_lock data(data_mutex_);
         next.unlock();
 
-        response->valid = inc_wave_valid_;
-        if (!inc_wave_valid_) {
+        response->valid = this->inc_wave_valid_;
+        if (!this->inc_wave_valid_) {
+          data.unlock();
           return;
         }
 
         double SimTime = std::chrono::duration<double>(current_time_).count();
+        auto sec_nsec = gz::math::durationToSecNsec(current_time_);
 
-        response->poses.resize(request->points.size());
+        this->got_new_request_ = true;
+        response->stamp.sec = sec_nsec.first;
+        response->stamp.nanosec = sec_nsec.second;
+        response->heights.resize(request->points.size());
+        this->inc_wave_heights.sec = sec_nsec.first;
+        this->inc_wave_heights.nsec = sec_nsec.second;
+        this->inc_wave_heights.points.clear();
+        this->inc_wave_heights.points.resize(request->points.size());
         for (std::size_t idx = 0U; idx < request->points.size(); ++idx) {
+          bool use_buoy_origin = request->use_buoy_origin;
           double x = request->points[idx].x;
           double y = request->points[idx].y;
-          if (request->use_buoy_origin) {
-            x += inc_wave_state.x;
-            y += inc_wave_state.y;
-          }
 
-          double deta_dx{0.0}, deta_dy{0.0};
-          double eta = inc_wave_state.Inc.eta(
-            x, y, SimTime, &deta_dx, &deta_dy);
+          double eta{0.0};
+          gz::math::Quaternion<double> q;
+          std::tie(eta, q) = compute_eta(x, y, SimTime, use_buoy_origin);
 
-          response->poses[idx].position = request->points[idx];
-          response->poses[idx].position.z = eta;
+          response->heights[idx].pose.position = request->points[idx];
+          response->heights[idx].pose.position.z = eta;
 
-          double roll = atan(deta_dx);
-          double pitch = atan(deta_dy);
-          double yaw = 0.0;
+          response->heights[idx].pose.orientation.x = q.X();
+          response->heights[idx].pose.orientation.y = q.Y();
+          response->heights[idx].pose.orientation.z = q.Z();
+          response->heights[idx].pose.orientation.w = q.W();
 
-          gz::math::Quaternion<double> q =
-            gz::math::Quaternion<double>::EulerToQuaternion(roll, pitch, yaw);
-
-          response->poses[idx].orientation.x = q.X();
-          response->poses[idx].orientation.y = q.Y();
-          response->poses[idx].orientation.z = q.Z();
-          response->poses[idx].orientation.w = q.W();
-
-          data.unlock();
+          this->inc_wave_heights.points[idx].use_buoy_origin = use_buoy_origin;
+          this->inc_wave_heights.points[idx].x = x;
+          this->inc_wave_heights.points[idx].y = y;
+          this->inc_wave_heights.points[idx].eta = eta;
+          this->inc_wave_heights.points[idx].qx = q.X();
+          this->inc_wave_heights.points[idx].qy = q.Y();
+          this->inc_wave_heights.points[idx].qz = q.Z();
+          this->inc_wave_heights.points[idx].qw = q.W();
         }
+        data.unlock();
       };
     services_->inc_wave_height_service_ =
       ros_->node_->create_service<buoy_interfaces::srv::IncWaveHeight>(
@@ -184,10 +224,11 @@ void IncWaveHeight::Configure(
   gz::sim::EventManager &)
 {
   // Make sure the controller is attached to a valid model
-  auto model = gz::sim::Model(_entity);
-  if (!model.Valid(_ecm)) {
+  this->dataPtr->entity = _entity;
+  this->dataPtr->model = gz::sim::Model(_entity);
+  if (!this->dataPtr->model.Valid(_ecm)) {
     gzerr << "[ROS 2 Incident Wave Height] Failed to initialize because [" <<
-      model.Name(_ecm) << "] is not a model." << std::endl <<
+      this->dataPtr->model.Name(_ecm) << "] is not a model." << std::endl <<
       "Please make sure that ROS 2 Incident Wave Height is attached to a valid model." << std::endl;
     return;
   }
@@ -206,9 +247,84 @@ void IncWaveHeight::Configure(
 
   RCLCPP_INFO_STREAM(
     this->dataPtr->ros_->node_->get_logger(),
-    "[ROS 2 Incident Wave Height] Setting up service for [" << model.Name(_ecm) << "]");
+    "[ROS 2 Incident Wave Height] Setting up service for ["
+      << this->dataPtr->model.Name(_ecm) << "]");
 
   this->dataPtr->setup_services();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+void IncWaveHeight::PreUpdate(
+  const gz::sim::UpdateInfo & _info,
+  gz::sim::EntityComponentManager & _ecm)
+{
+  GZ_PROFILE("IncWaveHeight::PreUpdate");
+
+  this->dataPtr->paused_ = _info.paused;
+  this->dataPtr->current_time_ = _info.simTime;
+
+  if (_info.paused) {
+    return;
+  }
+
+  buoy_gazebo::LatentData latent_data;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->entity,
+      buoy_gazebo::components::LatentData().TypeId()))
+  {
+    auto latent_data_comp =
+      _ecm.Component<buoy_gazebo::components::LatentData>(this->dataPtr->entity);
+
+    latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
+  }
+
+  // low prio data access
+  std::unique_lock low(this->dataPtr->low_prio_mutex_);
+  std::unique_lock next(this->dataPtr->next_access_mutex_);
+  std::unique_lock data(this->dataPtr->data_mutex_);
+  next.unlock();
+
+  if (!this->dataPtr->inc_wave_valid_) {
+    data.unlock();
+    return;
+  }
+
+  if (this->dataPtr->got_new_request_) {
+    latent_data.inc_wave_heights = this->dataPtr->inc_wave_heights;
+    this->dataPtr->got_new_request_ = false;
+  }
+
+  if (latent_data.inc_wave_heights.points.size() == 0U) {
+    data.unlock();
+    return;
+  }
+
+  double SimTime = std::chrono::duration<double>(this->dataPtr->current_time_).count();
+  auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
+  latent_data.inc_wave_heights.sec = sec_nsec.first;
+  latent_data.inc_wave_heights.nsec = sec_nsec.second;
+
+  std::size_t idx = 0U;
+  for (; idx < latent_data.inc_wave_heights.points.size(); ++idx) {
+    double use_buoy_origin = latent_data.inc_wave_heights.points[idx].use_buoy_origin;
+    double x = latent_data.inc_wave_heights.points[idx].x;
+    double y = latent_data.inc_wave_heights.points[idx].y;
+
+    double eta{0.0};
+    gz::math::Quaternion<double> q;
+    std::tie(eta, q) = this->dataPtr->compute_eta(x, y, SimTime, use_buoy_origin);
+
+    latent_data.inc_wave_heights.points[idx].eta = eta;
+    latent_data.inc_wave_heights.points[idx].qx = q.X();
+    latent_data.inc_wave_heights.points[idx].qy = q.Y();
+    latent_data.inc_wave_heights.points[idx].qz = q.Z();
+    latent_data.inc_wave_heights.points[idx].qw = q.W();
+  }
+  data.unlock();
+
+  _ecm.SetComponentData<buoy_gazebo::components::LatentData>(
+    this->dataPtr->entity,
+    latent_data);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -239,7 +355,6 @@ void IncWaveHeight::PostUpdate(
     return;
   }
 
-  // buoy_gazebo::IncWaveState inc_wave_state;
   if (_ecm.EntityHasComponentType(
       this->dataPtr->IncWaveEntity,
       buoy_gazebo::components::IncWaveState().TypeId()))
@@ -261,4 +376,5 @@ GZ_ADD_PLUGIN(
   buoy_gazebo::IncWaveHeight,
   gz::sim::System,
   buoy_gazebo::IncWaveHeight::ISystemConfigure,
+  buoy_gazebo::IncWaveHeight::ISystemPreUpdate,
   buoy_gazebo::IncWaveHeight::ISystemPostUpdate)

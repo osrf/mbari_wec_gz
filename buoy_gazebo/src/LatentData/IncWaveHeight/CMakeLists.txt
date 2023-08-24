@@ -11,5 +11,6 @@ gz_add_plugin(IncWaveHeight
     FreeSurfaceHydrodynamics
   INCLUDE_DIRS
     ../..
+    ..
   ROS
 )

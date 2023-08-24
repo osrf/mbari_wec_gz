@@ -53,6 +53,13 @@
       <publish_rate>10</publish_rate>
     </plugin>
 
+    <plugin filename="LatentData" name="buoy_gazebo::LatentDataPublisher">
+      <namespace>/</namespace>
+      <node_name>latent_data</node_name>
+      <ros2_topic>latent_data</ros2_topic>
+      <publish_rate>10</publish_rate>
+    </plugin>
+
     <plugin filename="IncWaveHeight" name="buoy_gazebo::IncWaveHeight">
       <namespace>/</namespace>
       <node_name>inc_wave_service</node_name>

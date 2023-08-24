@@ -4,6 +4,4 @@ gz_add_plugin(TrefoilController
     INCLUDE_DIRS
     ../..
   ROS
-  EXTRA_ROS_PKGS
-    ros_gz_sim
 )
