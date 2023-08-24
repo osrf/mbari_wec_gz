@@ -233,6 +233,55 @@ void IncWaveHeight::Configure(
     return;
   }
 
+  // <points use_buoy_origin="true">
+  //   <xy>1.2 3.4</xy>
+  //   <xy>3.1 4.1</xy>
+  // </points>
+  if (_sdf->HasElement("points")) {
+    const sdf::ElementPtr points = _sdf->GetElementImpl("points");
+    if (points != nullptr) {
+      bool use_buoy_origin{false};
+      if (points->GetAttributeSet("use_buoy_origin")) {
+        const sdf::ParamPtr p = points->GetAttribute("use_buoy_origin");
+        if (p != nullptr) {
+          bool result = p->Get(use_buoy_origin);
+          if (!result) {
+            use_buoy_origin = false;
+          }
+        }
+      }
+      this->dataPtr->inc_wave_heights.points.clear();
+      bool first = true;
+      sdf::ElementPtr e{nullptr};
+      for(;;) {
+        if (first) {
+          e = points->GetElementImpl("xy");
+          first = false;
+        } else {
+          e = e->GetNextElement();
+        }
+        if (e == nullptr) {
+          break;
+        }
+
+        IncWaveHeightPoint pt;
+        pt.use_buoy_origin = use_buoy_origin;
+        std::string xy = e->Get<std::string>();
+        std::stringstream ss(xy);
+        ss >> pt.x; ss >> pt.y;
+        if (ss.fail()) {
+          gzerr << "[ROS 2 Incident Wave Height] Could not parse input point from SDF" << std::endl;
+          continue;
+        }
+        this->dataPtr->inc_wave_heights.points.push_back(pt);
+
+        this->dataPtr->got_new_request_ = true;
+      }
+    } else {
+      gzerr << "[ROS 2 Incident Wave Height] Could not parse input points from SDF" << std::endl;
+    }
+  }
+
   // controller scoped name
   std::string scoped_name = gz::sim::scopedName(_entity, _ecm, "/", false);
 

@@ -63,6 +63,17 @@
     <plugin filename="IncWaveHeight" name="buoy_gazebo::IncWaveHeight">
       <namespace>/</namespace>
       <node_name>inc_wave_service</node_name>
+      <points use_buoy_origin="true">
+        <xy>-1.0 -1.0</xy>
+        <xy>0.0 -1.0</xy>
+        <xy>1.0 -1.0</xy>
+        <xy>-1.0 0.0</xy>
+        <xy>0.0 0.0</xy>
+        <xy>1.0 0.0</xy>
+        <xy>-1.0 1.0</xy>
+        <xy>0.0 1.0</xy>
+        <xy>1.0 1.0</xy>
+      </points>
     </plugin>
 
     <plugin
