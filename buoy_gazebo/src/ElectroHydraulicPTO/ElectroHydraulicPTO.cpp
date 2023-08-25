@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ElectroHydraulicPTO.hpp"
+
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
 #include <gz/msgs/double.pb.h>
@@ -40,11 +42,12 @@
 #include <gz/plugin/Register.hh>
 #include <gz/transport/Node.hh>
 
-#include "ElectroHydraulicPTO.hpp"
 #include "ElectroHydraulicSoln.hpp"
 #include "ElectroHydraulicState.hpp"
 #include "ElectroHydraulicLoss.hpp"
 #include "BatteryState.hpp"
+
+#include <LatentData/LatentData.hpp>
 
 
 namespace buoy_gazebo
@@ -274,6 +277,17 @@ void ElectroHydraulicPTO::PreUpdate(
     pto_loss = buoy_gazebo::ElectroHydraulicLoss(pto_loss_comp->Data());
   }
 
+  buoy_gazebo::LatentData latent_data;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->model.Entity(),
+      buoy_gazebo::components::LatentData().TypeId()))
+  {
+    auto latent_data_comp =
+      _ecm.Component<buoy_gazebo::components::LatentData>(this->dataPtr->model.Entity());
+
+    latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
+  }
+
   if (pto_state.scale_command) {
     this->dataPtr->functor.I_Wind.ScaleFactor = pto_state.scale_command.value();
   } else {
@@ -406,10 +420,19 @@ void ElectroHydraulicPTO::PreUpdate(
 
   pto_loss.hydraulic_motor_loss += 1.0;
   pto_loss.relief_valve_loss += 2.0;
-  pto_loss.motor_drive_i2r_loss += 3.0;
-  pto_loss.motor_drive_switching_loss += 4.0;
-  pto_loss.motor_drive_friction_loss += 5.0;
+  pto_loss.motor_drive_i2r_loss =
+    this->dataPtr->functor.MotorDriveISquaredRLoss(this->dataPtr->functor.I_Wind.I);
+  pto_loss.motor_drive_switching_loss = this->dataPtr->functor.MotorDriveSwitchingLoss(VBus);
+  pto_loss.motor_drive_friction_loss = this->dataPtr->functor.MotorDriveFrictionLoss(N);
   pto_loss.battery_i2r_loss = I_Batt * I_Batt * this->dataPtr->Ri;
+
+  latent_data.electro_hydraulic.valid = true;
+  latent_data.electro_hydraulic.inst_power = VBus * (I_Batt + I_Load);
+  latent_data.electro_hydraulic.rpm = N;
+  latent_data.electro_hydraulic.motor_drive_i2r_loss = pto_loss.motor_drive_i2r_loss;
+  latent_data.electro_hydraulic.motor_drive_switching_loss = pto_loss.motor_drive_switching_loss;
+  latent_data.electro_hydraulic.motor_drive_friction_loss = pto_loss.motor_drive_friction_loss;
+  latent_data.electro_hydraulic.battery_i2r_loss = pto_loss.battery_i2r_loss;
 
   _ecm.SetComponentData<buoy_gazebo::components::BatteryState>(
     this->dataPtr->PrismaticJointEntity,
@@ -424,6 +447,10 @@ void ElectroHydraulicPTO::PreUpdate(
   _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicLoss>(
     this->dataPtr->PrismaticJointEntity,
     pto_loss);
+
+  _ecm.SetComponentData<buoy_gazebo::components::LatentData>(
+    this->dataPtr->model.Entity(),
+    latent_data);
 
   gz::msgs::Double pistonvel;
   pistonvel.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);

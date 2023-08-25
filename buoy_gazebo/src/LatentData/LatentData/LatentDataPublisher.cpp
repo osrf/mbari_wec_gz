@@ -218,9 +218,9 @@ void LatentDataPublisher::PostUpdate(
       _ecm.Component<buoy_gazebo::components::LatentData>(this->dataPtr->entity_);
 
     latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
-    this->dataPtr->data_valid_ = true;
   } else {
     this->dataPtr->data_valid_ = false;
+    return;
   }
 
   // low prio data access
@@ -242,7 +242,37 @@ void LatentDataPublisher::PostUpdate(
       this->dataPtr->latent_data_.inc_wave_heights[idx]);
   }
 
+  this->dataPtr->latent_data_.upper_spring.force = latent_data.upper_spring.force;
+  this->dataPtr->latent_data_.upper_spring.temperature = latent_data.upper_spring.T;
+  this->dataPtr->latent_data_.upper_spring.heat_loss = latent_data.upper_spring.dQ_dt;
+  this->dataPtr->latent_data_.upper_spring.piston_position =
+    latent_data.upper_spring.piston_position;
+  this->dataPtr->latent_data_.upper_spring.piston_velocity =
+    latent_data.upper_spring.piston_velocity;
+  this->dataPtr->latent_data_.lower_spring.force = latent_data.lower_spring.force;
+  this->dataPtr->latent_data_.lower_spring.temperature = latent_data.lower_spring.T;
+  this->dataPtr->latent_data_.lower_spring.heat_loss = latent_data.lower_spring.dQ_dt;
+  this->dataPtr->latent_data_.lower_spring.piston_position =
+    latent_data.lower_spring.piston_position;
+  this->dataPtr->latent_data_.lower_spring.piston_velocity =
+    latent_data.lower_spring.piston_velocity;
+
+  this->dataPtr->latent_data_.electro_hydraulic.inst_power =
+    latent_data.electro_hydraulic.inst_power;
+  this->dataPtr->latent_data_.electro_hydraulic.rpm =
+    latent_data.electro_hydraulic.rpm;
+  this->dataPtr->latent_data_.electro_hydraulic.motor_drive_i2r_loss =
+    latent_data.electro_hydraulic.motor_drive_i2r_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.motor_drive_switching_loss =
+    latent_data.electro_hydraulic.motor_drive_switching_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.motor_drive_friction_loss =
+    latent_data.electro_hydraulic.motor_drive_friction_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.battery_i2r_loss =
+    latent_data.electro_hydraulic.battery_i2r_loss;
+
   // TODO(andermi) fill in other stuff
+
+  this->dataPtr->data_valid_ = latent_data.valid();
 
   data.unlock();
 }

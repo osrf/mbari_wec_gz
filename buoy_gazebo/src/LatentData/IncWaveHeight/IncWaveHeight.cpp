@@ -352,6 +352,7 @@ void IncWaveHeight::PreUpdate(
   auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
   latent_data.inc_wave_heights.sec = sec_nsec.first;
   latent_data.inc_wave_heights.nsec = sec_nsec.second;
+  latent_data.inc_wave_heights.valid = this->dataPtr->inc_wave_valid_;
 
   std::size_t idx = 0U;
   for (; idx < latent_data.inc_wave_heights.points.size(); ++idx) {

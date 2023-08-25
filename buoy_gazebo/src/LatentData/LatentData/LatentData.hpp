@@ -52,6 +52,7 @@ struct IncWaveHeightPoint
 struct IncWaveHeights {
   int32_t sec{0};
   uint32_t nsec{0U};
+  bool valid;
   std::vector<IncWaveHeightPoint> points;
 
   bool operator==(const IncWaveHeights & that) const
@@ -69,18 +70,63 @@ struct IncWaveHeights {
       equal &= (this->points[idx] == that.points[idx]);
     }
 
+    equal &= this->valid == that.valid;
+
     return equal;
   }
+};
+
+struct AirSpring
+{
+  bool valid{false};
+  double force{0.0};
+  double T{0.0};
+  double dQ_dt{0.0};
+  double piston_position{0.0};
+  double piston_velocity{0.0};
+
+  bool operator==(const AirSpring & that) const
+  {
+    bool equal = (this->valid == that.valid);
+    equal &= (this->force == that.force);
+    equal &= (this->T == that.T);
+    equal &= (this->dQ_dt == that.dQ_dt);
+
+    return equal;
+  }
+};
+
+struct ElectroHydraulic
+{
+  bool valid{false};
+  double inst_power{0.0};
+  double rpm{0.0};
+  double motor_drive_i2r_loss{0.0};
+  double motor_drive_friction_loss{0.0};
+  double motor_drive_switching_loss{0.0};
+  double battery_i2r_loss{0.0};
 };
 
 /// \brief latent data that is modeled but not directly observed for LatentData message in ROS 2
 struct LatentData
 {
   IncWaveHeights inc_wave_heights;
+  AirSpring upper_spring;
+  AirSpring lower_spring;
+  ElectroHydraulic electro_hydraulic;
+
+  bool valid() const
+  {
+    return inc_wave_heights.valid && \
+      upper_spring.valid && lower_spring.valid && \
+      electro_hydraulic.valid;
+  }
 
   bool operator==(const LatentData & that) const
   {
     bool equal = (this->inc_wave_heights == that.inc_wave_heights);
+    equal &= (this->upper_spring == that.upper_spring);
+    equal &= (this->lower_spring == that.lower_spring);
     // equal &= fabs(this-> - that.) < 1e-7F;
     return equal;
   }
