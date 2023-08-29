@@ -15,6 +15,7 @@
 #include "IncWaveHeight.hpp"
 
 #include <string>
+#include <tuple>
 
 #include <gz/sim/Model.hh>
 #include <gz/sim/Util.hh>
@@ -100,10 +101,11 @@ struct IncWaveHeightPrivate
     thread_executor_spin_ = std::thread(spin);
   }
 
-  std::tuple<double, gz::math::Quaternion<double> > compute_eta(const double & _x,
-                                                                const double & _y,
-                                                                const double & SimTime,
-                                                                const bool use_buoy_origin)
+  std::tuple<double, gz::math::Quaternion<double>> compute_eta(
+    const double & _x,
+    const double & _y,
+    const double & SimTime,
+    const bool use_buoy_origin)
   {
     double x = _x;
     double y = _y;
@@ -253,7 +255,7 @@ void IncWaveHeight::Configure(
       this->dataPtr->inc_wave_heights.points.clear();
       bool first = true;
       sdf::ElementPtr e{nullptr};
-      for(;;) {
+      for (;; ) {
         if (first) {
           e = points->GetElementImpl("xy");
           first = false;

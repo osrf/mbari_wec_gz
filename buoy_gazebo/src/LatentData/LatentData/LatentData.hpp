@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef LATENTDATA__LATENTDATA_HPP_
-#define LATENTDATA__LATENTDATA_HPP_
+#ifndef LATENTDATA__LATENTDATA__LATENTDATA_HPP_
+#define LATENTDATA__LATENTDATA__LATENTDATA_HPP_
+
+#include <vector>
 
 #include <gz/sim/components/Factory.hh>
 #include <gz/sim/components/Component.hh>
@@ -49,7 +51,8 @@ struct IncWaveHeightPoint
   }
 };
 
-struct IncWaveHeights {
+struct IncWaveHeights
+{
   int32_t sec{0};
   uint32_t nsec{0U};
   bool valid;
@@ -65,8 +68,7 @@ struct IncWaveHeights {
 
     // since sizes are equal, iterate over all points (or none)
     std::size_t idx = 0U;
-    for (; idx < this->points.size(); ++idx)
-    {
+    for (; idx < this->points.size(); ++idx) {
       equal &= (this->points[idx] == that.points[idx]);
     }
 
@@ -146,4 +148,4 @@ GZ_SIM_REGISTER_COMPONENT(
 
 }  // namespace buoy_gazebo
 
-#endif  // LATENTDATA__LATENTDATA_HPP_
+#endif  // LATENTDATA__LATENTDATA__LATENTDATA_HPP_
