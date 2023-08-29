@@ -37,8 +37,8 @@ Ap_u *= 0.0254**2.0
 Ap_l *= 0.0254**2.0
 # Ap_u = 0.0127  # Area of piston in upper chamber
 # Ap_l = 0.0115  # Area of piston in lower
-Vd_u = 0.0226 # est from cad 0.0172  # 0.015  # 0.0226  # 0.0266  # Dead volume of upper
-Vd_l = 0.0463 # est from cad 0.0546  # 0.025  # 0.0463  # 0.0523  # Dead volume of lower
+Vd_u = 0.0226  # est from cad 0.0172  # 0.015  # 0.0226  # 0.0266  # Dead volume of upper
+Vd_l = 0.0463  # est from cad 0.0546  # 0.025  # 0.0463  # 0.0523  # Dead volume of lower
 
 r = 0.5  # coef of heat transfer (Newton's law of cooling)
 c_p = 1.04  # for N2
@@ -149,17 +149,18 @@ def set_piston_position(V0_u,  # Volume setpoint from upper chamber polytropic P
     # ---------------- - ---------------- = ---*(rho*V - m) = C
     # Ap_u*x_eq + Vd_u   Ap_l*x_eq + Vd_l   R*T
 
-    C = lambda g, R_specific, T_ocean, rho, V_hc, m: (g / (R_specific*T_ocean))*(rho*V_hc - m)
-    x_eq = lambda Ap_u, Ap_l, m_u, m_l, Vd_u, Vd_l, C: -(0.005*(
+    C = lambda g, R_specific, T_ocean, rho, V_hc, m: \
+        (g / (R_specific*T_ocean))*(rho*V_hc - m)  # noqa: E731
+    x_eq = lambda Ap_u, Ap_l, m_u, m_l, Vd_u, Vd_l, C: -(0.005*(  # noqa: E731
             math.sqrt(
                 (
-                    203*Ap_u*Ap_l*C + 100*Ap_u*C*Vd_l + 100*Ap_u*m_l - \
+                    203*Ap_u*Ap_l*C + 100*Ap_u*C*Vd_l + 100*Ap_u*m_l -
                     100*Ap_l*C*Vd_u + 100*Ap_l*m_u
-                )**2 + \
+                )**2 +
                 400*Ap_u*Ap_l*C*(
                     203*Ap_l*C*Vd_u - 203*Ap_l*m_u + 100*C*Vd_u*Vd_l + 100*m_l*Vd_u - 100*m_u*Vd_l
                 )
-            ) - \
+            ) -
             203*Ap_u*Ap_l*C - 100*Ap_u*C*Vd_l - 100*Ap_u*m_l + 100*Ap_l*C*Vd_u - 100*Ap_l*m_u
         )
     ) / (Ap_u*Ap_l*C)
@@ -228,7 +229,8 @@ def computePolytropicForce(V_, P, V, n, c, v, is_upper):
     Q_rate = 0.0
     is_adiabatic = False
     if !is_adiabatic:
-        # Rodrigues, M. J. (June 5, 2014). Heat Transfer During the Piston-Cylinder Expansion of a Gas
+        # Rodrigues, M. J. (June 5, 2014). Heat Transfer During the
+        #   Piston-Cylinder Expansion of a Gas
         # (Master's thesis, Oregon State University).
         # Retrieved from https://ir.library.oregonstate.edu/downloads/ww72bf399
         # heat loss rate for polytropic ideal gas:
@@ -253,7 +255,7 @@ def model_thermal(PV, p, dt,
                   ax2=None):
     n = n1
     c = P0 * V0 / T0  # m*R_specific
-    mass = c / R_specific
+    # mass = c / R_specific
 
     V = V0
     P = P0
@@ -272,19 +274,19 @@ def model_thermal(PV, p, dt,
             v *= -1.0
 
         if v_ >= vel_dz_u:
-            #print(f'vel above: {v_}')
+            # print(f'vel above: {v_}')
             n = n1
             F, P, V, T = computePolytropicForce(V_, P, V, n, c, v_, is_upper)
         elif v_ <= vel_dz_l:
-            #print(f'vel below: {v_}')
+            # print(f'vel below: {v_}')
             n = n2
             F, P, V, T = computePolytropicForce(V_, P, V, n, c, v_, is_upper)
         else:
-            #print(f'cooling: {v_}')
+            # print(f'cooling: {v_}')
             F, P, V, T = computeLawOfCoolingForce(V_, T, c, dt, is_upper)
 
-        #if is_upper:
-        #    F *= -1.0
+        # if is_upper:
+        #     F *= -1.0
         P_data.append(P)
         V_data.append(V)
         T_data.append(T)
@@ -322,19 +324,27 @@ def main():
     parser.add_argument('atsea_logs', nargs='+')
     parser.add_argument('--plot', action='store_true')
     parser.add_argument('--override', action='store_true')
-    parser.add_argument('--polytropic_u', nargs=6, type=float)  # n1_u, n2_u,
-                                                                # P0_u, V0_u,
-                                                                # C1_u, C2_u
-    parser.add_argument('--polytropic_l', nargs=6, type=float)  # n1_l, n2_l
-                                                                # P0_l, V0_l,
-                                                                # C1_l, C2_l
+
+    # n1_u, n2_u,
+    # P0_u, V0_u,
+    # C1_u, C2_u
+    parser.add_argument('--polytropic_u', nargs=6, type=float)
+
+    # n1_l, n2_l
+    # P0_l, V0_l,
+    # C1_l, C2_l
+    parser.add_argument('--polytropic_l', nargs=6, type=float)
     parser.add_argument('--model_thermal', action='store_true')
-    parser.add_argument('--thermal_params_u', nargs=3, type=float)  # T0
-                                                                    # velocity_deadzone_upper
-                                                                    # velocity_deadzone_lower
-    parser.add_argument('--thermal_params_l', nargs=3, type=float)  # T0
-                                                                    # velocity_deadzone_upper
-                                                                    # velocity_deadzone_lower
+
+    # T0
+    # velocity_deadzone_upper
+    # velocity_deadzone_lower
+    parser.add_argument('--thermal_params_u', nargs=3, type=float)
+
+    # T0
+    # velocity_deadzone_upper
+    # velocity_deadzone_lower
+    parser.add_argument('--thermal_params_l', nargs=3, type=float)
     parser.add_argument('--set_piston_pos', action='store_true')
     # parser.add_argument('--piston_pos', nargs=2, type=float)  # initial_piston_position
     #                                                           # x_mean_pos
@@ -396,15 +406,15 @@ def main():
         fig2, ax2 = plt.subplots(2, 1)
         dt = np.mean(np.diff(spring_data.t))
         F_u = model_thermal(spring_data.loc[(1, ('uv', 'up'))].to_numpy(),
-                           spring_data.p, dt,
-                           P0_u, V0_u, n1_u, n2_u,
-                           *args.thermal_params_u,
-                           is_upper=True, ax1=ax1, ax2=ax2)
+                            spring_data.p, dt,
+                            P0_u, V0_u, n1_u, n2_u,
+                            *args.thermal_params_u,
+                            is_upper=True, ax1=ax1, ax2=ax2)
         F_l = model_thermal(spring_data.loc[(1, ('lv', 'lp'))].to_numpy(),
-                           spring_data.p, dt,
-                           P0_l, V0_l, n1_l, n2_l,
-                           *args.thermal_params_l,
-                           is_upper=False, ax1=ax1, ax2=ax2)
+                            spring_data.p, dt,
+                            P0_l, V0_l, n1_l, n2_l,
+                            *args.thermal_params_l,
+                            is_upper=False, ax1=ax1, ax2=ax2)
 
         fig3, ax3 = plt.subplots(1, 1)
         ax3.plot(spring_data.p/0.0254,
@@ -421,7 +431,7 @@ def main():
         ax3.set_title(f'Stiffness: AtSea={atsea_stiffness:.2f} Sim={sim_stiffness:.2f}')
 
     if ax1 is not None:
-        import os
+        # import os
         for ax1_ in ax1:
             ax1_.legend()
             ax1_.set_xlabel('Volume (m^3)')
@@ -437,21 +447,21 @@ def main():
                          f' vel_dz_u={args.thermal_params_l[1]}'
                          f' vel_dz_l={args.thermal_params_l[2]}')
         fig1.tight_layout()
-        #fig1.savefig(os.path.basename(args.atsea_logs[0])+'.PVPolytropicFit.png',
-        #             dpi=fig1.dpi, bbox_inches='tight')
+        # fig1.savefig(os.path.basename(args.atsea_logs[0])+'.PVPolytropicFit.png',
+        #              dpi=fig1.dpi, bbox_inches='tight')
         for ax2_ in ax2:
             ax2_.legend()
             ax2_.set_xlabel('Time from start (sec)')
             ax2_.set_ylabel('Pressure (Pascals)')
         fig2.tight_layout()
-        #fig2.savefig(os.path.basename(args.atsea_logs[0])+'.PressureDiff.png',
-        #             dpi=fig2.dpi, bbox_inches='tight')
+        # fig2.savefig(os.path.basename(args.atsea_logs[0])+'.PressureDiff.png',
+        #              dpi=fig2.dpi, bbox_inches='tight')
         ax3.set_xlabel('Piston Position (in)')
         ax3.set_ylabel('Force (pound-force)')
         ax3.legend()
         fig3.tight_layout()
-        #fig3.savefig(os.path.basename(args.atsea_logs[0])+'.Stiffness.png',
-        #             dpi=fig3.dpi, bbox_inches='tight')
+        # fig3.savefig(os.path.basename(args.atsea_logs[0])+'.Stiffness.png',
+        #              dpi=fig3.dpi, bbox_inches='tight')
         plt.show()
 
 

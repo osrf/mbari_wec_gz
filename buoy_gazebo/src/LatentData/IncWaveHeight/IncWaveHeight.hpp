@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef LATENT_DATA__INCWAVEHEIGHT__INCWAVEHEIGHT_HPP_
-#define LATENT_DATA__INCWAVEHEIGHT__INCWAVEHEIGHT_HPP_
+#ifndef LATENTDATA__INCWAVEHEIGHT__INCWAVEHEIGHT_HPP_
+#define LATENTDATA__INCWAVEHEIGHT__INCWAVEHEIGHT_HPP_
 
 #include <memory>
 
@@ -68,4 +68,4 @@ private:
 };
 }  // namespace buoy_gazebo
 
-#endif  // LATENT_DATA__INCWAVEHEIGHT__INCWAVEHEIGHT_HPP_
+#endif  // LATENTDATA__INCWAVEHEIGHT__INCWAVEHEIGHT_HPP_

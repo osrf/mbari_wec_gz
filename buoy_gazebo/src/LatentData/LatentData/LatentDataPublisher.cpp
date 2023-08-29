@@ -56,8 +56,9 @@ struct buoy_gazebo::LatentDataPublisherPrivate
   std::thread thread_executor_spin_, thread_publish_;
   std::atomic<bool> stop_{false}, paused_{true};
 
-  void copy_inc_wave_height(const buoy_gazebo::IncWaveHeightPoint & in,
-                            buoy_interfaces::msg::IncWaveHeight & out)
+  void copy_inc_wave_height(
+    const buoy_gazebo::IncWaveHeightPoint & in,
+    buoy_interfaces::msg::IncWaveHeight & out)
   {
     out.use_buoy_origin = in.use_buoy_origin;
     out.pose.position.x = in.x;
