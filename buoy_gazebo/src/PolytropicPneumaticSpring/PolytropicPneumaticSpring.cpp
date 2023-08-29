@@ -243,7 +243,7 @@ void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const
   // Get chamber surface area from CAD... not true cylinder
   // Also, since the chambers wrap around, h (heat transfer constant) is not quite water/steel/gas
   const double radius = 0.045;
-  const double A = (2.0 * this->dataPtr->config_->piston_area) + 2.0*GZ_PI*radius*x;
+  const double A = (2.0 * this->dataPtr->config_->piston_area) + 2.0 * GZ_PI * radius * x;
   const double h = 11.3;  // (W/(m^2*K)) -- Water<->Mild Steel<->Gas
   this->dataPtr->Q_rate = h * A * dT;
 
@@ -276,7 +276,7 @@ void PolytropicPneumaticSpring::computePolytropicForce(const double & x, const d
     // dQ/dt = (1 - n/gamma)*(c_p/R)*P*A*dx/dt
     // TODO(andermi) get chamber surface area from CAD... not a true cylinder
     const double r = 0.045;
-    const double A = (2.0 * this->dataPtr->config_->piston_area) + 2.0*GZ_PI*r*x;
+    const double A = (2.0 * this->dataPtr->config_->piston_area) + 2.0 * GZ_PI * r * x;
     this->dataPtr->Q_rate =
       (1.0 - this->dataPtr->n / PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) * cp_R *
       this->dataPtr->P * A * v;

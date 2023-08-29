@@ -120,8 +120,8 @@ struct LatentData
   bool valid() const
   {
     return inc_wave_heights.valid && \
-      upper_spring.valid && lower_spring.valid && \
-      electro_hydraulic.valid;
+           upper_spring.valid && lower_spring.valid && \
+           electro_hydraulic.valid;
   }
 
   bool operator==(const LatentData & that) const
