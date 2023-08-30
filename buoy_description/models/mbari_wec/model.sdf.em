@@ -148,17 +148,34 @@ m = m_hc + m_piston  # total mass
 
 Ap_u = 0.0127  # Area of piston in upper chamber
 Ap_l = 0.0115  # Area of piston in lower
-Vd_u = 0.0226  # Dead volume of upper
-Vd_l = 0.0463  # Dead volume of lower
-# TODO(andermi) unknown why 108.56 fudge factor is necessary
+Vd_u = 0.0226 # 0.0172  # 0.0226  # Dead volume of upper
+Vd_l = 0.0463 # 0.0546  # 0.0463  # Dead volume of lower
+# TODO(andermi) unknown why fudge factor is necessary (prev 108.56)
 c = 107.56*C(g, R_specific, T_ocean, rho, V_hc, m)  # RHS of equation above
 
-V0_u = 0.0338  # Volume setpoint from upper chamber polytropic PV curves
-V0_l = 0.0537  # Volume setpoint from lower chamber polytropic PV curves
-P0_u = 409962  # Pressure setpoint from upper PV
-P0_l = 1211960  # Pressure setpoint from lower PV
-T0_u = 273.15  # Tempurature setpoint for upper heat transfer
-T0_l = 283.15  # Tempurature setpoint for lower heat transfer
+# Check if upper_polytropic_params was passed in via empy
+try:
+    upper_polytropic_params
+except NameError:
+    upper_polytropic_params = [1.4309, 1.4367, 422156, 0.0397, 283.15]
+(n1_u,  # upper polytropic index for increasing volume
+n2_u,  # upper polytropic index for decreasing volume
+P0_u,  # Pressure (Pa) setpoint from upper PV
+V0_u,  # Volume (m^3) setpoint from upper chamber polytropic PV curves
+T0_u  # Temperature (K) setpoint for upper heat transfer
+) = upper_polytropic_params
+
+# Check if lower_polytropic_params was passed in via empy
+try:
+    lower_polytropic_params
+except NameError:
+    lower_polytropic_params = [1.3771, 1.3755, 1212098, 0.0661, 283.15]
+(n1_l,  # lower polytropic index for increasing volume
+n2_l,  # lower polytropic index for decreasing volume
+P0_l,  # Pressure (Pa) setpoint from lower PV
+V0_l,  # Volume (m^3) setpoint from lower chamber polytropic PV curves
+T0_l  # Temperature (K) setpoint for lower heat transfer
+) = lower_polytropic_params
 
 ignore_piston_mean_pos = False
 if not ignore_piston_mean_pos:
@@ -215,10 +232,10 @@ if not ignore_piston_mean_pos:
       <R_specific>0.2968</R_specific>
       <c_p>1.04</c_p>
       <hysteresis>true</hysteresis>
-      <velocity_deadzone_lower>-0.10</velocity_deadzone_lower>
-      <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
-      <n1>1.1084</n1>
-      <n2>1.1445</n2>
+      <velocity_deadzone_lower>-0.005</velocity_deadzone_lower>
+      <velocity_deadzone_upper>0.005</velocity_deadzone_upper>
+      <n1>@(n1_u)</n1>
+      <n2>@(n2_u)</n2>
       <V0>@(V0_u)</V0>
       <P0>@(print(f'{P0_u:.00f}', end=''))</P0>
     </plugin>
@@ -240,10 +257,10 @@ if not ignore_piston_mean_pos:
       <R_specific>0.2968</R_specific>
       <c_p>1.04</c_p>
       <hysteresis>true</hysteresis>
-      <velocity_deadzone_lower>-0.10</velocity_deadzone_lower>
-      <velocity_deadzone_upper>0.05</velocity_deadzone_upper>
-      <n1>1.1079</n1>
-      <n2>1.1332</n2>
+      <velocity_deadzone_lower>-0.005</velocity_deadzone_lower>
+      <velocity_deadzone_upper>0.005</velocity_deadzone_upper>
+      <n1>@(n1_l)</n1>
+      <n2>@(n2_l)</n2>
       <V0>@(V0_l)</V0>
       <P0>@(print(f'{P0_l:.00f}', end=''))</P0>
     </plugin>
