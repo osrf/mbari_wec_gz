@@ -437,7 +437,7 @@ void ElectroHydraulicPTO::PreUpdate(
   // Apply force if not in Velocity Mode, in which case a joint velocity is applied elsewhere
   // (likely by a test Fixture)
   if (!this->dataPtr->VelMode) {
-    double piston_force = -deltaP * this->dataPtr->PistonArea;
+    double piston_force = -deltaP * this->dataPtr->PistonArea * buoy_utils::NEWTONS_PER_LB;
     // Create new component for this entitiy in ECM (if it doesn't already exist)
     auto forceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->PrismaticJointEntity);
@@ -446,7 +446,7 @@ void ElectroHydraulicPTO::PreUpdate(
         this->dataPtr->PrismaticJointEntity,
         gz::sim::components::JointForceCmd({piston_force}));  // Create this iteration
     } else {
-      forceComp->Data()[0] += piston_force;     // Add force to existing forces.
+      forceComp->Data()[0] += piston_force;  // Add force to existing forces.
     }
   }
 }

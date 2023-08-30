@@ -26,6 +26,7 @@ static constexpr double RPM_TO_RAD_PER_SEC{2.0 * M_PI / 60.0};
 static constexpr double NM_PER_INLB{0.112984829};
 static constexpr double INLB_PER_NM{8.851};
 static constexpr double INCHES_PER_METER{39.4};
+static constexpr double NEWTONS_PER_LB{4.4482};
 }  // namespace buoy_utils
 
 
