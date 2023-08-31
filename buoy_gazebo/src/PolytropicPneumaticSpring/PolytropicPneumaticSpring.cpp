@@ -337,22 +337,22 @@ void PolytropicPneumaticSpring::Configure(
     } else {
       config.is_adiabatic = false;
     }
+    this->dataPtr->n = config.n0;
   }
 
-  this->dataPtr->n = config.n0;
   this->dataPtr->P0 = SdfParamDouble(_sdf, "P0", this->dataPtr->P0);
   config.V0 = SdfParamDouble(_sdf, "V0", config.V0);
   this->dataPtr->V0 = config.V0;
 
   gzdbg << "V0: " << config.V0 << std::endl;
-  this->dataPtr->c = this->dataPtr->P0 * config.V0 / config.T0;
+  this->dataPtr->c = this->dataPtr->P0 * config.V0 / config.T0;  // m*R_specific
   gzdbg << "c: " << this->dataPtr->c << std::endl;
   this->dataPtr->mass = this->dataPtr->c / config.R;
   gzdbg << "mass: " << this->dataPtr->mass << std::endl;
 
   this->dataPtr->V = this->dataPtr->V0;
   this->dataPtr->P = this->dataPtr->P0;
-  // Ideal Gas Law: T = P*V/(m*R)
+  // Ideal Gas Law: T = P*V/(m*R_specific)
   this->dataPtr->T = this->dataPtr->P * this->dataPtr->V / this->dataPtr->c;
 
   config.model = gz::sim::Model(_entity);
