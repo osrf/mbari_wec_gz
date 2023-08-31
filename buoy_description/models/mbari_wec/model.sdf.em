@@ -222,7 +222,7 @@ if not ignore_piston_mean_pos:
       <initial_piston_position>@(initial_piston_position)</initial_piston_position>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>7.77e-6</valve_absement>
-      <pump_absement>4.5e-8</pump_absement>
+      <pump_absement>5.5e-8</pump_absement>
       <pump_pressure>1.7e+6</pump_pressure>
       <stroke>2.03</stroke>
       <piston_area>@(Ap_u)</piston_area>
@@ -247,7 +247,7 @@ if not ignore_piston_mean_pos:
       <is_upper>false</is_upper>
       <!-- measure of valve opening cross-section and duration (meter-seconds) -->
       <valve_absement>7.77e-6</valve_absement>
-      <pump_absement>4.5e-8</pump_absement>
+      <pump_absement>5.5e-8</pump_absement>
       <pump_pressure>1.7e+6</pump_pressure>
       <stroke>2.03</stroke>
       <piston_area>@(Ap_l)</piston_area>
