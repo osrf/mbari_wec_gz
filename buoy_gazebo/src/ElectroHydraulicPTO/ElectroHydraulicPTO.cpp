@@ -426,9 +426,12 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_loss.motor_drive_friction_loss = this->dataPtr->functor.MotorDriveFrictionLoss(N);
   pto_loss.battery_i2r_loss = I_Batt * I_Batt * this->dataPtr->Ri;
 
+  double piston_force = -deltaP * this->dataPtr->PistonArea * buoy_utils::NEWTONS_PER_LB;
+
   latent_data.electro_hydraulic.valid = true;
   latent_data.electro_hydraulic.inst_power = VBus * (I_Batt + I_Load);
   latent_data.electro_hydraulic.rpm = N;
+  latent_data.electro_hydraulic.force = piston_force;
   latent_data.electro_hydraulic.motor_drive_i2r_loss = pto_loss.motor_drive_i2r_loss;
   latent_data.electro_hydraulic.motor_drive_switching_loss = pto_loss.motor_drive_switching_loss;
   latent_data.electro_hydraulic.motor_drive_friction_loss = pto_loss.motor_drive_friction_loss;
@@ -464,7 +467,6 @@ void ElectroHydraulicPTO::PreUpdate(
   // Apply force if not in Velocity Mode, in which case a joint velocity is applied elsewhere
   // (likely by a test Fixture)
   if (!this->dataPtr->VelMode) {
-    double piston_force = -deltaP * this->dataPtr->PistonArea * buoy_utils::NEWTONS_PER_LB;
     // Create new component for this entitiy in ECM (if it doesn't already exist)
     auto forceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->PrismaticJointEntity);

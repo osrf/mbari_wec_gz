@@ -262,6 +262,8 @@ void LatentDataPublisher::PostUpdate(
     latent_data.electro_hydraulic.inst_power;
   this->dataPtr->latent_data_.electro_hydraulic.rpm =
     latent_data.electro_hydraulic.rpm;
+  this->dataPtr->latent_data_.electro_hydraulic.force =
+    latent_data.electro_hydraulic.force;
   this->dataPtr->latent_data_.electro_hydraulic.motor_drive_i2r_loss =
     latent_data.electro_hydraulic.motor_drive_i2r_loss;
   this->dataPtr->latent_data_.electro_hydraulic.motor_drive_switching_loss =

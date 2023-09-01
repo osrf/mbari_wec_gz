@@ -36,6 +36,7 @@ struct IncWaveHeightPoint
   double eta{0.0};  // output
 
   // ==== orientation ====
+  // normal vector of deta/dx, deta/dy (slope of wave)
   double qx{0.0}, qy{0.0}, qz{0.0}, qw{0.0};  // output
 
   bool operator==(const IncWaveHeightPoint & that) const
@@ -81,11 +82,11 @@ struct IncWaveHeights
 struct AirSpring
 {
   bool valid{false};
-  double force{0.0};
-  double T{0.0};
-  double dQ_dt{0.0};
-  double piston_position{0.0};
-  double piston_velocity{0.0};
+  double force{0.0};  // Newtons
+  double T{0.0};  // temp in K
+  double dQ_dt{0.0};  // heat loss rate
+  double piston_position{0.0};  // meters
+  double piston_velocity{0.0};  // m/s
 
   bool operator==(const AirSpring & that) const
   {
@@ -101,8 +102,9 @@ struct AirSpring
 struct ElectroHydraulic
 {
   bool valid{false};
-  double inst_power{0.0};
+  double inst_power{0.0};  // Watts
   double rpm{0.0};
+  double force{0.0};  // Newtons
   double motor_drive_i2r_loss{0.0};
   double motor_drive_friction_loss{0.0};
   double motor_drive_switching_loss{0.0};
