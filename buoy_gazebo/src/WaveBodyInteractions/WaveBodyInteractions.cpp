@@ -52,6 +52,11 @@
 
 namespace buoy_gazebo
 {
+
+static bool WBI_DBG_FLAG{false};
+#define wbidbg  if (WBI_DBG_FLAG) gzdbg
+
+
 class WaveBodyInteractionsPrivate
 {
 public:
@@ -98,7 +103,7 @@ void WaveBodyInteractions::Configure(
 {
   this->dataPtr->model = gz::sim::Model(_entity);
   if (!this->dataPtr->model.Valid(_ecm)) {
-    ignerr
+    gzerr
       << "WaveBodyInteractions plugin should be attached to a model entity. "
       << "Failed to initialize." << std::endl;
     return;
@@ -106,16 +111,18 @@ void WaveBodyInteractions::Configure(
 
   // Get params from SDF.
   if (!_sdf->HasElement("LinkName")) {
-    ignerr << "You musk specify a <LinkName> for the wavebodyinteraction "
+    gzerr << "You musk specify a <LinkName> for the wavebodyinteraction "
       "plugin to act upon"
            << "Failed to initialize." << std::endl;
     return;
   }
   auto linkName = _sdf->Get<std::string>("LinkName");
 
+  WBI_DBG_FLAG = _sdf->Get<bool>("debug", false).first;
+
   this->dataPtr->linkEntity = this->dataPtr->model.LinkByName(_ecm, linkName);
   if (!_ecm.HasEntity(this->dataPtr->linkEntity)) {
-    ignerr << "Link name" << linkName << "does not exist";
+    gzerr << "Link name" << linkName << "does not exist";
     return;
   }
 
@@ -163,7 +170,7 @@ void WaveBodyInteractions::Configure(
       ament_index_cpp::get_package_share_directory(package_share_dir) +
       base_filenm;
   } else {
-    ignerr << "Only package: URI scheme has been implemented" << std::endl;
+    gzerr << "Only package: URI scheme has been implemented" << std::endl;
     return;
   }
 
@@ -186,12 +193,12 @@ void WaveBodyInteractions::PreUpdate(
   if (_info.iterations == 1) {  // First iteration, set timestep size.
     double dt = std::chrono::duration<double>(_info.dt).count();
     dataPtr->FloatingBody.SetTimestepSize(dt);
-    gzdbg << " Set Wave Forcing timestep size:  dt = " << dt << std::endl;
+    wbidbg << " Set Wave Forcing timestep size:  dt = " << dt << std::endl;
   }
 
   // \TODO(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero()) {
-    ignwarn
+    gzwarn
       << "Detected jump back in time ["
       << std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count()
       << "s]. System may not work properly." << std::endl;
@@ -216,7 +223,7 @@ void WaveBodyInteractions::PreUpdate(
 
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
 
-  gzdbg << "baseLink.Name = " << baseLink.Name(_ecm).value() << std::endl;
+  wbidbg << "baseLink.Name = " << baseLink.Name(_ecm).value() << std::endl;
 
   auto w_xddot_b = baseLink.WorldLinearAcceleration(_ecm).value();
   auto w_omegadot_b = baseLink.WorldAngularAcceleration(_ecm).value();
@@ -225,8 +232,8 @@ void WaveBodyInteractions::PreUpdate(
 
   auto w_Pose_b = gz::sim::worldPose(this->dataPtr->linkEntity, _ecm);
   auto w_Pose_p = w_Pose_b * this->dataPtr->b_Pose_p;
-  gzdbg << "w_Pose_b = " << w_Pose_b << std::endl;
-  gzdbg << "w_Pose_p = " << w_Pose_p << std::endl;
+  wbidbg << "w_Pose_b = " << w_Pose_b << std::endl;
+  wbidbg << "w_Pose_p = " << w_Pose_p << std::endl;
 
   // gz::math::Vector3<double> p_xdot = w_Pose_p.Rot().Inverse() * *w_xdot;
   gz::math::Vector3<double> w_xdot_p =
@@ -234,10 +241,10 @@ void WaveBodyInteractions::PreUpdate(
     w_omega_b.Cross(w_Pose_b.Rot() * this->dataPtr->b_Pose_p.Pos());
   gz::math::Vector3<double> w_omega_p =
     w_omega_b;    // Waterplane Coord sys is parallel to body C.S.
-  gzdbg << "w_xdot_b = " << w_xdot_b << std::endl;
-  gzdbg << "w_xdot_p = " << w_xdot_p << std::endl;
-  gzdbg << "w_omega_b = " << w_omega_b << std::endl;
-  gzdbg << "w_omega_p = " << w_omega_p << std::endl;
+  wbidbg << "w_xdot_b = " << w_xdot_b << std::endl;
+  wbidbg << "w_xdot_p = " << w_xdot_p << std::endl;
+  wbidbg << "w_omega_b = " << w_omega_b << std::endl;
+  wbidbg << "w_omega_p = " << w_omega_p << std::endl;
 
   gz::math::Vector3<double> w_xddot_p =
     w_xddot_b +
@@ -246,10 +253,10 @@ void WaveBodyInteractions::PreUpdate(
     w_omega_b.Cross(w_Pose_b.Rot() * this->dataPtr->b_Pose_p.Pos()));
   gz::math::Vector3<double> w_omegadot_p =
     w_omegadot_b;        // Waterplane Coord sys is parallel to body C.S.
-  gzdbg << "w_xddot_b = " << w_xddot_b << std::endl;
-  gzdbg << "w_xddot_p = " << w_xddot_p << std::endl;
-  gzdbg << "w_omegadot_b = " << w_omegadot_b << std::endl;
-  gzdbg << "w_omegadot_p = " << w_omegadot_p << std::endl;
+  wbidbg << "w_xddot_b = " << w_xddot_b << std::endl;
+  wbidbg << "w_xddot_p = " << w_xddot_p << std::endl;
+  wbidbg << "w_omegadot_b = " << w_omegadot_b << std::endl;
+  wbidbg << "w_omegadot_p = " << w_omegadot_p << std::endl;
   gz::math::Vector3<double> b_xddot_p = w_Pose_p.Rot().Inverse() * w_xddot_p;
   gz::math::Vector3<double> b_omegadot_p =
     w_Pose_p.Rot().Inverse() * w_omegadot_p;
@@ -260,10 +267,10 @@ void WaveBodyInteractions::PreUpdate(
   Eigen::VectorXd x(6);
   x << w_Pose_p.X(), w_Pose_p.Y(), w_Pose_p.Z(), w_Pose_p.Roll(),
     w_Pose_p.Pitch(), w_Pose_p.Yaw();
-  gzdbg << "x(6) = " << x.transpose() << std::endl;
+  wbidbg << "x(6) = " << x.transpose() << std::endl;
   Eigen::VectorXd BuoyancyForce(6);
   BuoyancyForce = this->dataPtr->FloatingBody.BuoyancyForce(x);
-  gzdbg << "Buoyancy Force at waterplane = " << BuoyancyForce.transpose()
+  wbidbg << "Buoyancy Force at waterplane = " << BuoyancyForce.transpose()
         << std::endl;
 
   // Compute Buoyancy Force
@@ -277,7 +284,7 @@ void WaveBodyInteractions::PreUpdate(
   // Add contribution due to force offset from origin
   w_MBp +=
     (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FBp);
-  gzdbg << "Buoyancy: applied moment = " << w_MBp << std::endl;
+  wbidbg << "Buoyancy: applied moment = " << w_MBp << std::endl;
 
   // Compute Memory part of Radiation Force based on accelerations in the body
   // frame, result is in body frame
@@ -292,14 +299,14 @@ void WaveBodyInteractions::PreUpdate(
   // xddot << 0.0, 0.0, 0.0, b_omegadot_p.X(), b_omegadot_p.Y(),
   // b_omegadot_p.Z();
 
-  gzdbg << "xddot = " << xddot.transpose() << std::endl;
-  gzdbg << "xddot = " << xddot.transpose() << std::endl;
+  wbidbg << "xddot = " << xddot.transpose() << std::endl;
+  wbidbg << "xddot = " << xddot.transpose() << std::endl;
   Eigen::VectorXd MemForce(6);
   // Note negative sign, FS_Hydrodynamics returns force required to move body in
   // prescribed way,
   //  force of water on body is opposite.
   MemForce = -this->dataPtr->FloatingBody.RadiationForce(xddot);
-  gzdbg << " MemForce at Waterplane = " << MemForce.transpose() << std::endl;
+  wbidbg << " MemForce at Waterplane = " << MemForce.transpose() << std::endl;
   gz::math::Vector3d w_FRp(MemForce(0), MemForce(1), MemForce(2));
   // Needs to be adjusted for yaw only becaues of small pitch/roll assumption
   gz::math::Vector3d w_MRp(
@@ -310,13 +317,13 @@ void WaveBodyInteractions::PreUpdate(
   // Add contribution due to force offset from origin
   w_MRp +=
     (w_Pose_b.Rot().RotateVector(this->dataPtr->b_Pose_p.Pos())).Cross(w_FRp);
-  gzdbg << "Radiation: applied moment = " << w_MRp << std::endl;
+  wbidbg << "Radiation: applied moment = " << w_MRp << std::endl;
 
-  gzdbg << std::endl;
+  wbidbg << std::endl;
   // Compute Wave Exciting Force
   Eigen::VectorXd ExtForce(6);
   ExtForce = this->dataPtr->FloatingBody.ExcitingForce();
-  gzdbg << "Exciting Force = " << ExtForce.transpose() << std::endl;
+  wbidbg << "Exciting Force = " << ExtForce.transpose() << std::endl;
   gz::math::Vector3d w_FEp(ExtForce(0), ExtForce(1), ExtForce(2));
   // Needs to be adjusted for yaw only
   gz::math::Vector3d w_MEp(
@@ -324,8 +331,8 @@ void WaveBodyInteractions::PreUpdate(
     1 * (sin(x(5)) * ExtForce(3) + cos(x(5)) * ExtForce(4)),
     ExtForce(5));    // Needs to be adjusted for yaw only
 
-  gzdbg << "Exciting: applied force = " << w_FEp << std::endl;
-  gzdbg << "Exciting: applied moment = " << w_MEp << std::endl;
+  wbidbg << "Exciting: applied force = " << w_FEp << std::endl;
+  wbidbg << "Exciting: applied moment = " << w_MEp << std::endl;
 
   // Add contribution due to force offset from origin
   w_MEp +=

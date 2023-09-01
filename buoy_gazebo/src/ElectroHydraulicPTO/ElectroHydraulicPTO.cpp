@@ -360,7 +360,7 @@ void ElectroHydraulicPTO::PreUpdate(
   if (i_try > 0) {
     std::stringstream warning;
     warning << "Warning: Reduced piston to achieve convergence" << std::endl;
-    igndbg << warning.str();
+    gzdbg << warning.str();
   }
 
   if (solver_info != 1) {
@@ -369,7 +369,7 @@ void ElectroHydraulicPTO::PreUpdate(
     warning << "Warning: Numericals solver in ElectroHydraulicPTO did not converge" << std::endl;
     warning << "solver info: [" << solver_info << "]" << std::endl;
     warning << "=================================" << std::endl;
-    igndbg << warning.str();
+    gzdbg << warning.str();
   }
 
   // Solve Electrical
