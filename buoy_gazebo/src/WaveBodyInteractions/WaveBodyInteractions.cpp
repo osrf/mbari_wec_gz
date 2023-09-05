@@ -24,7 +24,7 @@
 #include <gz/common/Console.hh>
 #include <gz/common/Profiler.hh>
 #include <gz/common/URI.hh>
-#include <gz/math/PID.hh>
+#include <gz/math/Vector3.hh>
 #include <gz/msgs.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/sim/Link.hh>
@@ -43,12 +43,15 @@
 #include <gz/sim/components/Pose.hh>
 #include <gz/sim/components/World.hh>
 
-#include "IncidentWaves/IncWaveState.hpp"
+#include <IncidentWaves/IncWaveState.hpp>
+#include <LatentData/LatentData.hpp>
 
 #include <FreeSurfaceHydrodynamics/FS_Hydrodynamics.hpp>
 #include <FreeSurfaceHydrodynamics/LinearIncidentWave.hpp>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
+
+
 
 namespace buoy_gazebo
 {
@@ -340,6 +343,29 @@ void WaveBodyInteractions::PreUpdate(
     _ecm.SetComponentData<buoy_gazebo::components::IncWaveState>(
       this->dataPtr->IncWaveEntity, inc_wave_state);
   }
+
+  buoy_gazebo::LatentData latent_data;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->model.Entity(),
+      buoy_gazebo::components::LatentData().TypeId()))
+  {
+    auto latent_data_comp =
+      _ecm.Component<buoy_gazebo::components::LatentData>(this->dataPtr->model.Entity());
+
+    latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
+  }
+
+  latent_data.wave_body.valid = true;
+  latent_data.wave_body.buoyant_force = w_FBp;
+  latent_data.wave_body.buoyant_moment = w_MBp;
+  latent_data.wave_body.radiation_force = w_FRp;
+  latent_data.wave_body.radiation_moment = w_MRp;
+  latent_data.wave_body.exciting_force = w_FEp;
+  latent_data.wave_body.exciting_moment = w_MEp;
+
+  _ecm.SetComponentData<buoy_gazebo::components::LatentData>(
+    this->dataPtr->model.Entity(),
+    latent_data);
 }
 
 //////////////////////////////////////////////////

@@ -3,6 +3,7 @@ gz_add_plugin(PTOFriction
   PTOFriction.cpp
   INCLUDE_DIRS
     ..
+    ../LatentData
   EXTRA_ROS_PKGS
   simple_interp
 )

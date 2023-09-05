@@ -30,6 +30,8 @@
 
 #include <simple_interp/interp1d.hpp>
 
+#include <LatentData/LatentData.hpp>
+
 
 namespace buoy_gazebo
 {
@@ -48,7 +50,7 @@ public:
   /// \brief Piston mean friction force
   const std::vector<double> meanFriction;  // N
 
-  /// \brief Construct and approximation of friction model using linear spline
+  /// \brief Construct and approximation of friction model using linear interpolation
   simple_interp::Interp1d pto_friction_model;
 
   PTOFrictionPrivate()
@@ -147,6 +149,24 @@ void PTOFriction::PreUpdate(
   } else {
     forceComp->Data()[0] += friction_force;  // Add friction to existing forces
   }
+
+  buoy_gazebo::LatentData latent_data;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->model.Entity(),
+      buoy_gazebo::components::LatentData().TypeId()))
+  {
+    auto latent_data_comp =
+      _ecm.Component<buoy_gazebo::components::LatentData>(this->dataPtr->model.Entity());
+
+    latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
+  }
+
+  latent_data.piston_friction_force_valid = true;
+  latent_data.piston_friction_force = friction_force;
+
+  _ecm.SetComponentData<buoy_gazebo::components::LatentData>(
+    this->dataPtr->model.Entity(),
+    latent_data);
 }
 
 }  // namespace buoy_gazebo

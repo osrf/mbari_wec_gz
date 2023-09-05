@@ -17,6 +17,8 @@
 
 #include <vector>
 
+#include <gz/math/Vector3.hh>
+
 #include <gz/sim/components/Factory.hh>
 #include <gz/sim/components/Component.hh>
 #include <gz/sim/config.hh>
@@ -63,6 +65,7 @@ struct IncWaveHeights
   {
     // shortcut different sizes as not equal
     bool equal = (this->points.size() == that.points.size());
+    equal &= this->valid == that.valid;
     if (!equal) {
       return false;
     }
@@ -72,8 +75,6 @@ struct IncWaveHeights
     for (; idx < this->points.size(); ++idx) {
       equal &= (this->points[idx] == that.points[idx]);
     }
-
-    equal &= this->valid == that.valid;
 
     return equal;
   }
@@ -91,9 +92,9 @@ struct AirSpring
   bool operator==(const AirSpring & that) const
   {
     bool equal = (this->valid == that.valid);
-    equal &= (this->force == that.force);
-    equal &= (this->T == that.T);
-    equal &= (this->dQ_dt == that.dQ_dt);
+    equal &= fabs(this->force - that.force) < 1e-7F;
+    equal &= fabs(this->T - that.T) < 1e-7F;
+    equal &= fabs(this->dQ_dt - that.dQ_dt) < 1e-7F;
 
     return equal;
   }
@@ -109,6 +110,44 @@ struct ElectroHydraulic
   double motor_drive_friction_loss{0.0};
   double motor_drive_switching_loss{0.0};
   double battery_i2r_loss{0.0};
+
+  bool operator==(const ElectroHydraulic & that) const
+  {
+    bool equal = (this->valid == that.valid);
+    equal &= fabs(this->inst_power - that.inst_power) < 1e-7F;
+    equal &= fabs(this->force - that.force) < 1e-7F;
+    equal &= fabs(this->motor_drive_i2r_loss - that.motor_drive_i2r_loss) < 1e-7F;
+    equal &= fabs(this->motor_drive_friction_loss - that.motor_drive_friction_loss) < 1e-7F;
+    equal &= fabs(this->motor_drive_switching_loss - that.motor_drive_switching_loss) < 1e-7F;
+    equal &= fabs(this->battery_i2r_loss - that.battery_i2r_loss) < 1e-7F;
+
+    return equal;
+  }
+};
+
+struct WaveBody
+{
+  bool valid{false};
+
+  gz::math::Vector3d buoyant_force{0.0, 0.0, 0.0};
+  gz::math::Vector3d buoyant_moment{0.0, 0.0, 0.0};
+  gz::math::Vector3d radiation_force{0.0, 0.0, 0.0};
+  gz::math::Vector3d radiation_moment{0.0, 0.0, 0.0};
+  gz::math::Vector3d exciting_force{0.0, 0.0, 0.0};
+  gz::math::Vector3d exciting_moment{0.0, 0.0, 0.0};
+
+  bool operator==(const WaveBody & that) const
+  {
+    bool equal = (this->valid == that.valid);
+    equal &= (this->buoyant_force == that.buoyant_force);
+    equal &= (this->buoyant_moment == that.buoyant_moment);
+    equal &= (this->radiation_force == that.radiation_force);
+    equal &= (this->radiation_moment == that.radiation_moment);
+    equal &= (this->exciting_force == that.exciting_force);
+    equal &= (this->exciting_moment == that.exciting_moment);
+
+    return equal;
+  }
 };
 
 /// \brief latent data that is modeled but not directly observed for LatentData message in ROS 2
@@ -118,12 +157,17 @@ struct LatentData
   AirSpring upper_spring;
   AirSpring lower_spring;
   ElectroHydraulic electro_hydraulic;
+  WaveBody wave_body;
+  
+  double piston_friction_force_valid;
+  double piston_friction_force;  // Newtons
 
   bool valid() const
   {
     return inc_wave_heights.valid && \
            upper_spring.valid && lower_spring.valid && \
-           electro_hydraulic.valid;
+           electro_hydraulic.valid && wave_body.valid && \
+           piston_friction_force_valid;
   }
 
   bool operator==(const LatentData & that) const
@@ -131,7 +175,9 @@ struct LatentData
     bool equal = (this->inc_wave_heights == that.inc_wave_heights);
     equal &= (this->upper_spring == that.upper_spring);
     equal &= (this->lower_spring == that.lower_spring);
-    // equal &= fabs(this-> - that.) < 1e-7F;
+    equal &= (this->electro_hydraulic == that.electro_hydraulic);
+    equal &= (this->wave_body == that.wave_body);
+    equal &= fabs(this->piston_friction_force - that.piston_friction_force) < 1e-7F;
     return equal;
   }
 };

@@ -14,6 +14,7 @@ gz_add_plugin(WaveBodyInteractions
   INCLUDE_DIRS
     ..
     ../..
+    ../LatentData
   EXTRA_ROS_PKGS
     simple_interp
     ament_index_cpp

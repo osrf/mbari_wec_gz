@@ -273,6 +273,46 @@ void LatentDataPublisher::PostUpdate(
   this->dataPtr->latent_data_.electro_hydraulic.battery_i2r_loss =
     latent_data.electro_hydraulic.battery_i2r_loss;
 
+  this->dataPtr->latent_data_.wave_body.buoyancy.force.x =
+    latent_data.wave_body.buoyant_force.X();
+  this->dataPtr->latent_data_.wave_body.buoyancy.force.y =
+    latent_data.wave_body.buoyant_force.Y();
+  this->dataPtr->latent_data_.wave_body.buoyancy.force.z =
+    latent_data.wave_body.buoyant_force.Z();
+  this->dataPtr->latent_data_.wave_body.buoyancy.torque.x =
+    latent_data.wave_body.buoyant_moment.X();
+  this->dataPtr->latent_data_.wave_body.buoyancy.torque.y =
+    latent_data.wave_body.buoyant_moment.Y();
+  this->dataPtr->latent_data_.wave_body.buoyancy.torque.z =
+    latent_data.wave_body.buoyant_moment.Z();
+  this->dataPtr->latent_data_.wave_body.radiation.force.x =
+    latent_data.wave_body.radiation_force.X();
+  this->dataPtr->latent_data_.wave_body.radiation.force.y =
+    latent_data.wave_body.radiation_force.Y();
+  this->dataPtr->latent_data_.wave_body.radiation.force.z =
+    latent_data.wave_body.radiation_force.Z();
+  this->dataPtr->latent_data_.wave_body.radiation.torque.x =
+    latent_data.wave_body.radiation_moment.X();
+  this->dataPtr->latent_data_.wave_body.radiation.torque.y =
+    latent_data.wave_body.radiation_moment.Y();
+  this->dataPtr->latent_data_.wave_body.radiation.torque.z =
+    latent_data.wave_body.radiation_moment.Z();
+  this->dataPtr->latent_data_.wave_body.excitation.force.x =
+    latent_data.wave_body.exciting_force.X();
+  this->dataPtr->latent_data_.wave_body.excitation.force.y =
+    latent_data.wave_body.exciting_force.Y();
+  this->dataPtr->latent_data_.wave_body.excitation.force.z =
+    latent_data.wave_body.exciting_force.Z();
+  this->dataPtr->latent_data_.wave_body.excitation.torque.x =
+    latent_data.wave_body.exciting_moment.X();
+  this->dataPtr->latent_data_.wave_body.excitation.torque.y =
+    latent_data.wave_body.exciting_moment.Y();
+  this->dataPtr->latent_data_.wave_body.excitation.torque.z =
+    latent_data.wave_body.exciting_moment.Z();
+
+  this->dataPtr->latent_data_.piston_friction_force =
+    latent_data.piston_friction_force;
+
   // TODO(andermi) fill in other stuff
 
   this->dataPtr->data_valid_ = latent_data.valid();
