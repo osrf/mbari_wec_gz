@@ -113,7 +113,7 @@ void WaveBodyInteractions::Configure(
   if (!_sdf->HasElement("LinkName")) {
     gzerr << "You musk specify a <LinkName> for the wavebodyinteraction "
       "plugin to act upon"
-           << "Failed to initialize." << std::endl;
+          << "Failed to initialize." << std::endl;
     return;
   }
   auto linkName = _sdf->Get<std::string>("LinkName");
@@ -271,7 +271,7 @@ void WaveBodyInteractions::PreUpdate(
   Eigen::VectorXd BuoyancyForce(6);
   BuoyancyForce = this->dataPtr->FloatingBody.BuoyancyForce(x);
   wbidbg << "Buoyancy Force at waterplane = " << BuoyancyForce.transpose()
-        << std::endl;
+         << std::endl;
 
   // Compute Buoyancy Force
   gz::math::Vector3d w_FBp(BuoyancyForce(0), BuoyancyForce(1),
