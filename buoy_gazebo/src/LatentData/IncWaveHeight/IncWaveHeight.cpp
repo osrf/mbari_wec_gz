@@ -352,8 +352,8 @@ void IncWaveHeight::PreUpdate(
     // x, y updated in place to world coords
     std::tie(eta, q) = this->dataPtr->compute_eta(x, y, SimTime, use_buoy_origin);
 
-	// always report in world coords
-	latent_data.inc_wave_heights.points[idx].use_buoy_origin = false;
+    // always report in world coords
+    latent_data.inc_wave_heights.points[idx].use_buoy_origin = false;
 
     latent_data.inc_wave_heights.points[idx].x = x;  // in world coords
     latent_data.inc_wave_heights.points[idx].y = y;  // in world coords
