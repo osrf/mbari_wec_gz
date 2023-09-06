@@ -60,6 +60,7 @@ struct buoy_gazebo::LatentDataPublisherPrivate
     const buoy_gazebo::IncWaveHeightPoint & in,
     buoy_interfaces::msg::IncWaveHeight & out)
   {
+    // all fixed points from SDF computed at SimTime (relative_time = 0.0)
     out.relative_time = 0.0;
     out.use_buoy_origin = in.use_buoy_origin;
     out.pose.pose.position.x = in.x;
@@ -239,6 +240,7 @@ void LatentDataPublisher::PostUpdate(
 
   std::size_t idx = 0U;
   for (; idx < latent_data.inc_wave_heights.points.size(); ++idx) {
+    // all fixed points from SDF computed at SimTime (relative_time = 0.0)
     this->dataPtr->latent_data_.inc_wave_heights[idx].pose.header.stamp.sec =
       latent_data.inc_wave_heights.sec;
     this->dataPtr->latent_data_.inc_wave_heights[idx].pose.header.stamp.nanosec =

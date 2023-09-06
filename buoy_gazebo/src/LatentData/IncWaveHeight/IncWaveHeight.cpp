@@ -155,17 +155,23 @@ struct IncWaveHeightPrivate
         auto sec_nsec = gz::math::durationToSecNsec(current_time_);
 
         response->heights.resize(request->points.size());
-        double relative_time = request->relative_time;
         bool use_buoy_origin = request->use_buoy_origin;
         for (std::size_t idx = 0U; idx < request->points.size(); ++idx) {
+          double t{0.0};
+          if (request->use_relative_time) {
+            t = SimTime + request->relative_time[idx];
+          } else {
+            t = request->absolute_time[idx];
+          }
           double x = request->points[idx].x;
           double y = request->points[idx].y;
 
           double eta{0.0};
           gz::math::Quaternion<double> q;
-          std::tie(eta, q) = compute_eta(x, y, SimTime + relative_time, use_buoy_origin);
+          std::tie(eta, q) = compute_eta(x, y, t, use_buoy_origin);
 
-          response->heights[idx].relative_time = relative_time;
+          // Note: absolute time is converted to relative (from current SimTime)
+          response->heights[idx].relative_time = t - SimTime;
           response->heights[idx].use_buoy_origin = use_buoy_origin;
           response->heights[idx].pose.header.stamp.sec = sec_nsec.first;
           response->heights[idx].pose.header.stamp.nanosec = sec_nsec.second;
@@ -342,6 +348,7 @@ void IncWaveHeight::PreUpdate(
 
   double SimTime = std::chrono::duration<double>(this->dataPtr->current_time_).count();
   auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
+  // all fixed points from SDF computed at SimTime (relative_time = 0.0)
   latent_data.inc_wave_heights.sec = sec_nsec.first;
   latent_data.inc_wave_heights.nsec = sec_nsec.second;
 
