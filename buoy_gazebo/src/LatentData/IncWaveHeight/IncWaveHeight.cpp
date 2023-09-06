@@ -65,7 +65,6 @@ struct IncWaveHeightPrivate
 
   std::mutex data_mutex_, next_access_mutex_, low_prio_mutex_;
   std::atomic<bool> inc_wave_valid_{false};
-  std::atomic<bool> got_new_request_{false};
 
   std::thread thread_executor_spin_;
   std::atomic<bool> stop_{false}, paused_{true};
@@ -102,16 +101,15 @@ struct IncWaveHeightPrivate
   }
 
   std::tuple<double, gz::math::Quaternion<double>> compute_eta(
-    const double & _x,
-    const double & _y,
+    double & x,
+    double & y,
     const double & SimTime,
     const bool use_buoy_origin)
   {
-    double x = _x;
-    double y = _y;
+    // original x, y updated by reference
     if (use_buoy_origin) {
-      x += this->inc_wave_state.x;
-      y += this->inc_wave_state.y;
+      x += this->inc_wave_state.x;  // x of buoy
+      y += this->inc_wave_state.y;  // y of buoy
     }
 
     double deta_dx{0.0}, deta_dy{0.0};
@@ -168,16 +166,19 @@ struct IncWaveHeightPrivate
 
           double eta{0.0};
           gz::math::Quaternion<double> q;
+          // x, y updated in place to world coords
           std::tie(eta, q) = compute_eta(x, y, t, use_buoy_origin);
 
           // Note: absolute time is converted to relative (from current SimTime)
           response->heights[idx].relative_time = t - SimTime;
-          response->heights[idx].use_buoy_origin = use_buoy_origin;
+          response->heights[idx].use_buoy_origin = false;  // always return world coords
           response->heights[idx].pose.header.stamp.sec = sec_nsec.first;
           response->heights[idx].pose.header.stamp.nanosec = sec_nsec.second;
-          response->heights[idx].pose.pose.position = request->points[idx];
-          response->heights[idx].pose.pose.position.z = eta;
+          response->heights[idx].pose.pose.position.x = x;  // in world coords
+          response->heights[idx].pose.pose.position.y = y;  // in world coords
+          response->heights[idx].pose.pose.position.z = eta;  // height above waterplane
 
+          // normal vector (2D slope) of wave at point
           response->heights[idx].pose.pose.orientation.x = q.X();
           response->heights[idx].pose.pose.orientation.y = q.Y();
           response->heights[idx].pose.pose.orientation.z = q.Z();
@@ -272,8 +273,6 @@ void IncWaveHeight::Configure(
           continue;
         }
         this->dataPtr->inc_wave_heights.points.push_back(pt);
-
-        this->dataPtr->got_new_request_ = true;
       }
     } else {
       gzerr << "[ROS 2 Incident Wave Height] Could not parse input points from SDF" << std::endl;
@@ -314,6 +313,16 @@ void IncWaveHeight::PreUpdate(
     return;
   }
 
+  // nothing to do
+  if (this->dataPtr->inc_wave_heights.points.size() == 0U) {
+    return;
+  }
+
+  // can't process wave heights
+  if (!this->dataPtr->inc_wave_valid_) {
+    return;
+  }
+
   buoy_gazebo::LatentData latent_data;
   if (_ecm.EntityHasComponentType(
       this->dataPtr->entity,
@@ -325,50 +334,37 @@ void IncWaveHeight::PreUpdate(
     latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
   }
 
-  // low prio data access
-  std::unique_lock low(this->dataPtr->low_prio_mutex_);
-  std::unique_lock next(this->dataPtr->next_access_mutex_);
-  std::unique_lock data(this->dataPtr->data_mutex_);
-  next.unlock();
-
-  if (!this->dataPtr->inc_wave_valid_) {
-    data.unlock();
-    return;
-  }
-
-  if (this->dataPtr->got_new_request_) {
-    latent_data.inc_wave_heights = this->dataPtr->inc_wave_heights;
-    this->dataPtr->got_new_request_ = false;
-  }
-
-  if (latent_data.inc_wave_heights.points.size() == 0U) {
-    data.unlock();
-    return;
-  }
-
   double SimTime = std::chrono::duration<double>(this->dataPtr->current_time_).count();
   auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
   // all fixed points from SDF computed at SimTime (relative_time = 0.0)
   latent_data.inc_wave_heights.sec = sec_nsec.first;
   latent_data.inc_wave_heights.nsec = sec_nsec.second;
 
+  latent_data.inc_wave_heights.points.resize(this->dataPtr->inc_wave_heights.points.size());
   std::size_t idx = 0U;
   for (; idx < latent_data.inc_wave_heights.points.size(); ++idx) {
-    double use_buoy_origin = latent_data.inc_wave_heights.points[idx].use_buoy_origin;
-    double x = latent_data.inc_wave_heights.points[idx].x;
-    double y = latent_data.inc_wave_heights.points[idx].y;
+    double use_buoy_origin = this->dataPtr->inc_wave_heights.points[idx].use_buoy_origin;
+    double x = this->dataPtr->inc_wave_heights.points[idx].x;
+    double y = this->dataPtr->inc_wave_heights.points[idx].y;
 
     double eta{0.0};
     gz::math::Quaternion<double> q;
+    // x, y updated in place to world coords
     std::tie(eta, q) = this->dataPtr->compute_eta(x, y, SimTime, use_buoy_origin);
 
-    latent_data.inc_wave_heights.points[idx].eta = eta;
+	// always report in world coords
+	latent_data.inc_wave_heights.points[idx].use_buoy_origin = false;
+
+    latent_data.inc_wave_heights.points[idx].x = x;  // in world coords
+    latent_data.inc_wave_heights.points[idx].y = y;  // in world coords
+    latent_data.inc_wave_heights.points[idx].eta = eta;  // height above waterplane
+
+    // normal vector (2D slope) of wave at point
     latent_data.inc_wave_heights.points[idx].qx = q.X();
     latent_data.inc_wave_heights.points[idx].qy = q.Y();
     latent_data.inc_wave_heights.points[idx].qz = q.Z();
     latent_data.inc_wave_heights.points[idx].qw = q.W();
   }
-  data.unlock();
 
   _ecm.SetComponentData<buoy_gazebo::components::LatentData>(
     this->dataPtr->entity,
@@ -400,6 +396,7 @@ void IncWaveHeight::PostUpdate(
 
   if (this->dataPtr->IncWaveEntity == gz::sim::kNullEntity) {
     this->dataPtr->inc_wave_valid_ = false;
+    data.unlock();
     return;
   }
 

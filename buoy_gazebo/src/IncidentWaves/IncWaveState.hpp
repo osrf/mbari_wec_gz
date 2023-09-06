@@ -26,7 +26,7 @@
 
 namespace buoy_gazebo
 {
-/// \brief Structure that holds shared ptr to incident wave object(s), and other data
+/// \brief Structure that holds incident wave object(s), and other data
 struct IncWaveState
 {
   LinearIncidentWave Inc;
