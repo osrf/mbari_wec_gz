@@ -60,14 +60,15 @@ struct buoy_gazebo::LatentDataPublisherPrivate
     const buoy_gazebo::IncWaveHeightPoint & in,
     buoy_interfaces::msg::IncWaveHeight & out)
   {
+    out.relative_time = 0.0;
     out.use_buoy_origin = in.use_buoy_origin;
-    out.pose.position.x = in.x;
-    out.pose.position.y = in.y;
-    out.pose.position.z = in.eta;
-    out.pose.orientation.x = in.qx;
-    out.pose.orientation.y = in.qy;
-    out.pose.orientation.z = in.qz;
-    out.pose.orientation.w = in.qw;
+    out.pose.pose.position.x = in.x;
+    out.pose.pose.position.y = in.y;
+    out.pose.pose.position.z = in.eta;
+    out.pose.pose.orientation.x = in.qx;
+    out.pose.pose.orientation.y = in.qy;
+    out.pose.pose.orientation.z = in.qz;
+    out.pose.pose.orientation.w = in.qw;
   }
 };
 
@@ -238,6 +239,10 @@ void LatentDataPublisher::PostUpdate(
 
   std::size_t idx = 0U;
   for (; idx < latent_data.inc_wave_heights.points.size(); ++idx) {
+    this->dataPtr->latent_data_.inc_wave_heights[idx].pose.header.stamp.sec =
+      latent_data.inc_wave_heights.sec;
+    this->dataPtr->latent_data_.inc_wave_heights[idx].pose.header.stamp.nanosec =
+      latent_data.inc_wave_heights.nsec;
     this->dataPtr->copy_inc_wave_height(
       latent_data.inc_wave_heights.points[idx],
       this->dataPtr->latent_data_.inc_wave_heights[idx]);

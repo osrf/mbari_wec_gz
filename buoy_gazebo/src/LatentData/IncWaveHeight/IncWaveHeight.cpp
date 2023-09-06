@@ -154,39 +154,28 @@ struct IncWaveHeightPrivate
         double SimTime = std::chrono::duration<double>(current_time_).count();
         auto sec_nsec = gz::math::durationToSecNsec(current_time_);
 
-        this->got_new_request_ = true;
-        response->stamp.sec = sec_nsec.first;
-        response->stamp.nanosec = sec_nsec.second;
         response->heights.resize(request->points.size());
-        this->inc_wave_heights.sec = sec_nsec.first;
-        this->inc_wave_heights.nsec = sec_nsec.second;
-        this->inc_wave_heights.points.clear();
-        this->inc_wave_heights.points.resize(request->points.size());
+        double relative_time = request->relative_time;
+        bool use_buoy_origin = request->use_buoy_origin;
         for (std::size_t idx = 0U; idx < request->points.size(); ++idx) {
-          bool use_buoy_origin = request->use_buoy_origin;
           double x = request->points[idx].x;
           double y = request->points[idx].y;
 
           double eta{0.0};
           gz::math::Quaternion<double> q;
-          std::tie(eta, q) = compute_eta(x, y, SimTime, use_buoy_origin);
+          std::tie(eta, q) = compute_eta(x, y, SimTime + relative_time, use_buoy_origin);
 
-          response->heights[idx].pose.position = request->points[idx];
-          response->heights[idx].pose.position.z = eta;
+          response->heights[idx].relative_time = relative_time;
+          response->heights[idx].use_buoy_origin = use_buoy_origin;
+          response->heights[idx].pose.header.stamp.sec = sec_nsec.first;
+          response->heights[idx].pose.header.stamp.nanosec = sec_nsec.second;
+          response->heights[idx].pose.pose.position = request->points[idx];
+          response->heights[idx].pose.pose.position.z = eta;
 
-          response->heights[idx].pose.orientation.x = q.X();
-          response->heights[idx].pose.orientation.y = q.Y();
-          response->heights[idx].pose.orientation.z = q.Z();
-          response->heights[idx].pose.orientation.w = q.W();
-
-          this->inc_wave_heights.points[idx].use_buoy_origin = use_buoy_origin;
-          this->inc_wave_heights.points[idx].x = x;
-          this->inc_wave_heights.points[idx].y = y;
-          this->inc_wave_heights.points[idx].eta = eta;
-          this->inc_wave_heights.points[idx].qx = q.X();
-          this->inc_wave_heights.points[idx].qy = q.Y();
-          this->inc_wave_heights.points[idx].qz = q.Z();
-          this->inc_wave_heights.points[idx].qw = q.W();
+          response->heights[idx].pose.pose.orientation.x = q.X();
+          response->heights[idx].pose.pose.orientation.y = q.Y();
+          response->heights[idx].pose.pose.orientation.z = q.Z();
+          response->heights[idx].pose.pose.orientation.w = q.W();
         }
         data.unlock();
       };
@@ -252,10 +241,11 @@ void IncWaveHeight::Configure(
           }
         }
       }
+
       this->dataPtr->inc_wave_heights.points.clear();
       bool first = true;
       sdf::ElementPtr e{nullptr};
-      for (;; ) {
+      for (;;) {
         if (first) {
           e = points->GetElementImpl("xy");
           first = false;
