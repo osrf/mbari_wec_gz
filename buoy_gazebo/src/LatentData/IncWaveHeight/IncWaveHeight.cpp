@@ -245,7 +245,7 @@ void IncWaveHeight::Configure(
       this->dataPtr->inc_wave_heights.points.clear();
       bool first = true;
       sdf::ElementPtr e{nullptr};
-      for (;;) {
+      for (;; ) {
         if (first) {
           e = points->GetElementImpl("xy");
           first = false;
