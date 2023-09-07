@@ -53,6 +53,29 @@
       <publish_rate>10</publish_rate>
     </plugin>
 
+    <plugin filename="LatentData" name="buoy_gazebo::LatentDataPublisher">
+      <namespace>/</namespace>
+      <node_name>latent_data</node_name>
+      <ros2_topic>latent_data</ros2_topic>
+      <publish_rate>10</publish_rate>
+    </plugin>
+
+    <plugin filename="IncWaveHeight" name="buoy_gazebo::IncWaveHeight">
+      <namespace>/</namespace>
+      <node_name>inc_wave_service</node_name>
+      <points use_buoy_origin="true">
+        <xy>-1.0 -1.0</xy>
+        <xy>0.0 -1.0</xy>
+        <xy>1.0 -1.0</xy>
+        <xy>-1.0 0.0</xy>
+        <xy>0.0 0.0</xy>
+        <xy>1.0 0.0</xy>
+        <xy>-1.0 1.0</xy>
+        <xy>0.0 1.0</xy>
+        <xy>1.0 1.0</xy>
+      </points>
+    </plugin>
+
     <plugin
       filename="gz-sim-joint-state-publisher-system"
       name="gz::sim::systems::JointStatePublisher">

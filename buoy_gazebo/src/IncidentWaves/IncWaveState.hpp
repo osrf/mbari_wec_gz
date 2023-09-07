@@ -20,14 +20,16 @@
 #include <gz/sim/components/Factory.hh>
 #include <gz/sim/components/Component.hh>
 #include <gz/sim/config.hh>
+
 #include <FreeSurfaceHydrodynamics/LinearIncidentWave.hpp>
+
 
 namespace buoy_gazebo
 {
-/// \brief Structure that holds shared ptr to incident wave object(s), and other data
+/// \brief Structure that holds incident wave object(s), and other data
 struct IncWaveState
 {
-  std::shared_ptr<LinearIncidentWave> Inc;
+  LinearIncidentWave Inc;
   double x;
   double y;
 };

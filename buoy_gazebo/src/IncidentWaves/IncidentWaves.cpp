@@ -47,7 +47,7 @@ public:
   /// \brief Model interface
   gz::sim::Model model{gz::sim::kNullEntity};
 
-  std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave>();
+  LinearIncidentWave Inc{};
 
   gz::sim::Entity IncWaveEntity;
   buoy_gazebo::IncWaveState inc_wave_state;
@@ -82,7 +82,7 @@ void IncidentWaves::Configure(
   }
 
   double seed = SdfParamDouble(_sdf, "IncWaveSeed", 0.0);
-  this->dataPtr->Inc->SetSeed(seed);
+  this->dataPtr->Inc.SetSeed(seed);
 
   auto linkName = _sdf->Get<std::string>("LinkName");
 
@@ -96,7 +96,7 @@ void IncidentWaves::Configure(
     double A = SdfParamDouble(_sdf, "A", 0.0);
     double T = SdfParamDouble(_sdf, "T", 14.0);
     double phase = SdfParamDouble(_sdf, "Phase", 0.0);
-    this->dataPtr->Inc->SetToMonoChromatic(A, T, phase, beta);
+    this->dataPtr->Inc.SetToMonoChromatic(A, T, phase, beta);
   }
 
   if (!SpectrumType.compare("Bretschneider")) {
@@ -104,7 +104,7 @@ void IncidentWaves::Configure(
     double Hs = SdfParamDouble(_sdf, "Hs", 0.0);
     double Tp = SdfParamDouble(_sdf, "Tp", 14.0);
     gzdbg << "Hs = " << Hs << "  Tp = " << Tp << std::endl;
-    this->dataPtr->Inc->SetToBretschneiderSpectrum(Hs, Tp, beta);
+    this->dataPtr->Inc.SetToBretschneiderSpectrum(Hs, Tp, beta);
   }
 
   if (!SpectrumType.compare("Custom")) {
@@ -124,7 +124,7 @@ void IncidentWaves::Configure(
     }
 
     if (freq.size() > 2) {  // \TODO(anyone):  Add more checks on validity of spectrum
-      this->dataPtr->Inc->SetToCustomSpectrum(freq, S, beta);
+      this->dataPtr->Inc.SetToCustomSpectrum(freq, S, beta);
     } else {
       gzwarn << "Ill-formed custom wave-spectrum specification, no waves added" << std::endl;
     }
@@ -153,8 +153,7 @@ void IncidentWaves::PreUpdate(
   }
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
 
-
-//  buoy_gazebo::IncWaveState inc_wave_state;
+  // buoy_gazebo::IncWaveState inc_wave_state;
   if (_ecm.EntityHasComponentType(
       this->dataPtr->IncWaveEntity,
       buoy_gazebo::components::IncWaveState().TypeId()))
@@ -165,7 +164,7 @@ void IncidentWaves::PreUpdate(
     this->dataPtr->inc_wave_state = buoy_gazebo::IncWaveState(inc_wave_state_comp->Data());
   }
   double deta_dx{0.0}, deta_dy{0.0};
-  double eta = this->dataPtr->Inc->eta(
+  double eta = this->dataPtr->Inc.eta(
     this->dataPtr->inc_wave_state.x,
     this->dataPtr->inc_wave_state.y,
     SimTime, &deta_dx, &deta_dy);
