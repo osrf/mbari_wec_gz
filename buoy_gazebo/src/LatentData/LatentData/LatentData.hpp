@@ -158,7 +158,7 @@ struct LatentData
   AirSpring lower_spring;
   ElectroHydraulic electro_hydraulic;
   WaveBody wave_body;
-  
+
   double piston_friction_force_valid;
   double piston_friction_force;  // Newtons
 
