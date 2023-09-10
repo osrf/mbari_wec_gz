@@ -27,6 +27,7 @@ static constexpr double NM_PER_INLB{0.112984829};
 static constexpr double INLB_PER_NM{8.851};
 static constexpr double INCHES_PER_METER{39.4};
 static constexpr double NEWTONS_PER_LB{4.4482};
+static constexpr double PASCAL_PER_PSI = 6894.757;  // Pascal/PSI
 }  // namespace buoy_utils
 
 

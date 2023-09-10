@@ -279,6 +279,12 @@ void LatentDataPublisher::PostUpdate(
     latent_data.electro_hydraulic.motor_drive_friction_loss;
   this->dataPtr->latent_data_.electro_hydraulic.battery_i2r_loss =
     latent_data.electro_hydraulic.battery_i2r_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.eff_m =
+    latent_data.electro_hydraulic.eff_m;
+  this->dataPtr->latent_data_.electro_hydraulic.eff_v =
+    latent_data.electro_hydraulic.eff_v;
+
+
 
   this->dataPtr->latent_data_.wave_body.buoyancy.force.x =
     latent_data.wave_body.buoyant_force.X();

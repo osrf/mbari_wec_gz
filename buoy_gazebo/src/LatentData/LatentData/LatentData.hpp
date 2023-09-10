@@ -106,10 +106,12 @@ struct ElectroHydraulic
   double inst_power{0.0};  // Watts
   double rpm{0.0};
   double force{0.0};  // Newtons
-  double motor_drive_i2r_loss{0.0};
-  double motor_drive_friction_loss{0.0};
-  double motor_drive_switching_loss{0.0};
-  double battery_i2r_loss{0.0};
+  double motor_drive_i2r_loss{0.0};  // Watts
+  double motor_drive_friction_loss{0.0};  // Watts
+  double motor_drive_switching_loss{0.0};  // Watts
+  double battery_i2r_loss{0.0};  // Watts
+  double eff_m{0.0};  // mechanical efficiency
+  double eff_v{0.0};  // volumetric efficiency
 
   bool operator==(const ElectroHydraulic & that) const
   {

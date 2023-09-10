@@ -40,6 +40,8 @@
 #include "SpringState.hpp"
 #include <LatentData/LatentData.hpp>
 
+#include <buoy_utils/Constants.hpp>
+
 
 using namespace std::chrono_literals;
 
@@ -528,8 +530,8 @@ void PolytropicPneumaticSpring::PreUpdate(
   const int dt_nano =
     static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count());
 
-  static const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
-  const double pressure_diff = (spring_state.lower_psi - spring_state.upper_psi) / PASCAL_TO_PSI;
+  const double pressure_diff =
+    (spring_state.lower_psi - spring_state.upper_psi) * buoy_utils::PASCAL_PER_PSI;
 
   if (spring_state.valve_command) {
     openValve(
@@ -597,6 +599,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     latent_data.upper_spring.dQ_dt = this->dataPtr->Q_rate;
     latent_data.upper_spring.piston_position = x;
     latent_data.upper_spring.piston_velocity = v;
+    latent_data.upper_spring.mass = this->dataPtr->mass;
   } else {
     latent_data.lower_spring.valid = true;
     latent_data.lower_spring.force = this->dataPtr->F;
@@ -604,6 +607,7 @@ void PolytropicPneumaticSpring::PreUpdate(
     latent_data.lower_spring.dQ_dt = this->dataPtr->Q_rate;
     latent_data.lower_spring.piston_position = this->dataPtr->config_->stroke - x;
     latent_data.lower_spring.piston_velocity = -v;
+    latent_data.lower_spring.mass = this->dataPtr->mass;
   }
 
   _ecm.SetComponentData<buoy_gazebo::components::LatentData>(

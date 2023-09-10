@@ -376,6 +376,9 @@ void ElectroHydraulicPTO::PreUpdate(
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   double VBus = this->dataPtr->x[2U];
+  const double eff_m = this->hyd_eff_m.eval(fabs(N));
+  const double eff_v = this->hyd_eff_v.eval(fabs(deltaP));
+
   VBus = std::min(VBus, this->dataPtr->MaxTargetVoltage);
   double BusPower = this->dataPtr->functor.BusPower;
 
@@ -436,6 +439,8 @@ void ElectroHydraulicPTO::PreUpdate(
   latent_data.electro_hydraulic.motor_drive_switching_loss = pto_loss.motor_drive_switching_loss;
   latent_data.electro_hydraulic.motor_drive_friction_loss = pto_loss.motor_drive_friction_loss;
   latent_data.electro_hydraulic.battery_i2r_loss = pto_loss.battery_i2r_loss;
+  latent_data.electro_hydraulic.eff_m = eff_m;
+  latent_data.electro_hydraulic.eff_v = eff_v;
 
   _ecm.SetComponentData<buoy_gazebo::components::BatteryState>(
     this->dataPtr->PrismaticJointEntity,
