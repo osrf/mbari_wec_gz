@@ -572,9 +572,9 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   if (this->dataPtr->config_->is_upper) {
     spring_state.range_finder = x;
-    spring_state.upper_psi = PASCAL_TO_PSI * this->dataPtr->P;
+    spring_state.upper_psi = this->dataPtr->P / buoy_utils::PASCAL_PER_PSI;
   } else {
-    spring_state.lower_psi = PASCAL_TO_PSI * this->dataPtr->P;
+    spring_state.lower_psi = this->dataPtr->P / buoy_utils::PASCAL_PER_PSI;
   }
 
   _ecm.SetComponentData<buoy_gazebo::components::SpringState>(

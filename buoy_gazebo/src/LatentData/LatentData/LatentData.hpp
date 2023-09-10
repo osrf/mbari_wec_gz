@@ -88,6 +88,7 @@ struct AirSpring
   double dQ_dt{0.0};  // heat loss rate
   double piston_position{0.0};  // meters
   double piston_velocity{0.0};  // m/s
+  double mass{0.0};  // kg
 
   bool operator==(const AirSpring & that) const
   {

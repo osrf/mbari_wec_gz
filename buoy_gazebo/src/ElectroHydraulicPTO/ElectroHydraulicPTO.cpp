@@ -376,8 +376,8 @@ void ElectroHydraulicPTO::PreUpdate(
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   double VBus = this->dataPtr->x[2U];
-  const double eff_m = this->hyd_eff_m.eval(fabs(N));
-  const double eff_v = this->hyd_eff_v.eval(fabs(deltaP));
+  const double eff_m = this->dataPtr->functor.hyd_eff_m.eval(fabs(N));
+  const double eff_v = this->dataPtr->functor.hyd_eff_v.eval(fabs(deltaP));
 
   VBus = std::min(VBus, this->dataPtr->MaxTargetVoltage);
   double BusPower = this->dataPtr->functor.BusPower;
