@@ -96,6 +96,9 @@ struct AirSpring
     equal &= fabs(this->force - that.force) < 1e-7F;
     equal &= fabs(this->T - that.T) < 1e-7F;
     equal &= fabs(this->dQ_dt - that.dQ_dt) < 1e-7F;
+    equal &= fabs(this->piston_position - that.piston_position) < 1e-7F;
+    equal &= fabs(this->piston_velocity - that.piston_velocity) < 1e-7F;
+    equal &= fabs(this->mass - that.mass) < 1e-7F;
 
     return equal;
   }
@@ -123,6 +126,8 @@ struct ElectroHydraulic
     equal &= fabs(this->motor_drive_friction_loss - that.motor_drive_friction_loss) < 1e-7F;
     equal &= fabs(this->motor_drive_switching_loss - that.motor_drive_switching_loss) < 1e-7F;
     equal &= fabs(this->battery_i2r_loss - that.battery_i2r_loss) < 1e-7F;
+    equal &= fabs(this->eff_m - that.eff_m) < 1e-7F;
+    equal &= fabs(this->eff_v - that.eff_v) < 1e-7F;
 
     return equal;
   }
@@ -167,6 +172,11 @@ struct LatentData
 
   bool valid() const
   {
+    /* std::cout << "iwh[" << inc_wave_heights.valid << "] :: "
+      << "us[" << upper_spring.valid << "] :: "
+      << "ls[" << lower_spring.valid << "] :: "
+      << "wb[" << wave_body.valid << "] :: "
+      << "friction[" << piston_friction_force_valid << "]" << std::endl; */
     return inc_wave_heights.valid && \
            upper_spring.valid && lower_spring.valid && \
            electro_hydraulic.valid && wave_body.valid && \
@@ -181,6 +191,7 @@ struct LatentData
     equal &= (this->electro_hydraulic == that.electro_hydraulic);
     equal &= (this->wave_body == that.wave_body);
     equal &= fabs(this->piston_friction_force - that.piston_friction_force) < 1e-7F;
+    equal &= (this->piston_friction_force_valid == that.piston_friction_force_valid);
     return equal;
   }
 };

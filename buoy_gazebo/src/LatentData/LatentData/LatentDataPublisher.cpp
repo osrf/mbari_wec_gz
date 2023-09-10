@@ -284,8 +284,6 @@ void LatentDataPublisher::PostUpdate(
   this->dataPtr->latent_data_.electro_hydraulic.eff_v =
     latent_data.electro_hydraulic.eff_v;
 
-
-
   this->dataPtr->latent_data_.wave_body.buoyancy.force.x =
     latent_data.wave_body.buoyant_force.X();
   this->dataPtr->latent_data_.wave_body.buoyancy.force.y =
