@@ -190,7 +190,7 @@ public:
       Q_Relief = (x[1U] + PressReliefSetPoint) * ReliefValveFlowPerPSI *
         buoy_utils::CubicInchesPerGallon / buoy_utils::SecondsPerMinute;
     }
-    ReliefValveLoss = Q_Relief*x[1U]*buoy_utils::INLB_PER_NM;  // Result is Watts
+    ReliefValveLoss = Q_Relief*x[1U]/buoy_utils::INLB_PER_NM;  // Result is Watts
 							       
     double Q_Motor = this->Q - Q_Relief;
     double Q_Ideal = x[0U] * this->HydMotorDisp / buoy_utils::SecondsPerMinute;
