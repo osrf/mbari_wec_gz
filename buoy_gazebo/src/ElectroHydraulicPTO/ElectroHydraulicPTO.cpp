@@ -412,6 +412,8 @@ void ElectroHydraulicPTO::PreUpdate(
 
   latent_data.electro_hydraulic.valid = true;
   latent_data.electro_hydraulic.inst_power = VBus * (I_Batt + I_Load);
+  latent_data.electro_hydraulic.supplied_hydraulic_power = 
+	  -deltaP*this->dataPtr->functor.Q/buoy_utils::INLB_PER_NM;
   latent_data.electro_hydraulic.shaft_mech_power = 
     this->dataPtr->functor.ShaftMechPower;
   latent_data.electro_hydraulic.rpm = N;

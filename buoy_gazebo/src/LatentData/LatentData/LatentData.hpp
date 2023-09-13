@@ -107,6 +107,7 @@ struct AirSpring
 struct ElectroHydraulic
 {
   bool valid{false};
+  double supplied_hydraulic_power{0.0};  // Watts
   double shaft_mech_power{0.0};  // Watts
   double inst_power{0.0};  // Watts
   double rpm{0.0};
@@ -123,6 +124,7 @@ struct ElectroHydraulic
   bool operator==(const ElectroHydraulic & that) const
   {
     bool equal = (this->valid == that.valid);
+    equal &= fabs(this->supplied_hydraulic_power - that.supplied_hydraulic_power) < 1e-7F;
     equal &= fabs(this->shaft_mech_power - that.shaft_mech_power) < 1e-7F;
     equal &= fabs(this->inst_power - that.inst_power) < 1e-7F;
     equal &= fabs(this->force - that.force) < 1e-7F;
