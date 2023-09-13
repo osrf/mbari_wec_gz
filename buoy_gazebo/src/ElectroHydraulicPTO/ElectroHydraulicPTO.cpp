@@ -417,11 +417,15 @@ void ElectroHydraulicPTO::PreUpdate(
   latent_data.electro_hydraulic.rpm = N;
   latent_data.electro_hydraulic.force = piston_force;
   latent_data.electro_hydraulic.motor_drive_i2r_loss = 
-    this->dataPtr->functor.MotorDriveISquaredRLoss(this->dataPtr->functor.I_Wind.I);
+    this->dataPtr->functor.I2RLoss;
   latent_data.electro_hydraulic.motor_drive_switching_loss = 
-    this->dataPtr->functor.MotorDriveSwitchingLoss(VBus);	 
+    this->dataPtr->functor.SwitchingLoss;	 
   latent_data.electro_hydraulic.motor_drive_friction_loss = 
-    this->dataPtr->functor.MotorDriveFrictionLoss(N);	  
+    this->dataPtr->functor.FrictionLoss;	  
+  latent_data.electro_hydraulic.relief_valve_loss = 
+    this->dataPtr->functor.ReliefValveLoss;	  
+  latent_data.electro_hydraulic.hydraulic_motor_loss = 
+    this->dataPtr->functor.HydraulicMotorLoss;	  
   latent_data.electro_hydraulic.battery_i2r_loss =
      I_Batt * I_Batt * this->dataPtr->Ri;
   latent_data.electro_hydraulic.eff_m = eff_m;
