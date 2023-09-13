@@ -110,6 +110,7 @@ public:
   mutable double BusPower;
   double Q;
 
+  mutable double ShaftMechPower;
 private:
   static const std::vector<double> Peff;       // psi
   static const std::vector<double> Neff;       // rpm
@@ -170,7 +171,7 @@ public:
     const double T_applied =
       1.375 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
 
-    double ShaftMechPower = T_applied * buoy_utils::NM_PER_INLB *
+    ShaftMechPower = T_applied * buoy_utils::NM_PER_INLB *
       x[0U] * buoy_utils::RPM_TO_RAD_PER_SEC;
     BusPower = -ShaftMechPower - (
       MotorDriveFrictionLoss(x[0U]) +

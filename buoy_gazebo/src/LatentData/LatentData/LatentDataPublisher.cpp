@@ -265,6 +265,8 @@ void LatentDataPublisher::PostUpdate(
   this->dataPtr->latent_data_.lower_spring.piston_velocity =
     latent_data.lower_spring.piston_velocity;
 
+  this->dataPtr->latent_data_.electro_hydraulic.shaft_mech_power =
+    latent_data.electro_hydraulic.shaft_mech_power;
   this->dataPtr->latent_data_.electro_hydraulic.inst_power =
     latent_data.electro_hydraulic.inst_power;
   this->dataPtr->latent_data_.electro_hydraulic.rpm =
