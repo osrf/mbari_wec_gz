@@ -411,27 +411,32 @@ void ElectroHydraulicPTO::PreUpdate(
   double piston_force = -deltaP * this->dataPtr->PistonArea * buoy_utils::NEWTONS_PER_LB;
 
   latent_data.electro_hydraulic.valid = true;
-  latent_data.electro_hydraulic.inst_power = VBus * (I_Batt + I_Load);
+  latent_data.electro_hydraulic.rpm = N;
+  latent_data.electro_hydraulic.upper_hydraulic_pressure = 
+	  pto_state.upper_hyd_press * buoy_utils::PASCAL_PER_PSI;
+  latent_data.electro_hydraulic.lower_hydraulic_pressure = 
+	  pto_state.lower_hyd_press * buoy_utils::PASCAL_PER_PSI;
+  latent_data.electro_hydraulic.force = piston_force;
   latent_data.electro_hydraulic.supplied_hydraulic_power = 
 	  -deltaP*this->dataPtr->functor.Q/buoy_utils::INLB_PER_NM;
+  latent_data.electro_hydraulic.hydraulic_motor_loss = 
+    this->dataPtr->functor.HydraulicMotorLoss;	  
+  latent_data.electro_hydraulic.relief_valve_loss = 
+    this->dataPtr->functor.ReliefValveLoss;	  
   latent_data.electro_hydraulic.shaft_mech_power = 
     this->dataPtr->functor.ShaftMechPower;
-  latent_data.electro_hydraulic.rpm = N;
-  latent_data.electro_hydraulic.force = piston_force;
   latent_data.electro_hydraulic.motor_drive_i2r_loss = 
     this->dataPtr->functor.I2RLoss;
   latent_data.electro_hydraulic.motor_drive_switching_loss = 
     this->dataPtr->functor.SwitchingLoss;	 
   latent_data.electro_hydraulic.motor_drive_friction_loss = 
     this->dataPtr->functor.FrictionLoss;	  
-  latent_data.electro_hydraulic.relief_valve_loss = 
-    this->dataPtr->functor.ReliefValveLoss;	  
-  latent_data.electro_hydraulic.hydraulic_motor_loss = 
-    this->dataPtr->functor.HydraulicMotorLoss;	  
+  latent_data.electro_hydraulic.load_dump_power =
+     I_Load * VBus;
   latent_data.electro_hydraulic.battery_i2r_loss =
      I_Batt * I_Batt * this->dataPtr->Ri;
-  latent_data.electro_hydraulic.eff_m = eff_m;
-  latent_data.electro_hydraulic.eff_v = eff_v;
+  latent_data.electro_hydraulic.battery_storage_power =
+     I_Batt * VBus - latent_data.electro_hydraulic.battery_i2r_loss;
 
   _ecm.SetComponentData<buoy_gazebo::components::BatteryState>(
     this->dataPtr->PrismaticJointEntity,
