@@ -118,9 +118,9 @@ struct ElectroHydraulic
   double motor_drive_i2r_loss{0.0};  // Watts
   double motor_drive_switching_loss{0.0};  // Watts
   double motor_drive_friction_loss{0.0};  // Watts
-  double load_dump_power{0.0}; // Watts
+  double load_dump_power{0.0};  // Watts
   double battery_i2r_loss{0.0};  // Watts
-  double battery_storage_power{0.0}; // Watts
+  double battery_storage_power{0.0};  // Watts
 
   bool operator==(const ElectroHydraulic & that) const
   {

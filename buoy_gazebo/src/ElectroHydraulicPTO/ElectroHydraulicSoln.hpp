@@ -182,7 +182,7 @@ public:
     FrictionLoss = MotorDriveFrictionLoss(x[0U]);
     SwitchingLoss = MotorDriveSwitchingLoss(x[2U]);
     I2RLoss = MotorDriveISquaredRLoss(WindCurr);
-    BusPower = ShaftMechPower - (FrictionLoss+SwitchingLoss+I2RLoss);
+    BusPower = ShaftMechPower - (FrictionLoss + SwitchingLoss + I2RLoss);
     double Q_Relief = 0;
     if (x[1U] < -PressReliefSetPoint) {  // Pressure relief is a one wave valve,
                                          // relieves when lower pressure is higher
@@ -190,8 +190,8 @@ public:
       Q_Relief = (x[1U] + PressReliefSetPoint) * ReliefValveFlowPerPSI *
         buoy_utils::CubicInchesPerGallon / buoy_utils::SecondsPerMinute;
     }
-    ReliefValveLoss = Q_Relief*x[1U]/buoy_utils::INLB_PER_NM;  // Result is Watts
-							       
+    ReliefValveLoss = Q_Relief * x[1U] / buoy_utils::INLB_PER_NM;  // Result is Watts
+
     double Q_Motor = this->Q - Q_Relief;
     double Q_Ideal = x[0U] * this->HydMotorDisp / buoy_utils::SecondsPerMinute;
     double Q_Leak = (1.0 - eff_v) * std::max(fabs(Q_Motor), fabs(Q_Ideal)) * sgn(x[1]);
@@ -199,8 +199,8 @@ public:
     double T_Fluid = x[1U] * this->HydMotorDisp / (2.0 * M_PI);
     double T_Friction = -(1.0 - eff_m) * std::max(fabs(T_applied), fabs(T_Fluid)) * sgn(x[0]);
 
-    HydraulicMotorLoss = Q_Leak*x[1U]/buoy_utils::INLB_PER_NM - //Result is Watts 
-       T_Friction*x[0U]*2.0 * M_PI/(buoy_utils::INLB_PER_NM*buoy_utils::SecondsPerMinute);
+    HydraulicMotorLoss = Q_Leak * x[1U] / buoy_utils::INLB_PER_NM -  // Result is Watts
+      T_Friction * x[0U] * 2.0 * M_PI / (buoy_utils::INLB_PER_NM * buoy_utils::SecondsPerMinute);
 
     fvec[0U] = Q_Motor - Q_Leak - Q_Ideal;
     fvec[1U] = T_applied + T_Friction + T_Fluid;
