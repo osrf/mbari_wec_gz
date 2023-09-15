@@ -44,7 +44,6 @@
 
 #include "ElectroHydraulicSoln.hpp"
 #include "ElectroHydraulicState.hpp"
-#include "ElectroHydraulicLoss.hpp"
 #include "BatteryState.hpp"
 
 #include <LatentData/LatentData.hpp>
@@ -265,18 +264,6 @@ void ElectroHydraulicPTO::PreUpdate(
     pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
   }
 
-  buoy_gazebo::ElectroHydraulicLoss pto_loss;
-  if (_ecm.EntityHasComponentType(
-      this->dataPtr->PrismaticJointEntity,
-      buoy_gazebo::components::ElectroHydraulicLoss().TypeId()))
-  {
-    auto pto_loss_comp =
-      _ecm.Component<buoy_gazebo::components::ElectroHydraulicLoss>(
-      this->dataPtr->PrismaticJointEntity);
-
-    pto_loss = buoy_gazebo::ElectroHydraulicLoss(pto_loss_comp->Data());
-  }
-
   buoy_gazebo::LatentData latent_data;
   if (_ecm.EntityHasComponentType(
       this->dataPtr->model.Entity(),
@@ -421,26 +408,35 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_state.target_a = this->dataPtr->functor.I_Wind.I;
 
 
-  pto_loss.hydraulic_motor_loss += 1.0;
-  pto_loss.relief_valve_loss += 2.0;
-  pto_loss.motor_drive_i2r_loss =
-    this->dataPtr->functor.MotorDriveISquaredRLoss(this->dataPtr->functor.I_Wind.I);
-  pto_loss.motor_drive_switching_loss = this->dataPtr->functor.MotorDriveSwitchingLoss(VBus);
-  pto_loss.motor_drive_friction_loss = this->dataPtr->functor.MotorDriveFrictionLoss(N);
-  pto_loss.battery_i2r_loss = I_Batt * I_Batt * this->dataPtr->Ri;
-
   double piston_force = -deltaP * this->dataPtr->PistonArea * buoy_utils::NEWTONS_PER_LB;
 
   latent_data.electro_hydraulic.valid = true;
-  latent_data.electro_hydraulic.inst_power = VBus * (I_Batt + I_Load);
   latent_data.electro_hydraulic.rpm = N;
+  latent_data.electro_hydraulic.upper_hydraulic_pressure =
+    pto_state.upper_hyd_press * buoy_utils::PASCAL_PER_PSI;
+  latent_data.electro_hydraulic.lower_hydraulic_pressure =
+    pto_state.lower_hyd_press * buoy_utils::PASCAL_PER_PSI;
   latent_data.electro_hydraulic.force = piston_force;
-  latent_data.electro_hydraulic.motor_drive_i2r_loss = pto_loss.motor_drive_i2r_loss;
-  latent_data.electro_hydraulic.motor_drive_switching_loss = pto_loss.motor_drive_switching_loss;
-  latent_data.electro_hydraulic.motor_drive_friction_loss = pto_loss.motor_drive_friction_loss;
-  latent_data.electro_hydraulic.battery_i2r_loss = pto_loss.battery_i2r_loss;
-  latent_data.electro_hydraulic.eff_m = eff_m;
-  latent_data.electro_hydraulic.eff_v = eff_v;
+  latent_data.electro_hydraulic.supplied_hydraulic_power =
+    -deltaP * this->dataPtr->functor.Q / buoy_utils::INLB_PER_NM;
+  latent_data.electro_hydraulic.hydraulic_motor_loss =
+    this->dataPtr->functor.HydraulicMotorLoss;
+  latent_data.electro_hydraulic.relief_valve_loss =
+    this->dataPtr->functor.ReliefValveLoss;
+  latent_data.electro_hydraulic.shaft_mech_power =
+    this->dataPtr->functor.ShaftMechPower;
+  latent_data.electro_hydraulic.motor_drive_i2r_loss =
+    this->dataPtr->functor.I2RLoss;
+  latent_data.electro_hydraulic.motor_drive_switching_loss =
+    this->dataPtr->functor.SwitchingLoss;
+  latent_data.electro_hydraulic.motor_drive_friction_loss =
+    this->dataPtr->functor.FrictionLoss;
+  latent_data.electro_hydraulic.load_dump_power =
+    I_Load * VBus;
+  latent_data.electro_hydraulic.battery_i2r_loss =
+    I_Batt * I_Batt * this->dataPtr->Ri;
+  latent_data.electro_hydraulic.battery_storage_power =
+    I_Batt * VBus - latent_data.electro_hydraulic.battery_i2r_loss;
 
   _ecm.SetComponentData<buoy_gazebo::components::BatteryState>(
     this->dataPtr->PrismaticJointEntity,
@@ -451,10 +447,6 @@ void ElectroHydraulicPTO::PreUpdate(
     pto_state);
 
   auto stampMsg = gz::sim::convert<gz::msgs::Time>(_info.simTime);
-
-  _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicLoss>(
-    this->dataPtr->PrismaticJointEntity,
-    pto_loss);
 
   _ecm.SetComponentData<buoy_gazebo::components::LatentData>(
     this->dataPtr->model.Entity(),

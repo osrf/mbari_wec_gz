@@ -107,27 +107,38 @@ struct AirSpring
 struct ElectroHydraulic
 {
   bool valid{false};
-  double inst_power{0.0};  // Watts
   double rpm{0.0};
+  double upper_hydraulic_pressure{0.0};  //  Pa
+  double lower_hydraulic_pressure{0.0};  //  Pa
   double force{0.0};  // Newtons
+  double supplied_hydraulic_power{0.0};  // Watts
+  double hydraulic_motor_loss{0.0};  // Watts
+  double relief_valve_loss{0.0};  // Watts
+  double shaft_mech_power{0.0};  // Watts
   double motor_drive_i2r_loss{0.0};  // Watts
-  double motor_drive_friction_loss{0.0};  // Watts
   double motor_drive_switching_loss{0.0};  // Watts
+  double motor_drive_friction_loss{0.0};  // Watts
+  double load_dump_power{0.0};  // Watts
   double battery_i2r_loss{0.0};  // Watts
-  double eff_m{0.0};  // mechanical efficiency
-  double eff_v{0.0};  // volumetric efficiency
+  double battery_storage_power{0.0};  // Watts
 
   bool operator==(const ElectroHydraulic & that) const
   {
     bool equal = (this->valid == that.valid);
-    equal &= fabs(this->inst_power - that.inst_power) < 1e-7F;
+    equal &= fabs(this->rpm - that.rpm) < 1e-7F;
+    equal &= fabs(this->upper_hydraulic_pressure - that.upper_hydraulic_pressure) < 1e-7F;
+    equal &= fabs(this->lower_hydraulic_pressure - that.lower_hydraulic_pressure) < 1e-7F;
     equal &= fabs(this->force - that.force) < 1e-7F;
+    equal &= fabs(this->supplied_hydraulic_power - that.supplied_hydraulic_power) < 1e-7F;
+    equal &= fabs(this->hydraulic_motor_loss - that.hydraulic_motor_loss) < 1e-7F;
+    equal &= fabs(this->relief_valve_loss - that.relief_valve_loss) < 1e-7F;
+    equal &= fabs(this->shaft_mech_power - that.shaft_mech_power) < 1e-7F;
     equal &= fabs(this->motor_drive_i2r_loss - that.motor_drive_i2r_loss) < 1e-7F;
-    equal &= fabs(this->motor_drive_friction_loss - that.motor_drive_friction_loss) < 1e-7F;
     equal &= fabs(this->motor_drive_switching_loss - that.motor_drive_switching_loss) < 1e-7F;
+    equal &= fabs(this->motor_drive_friction_loss - that.motor_drive_friction_loss) < 1e-7F;
+    equal &= fabs(this->load_dump_power - that.load_dump_power) < 1e-7F;
     equal &= fabs(this->battery_i2r_loss - that.battery_i2r_loss) < 1e-7F;
-    equal &= fabs(this->eff_m - that.eff_m) < 1e-7F;
-    equal &= fabs(this->eff_v - that.eff_v) < 1e-7F;
+    equal &= fabs(this->battery_storage_power - that.battery_storage_power) < 1e-7F;
 
     return equal;
   }
