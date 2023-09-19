@@ -167,7 +167,7 @@ void XBowAHRS::Configure(
 
   auto spin = [this]()
     {
-      rclcpp::Rate rate(50.0);
+      rclcpp::Rate rate(1000.0);
       while (rclcpp::ok() && !this->dataPtr->stop_) {
         this->dataPtr->executor_->spin_once();
         rate.sleep();
