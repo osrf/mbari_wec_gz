@@ -306,6 +306,9 @@ void LatentDataPublisher::PostUpdate(
     latent_data.wave_body.buoyant_moment.Y();
   this->dataPtr->latent_data_.wave_body.buoyancy.torque.z =
     latent_data.wave_body.buoyant_moment.Z();
+  this->dataPtr->latent_data_.wave_body.buoyancy_total_power =
+    latent_data.wave_body.buoyancy_total_power;
+  
   this->dataPtr->latent_data_.wave_body.radiation.force.x =
     latent_data.wave_body.radiation_force.X();
   this->dataPtr->latent_data_.wave_body.radiation.force.y =
@@ -318,6 +321,9 @@ void LatentDataPublisher::PostUpdate(
     latent_data.wave_body.radiation_moment.Y();
   this->dataPtr->latent_data_.wave_body.radiation.torque.z =
     latent_data.wave_body.radiation_moment.Z();
+  this->dataPtr->latent_data_.wave_body.radiation_total_power =
+    latent_data.wave_body.radiation_total_power;
+
   this->dataPtr->latent_data_.wave_body.excitation.force.x =
     latent_data.wave_body.exciting_force.X();
   this->dataPtr->latent_data_.wave_body.excitation.force.y =
@@ -330,6 +336,8 @@ void LatentDataPublisher::PostUpdate(
     latent_data.wave_body.exciting_moment.Y();
   this->dataPtr->latent_data_.wave_body.excitation.torque.z =
     latent_data.wave_body.exciting_moment.Z();
+  this->dataPtr->latent_data_.wave_body.excitation_total_power =
+    latent_data.wave_body.excitation_total_power;
 
   this->dataPtr->latent_data_.piston_friction_force =
     latent_data.piston_friction_force;

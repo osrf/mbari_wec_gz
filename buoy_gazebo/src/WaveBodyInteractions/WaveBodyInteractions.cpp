@@ -364,10 +364,13 @@ void WaveBodyInteractions::PreUpdate(
   latent_data.wave_body.valid = true;
   latent_data.wave_body.buoyant_force = w_FBp;
   latent_data.wave_body.buoyant_moment = w_MBp;
+  latent_data.wave_body.buoyancy_total_power = w_FBp.Dot(w_xdot_p) + w_MBp.Dot(w_omega_p);
   latent_data.wave_body.radiation_force = w_FRp;
   latent_data.wave_body.radiation_moment = w_MRp;
+  latent_data.wave_body.radiation_total_power = w_FRp.Dot(w_xdot_p) + w_MRp.Dot(w_omega_p);
   latent_data.wave_body.exciting_force = w_FEp;
   latent_data.wave_body.exciting_moment = w_MEp;
+  latent_data.wave_body.excitation_total_power = w_FEp.Dot(w_xdot_p) + w_MEp.Dot(w_omega_p);
 
   _ecm.SetComponentData<buoy_gazebo::components::LatentData>(
     this->dataPtr->model.Entity(),
