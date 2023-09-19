@@ -90,8 +90,8 @@ public:
 
   // Friction Loss Model constants
   static constexpr double tau_c{.1};  // N-m
-  static constexpr double k_v{.05 / 1000.0};  // N-m/RPM
-  static constexpr double k_th{19.0};
+  static constexpr double k_v{.06 / 1000.0};  // N-m/RPM
+  static constexpr double k_th{100.0};
 
   // Switching Loss Model constants
   static constexpr double k_switch{0.05};             // W/Volt
@@ -110,8 +110,8 @@ public:
   mutable double BusPower;
   double Q;
 
-  mutable double ShaftMechPower;
-  mutable double FrictionLoss;
+  mutable double MotorEMFPower;  // Power applied to hydraulic motor.
+  mutable double ElectricMotorFrictionLoss;
   mutable double SwitchingLoss;
   mutable double I2RLoss;
   mutable double ReliefValveLoss;
@@ -132,22 +132,25 @@ public:
   {
   }
 
-  // Friction loss is characterized in 2022 PTO simulation paper
-  // Friction loss is a function of RPM
-  // Units of power returned
-  double MotorDriveFrictionLoss(double N) const
+  
+  // Electric Motor Friction  is characterized in 2022 PTO simulation paper
+  // Friction is a function of RPM
+  // Units of N-m returned
+  double ElectricMotorFrictionTorque(double N) const
   {
-    return fabs(
-      (tau_c * tanh(2 * M_PI * N / buoy_utils::SecondsPerMinute / k_th) +
-      k_v * N / 1000.0) * N);
+    return -(tau_c * tanh(N / k_th) + k_v * N) ;
   }
+
 
   // Switching Loss is from measurements as a function of bus voltage.
   // ~ 10% of Voltage in Watts...
   // Units of power returned
-  double MotorDriveSwitchingLoss(double V) const
+  double MotorDriveSwitchingLoss(double N, double IWind, double V) const
   {
-    return k_switch * fabs(V);
+    double SwitchLoss = 0.0;
+    if((fabs(N) > 300) || (fabs(IWind) > 0.1))
+      SwitchLoss = k_switch * fabs(V);
+    return SwitchLoss;
   }
 
   // Winding ISquaredR Losses,
@@ -173,16 +176,16 @@ public:
     // const double eff_v = 1.0 - (.1 / 3500.0) * pressure;
 
     double WindCurr = this->I_Wind(x[0U]);
-    // 1.375 fudge factor required to match experiments, not yet sure why.
-    const double T_applied =
-      1.375 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
+    const double T_applied = this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
+    
+    const double T_ElectricMotorFriction = ElectricMotorFrictionTorque(x[0U]);
 
-    ShaftMechPower = -T_applied * buoy_utils::NM_PER_INLB *
+    MotorEMFPower = -(T_applied * buoy_utils::NM_PER_INLB) *
       x[0U] * buoy_utils::RPM_TO_RAD_PER_SEC;
-    FrictionLoss = MotorDriveFrictionLoss(x[0U]);
-    SwitchingLoss = MotorDriveSwitchingLoss(x[2U]);
+    ElectricMotorFrictionLoss = fabs(2*M_PI*x[0U]/buoy_utils::SecondsPerMinute*T_ElectricMotorFriction);   // This can move out of functor
+    SwitchingLoss = MotorDriveSwitchingLoss(x[1U],WindCurr,x[2U]);
     I2RLoss = MotorDriveISquaredRLoss(WindCurr);
-    BusPower = ShaftMechPower - (FrictionLoss + SwitchingLoss + I2RLoss);
+    BusPower = MotorEMFPower - (SwitchingLoss + I2RLoss);
     double Q_Relief = 0;
     if (x[1U] < -PressReliefSetPoint) {  // Pressure relief is a one wave valve,
                                          // relieves when lower pressure is higher
@@ -197,13 +200,13 @@ public:
     double Q_Leak = (1.0 - eff_v) * std::max(fabs(Q_Motor), fabs(Q_Ideal)) * sgn(x[1]);
 
     double T_Fluid = x[1U] * this->HydMotorDisp / (2.0 * M_PI);
-    double T_Friction = -(1.0 - eff_m) * std::max(fabs(T_applied), fabs(T_Fluid)) * sgn(x[0]);
+    double T_HydMotFrict = -(1.0 - eff_m) * std::max(fabs(T_applied), fabs(T_Fluid)) * sgn(x[0]);
 
     HydraulicMotorLoss = Q_Leak * x[1U] / buoy_utils::INLB_PER_NM -  // Result is Watts
-      T_Friction * x[0U] * 2.0 * M_PI / (buoy_utils::INLB_PER_NM * buoy_utils::SecondsPerMinute);
+      T_HydMotFrict * x[0U] * 2.0 * M_PI / (buoy_utils::INLB_PER_NM * buoy_utils::SecondsPerMinute);
 
     fvec[0U] = Q_Motor - Q_Leak - Q_Ideal;
-    fvec[1U] = T_applied + T_Friction + T_Fluid;
+    fvec[1U] = T_applied + T_ElectricMotorFriction + T_HydMotFrict + T_Fluid;
     fvec[2U] = BusPower - (x[2U] - VBattEMF) * x[2U] / this->Ri;
 
     return 0;

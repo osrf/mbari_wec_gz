@@ -326,8 +326,7 @@ void ElectroHydraulicPTO::PreUpdate(
       this->dataPtr->functor.HydMotorDisp;
 
     double WindCurr = this->dataPtr->functor.I_Wind(this->dataPtr->x[0U]);
-    // 1.375 fudge factor required to match experiments, not yet sure why.
-    const double T_applied = 1.375 * this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
+    const double T_applied = this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
       WindCurr;
     this->dataPtr->x[1] = -T_applied / (this->dataPtr->functor.HydMotorDisp / (2 * M_PI));
 
@@ -424,13 +423,13 @@ void ElectroHydraulicPTO::PreUpdate(
   latent_data.electro_hydraulic.relief_valve_loss =
     this->dataPtr->functor.ReliefValveLoss;
   latent_data.electro_hydraulic.shaft_mech_power =
-    this->dataPtr->functor.ShaftMechPower;
+    this->dataPtr->functor.MotorEMFPower;
   latent_data.electro_hydraulic.motor_drive_i2r_loss =
     this->dataPtr->functor.I2RLoss;
   latent_data.electro_hydraulic.motor_drive_switching_loss =
     this->dataPtr->functor.SwitchingLoss;
   latent_data.electro_hydraulic.motor_drive_friction_loss =
-    this->dataPtr->functor.FrictionLoss;
+    this->dataPtr->functor.ElectricMotorFrictionLoss;
   latent_data.electro_hydraulic.load_dump_power =
     I_Load * VBus;
   latent_data.electro_hydraulic.battery_i2r_loss =
