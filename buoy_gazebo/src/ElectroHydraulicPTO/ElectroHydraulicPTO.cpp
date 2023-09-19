@@ -422,7 +422,7 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->functor.HydraulicMotorLoss;
   latent_data.electro_hydraulic.relief_valve_loss =
     this->dataPtr->functor.ReliefValveLoss;
-  latent_data.electro_hydraulic.shaft_mech_power =
+  latent_data.electro_hydraulic.motor_emf_power =
     this->dataPtr->functor.MotorEMFPower;
   latent_data.electro_hydraulic.motor_drive_i2r_loss =
     this->dataPtr->functor.I2RLoss;

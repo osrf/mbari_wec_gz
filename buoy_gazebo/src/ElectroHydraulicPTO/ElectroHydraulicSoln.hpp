@@ -143,7 +143,7 @@ public:
 
 
   // Switching Loss is from measurements as a function of bus voltage.
-  // ~ 10% of Voltage in Watts...
+  // ~ 5% of Voltage in Watts...
   // Units of power returned
   double MotorDriveSwitchingLoss(double N, double IWind, double V) const
   {
@@ -176,16 +176,18 @@ public:
     // const double eff_v = 1.0 - (.1 / 3500.0) * pressure;
 
     double WindCurr = this->I_Wind(x[0U]);
-    const double T_applied = this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
+    const double T_applied = 1.25*this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
     
     const double T_ElectricMotorFriction = ElectricMotorFrictionTorque(x[0U]);
 
     MotorEMFPower = -(T_applied * buoy_utils::NM_PER_INLB) *
       x[0U] * buoy_utils::RPM_TO_RAD_PER_SEC;
-    ElectricMotorFrictionLoss = fabs(2*M_PI*x[0U]/buoy_utils::SecondsPerMinute*T_ElectricMotorFriction);   // This can move out of functor
+    ElectricMotorFrictionLoss = fabs(T_ElectricMotorFriction*2*M_PI*x[0U]/buoy_utils::SecondsPerMinute);   // This can move out of functor
     SwitchingLoss = MotorDriveSwitchingLoss(x[1U],WindCurr,x[2U]);
     I2RLoss = MotorDriveISquaredRLoss(WindCurr);
+
     BusPower = MotorEMFPower - (SwitchingLoss + I2RLoss);
+
     double Q_Relief = 0;
     if (x[1U] < -PressReliefSetPoint) {  // Pressure relief is a one wave valve,
                                          // relieves when lower pressure is higher
@@ -206,6 +208,12 @@ public:
       T_HydMotFrict * x[0U] * 2.0 * M_PI / (buoy_utils::INLB_PER_NM * buoy_utils::SecondsPerMinute);
 
     fvec[0U] = Q_Motor - Q_Leak - Q_Ideal;
+//std::cout << x[0U] << "   " <<
+// T_applied << "  " <<
+// T_ElectricMotorFriction << "  " <<
+// T_HydMotFrict << "  " <<
+// T_Fluid << std::endl;
+
     fvec[1U] = T_applied + T_ElectricMotorFriction + T_HydMotFrict + T_Fluid;
     fvec[2U] = BusPower - (x[2U] - VBattEMF) * x[2U] / this->Ri;
 

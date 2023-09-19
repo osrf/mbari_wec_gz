@@ -114,7 +114,7 @@ struct ElectroHydraulic
   double supplied_hydraulic_power{0.0};  // Watts
   double hydraulic_motor_loss{0.0};  // Watts
   double relief_valve_loss{0.0};  // Watts
-  double shaft_mech_power{0.0};  // Watts
+  double motor_emf_power{0.0};  // Watts
   double motor_drive_i2r_loss{0.0};  // Watts
   double motor_drive_switching_loss{0.0};  // Watts
   double motor_drive_friction_loss{0.0};  // Watts
@@ -132,7 +132,7 @@ struct ElectroHydraulic
     equal &= fabs(this->supplied_hydraulic_power - that.supplied_hydraulic_power) < 1e-7F;
     equal &= fabs(this->hydraulic_motor_loss - that.hydraulic_motor_loss) < 1e-7F;
     equal &= fabs(this->relief_valve_loss - that.relief_valve_loss) < 1e-7F;
-    equal &= fabs(this->shaft_mech_power - that.shaft_mech_power) < 1e-7F;
+    equal &= fabs(this->motor_emf_power - that.motor_emf_power) < 1e-7F;
     equal &= fabs(this->motor_drive_i2r_loss - that.motor_drive_i2r_loss) < 1e-7F;
     equal &= fabs(this->motor_drive_switching_loss - that.motor_drive_switching_loss) < 1e-7F;
     equal &= fabs(this->motor_drive_friction_loss - that.motor_drive_friction_loss) < 1e-7F;
