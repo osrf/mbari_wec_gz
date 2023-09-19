@@ -236,7 +236,7 @@ def generate_launch_description():
                         'battery_emf': 'initial battery emf in Volts',
                         'x_mean_pos': 'desired mean piston position in meters',
                         'inc_wave_spectrum': 'incident wave spectrum defined as'
-                                             + 'type;p1:v1:v2;p2:v1:v2'}
+                                             + 'inc_wave_spectrum_type:type;p1:v1:v2;p2:v1:v2'}
     supported_params_args = []
     for param in supported_params:
         supported_params_args.append(
@@ -345,7 +345,7 @@ def generate_launch_description():
                        robot_state_publisher,
                        rviz]
 
-    return LaunchDescription([
+    return LaunchDescription(supported_params_args + [
         gazebo_world_file_launch_arg,
         gazebo_world_name_launch_arg,
         pblog_loghome_launch_arg,
