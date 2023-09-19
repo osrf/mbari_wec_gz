@@ -1,0 +1,4 @@
+*.em -linguist-detectable
+*.tst -linguist-detectable
+*.1 -linguist-detectable
+*.3 -linguist-detectable
