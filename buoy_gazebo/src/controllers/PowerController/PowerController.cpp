@@ -259,7 +259,7 @@ struct PowerControllerPrivate
 
     auto spin = [this]()
       {
-        rclcpp::Rate rate(50.0);
+        rclcpp::Rate rate(1000.0);
         while (rclcpp::ok() && !stop_) {
           ros_->executor_->spin_once();
           rate.sleep();
