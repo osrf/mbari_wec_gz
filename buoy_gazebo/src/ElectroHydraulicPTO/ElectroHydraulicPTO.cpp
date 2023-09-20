@@ -326,7 +326,7 @@ void ElectroHydraulicPTO::PreUpdate(
       this->dataPtr->functor.HydMotorDisp;
 
     double WindCurr = this->dataPtr->functor.I_Wind(this->dataPtr->x[0U]);
-    const double T_applied = 1.25*this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
+    const double T_applied = 1.00*this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
       WindCurr;
     this->dataPtr->x[1] = -T_applied / (this->dataPtr->functor.HydMotorDisp / (2 * M_PI));
 

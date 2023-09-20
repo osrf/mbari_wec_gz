@@ -176,13 +176,13 @@ public:
     // const double eff_v = 1.0 - (.1 / 3500.0) * pressure;
 
     double WindCurr = this->I_Wind(x[0U]);
-    const double T_applied = 1.25*this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
+    const double T_applied = 1.00*this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
     
-    const double T_ElectricMotorFriction = ElectricMotorFrictionTorque(x[0U]);
-
+    double T_ElectricMotorFriction = ElectricMotorFrictionTorque(x[0U]);  // Returns N-m
+    ElectricMotorFrictionLoss = fabs(T_ElectricMotorFriction*2*M_PI*x[0U]/buoy_utils::SecondsPerMinute);   // This can move out of functor
+    T_ElectricMotorFriction = T_ElectricMotorFriction / buoy_utils::NM_PER_INLB;
     MotorEMFPower = -(T_applied * buoy_utils::NM_PER_INLB) *
       x[0U] * buoy_utils::RPM_TO_RAD_PER_SEC;
-    ElectricMotorFrictionLoss = fabs(T_ElectricMotorFriction*2*M_PI*x[0U]/buoy_utils::SecondsPerMinute);   // This can move out of functor
     SwitchingLoss = MotorDriveSwitchingLoss(x[1U],WindCurr,x[2U]);
     I2RLoss = MotorDriveISquaredRLoss(WindCurr);
 
