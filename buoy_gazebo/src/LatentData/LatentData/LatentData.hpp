@@ -148,8 +148,8 @@ struct WaveBody
 {
   bool valid{false};
 
-  gz::math::Pose3<double> pose;
-  gz::math::Pose3<double> twist;
+  gz::math::Pose3<double> pose{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  gz::math::Pose3<double> twist{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   gz::math::Vector3d buoyant_force{0.0, 0.0, 0.0};
   gz::math::Vector3d buoyant_moment{0.0, 0.0, 0.0};
