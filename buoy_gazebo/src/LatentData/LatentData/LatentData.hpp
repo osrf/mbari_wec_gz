@@ -164,6 +164,8 @@ struct WaveBody
   bool operator==(const WaveBody & that) const
   {
     bool equal = (this->valid == that.valid);
+    equal &= (this->pose == that.pose);
+    equal &= (this->twist == that.twist);
     equal &= (this->buoyant_force == that.buoyant_force);
     equal &= (this->buoyant_moment == that.buoyant_moment);
     equal &= fabs(this->buoyancy_total_power - that.buoyancy_total_power) < 1e-7F;
