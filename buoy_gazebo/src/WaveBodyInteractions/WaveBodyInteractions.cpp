@@ -365,8 +365,8 @@ void WaveBodyInteractions::PreUpdate(
   latent_data.wave_body.pose = w_Pose_p;
   latent_data.wave_body.twist =
     gz::math::Pose3<double>(
-      w_xdot_p.X(), w_xdot_p.Y(), w_xdot_p.Z(),
-      w_omega_p.X(), w_omega_p.Y(), w_omega_p.Z());
+    w_xdot_p.X(), w_xdot_p.Y(), w_xdot_p.Z(),
+    w_omega_p.X(), w_omega_p.Y(), w_omega_p.Z());
   latent_data.wave_body.buoyant_force = w_FBp;
   latent_data.wave_body.buoyant_moment = w_MBp;
   latent_data.wave_body.buoyancy_total_power = w_FBp.Dot(w_xdot_p) + w_MBp.Dot(w_omega_p);
