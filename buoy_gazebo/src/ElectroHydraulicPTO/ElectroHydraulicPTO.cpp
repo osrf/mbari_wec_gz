@@ -326,7 +326,7 @@ void ElectroHydraulicPTO::PreUpdate(
       this->dataPtr->functor.HydMotorDisp;
 
     double WindCurr = this->dataPtr->functor.I_Wind(this->dataPtr->x[0U]);
-    const double T_applied = this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
+    const double T_applied = 1.25*this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
       WindCurr;
     this->dataPtr->x[1] = -T_applied / (this->dataPtr->functor.HydMotorDisp / (2 * M_PI));
 
@@ -357,10 +357,11 @@ void ElectroHydraulicPTO::PreUpdate(
     warning << "=================================" << std::endl;
     gzdbg << warning.str();
   }
-
+  
   // Solve Electrical
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
+//  std::cout << this->dataPtr->functor.Q << "   " << N << "   " << deltaP << std::endl;
   double VBus = this->dataPtr->x[2U];
   const double eff_m = this->dataPtr->functor.hyd_eff_m.eval(fabs(N));
   const double eff_v = this->dataPtr->functor.hyd_eff_v.eval(fabs(deltaP));
