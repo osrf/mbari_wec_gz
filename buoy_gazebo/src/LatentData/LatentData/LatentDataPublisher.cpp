@@ -221,9 +221,9 @@ void LatentDataPublisher::PostUpdate(
       _ecm.Component<buoy_gazebo::components::LatentData>(this->dataPtr->entity_);
 
     latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
-    this->dataPtr->data_valid_ = true;
   } else {
     this->dataPtr->data_valid_ = false;
+    return;
   }
 
   // low prio data access
@@ -250,7 +250,127 @@ void LatentDataPublisher::PostUpdate(
       this->dataPtr->latent_data_.inc_wave_heights[idx]);
   }
 
-  // TODO(andermi) fill in other stuff
+  this->dataPtr->latent_data_.upper_spring.force = latent_data.upper_spring.force;
+  this->dataPtr->latent_data_.upper_spring.temperature = latent_data.upper_spring.T;
+  this->dataPtr->latent_data_.upper_spring.heat_loss = latent_data.upper_spring.dQ_dt;
+  this->dataPtr->latent_data_.upper_spring.piston_position =
+    latent_data.upper_spring.piston_position;
+  this->dataPtr->latent_data_.upper_spring.piston_velocity =
+    latent_data.upper_spring.piston_velocity;
+  this->dataPtr->latent_data_.lower_spring.force = latent_data.lower_spring.force;
+  this->dataPtr->latent_data_.lower_spring.temperature = latent_data.lower_spring.T;
+  this->dataPtr->latent_data_.lower_spring.heat_loss = latent_data.lower_spring.dQ_dt;
+  this->dataPtr->latent_data_.lower_spring.piston_position =
+    latent_data.lower_spring.piston_position;
+  this->dataPtr->latent_data_.lower_spring.piston_velocity =
+    latent_data.lower_spring.piston_velocity;
+
+  this->dataPtr->latent_data_.electro_hydraulic.rpm =
+    latent_data.electro_hydraulic.rpm;
+  this->dataPtr->latent_data_.electro_hydraulic.upper_hydraulic_pressure =
+    latent_data.electro_hydraulic.upper_hydraulic_pressure;
+  this->dataPtr->latent_data_.electro_hydraulic.lower_hydraulic_pressure =
+    latent_data.electro_hydraulic.lower_hydraulic_pressure;
+  this->dataPtr->latent_data_.electro_hydraulic.force =
+    latent_data.electro_hydraulic.force;
+  this->dataPtr->latent_data_.electro_hydraulic.supplied_hydraulic_power =
+    latent_data.electro_hydraulic.supplied_hydraulic_power;
+  this->dataPtr->latent_data_.electro_hydraulic.hydraulic_motor_loss =
+    latent_data.electro_hydraulic.hydraulic_motor_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.relief_valve_loss =
+    latent_data.electro_hydraulic.relief_valve_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.shaft_mech_power =
+    latent_data.electro_hydraulic.shaft_mech_power;
+  this->dataPtr->latent_data_.electro_hydraulic.motor_drive_i2r_loss =
+    latent_data.electro_hydraulic.motor_drive_i2r_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.motor_drive_switching_loss =
+    latent_data.electro_hydraulic.motor_drive_switching_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.motor_drive_friction_loss =
+    latent_data.electro_hydraulic.motor_drive_friction_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.load_dump_power =
+    latent_data.electro_hydraulic.load_dump_power;
+  this->dataPtr->latent_data_.electro_hydraulic.battery_i2r_loss =
+    latent_data.electro_hydraulic.battery_i2r_loss;
+  this->dataPtr->latent_data_.electro_hydraulic.battery_storage_power =
+    latent_data.electro_hydraulic.battery_storage_power;
+
+  this->dataPtr->latent_data_.wave_body.pose.position.x =
+    latent_data.wave_body.pose.X();
+  this->dataPtr->latent_data_.wave_body.pose.position.y =
+    latent_data.wave_body.pose.Y();
+  this->dataPtr->latent_data_.wave_body.pose.position.z =
+    latent_data.wave_body.pose.Z();
+  this->dataPtr->latent_data_.wave_body.pose.orientation.x =
+    latent_data.wave_body.pose.Rot().X();
+  this->dataPtr->latent_data_.wave_body.pose.orientation.y =
+    latent_data.wave_body.pose.Rot().Y();
+  this->dataPtr->latent_data_.wave_body.pose.orientation.z =
+    latent_data.wave_body.pose.Rot().Z();
+  this->dataPtr->latent_data_.wave_body.pose.orientation.w =
+    latent_data.wave_body.pose.Rot().W();
+
+  this->dataPtr->latent_data_.wave_body.twist.linear.x =
+    latent_data.wave_body.twist.X();
+  this->dataPtr->latent_data_.wave_body.twist.linear.y =
+    latent_data.wave_body.twist.Y();
+  this->dataPtr->latent_data_.wave_body.twist.linear.z =
+    latent_data.wave_body.twist.Z();
+  this->dataPtr->latent_data_.wave_body.twist.angular.x =
+    latent_data.wave_body.twist.Roll();
+  this->dataPtr->latent_data_.wave_body.twist.angular.y =
+    latent_data.wave_body.twist.Pitch();
+  this->dataPtr->latent_data_.wave_body.twist.angular.z =
+    latent_data.wave_body.twist.Yaw();
+
+  this->dataPtr->latent_data_.wave_body.buoyancy.force.x =
+    latent_data.wave_body.buoyant_force.X();
+  this->dataPtr->latent_data_.wave_body.buoyancy.force.y =
+    latent_data.wave_body.buoyant_force.Y();
+  this->dataPtr->latent_data_.wave_body.buoyancy.force.z =
+    latent_data.wave_body.buoyant_force.Z();
+  this->dataPtr->latent_data_.wave_body.buoyancy.torque.x =
+    latent_data.wave_body.buoyant_moment.X();
+  this->dataPtr->latent_data_.wave_body.buoyancy.torque.y =
+    latent_data.wave_body.buoyant_moment.Y();
+  this->dataPtr->latent_data_.wave_body.buoyancy.torque.z =
+    latent_data.wave_body.buoyant_moment.Z();
+  this->dataPtr->latent_data_.wave_body.buoyancy_total_power =
+    latent_data.wave_body.buoyancy_total_power;
+
+  this->dataPtr->latent_data_.wave_body.radiation.force.x =
+    latent_data.wave_body.radiation_force.X();
+  this->dataPtr->latent_data_.wave_body.radiation.force.y =
+    latent_data.wave_body.radiation_force.Y();
+  this->dataPtr->latent_data_.wave_body.radiation.force.z =
+    latent_data.wave_body.radiation_force.Z();
+  this->dataPtr->latent_data_.wave_body.radiation.torque.x =
+    latent_data.wave_body.radiation_moment.X();
+  this->dataPtr->latent_data_.wave_body.radiation.torque.y =
+    latent_data.wave_body.radiation_moment.Y();
+  this->dataPtr->latent_data_.wave_body.radiation.torque.z =
+    latent_data.wave_body.radiation_moment.Z();
+  this->dataPtr->latent_data_.wave_body.radiation_total_power =
+    latent_data.wave_body.radiation_total_power;
+
+  this->dataPtr->latent_data_.wave_body.excitation.force.x =
+    latent_data.wave_body.exciting_force.X();
+  this->dataPtr->latent_data_.wave_body.excitation.force.y =
+    latent_data.wave_body.exciting_force.Y();
+  this->dataPtr->latent_data_.wave_body.excitation.force.z =
+    latent_data.wave_body.exciting_force.Z();
+  this->dataPtr->latent_data_.wave_body.excitation.torque.x =
+    latent_data.wave_body.exciting_moment.X();
+  this->dataPtr->latent_data_.wave_body.excitation.torque.y =
+    latent_data.wave_body.exciting_moment.Y();
+  this->dataPtr->latent_data_.wave_body.excitation.torque.z =
+    latent_data.wave_body.exciting_moment.Z();
+  this->dataPtr->latent_data_.wave_body.excitation_total_power =
+    latent_data.wave_body.excitation_total_power;
+
+  this->dataPtr->latent_data_.piston_friction_force =
+    latent_data.piston_friction_force;
+
+  this->dataPtr->data_valid_ = latent_data.valid();
 
   data.unlock();
 }

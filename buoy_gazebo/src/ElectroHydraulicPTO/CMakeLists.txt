@@ -3,6 +3,7 @@ gz_add_plugin(ElectroHydraulicPTO
     ElectroHydraulicPTO.cpp
   INCLUDE_DIRS
     ..
+    ../LatentData
   EXTRA_ROS_PKGS
     simple_interp
 )

@@ -265,8 +265,9 @@ if not ignore_piston_mean_pos:
       <P0>@(print(f'{P0_l:.00f}', end=''))</P0>
     </plugin>
 
-    <plugin filename="WaveBodyInteractions" name="buoy_gazebo::WaveBodyInteractions">  
+    <plugin filename="WaveBodyInteractions" name="buoy_gazebo::WaveBodyInteractions">
       <LinkName>Buoy</LinkName>
+      <debug>false</debug>
       <WaterplaneOrigin_x>0</WaterplaneOrigin_x>  <!-- Waterplane origin relative to link origin -->
       <WaterplaneOrigin_y>0</WaterplaneOrigin_y>
       <WaterplaneOrigin_z>2.46</WaterplaneOrigin_z> 

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ElectroHydraulicPTO.hpp"
+
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
 
 #include <gz/msgs/double.pb.h>
@@ -40,11 +42,11 @@
 #include <gz/plugin/Register.hh>
 #include <gz/transport/Node.hh>
 
-#include "ElectroHydraulicPTO.hpp"
 #include "ElectroHydraulicSoln.hpp"
 #include "ElectroHydraulicState.hpp"
-#include "ElectroHydraulicLoss.hpp"
 #include "BatteryState.hpp"
+
+#include <LatentData/LatentData.hpp>
 
 
 namespace buoy_gazebo
@@ -262,16 +264,15 @@ void ElectroHydraulicPTO::PreUpdate(
     pto_state = buoy_gazebo::ElectroHydraulicState(pto_state_comp->Data());
   }
 
-  buoy_gazebo::ElectroHydraulicLoss pto_loss;
+  buoy_gazebo::LatentData latent_data;
   if (_ecm.EntityHasComponentType(
-      this->dataPtr->PrismaticJointEntity,
-      buoy_gazebo::components::ElectroHydraulicLoss().TypeId()))
+      this->dataPtr->model.Entity(),
+      buoy_gazebo::components::LatentData().TypeId()))
   {
-    auto pto_loss_comp =
-      _ecm.Component<buoy_gazebo::components::ElectroHydraulicLoss>(
-      this->dataPtr->PrismaticJointEntity);
+    auto latent_data_comp =
+      _ecm.Component<buoy_gazebo::components::LatentData>(this->dataPtr->model.Entity());
 
-    pto_loss = buoy_gazebo::ElectroHydraulicLoss(pto_loss_comp->Data());
+    latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
   }
 
   if (pto_state.scale_command) {
@@ -346,7 +347,7 @@ void ElectroHydraulicPTO::PreUpdate(
   if (i_try > 0) {
     std::stringstream warning;
     warning << "Warning: Reduced piston to achieve convergence" << std::endl;
-    igndbg << warning.str();
+    gzdbg << warning.str();
   }
 
   if (solver_info != 1) {
@@ -355,13 +356,16 @@ void ElectroHydraulicPTO::PreUpdate(
     warning << "Warning: Numericals solver in ElectroHydraulicPTO did not converge" << std::endl;
     warning << "solver info: [" << solver_info << "]" << std::endl;
     warning << "=================================" << std::endl;
-    igndbg << warning.str();
+    gzdbg << warning.str();
   }
 
   // Solve Electrical
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
   double VBus = this->dataPtr->x[2U];
+  const double eff_m = this->dataPtr->functor.hyd_eff_m.eval(fabs(N));
+  const double eff_v = this->dataPtr->functor.hyd_eff_v.eval(fabs(deltaP));
+
   VBus = std::min(VBus, this->dataPtr->MaxTargetVoltage);
   double BusPower = this->dataPtr->functor.BusPower;
 
@@ -404,12 +408,35 @@ void ElectroHydraulicPTO::PreUpdate(
   pto_state.target_a = this->dataPtr->functor.I_Wind.I;
 
 
-  pto_loss.hydraulic_motor_loss += 1.0;
-  pto_loss.relief_valve_loss += 2.0;
-  pto_loss.motor_drive_i2r_loss += 3.0;
-  pto_loss.motor_drive_switching_loss += 4.0;
-  pto_loss.motor_drive_friction_loss += 5.0;
-  pto_loss.battery_i2r_loss = I_Batt * I_Batt * this->dataPtr->Ri;
+  double piston_force = -deltaP * this->dataPtr->PistonArea * buoy_utils::NEWTONS_PER_LB;
+
+  latent_data.electro_hydraulic.valid = true;
+  latent_data.electro_hydraulic.rpm = N;
+  latent_data.electro_hydraulic.upper_hydraulic_pressure =
+    pto_state.upper_hyd_press * buoy_utils::PASCAL_PER_PSI;
+  latent_data.electro_hydraulic.lower_hydraulic_pressure =
+    pto_state.lower_hyd_press * buoy_utils::PASCAL_PER_PSI;
+  latent_data.electro_hydraulic.force = piston_force;
+  latent_data.electro_hydraulic.supplied_hydraulic_power =
+    -deltaP * this->dataPtr->functor.Q / buoy_utils::INLB_PER_NM;
+  latent_data.electro_hydraulic.hydraulic_motor_loss =
+    this->dataPtr->functor.HydraulicMotorLoss;
+  latent_data.electro_hydraulic.relief_valve_loss =
+    this->dataPtr->functor.ReliefValveLoss;
+  latent_data.electro_hydraulic.shaft_mech_power =
+    this->dataPtr->functor.ShaftMechPower;
+  latent_data.electro_hydraulic.motor_drive_i2r_loss =
+    this->dataPtr->functor.I2RLoss;
+  latent_data.electro_hydraulic.motor_drive_switching_loss =
+    this->dataPtr->functor.SwitchingLoss;
+  latent_data.electro_hydraulic.motor_drive_friction_loss =
+    this->dataPtr->functor.FrictionLoss;
+  latent_data.electro_hydraulic.load_dump_power =
+    I_Load * VBus;
+  latent_data.electro_hydraulic.battery_i2r_loss =
+    I_Batt * I_Batt * this->dataPtr->Ri;
+  latent_data.electro_hydraulic.battery_storage_power =
+    I_Batt * VBus - latent_data.electro_hydraulic.battery_i2r_loss;
 
   _ecm.SetComponentData<buoy_gazebo::components::BatteryState>(
     this->dataPtr->PrismaticJointEntity,
@@ -421,9 +448,9 @@ void ElectroHydraulicPTO::PreUpdate(
 
   auto stampMsg = gz::sim::convert<gz::msgs::Time>(_info.simTime);
 
-  _ecm.SetComponentData<buoy_gazebo::components::ElectroHydraulicLoss>(
-    this->dataPtr->PrismaticJointEntity,
-    pto_loss);
+  _ecm.SetComponentData<buoy_gazebo::components::LatentData>(
+    this->dataPtr->model.Entity(),
+    latent_data);
 
   gz::msgs::Double pistonvel;
   pistonvel.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);
@@ -437,7 +464,6 @@ void ElectroHydraulicPTO::PreUpdate(
   // Apply force if not in Velocity Mode, in which case a joint velocity is applied elsewhere
   // (likely by a test Fixture)
   if (!this->dataPtr->VelMode) {
-    double piston_force = -deltaP * this->dataPtr->PistonArea * buoy_utils::NEWTONS_PER_LB;
     // Create new component for this entitiy in ECM (if it doesn't already exist)
     auto forceComp = _ecm.Component<gz::sim::components::JointForceCmd>(
       this->dataPtr->PrismaticJointEntity);

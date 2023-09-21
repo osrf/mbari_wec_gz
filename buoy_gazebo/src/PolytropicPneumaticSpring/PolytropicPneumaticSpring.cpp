@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "PolytropicPneumaticSpring.hpp"
+
 #include <gz/msgs/double.pb.h>
 #include <gz/msgs/time.pb.h>
 
@@ -35,8 +37,10 @@
 #include <gz/sim/Joint.hh>
 #include <gz/sim/Model.hh>
 
-#include "PolytropicPneumaticSpring.hpp"
 #include "SpringState.hpp"
+#include <LatentData/LatentData.hpp>
+
+#include <buoy_utils/Constants.hpp>
 
 
 using namespace std::chrono_literals;
@@ -238,8 +242,10 @@ void PolytropicPneumaticSpring::computeLawOfCoolingForce(const double & x, const
   this->dataPtr->T += dT;
 
   // TODO(andermi) find Qdot (rate of heat transfer) from h, A, dT (Qdot = h*A*dT)
+  // Get chamber surface area from CAD... not true cylinder
+  // Also, since the chambers wrap around, h (heat transfer constant) is not quite water/steel/gas
   const double radius = 0.045;
-  const double A = (2.0 * this->dataPtr->config_->piston_area) * radius * x;
+  const double A = (2.0 * this->dataPtr->config_->piston_area) + 2.0 * GZ_PI * radius * x;
   const double h = 11.3;  // (W/(m^2*K)) -- Water<->Mild Steel<->Gas
   this->dataPtr->Q_rate = h * A * dT;
 
@@ -270,9 +276,9 @@ void PolytropicPneumaticSpring::computePolytropicForce(const double & x, const d
     // Retrieved from https://ir.library.oregonstate.edu/downloads/ww72bf399
     // heat loss rate for polytropic ideal gas:
     // dQ/dt = (1 - n/gamma)*(c_p/R)*P*A*dx/dt
-    // TODO(andermi) A != piston_area... it's the chamber surface area
+    // TODO(andermi) get chamber surface area from CAD... not a true cylinder
     const double r = 0.045;
-    const double A = (2.0 * this->dataPtr->config_->piston_area) * r * x;
+    const double A = (2.0 * this->dataPtr->config_->piston_area) + 2.0 * GZ_PI * r * x;
     this->dataPtr->Q_rate =
       (1.0 - this->dataPtr->n / PolytropicPneumaticSpringConfig::ADIABATIC_INDEX) * cp_R *
       this->dataPtr->P * A * v;
@@ -524,8 +530,8 @@ void PolytropicPneumaticSpring::PreUpdate(
   const int dt_nano =
     static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(_info.dt).count());
 
-  static const double PASCAL_TO_PSI = 1.450377e-4;  // PSI/Pascal
-  const double pressure_diff = (spring_state.lower_psi - spring_state.upper_psi) / PASCAL_TO_PSI;
+  const double pressure_diff =
+    (spring_state.lower_psi - spring_state.upper_psi) * buoy_utils::PASCAL_PER_PSI;
 
   if (spring_state.valve_command) {
     openValve(
@@ -559,20 +565,54 @@ void PolytropicPneumaticSpring::PreUpdate(
 
   if (this->dataPtr->config_->is_upper) {
     this->dataPtr->F *= -1.0;
+    this->dataPtr->Q_rate *= -1.0;
   }
 
   auto stampMsg = gz::sim::convert<gz::msgs::Time>(_info.simTime);
 
   if (this->dataPtr->config_->is_upper) {
     spring_state.range_finder = x;
-    spring_state.upper_psi = PASCAL_TO_PSI * this->dataPtr->P;
+    spring_state.upper_psi = this->dataPtr->P / buoy_utils::PASCAL_PER_PSI;
   } else {
-    spring_state.lower_psi = PASCAL_TO_PSI * this->dataPtr->P;
+    spring_state.lower_psi = this->dataPtr->P / buoy_utils::PASCAL_PER_PSI;
   }
 
   _ecm.SetComponentData<buoy_gazebo::components::SpringState>(
     this->dataPtr->config_->jointEntity,
     spring_state);
+
+  buoy_gazebo::LatentData latent_data;
+  if (_ecm.EntityHasComponentType(
+      this->dataPtr->config_->model.Entity(),
+      buoy_gazebo::components::LatentData().TypeId()))
+  {
+    auto latent_data_comp =
+      _ecm.Component<buoy_gazebo::components::LatentData>(this->dataPtr->config_->model.Entity());
+
+    latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
+  }
+
+  if (this->dataPtr->config_->is_upper) {
+    latent_data.upper_spring.valid = true;
+    latent_data.upper_spring.force = this->dataPtr->F;
+    latent_data.upper_spring.T = this->dataPtr->T;
+    latent_data.upper_spring.dQ_dt = this->dataPtr->Q_rate;
+    latent_data.upper_spring.piston_position = x;
+    latent_data.upper_spring.piston_velocity = v;
+    latent_data.upper_spring.mass = this->dataPtr->mass;
+  } else {
+    latent_data.lower_spring.valid = true;
+    latent_data.lower_spring.force = this->dataPtr->F;
+    latent_data.lower_spring.T = this->dataPtr->T;
+    latent_data.lower_spring.dQ_dt = this->dataPtr->Q_rate;
+    latent_data.lower_spring.piston_position = this->dataPtr->config_->stroke - x;
+    latent_data.lower_spring.piston_velocity = -v;
+    latent_data.lower_spring.mass = this->dataPtr->mass;
+  }
+
+  _ecm.SetComponentData<buoy_gazebo::components::LatentData>(
+    this->dataPtr->config_->model.Entity(),
+    latent_data);
 
   gz::msgs::Double force;
   force.mutable_header()->mutable_stamp()->CopyFrom(stampMsg);

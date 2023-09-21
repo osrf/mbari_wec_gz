@@ -110,6 +110,13 @@ public:
   mutable double BusPower;
   double Q;
 
+  mutable double ShaftMechPower;
+  mutable double FrictionLoss;
+  mutable double SwitchingLoss;
+  mutable double I2RLoss;
+  mutable double ReliefValveLoss;
+  mutable double HydraulicMotorLoss;
+
 private:
   static const std::vector<double> Peff;       // psi
   static const std::vector<double> Neff;       // rpm
@@ -170,12 +177,12 @@ public:
     const double T_applied =
       1.375 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
 
-    double ShaftMechPower = T_applied * buoy_utils::NM_PER_INLB *
+    ShaftMechPower = -T_applied * buoy_utils::NM_PER_INLB *
       x[0U] * buoy_utils::RPM_TO_RAD_PER_SEC;
-    BusPower = -ShaftMechPower - (
-      MotorDriveFrictionLoss(x[0U]) +
-      MotorDriveSwitchingLoss(x[2U]) +
-      MotorDriveISquaredRLoss(WindCurr));
+    FrictionLoss = MotorDriveFrictionLoss(x[0U]);
+    SwitchingLoss = MotorDriveSwitchingLoss(x[2U]);
+    I2RLoss = MotorDriveISquaredRLoss(WindCurr);
+    BusPower = ShaftMechPower - (FrictionLoss + SwitchingLoss + I2RLoss);
     double Q_Relief = 0;
     if (x[1U] < -PressReliefSetPoint) {  // Pressure relief is a one wave valve,
                                          // relieves when lower pressure is higher
@@ -183,15 +190,19 @@ public:
       Q_Relief = (x[1U] + PressReliefSetPoint) * ReliefValveFlowPerPSI *
         buoy_utils::CubicInchesPerGallon / buoy_utils::SecondsPerMinute;
     }
-// Q_Relief = 0;
+    ReliefValveLoss = Q_Relief * x[1U] / buoy_utils::INLB_PER_NM;  // Result is Watts
+
     double Q_Motor = this->Q - Q_Relief;
-    double Q = x[0U] * this->HydMotorDisp / buoy_utils::SecondsPerMinute;
-    double Q_Leak = (1.0 - eff_v) * std::max(fabs(Q_Motor), fabs(Q)) * sgn(x[1]);
+    double Q_Ideal = x[0U] * this->HydMotorDisp / buoy_utils::SecondsPerMinute;
+    double Q_Leak = (1.0 - eff_v) * std::max(fabs(Q_Motor), fabs(Q_Ideal)) * sgn(x[1]);
 
     double T_Fluid = x[1U] * this->HydMotorDisp / (2.0 * M_PI);
     double T_Friction = -(1.0 - eff_m) * std::max(fabs(T_applied), fabs(T_Fluid)) * sgn(x[0]);
 
-    fvec[0U] = Q_Motor - Q_Leak - Q;
+    HydraulicMotorLoss = Q_Leak * x[1U] / buoy_utils::INLB_PER_NM -  // Result is Watts
+      T_Friction * x[0U] * 2.0 * M_PI / (buoy_utils::INLB_PER_NM * buoy_utils::SecondsPerMinute);
+
+    fvec[0U] = Q_Motor - Q_Leak - Q_Ideal;
     fvec[1U] = T_applied + T_Friction + T_Fluid;
     fvec[2U] = BusPower - (x[2U] - VBattEMF) * x[2U] / this->Ri;
 

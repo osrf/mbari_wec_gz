@@ -334,6 +334,8 @@ void IncWaveHeight::PreUpdate(
     latent_data = buoy_gazebo::LatentData(latent_data_comp->Data());
   }
 
+  latent_data.inc_wave_heights.valid = this->dataPtr->inc_wave_valid_;
+
   double SimTime = std::chrono::duration<double>(this->dataPtr->current_time_).count();
   auto sec_nsec = gz::math::durationToSecNsec(this->dataPtr->current_time_);
   // all fixed points from SDF computed at SimTime (relative_time = 0.0)
