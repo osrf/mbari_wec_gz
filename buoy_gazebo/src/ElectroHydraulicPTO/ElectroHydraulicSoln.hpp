@@ -161,19 +161,15 @@ public:
   }
 
   // x[0] = RPM
-  // x[1] = Pressure (psi)
+  // x[1] = Pressure Delta (psi)
   // x[2] = Bus Voltage (Volts)
   int operator()(const Eigen::VectorXd & x, Eigen::VectorXd & fvec) const
   {
     const int n = x.size();
     assert(fvec.size() == n);
 
-    const double rpm = fabs(x[0U]);
-    const double pressure = fabs(x[1U]);
-    const double eff_m = this->hyd_eff_m.eval(rpm);
-    const double eff_v = this->hyd_eff_v.eval(pressure);
-    // const double eff_m = 1.0 - (.1 / 6000.0) * rpm;
-    // const double eff_v = 1.0 - (.1 / 3500.0) * pressure;
+    const double eff_m = 0.8; // this->hyd_eff_m.eval(fabs(x[0U]);
+    const double eff_v = 1.0; // this->hyd_eff_v.eval(fabs(x[1U]);
 
     double WindCurr = this->I_Wind(x[0U]);
     const double T_applied = 1.00*this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
@@ -195,40 +191,39 @@ public:
       Q_Relief = (x[1U] + PressReliefSetPoint) * ReliefValveFlowPerPSI *
         buoy_utils::CubicInchesPerGallon / buoy_utils::SecondsPerMinute;
     }
-    ReliefValveLoss = Q_Relief * x[1U] / buoy_utils::INLB_PER_NM;  // Result is Watts
-
-    double Q_Motor = this->Q - Q_Relief;
     double Q_Ideal = x[0U] * this->HydMotorDisp / buoy_utils::SecondsPerMinute;
+    double Q_Motor = this->Q - Q_Relief;
     double Q_Leak = (1.0 - eff_v) * std::max(fabs(Q_Motor), fabs(Q_Ideal)) * sgn(x[1]);
 
     double T_Fluid = x[1U] * this->HydMotorDisp / (2.0 * M_PI);
     double T_HydMotFrict = -(1.0 - eff_m) * std::max(fabs(T_applied), fabs(T_Fluid)) * sgn(x[0]);
 
-    HydraulicMotorLoss = Q_Leak * x[1U] / buoy_utils::INLB_PER_NM -  // Result is Watts
-      T_HydMotFrict * x[0U] * 2.0 * M_PI / (buoy_utils::INLB_PER_NM * buoy_utils::SecondsPerMinute);
-
-    fvec[0U] = Q_Motor - Q_Leak - Q_Ideal;
-//std::cout << x[0U] << "   " <<
-// T_applied << "  " <<
-// T_ElectricMotorFriction << "  " <<
-// T_HydMotFrict << "  " <<
-// T_Fluid << std::endl;
-
+    fvec[0U] = this->Q - Q_Relief- Q_Leak - Q_Ideal;
     fvec[1U] = T_applied + T_ElectricMotorFriction + T_HydMotFrict + T_Fluid;
     fvec[2U] = BusPower - (x[2U] - VBattEMF) * x[2U] / this->Ri;
+
+    ReliefValveLoss = Q_Relief * x[1U] / buoy_utils::INLB_PER_NM;  // Result is Watts
+    HydraulicMotorLoss = Q_Leak * x[1U] / buoy_utils::INLB_PER_NM -  // Result is Watts
+      T_HydMotFrict * x[0U] * 2.0 * M_PI / (buoy_utils::INLB_PER_NM * buoy_utils::SecondsPerMinute);
 
     return 0;
   }
 };
+//const std::vector<double> ElectroHydraulicSoln::Peff{
+//  0.0, 145.0, 290.0, 435.0, 580.0, 725.0, 870.0,
+//  1015.0, 1160.0, 1305.0, 1450.0, 1595.0, 1740.0, 1885.0,
+//  2030.0, 2175.0, 2320.0, 2465.0, 2610.0, 2755.0, 3500.0, 10000.0};
+//const std::vector<double> ElectroHydraulicSoln::Eff_V{
+//  1.0000, 0.980, 0.97, 0.960, 0.9520, 0.950, 0.949, 0.9480,
+//  0.9470, 0.946, 0.9450, 0.9440, 0.9430, 0.9420, 0.9410, 0.9400,
+//  0.9390, 0.9380, 0.9370, 0.9350, 0.9100, .6000};
+
 const std::vector<double> ElectroHydraulicSoln::Peff{
-  0.0, 145.0, 290.0, 435.0, 580.0, 725.0, 870.0,
-  1015.0, 1160.0, 1305.0, 1450.0, 1595.0, 1740.0, 1885.0,
-  2030.0, 2175.0, 2320.0, 2465.0, 2610.0, 2755.0, 3500.0, 10000.0};
+  0.0, 500.0, 1000.0, 3000.0, 10000.0};
 
 const std::vector<double> ElectroHydraulicSoln::Eff_V{
-  1.0000, 0.980, 0.97, 0.960, 0.9520, 0.950, 0.949, 0.9480,
-  0.9470, 0.946, 0.9450, 0.9440, 0.9430, 0.9420, 0.9410, 0.9400,
-  0.9390, 0.9380, 0.9370, 0.9350, 0.9100, .6000};
+  1.0, 1.0, 1.0, 1.0, 1.0};
+  //1.0, 0.97, .96, .95, .75};
 
 
 const std::vector<double> ElectroHydraulicSoln::Neff{
