@@ -148,22 +148,33 @@ struct WaveBody
 {
   bool valid{false};
 
+  gz::math::Pose3<double> pose{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  gz::math::Pose3<double> twist{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
   gz::math::Vector3d buoyant_force{0.0, 0.0, 0.0};
   gz::math::Vector3d buoyant_moment{0.0, 0.0, 0.0};
+  double buoyancy_total_power{0.0};
   gz::math::Vector3d radiation_force{0.0, 0.0, 0.0};
   gz::math::Vector3d radiation_moment{0.0, 0.0, 0.0};
+  double radiation_total_power{0.0};
   gz::math::Vector3d exciting_force{0.0, 0.0, 0.0};
   gz::math::Vector3d exciting_moment{0.0, 0.0, 0.0};
+  double excitation_total_power{0.0};
 
   bool operator==(const WaveBody & that) const
   {
     bool equal = (this->valid == that.valid);
+    equal &= (this->pose == that.pose);
+    equal &= (this->twist == that.twist);
     equal &= (this->buoyant_force == that.buoyant_force);
     equal &= (this->buoyant_moment == that.buoyant_moment);
+    equal &= fabs(this->buoyancy_total_power - that.buoyancy_total_power) < 1e-7F;
     equal &= (this->radiation_force == that.radiation_force);
     equal &= (this->radiation_moment == that.radiation_moment);
+    equal &= fabs(this->radiation_total_power - that.radiation_total_power) < 1e-7F;
     equal &= (this->exciting_force == that.exciting_force);
     equal &= (this->exciting_moment == that.exciting_moment);
+    equal &= fabs(this->excitation_total_power - that.excitation_total_power) < 1e-7F;
 
     return equal;
   }

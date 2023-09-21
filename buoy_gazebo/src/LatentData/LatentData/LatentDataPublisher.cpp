@@ -294,6 +294,34 @@ void LatentDataPublisher::PostUpdate(
   this->dataPtr->latent_data_.electro_hydraulic.battery_storage_power =
     latent_data.electro_hydraulic.battery_storage_power;
 
+  this->dataPtr->latent_data_.wave_body.pose.position.x =
+    latent_data.wave_body.pose.X();
+  this->dataPtr->latent_data_.wave_body.pose.position.y =
+    latent_data.wave_body.pose.Y();
+  this->dataPtr->latent_data_.wave_body.pose.position.z =
+    latent_data.wave_body.pose.Z();
+  this->dataPtr->latent_data_.wave_body.pose.orientation.x =
+    latent_data.wave_body.pose.Rot().X();
+  this->dataPtr->latent_data_.wave_body.pose.orientation.y =
+    latent_data.wave_body.pose.Rot().Y();
+  this->dataPtr->latent_data_.wave_body.pose.orientation.z =
+    latent_data.wave_body.pose.Rot().Z();
+  this->dataPtr->latent_data_.wave_body.pose.orientation.w =
+    latent_data.wave_body.pose.Rot().W();
+
+  this->dataPtr->latent_data_.wave_body.twist.linear.x =
+    latent_data.wave_body.twist.X();
+  this->dataPtr->latent_data_.wave_body.twist.linear.y =
+    latent_data.wave_body.twist.Y();
+  this->dataPtr->latent_data_.wave_body.twist.linear.z =
+    latent_data.wave_body.twist.Z();
+  this->dataPtr->latent_data_.wave_body.twist.angular.x =
+    latent_data.wave_body.twist.Roll();
+  this->dataPtr->latent_data_.wave_body.twist.angular.y =
+    latent_data.wave_body.twist.Pitch();
+  this->dataPtr->latent_data_.wave_body.twist.angular.z =
+    latent_data.wave_body.twist.Yaw();
+
   this->dataPtr->latent_data_.wave_body.buoyancy.force.x =
     latent_data.wave_body.buoyant_force.X();
   this->dataPtr->latent_data_.wave_body.buoyancy.force.y =
@@ -306,6 +334,9 @@ void LatentDataPublisher::PostUpdate(
     latent_data.wave_body.buoyant_moment.Y();
   this->dataPtr->latent_data_.wave_body.buoyancy.torque.z =
     latent_data.wave_body.buoyant_moment.Z();
+  this->dataPtr->latent_data_.wave_body.buoyancy_total_power =
+    latent_data.wave_body.buoyancy_total_power;
+
   this->dataPtr->latent_data_.wave_body.radiation.force.x =
     latent_data.wave_body.radiation_force.X();
   this->dataPtr->latent_data_.wave_body.radiation.force.y =
@@ -318,6 +349,9 @@ void LatentDataPublisher::PostUpdate(
     latent_data.wave_body.radiation_moment.Y();
   this->dataPtr->latent_data_.wave_body.radiation.torque.z =
     latent_data.wave_body.radiation_moment.Z();
+  this->dataPtr->latent_data_.wave_body.radiation_total_power =
+    latent_data.wave_body.radiation_total_power;
+
   this->dataPtr->latent_data_.wave_body.excitation.force.x =
     latent_data.wave_body.exciting_force.X();
   this->dataPtr->latent_data_.wave_body.excitation.force.y =
@@ -330,11 +364,11 @@ void LatentDataPublisher::PostUpdate(
     latent_data.wave_body.exciting_moment.Y();
   this->dataPtr->latent_data_.wave_body.excitation.torque.z =
     latent_data.wave_body.exciting_moment.Z();
+  this->dataPtr->latent_data_.wave_body.excitation_total_power =
+    latent_data.wave_body.excitation_total_power;
 
   this->dataPtr->latent_data_.piston_friction_force =
     latent_data.piston_friction_force;
-
-  // TODO(andermi) fill in other stuff
 
   this->dataPtr->data_valid_ = latent_data.valid();
 
