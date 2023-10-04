@@ -27,7 +27,7 @@
 #include <simple_interp/interp1d.hpp>
 
 // Defines from Controller Firmware, behavior replicated here
-#define TORQUE_CONSTANT 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
+#define TORQUE_CONSTANT .4580 // 0.438   // 0.62 N-m/ARMS  0.428N-m/AMPS Flux Current
 #define CURRENT_CMD_RATELIMIT 200  // A/second.  Set to zero to disable feature
 #define TORQUE_CMD_TIMEOUT 2  // Torque Command Timeut, in secs. Set to zero to disable timeout
 #define BIAS_CMD_TIMEOUT 10  // Bias Current Command Timeut, secs. Set to zero to disable timeout

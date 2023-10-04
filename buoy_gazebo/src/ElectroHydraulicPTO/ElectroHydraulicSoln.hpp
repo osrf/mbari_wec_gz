@@ -89,12 +89,12 @@ public:
   static constexpr double HydMotorDisp{0.30};  // Default to Parker F11-5  0.30in^3/rev
 
   // Friction Loss Model constants
-  static constexpr double tau_c{.1};  // N-m
-  static constexpr double k_v{.06 / 1000.0};  // N-m/RPM
+  static constexpr double tau_c{.1596};  // N-m
+  static constexpr double k_v{.12897 / 1000.0};  // N-m/RPM
   static constexpr double k_th{100.0};
 
   // Switching Loss Model constants
-  static constexpr double k_switch{0.05};             // W/Volt
+  static constexpr double k_switch{0.1713};             // W/Volt
 
   // Winding Resitance Loss Model constants
   static constexpr double R_w{0.8};             // Ohms
