@@ -94,10 +94,10 @@ public:
   static constexpr double k_th{100.0};
 
   // Switching Loss Model constants
-  static constexpr double k_switch{0.1713};             // W/Volt
+  static constexpr double k_switch{5.34e-4};             // W/Volt
 
   // Winding Resitance Loss Model constants
-  static constexpr double R_w{0.8};             // Ohms
+  static constexpr double R_w{0.1833};             // Ohms
 
   double VBattEMF;       // Battery internal EMF voltage
   double Ri;       // Battery internal resistance
@@ -149,7 +149,7 @@ public:
   {
     double SwitchLoss = 0.0;
     if((fabs(N) > 300) || (fabs(IWind) > 0.1))
-      SwitchLoss = k_switch * fabs(V);
+      SwitchLoss = k_switch * V * V;
     return SwitchLoss;
   }
 
@@ -173,6 +173,12 @@ public:
 
     double WindCurr = this->I_Wind(x[0U]);
     const double T_applied = 1.00*this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
+    //  The 1.05 factor above is here due to a discremency in the motor torque constant
+    //  The at-sea code uses the motor spec'd value of 0.438 to compute motor current 
+    //  as a function of RPM.  But, bench-testing of the motor itself reveals the actual
+    //  motor torque constant is 0.458.  Because of this a factor of 1.05 is applied here
+    //  so that the applied torque in simulation matches what is physically happening in
+    //  the system.
     
     double T_ElectricMotorFriction = ElectricMotorFrictionTorque(x[0U]);  // Returns N-m
     ElectricMotorFrictionLoss = fabs(T_ElectricMotorFriction*2*M_PI*x[0U]/buoy_utils::SecondsPerMinute);   // This can move out of functor
