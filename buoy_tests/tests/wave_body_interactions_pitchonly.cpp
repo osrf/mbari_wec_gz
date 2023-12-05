@@ -180,33 +180,33 @@ TEST(WaveBodyInteractionTests, PitchMotions)
   std::shared_ptr<LinearIncidentWave> Inc = std::make_shared<LinearIncidentWave>();
 
   double buoy_mass = 2449.75;  // kg
-  FS_HydroDynamics BuoyA5;
-  BuoyA5.SetGravity(gravity);  // Use gravity that matches what was used by gz-sim
+  FS_HydroDynamics Buoy;
+  Buoy.SetGravity(gravity);  // Use gravity that matches what was used by gz-sim
 
-  BuoyA5.SetWaterplane(
+  Buoy.SetWaterplane(
     5.47, 1.37,
     1.37);                    // Set area and 2nd moments of area for waterplane
-  BuoyA5.SetCOB(
+  Buoy.SetCOB(
     0, 0,
     -.22);             // Set COB relative to waterplane coordinate system.
-  BuoyA5.SetCOG(
+  Buoy.SetCOG(
     0, 0,
     0.0);             // Set COG at waterplane for this test.
-  BuoyA5.SetVolume(2.39);
-  BuoyA5.SetMass(buoy_mass);
+  Buoy.SetVolume(2.39);
+  Buoy.SetMass(buoy_mass);
 
   std::string HydrodynamicsBaseFilename =
     ament_index_cpp::get_package_share_directory("buoy_description") +
-    std::string("/models/mbari_wec_base/hydrodynamic_coeffs/BuoyA5");
+    std::string("/models/mbari_wec_base/hydrodynamic_coeffs/mbari_snl");
 
 
-  BuoyA5.ReadWAMITData_FD(HydrodynamicsBaseFilename);
-  BuoyA5.ReadWAMITData_TD(HydrodynamicsBaseFilename);
-  BuoyA5.SetTimestepSize(dt);
+  Buoy.ReadWAMITData_FD(HydrodynamicsBaseFilename);
+  Buoy.ReadWAMITData_TD(HydrodynamicsBaseFilename);
+  Buoy.SetTimestepSize(dt);
 
   Eigen::Matrix<double, 3, 3> I;
   I << 1430.0, 0, 0, 0, 1430.0, 0, 0, 0, 670.0;
-  BuoyA5.SetI(I);
+  Buoy.SetI(I);
   Eigen::VectorXd b(6);
   b(0) = 300.0;
   b(1) = 300.0;
@@ -214,7 +214,7 @@ TEST(WaveBodyInteractionTests, PitchMotions)
   b(3) = 400.0;
   b(4) = 400.0;
   b(5) = 100.0;
-  BuoyA5.SetDampingCoeffs(b);
+  Buoy.SetDampingCoeffs(b);
 
   std::vector<double> x(2);
   x[0] = initial_position;  // initial position
@@ -224,7 +224,7 @@ TEST(WaveBodyInteractionTests, PitchMotions)
   std::vector<std::vector<double>> x_vec;
   std::vector<double> times;
   boost::numeric::odeint::euler<std::vector<double>> stepper;
-  SingleModeMotionRHS RHS(&BuoyA5);
+  SingleModeMotionRHS RHS(&Buoy);
   RHS.mode = 4;
   RHS.inf_freq_added_mass = 367.85;
 
