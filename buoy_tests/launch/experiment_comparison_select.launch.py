@@ -19,7 +19,6 @@ from ament_index_python.packages import get_package_share_directory
 import launch
 from launch.actions import DeclareLaunchArgument, Shutdown
 from launch.actions import OpaqueFunction
-from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 
 from launch_ros.actions import Node
@@ -37,7 +36,6 @@ def generate_test_fixture(context, *args, **kwargs):
     Will grab overridden inputs from launch arguments via context object and return
     a gazebo test fixture node
     """
-
     test_inputdata_exp = LaunchConfiguration('test_inputdata_exp').perform(context)
     test_inputdata_tst = LaunchConfiguration('test_inputdata_tst').perform(context)
     print(f'{test_inputdata_exp=}')
