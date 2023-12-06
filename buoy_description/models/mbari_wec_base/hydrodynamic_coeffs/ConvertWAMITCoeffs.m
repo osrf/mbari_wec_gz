@@ -6,8 +6,13 @@
 %
 % Note also:  The radiation IRF's in the .h5 file must be integrated in
 % time to match the form expected by the Gazebo WaveBodyInteraction plugin,
-% this is done on lines 49-58 below.  This is a result of a formulation
+% this is done on lines 54 - 63 below.  This is a result of a formulation
 % choice that was made differently in wecSIM than in the Gazebo simulator.
+% Details on this choice are explained clearly in eqn 2-22 and eqn 2-23 here:
+% https://www.nrel.gov/docs/fy08osti/41958.pdf.  WecSim uses Kij and so the .h5 files
+% contain that function.  The Gazebo WaveBodyInteraction plugin uses the Lij function.
+% Details from the BEMIO user manual are here:
+% https://wec-sim.github.io/bemio/module_doc.html#bemio-data-structures
 
 close all
 clear all
