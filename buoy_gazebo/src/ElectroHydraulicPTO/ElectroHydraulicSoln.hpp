@@ -132,13 +132,13 @@ public:
   {
   }
 
-  
+
   // Electric Motor Friction  is characterized in 2022 PTO simulation paper
   // Friction is a function of RPM
   // Units of N-m returned
   double ElectricMotorFrictionTorque(double N) const
   {
-    return -(tau_c * tanh(N / k_th) + k_v * N) ;
+    return -(tau_c * tanh(N / k_th) + k_v * N);
   }
 
 
@@ -148,8 +148,9 @@ public:
   double MotorDriveSwitchingLoss(double N, double IWind, double V) const
   {
     double SwitchLoss = 0.0;
-    if((fabs(N) > 300) || (fabs(IWind) > 0.1))
+    if ((fabs(N) > 300) || (fabs(IWind) > 0.1)) {
       SwitchLoss = k_switch * V * V;
+    }
     return SwitchLoss;
   }
 
@@ -168,24 +169,25 @@ public:
     const int n = x.size();
     assert(fvec.size() == n);
 
-    const double eff_m = 0.8; // this->hyd_eff_m.eval(fabs(x[0U]);
-    const double eff_v = 1.0; // this->hyd_eff_v.eval(fabs(x[1U]);
+    const double eff_m = 0.8;  // this->hyd_eff_m.eval(fabs(x[0U]);
+    const double eff_v = 1.0;  // this->hyd_eff_v.eval(fabs(x[1U]);
 
     double WindCurr = this->I_Wind(x[0U]);
-    const double T_applied = 1.00*this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
+    const double T_applied = 1.00 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
     //  The 1.05 factor above is here due to a discremency in the motor torque constant
-    //  The at-sea code uses the motor spec'd value of 0.438 to compute motor current 
+    //  The at-sea code uses the motor spec'd value of 0.438 to compute motor current
     //  as a function of RPM.  But, bench-testing of the motor itself reveals the actual
     //  motor torque constant is 0.458.  Because of this a factor of 1.05 is applied here
     //  so that the applied torque in simulation matches what is physically happening in
     //  the system.
-    
+
     double T_ElectricMotorFriction = ElectricMotorFrictionTorque(x[0U]);  // Returns N-m
-    ElectricMotorFrictionLoss = fabs(T_ElectricMotorFriction*2*M_PI*x[0U]/buoy_utils::SecondsPerMinute);   // This can move out of functor
+    ElectricMotorFrictionLoss = fabs(
+      T_ElectricMotorFriction * 2 * M_PI * x[0U] / buoy_utils::SecondsPerMinute);
     T_ElectricMotorFriction = T_ElectricMotorFriction / buoy_utils::NM_PER_INLB;
     MotorEMFPower = -(T_applied * buoy_utils::NM_PER_INLB) *
       x[0U] * buoy_utils::RPM_TO_RAD_PER_SEC;
-    SwitchingLoss = MotorDriveSwitchingLoss(x[1U],WindCurr,x[2U]);
+    SwitchingLoss = MotorDriveSwitchingLoss(x[1U], WindCurr, x[2U]);
     I2RLoss = MotorDriveISquaredRLoss(WindCurr);
 
     BusPower = MotorEMFPower - (SwitchingLoss + I2RLoss);
@@ -204,7 +206,7 @@ public:
     double T_Fluid = x[1U] * this->HydMotorDisp / (2.0 * M_PI);
     double T_HydMotFrict = -(1.0 - eff_m) * std::max(fabs(T_applied), fabs(T_Fluid)) * sgn(x[0]);
 
-    fvec[0U] = this->Q - Q_Relief- Q_Leak - Q_Ideal;
+    fvec[0U] = this->Q - Q_Relief - Q_Leak - Q_Ideal;
     fvec[1U] = T_applied + T_ElectricMotorFriction + T_HydMotFrict + T_Fluid;
     fvec[2U] = BusPower - (x[2U] - VBattEMF) * x[2U] / this->Ri;
 
@@ -215,11 +217,11 @@ public:
     return 0;
   }
 };
-//const std::vector<double> ElectroHydraulicSoln::Peff{
+// const std::vector<double> ElectroHydraulicSoln::Peff{
 //  0.0, 145.0, 290.0, 435.0, 580.0, 725.0, 870.0,
 //  1015.0, 1160.0, 1305.0, 1450.0, 1595.0, 1740.0, 1885.0,
 //  2030.0, 2175.0, 2320.0, 2465.0, 2610.0, 2755.0, 3500.0, 10000.0};
-//const std::vector<double> ElectroHydraulicSoln::Eff_V{
+// const std::vector<double> ElectroHydraulicSoln::Eff_V{
 //  1.0000, 0.980, 0.97, 0.960, 0.9520, 0.950, 0.949, 0.9480,
 //  0.9470, 0.946, 0.9450, 0.9440, 0.9430, 0.9420, 0.9410, 0.9400,
 //  0.9390, 0.9380, 0.9370, 0.9350, 0.9100, .6000};
@@ -228,8 +230,7 @@ const std::vector<double> ElectroHydraulicSoln::Peff{
   0.0, 500.0, 1000.0, 3000.0, 10000.0};
 
 const std::vector<double> ElectroHydraulicSoln::Eff_V{
-  1.0, 1.0, 1.0, 1.0, 1.0};
-  //1.0, 0.97, .96, .95, .75};
+  1.0, 1.0, 1.0, 1.0, 1.0};  // 1.0, 0.97, .96, .95, .75};
 
 
 const std::vector<double> ElectroHydraulicSoln::Neff{
