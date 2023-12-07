@@ -18,104 +18,68 @@ from ament_index_python.packages import get_package_share_directory
 
 import launch
 from launch.actions import DeclareLaunchArgument, Shutdown
-from launch.actions import OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.actions import OpaqueFunction, LogInfo
+from launch.conditions import IfCondition, UnlessCondition
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 from testing_utils import regenerate_models
 
 
-def generate_test_fixture(context, *args, **kwargs):
-    """
-    Find input data files from launch argument in buoy_tests to pass to test.
-
-    For use as an OpaqueFunction:
-        launch.actions.OpaqueFunction(function=generate_test_fixture)
-
-    Will grab overridden inputs from launch arguments via context object and return
-    a gazebo test fixture node
-    """
-    test_inputdata_exp = LaunchConfiguration('test_inputdata_exp').perform(context)
-    test_inputdata_tst = LaunchConfiguration('test_inputdata_tst').perform(context)
-    print(f'{test_inputdata_exp=}')
-    print(f'{test_inputdata_tst=}')
-
-    # Input data
-    test_inputdata_exp = os.path.join(
-        get_package_share_directory('buoy_tests'),
-        'test_inputdata',
-        test_inputdata_exp
-    )
-
-    test_inputdata_tst = os.path.join(
-        get_package_share_directory('buoy_tests'),
-        'test_inputdata',
-        test_inputdata_tst
-    )
-
-    # Test fixture
-    manual_test = LaunchConfiguration('manual').perform(context)
-    manual_test = (manual_test == 'True')
-    print(f'{manual_test=}')
-    if manual_test:
-        gazebo_test_fixture = Node(
-            package='buoy_tests',
-            executable='experiment_comparison',
-            output='both',
-            parameters=[
-                {'use_sim_time': True},
-                {'inputdata_filename': test_inputdata_exp},
-                {'manual_comparison': True}
-            ],
-            namespace='/experiment_comparison',
-            prefix=['x-terminal-emulator -e'],
-            shell=True,
-            on_exit=Shutdown()
-        )
-
-    else:
-        gazebo_test_fixture = Node(
-            package='buoy_tests',
-            executable='experiment_comparison',
-            output='both',
-            parameters=[
-                {'use_sim_time': True},
-                {'inputdata_filename': test_inputdata_tst},
-                {'manual_comparison': False}
-            ],
-            namespace='/experiment_comparison',
-            on_exit=Shutdown()
-        )
-
-    # Regenerate models
-    nodes = list(args) + [gazebo_test_fixture]
-    sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
-                      physics_rtf=11.0,
-                      physics_step=0.001,
-                      initial_piston_position=2.03,
-                      initial_buoy_height=2.0)
-
-    return OpaqueFunction(function=regenerate_models,
-                          args=nodes,
-                          kwargs=sim_params),
-
-
 def generate_launch_description():
+
+    test_inputdata_arg = DeclareLaunchArgument(
+        'test_inputdata', default_value='FrictionIDMovesWithBiasCurr',
+        description='base name of test data (assumes .exp/.tst)'
+    )
 
     manual_comparison_arg = DeclareLaunchArgument(
         'manual', default_value='False',
         description='compare data manually'
     )
 
-    test_inputdata_exp_arg = DeclareLaunchArgument(
-        'test_inputdata_exp', default_value='FrictionIDMovesWithBiasCurr.exp',
-        description='.exp bench test file'
+    test_inputdata = PythonExpression(["tinp.split('/')[-1] if '/' in (tinp:='",
+                                       LaunchConfiguration('test_inputdata'),
+                                       "') else tinp"])
+    test_inputdata = PythonExpression(["tinp[:-4] if '.exp' in (tinp:='", test_inputdata,
+                                       "') or '.tst' in tinp else tinp"])
+    test_inputdata = PathJoinSubstitution([FindPackageShare('buoy_tests'),
+                                           'test_inputdata',
+                                           test_inputdata])
+    test_inputdata_exp = PythonExpression(["'", test_inputdata, "' + '.exp'"])
+    test_inputdata_tst = PythonExpression(["'", test_inputdata, "' + '.tst'"])
+
+    # Test fixture
+    gazebo_test_fixture = Node(
+        package='buoy_tests',
+        executable='experiment_comparison',
+        output='both',
+        parameters=[
+            {'use_sim_time': True},
+            {'inputdata_filename': test_inputdata_tst},
+            {'manual_comparison': False}
+        ],
+        namespace='/experiment_comparison',
+        condition=UnlessCondition(LaunchConfiguration('manual')),
+        on_exit=Shutdown()
     )
 
-    test_inputdata_tst_arg = DeclareLaunchArgument(
-        'test_inputdata_tst', default_value='FrictionIDMovesWithBiasCurr.tst',
-        description='.tst sim test file (approved by user and used for CI)'
+    gazebo_test_fixture_manual = Node(
+        package='buoy_tests',
+        executable='experiment_comparison',
+        output='both',
+        parameters=[
+            {'use_sim_time': True},
+            {'inputdata_filename': test_inputdata_exp},
+            {'manual_comparison': True}
+        ],
+        namespace='/experiment_comparison',
+        prefix=['x-terminal-emulator -e'],
+        shell=True,
+        condition=IfCondition(LaunchConfiguration('manual')),
+        on_exit=Shutdown()
     )
 
     bridge = Node(package='ros_gz_bridge',
@@ -123,12 +87,19 @@ def generate_launch_description():
                   arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                   output='screen')
 
-    nodes = [bridge]
+    nodes = [gazebo_test_fixture,
+             gazebo_test_fixture_manual,
+             bridge]
+    sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
+                      physics_rtf=11.0,
+                      physics_step=0.001,
+                      initial_piston_position=2.03,
+                      initial_buoy_height=2.0)
 
     return launch.LaunchDescription([
+        test_inputdata_arg,
         manual_comparison_arg,
-        test_inputdata_exp_arg,
-        test_inputdata_tst_arg,
-        OpaqueFunction(function=generate_test_fixture,
-                       args=nodes)
+        OpaqueFunction(function=regenerate_models,
+                       args=nodes,
+                       kwargs=sim_params),
     ])
