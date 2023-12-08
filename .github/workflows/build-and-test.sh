@@ -34,8 +34,6 @@ cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
 wget https://raw.githubusercontent.com/osrf/mbari_wec/main/mbari_wec_all.yaml
 vcs import --skip-existing < mbari_wec_all.yaml
 
-git -C mbari_wec_utils switch hamilton8415/ehpto_switchlossfix
-
 rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
