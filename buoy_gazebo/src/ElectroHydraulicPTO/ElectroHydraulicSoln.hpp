@@ -89,15 +89,15 @@ public:
   static constexpr double HydMotorDisp{0.30};  // Default to Parker F11-5  0.30in^3/rev
 
   // Friction Loss Model constants
-  static constexpr double tau_c{.1};  // N-m
-  static constexpr double k_v{.05 / 1000.0};  // N-m/RPM
-  static constexpr double k_th{19.0};
+  static constexpr double tau_c{.1596};  // N-m
+  static constexpr double k_v{.12897 / 1000.0};  // N-m/RPM
+  static constexpr double k_th{100.0};
 
   // Switching Loss Model constants
-  static constexpr double k_switch{0.05};             // W/Volt
+  static constexpr double k_switch{5.34e-4};             // W/Volt
 
   // Winding Resitance Loss Model constants
-  static constexpr double R_w{0.8};             // Ohms
+  static constexpr double R_w{0.1833};             // Ohms
 
   double VBattEMF;       // Battery internal EMF voltage
   double Ri;       // Battery internal resistance
@@ -110,8 +110,8 @@ public:
   mutable double BusPower;
   double Q;
 
-  mutable double ShaftMechPower;
-  mutable double FrictionLoss;
+  mutable double MotorEMFPower;  // Power applied to hydraulic motor.
+  mutable double ElectricMotorFrictionLoss;
   mutable double SwitchingLoss;
   mutable double I2RLoss;
   mutable double ReliefValveLoss;
@@ -132,22 +132,26 @@ public:
   {
   }
 
-  // Friction loss is characterized in 2022 PTO simulation paper
-  // Friction loss is a function of RPM
-  // Units of power returned
-  double MotorDriveFrictionLoss(double N) const
+
+  // Electric Motor Friction  is characterized in 2022 PTO simulation paper
+  // Friction is a function of RPM
+  // Units of N-m returned
+  double ElectricMotorFrictionTorque(double N) const
   {
-    return fabs(
-      (tau_c * tanh(2 * M_PI * N / buoy_utils::SecondsPerMinute / k_th) +
-      k_v * N / 1000.0) * N);
+    return -(tau_c * tanh(N / k_th) + k_v * N);
   }
 
+
   // Switching Loss is from measurements as a function of bus voltage.
-  // ~ 10% of Voltage in Watts...
+  // ~ 5% of Voltage in Watts...
   // Units of power returned
-  double MotorDriveSwitchingLoss(double V) const
+  double MotorDriveSwitchingLoss(double N, double IWind, double V) const
   {
-    return k_switch * fabs(V);
+    double SwitchLoss = 0.0;
+    if ((fabs(N) > 300) || (fabs(IWind) > 0.1)) {
+      SwitchLoss = k_switch * V * V;
+    }
+    return SwitchLoss;
   }
 
   // Winding ISquaredR Losses,
@@ -158,31 +162,36 @@ public:
   }
 
   // x[0] = RPM
-  // x[1] = Pressure (psi)
+  // x[1] = Pressure Delta (psi)
   // x[2] = Bus Voltage (Volts)
   int operator()(const Eigen::VectorXd & x, Eigen::VectorXd & fvec) const
   {
     const int n = x.size();
     assert(fvec.size() == n);
 
-    const double rpm = fabs(x[0U]);
-    const double pressure = fabs(x[1U]);
-    const double eff_m = this->hyd_eff_m.eval(rpm);
-    const double eff_v = this->hyd_eff_v.eval(pressure);
-    // const double eff_m = 1.0 - (.1 / 6000.0) * rpm;
-    // const double eff_v = 1.0 - (.1 / 3500.0) * pressure;
+    const double eff_m = 0.8;  // this->hyd_eff_m.eval(fabs(x[0U]);
+    const double eff_v = 1.0;  // this->hyd_eff_v.eval(fabs(x[1U]);
 
     double WindCurr = this->I_Wind(x[0U]);
-    // 1.375 fudge factor required to match experiments, not yet sure why.
-    const double T_applied =
-      1.375 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
+    const double T_applied = 1.00 * this->I_Wind.TorqueConstantInLbPerAmp * WindCurr;
+    //  The 1.05 factor above is here due to a discremency in the motor torque constant
+    //  The at-sea code uses the motor spec'd value of 0.438 to compute motor current
+    //  as a function of RPM.  But, bench-testing of the motor itself reveals the actual
+    //  motor torque constant is 0.458.  Because of this a factor of 1.05 is applied here
+    //  so that the applied torque in simulation matches what is physically happening in
+    //  the system.
 
-    ShaftMechPower = -T_applied * buoy_utils::NM_PER_INLB *
+    double T_ElectricMotorFriction = ElectricMotorFrictionTorque(x[0U]);  // Returns N-m
+    ElectricMotorFrictionLoss = fabs(
+      T_ElectricMotorFriction * 2 * M_PI * x[0U] / buoy_utils::SecondsPerMinute);
+    T_ElectricMotorFriction = T_ElectricMotorFriction / buoy_utils::NM_PER_INLB;
+    MotorEMFPower = -(T_applied * buoy_utils::NM_PER_INLB) *
       x[0U] * buoy_utils::RPM_TO_RAD_PER_SEC;
-    FrictionLoss = MotorDriveFrictionLoss(x[0U]);
-    SwitchingLoss = MotorDriveSwitchingLoss(x[2U]);
+    SwitchingLoss = MotorDriveSwitchingLoss(x[1U], WindCurr, x[2U]);
     I2RLoss = MotorDriveISquaredRLoss(WindCurr);
-    BusPower = ShaftMechPower - (FrictionLoss + SwitchingLoss + I2RLoss);
+
+    BusPower = MotorEMFPower - (SwitchingLoss + I2RLoss);
+
     double Q_Relief = 0;
     if (x[1U] < -PressReliefSetPoint) {  // Pressure relief is a one wave valve,
                                          // relieves when lower pressure is higher
@@ -190,34 +199,38 @@ public:
       Q_Relief = (x[1U] + PressReliefSetPoint) * ReliefValveFlowPerPSI *
         buoy_utils::CubicInchesPerGallon / buoy_utils::SecondsPerMinute;
     }
-    ReliefValveLoss = Q_Relief * x[1U] / buoy_utils::INLB_PER_NM;  // Result is Watts
-
-    double Q_Motor = this->Q - Q_Relief;
     double Q_Ideal = x[0U] * this->HydMotorDisp / buoy_utils::SecondsPerMinute;
+    double Q_Motor = this->Q - Q_Relief;
     double Q_Leak = (1.0 - eff_v) * std::max(fabs(Q_Motor), fabs(Q_Ideal)) * sgn(x[1]);
 
     double T_Fluid = x[1U] * this->HydMotorDisp / (2.0 * M_PI);
-    double T_Friction = -(1.0 - eff_m) * std::max(fabs(T_applied), fabs(T_Fluid)) * sgn(x[0]);
+    double T_HydMotFrict = -(1.0 - eff_m) * std::max(fabs(T_applied), fabs(T_Fluid)) * sgn(x[0]);
 
-    HydraulicMotorLoss = Q_Leak * x[1U] / buoy_utils::INLB_PER_NM -  // Result is Watts
-      T_Friction * x[0U] * 2.0 * M_PI / (buoy_utils::INLB_PER_NM * buoy_utils::SecondsPerMinute);
-
-    fvec[0U] = Q_Motor - Q_Leak - Q_Ideal;
-    fvec[1U] = T_applied + T_Friction + T_Fluid;
+    fvec[0U] = this->Q - Q_Relief - Q_Leak - Q_Ideal;
+    fvec[1U] = T_applied + T_ElectricMotorFriction + T_HydMotFrict + T_Fluid;
     fvec[2U] = BusPower - (x[2U] - VBattEMF) * x[2U] / this->Ri;
+
+    ReliefValveLoss = Q_Relief * x[1U] / buoy_utils::INLB_PER_NM;  // Result is Watts
+    HydraulicMotorLoss = Q_Leak * x[1U] / buoy_utils::INLB_PER_NM -  // Result is Watts
+      T_HydMotFrict * x[0U] * 2.0 * M_PI / (buoy_utils::INLB_PER_NM * buoy_utils::SecondsPerMinute);
 
     return 0;
   }
 };
+// const std::vector<double> ElectroHydraulicSoln::Peff{
+//  0.0, 145.0, 290.0, 435.0, 580.0, 725.0, 870.0,
+//  1015.0, 1160.0, 1305.0, 1450.0, 1595.0, 1740.0, 1885.0,
+//  2030.0, 2175.0, 2320.0, 2465.0, 2610.0, 2755.0, 3500.0, 10000.0};
+// const std::vector<double> ElectroHydraulicSoln::Eff_V{
+//  1.0000, 0.980, 0.97, 0.960, 0.9520, 0.950, 0.949, 0.9480,
+//  0.9470, 0.946, 0.9450, 0.9440, 0.9430, 0.9420, 0.9410, 0.9400,
+//  0.9390, 0.9380, 0.9370, 0.9350, 0.9100, .6000};
+
 const std::vector<double> ElectroHydraulicSoln::Peff{
-  0.0, 145.0, 290.0, 435.0, 580.0, 725.0, 870.0,
-  1015.0, 1160.0, 1305.0, 1450.0, 1595.0, 1740.0, 1885.0,
-  2030.0, 2175.0, 2320.0, 2465.0, 2610.0, 2755.0, 3500.0, 10000.0};
+  0.0, 500.0, 1000.0, 3000.0, 10000.0};
 
 const std::vector<double> ElectroHydraulicSoln::Eff_V{
-  1.0000, 0.980, 0.97, 0.960, 0.9520, 0.950, 0.949, 0.9480,
-  0.9470, 0.946, 0.9450, 0.9440, 0.9430, 0.9420, 0.9410, 0.9400,
-  0.9390, 0.9380, 0.9370, 0.9350, 0.9100, .6000};
+  1.0, 1.0, 1.0, 1.0, 1.0};  // 1.0, 0.97, .96, .95, .75};
 
 
 const std::vector<double> ElectroHydraulicSoln::Neff{

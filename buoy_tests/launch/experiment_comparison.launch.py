@@ -58,10 +58,10 @@ def find_proc(ld):
             if type(entity._Action__condition) is UnlessCondition:
                 return entity
         elif type(entity) is OpaqueFunction:
-            for node in entity._OpaqueFunction__args:
-                if type(node) is Node:
-                    if type(node._Action__condition) is UnlessCondition:
-                        return node
+            for arg in entity._OpaqueFunction__args:
+                if type(arg) is Node:
+                    if type(arg._Action__condition) is UnlessCondition:
+                        return arg
 
 
 class BuoyExperimentComparisonTest(unittest.TestCase):

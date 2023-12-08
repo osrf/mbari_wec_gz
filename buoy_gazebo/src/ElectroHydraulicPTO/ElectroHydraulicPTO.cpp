@@ -326,8 +326,7 @@ void ElectroHydraulicPTO::PreUpdate(
       this->dataPtr->functor.HydMotorDisp;
 
     double WindCurr = this->dataPtr->functor.I_Wind(this->dataPtr->x[0U]);
-    // 1.375 fudge factor required to match experiments, not yet sure why.
-    const double T_applied = 1.375 * this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
+    const double T_applied = 1.00 * this->dataPtr->functor.I_Wind.TorqueConstantInLbPerAmp *
       WindCurr;
     this->dataPtr->x[1] = -T_applied / (this->dataPtr->functor.HydMotorDisp / (2 * M_PI));
 
@@ -362,6 +361,7 @@ void ElectroHydraulicPTO::PreUpdate(
   // Solve Electrical
   const double N = this->dataPtr->x[0U];
   double deltaP = this->dataPtr->x[1U];
+//  std::cout << this->dataPtr->functor.Q << "   " << N << "   " << deltaP << std::endl;
   double VBus = this->dataPtr->x[2U];
   const double eff_m = this->dataPtr->functor.hyd_eff_m.eval(fabs(N));
   const double eff_v = this->dataPtr->functor.hyd_eff_v.eval(fabs(deltaP));
@@ -423,14 +423,14 @@ void ElectroHydraulicPTO::PreUpdate(
     this->dataPtr->functor.HydraulicMotorLoss;
   latent_data.electro_hydraulic.relief_valve_loss =
     this->dataPtr->functor.ReliefValveLoss;
-  latent_data.electro_hydraulic.shaft_mech_power =
-    this->dataPtr->functor.ShaftMechPower;
+  latent_data.electro_hydraulic.motor_emf_power =
+    this->dataPtr->functor.MotorEMFPower;
   latent_data.electro_hydraulic.motor_drive_i2r_loss =
     this->dataPtr->functor.I2RLoss;
   latent_data.electro_hydraulic.motor_drive_switching_loss =
     this->dataPtr->functor.SwitchingLoss;
   latent_data.electro_hydraulic.motor_drive_friction_loss =
-    this->dataPtr->functor.FrictionLoss;
+    this->dataPtr->functor.ElectricMotorFrictionLoss;
   latent_data.electro_hydraulic.load_dump_power =
     I_Load * VBus;
   latent_data.electro_hydraulic.battery_i2r_loss =
