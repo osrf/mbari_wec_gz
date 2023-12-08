@@ -12,13 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-from ament_index_python.packages import get_package_share_directory
-
 import launch
 from launch.actions import DeclareLaunchArgument, Shutdown
-from launch.actions import OpaqueFunction, LogInfo
+from launch.actions import OpaqueFunction
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 
@@ -40,18 +36,30 @@ def generate_launch_description():
         description='compare data manually'
     )
 
+    # 1) Ignore file path
+    # test_inputdata = tinp.split('/')[-1] if '/' in (tinp:=test_inputdata) else tinp
     test_inputdata = PythonExpression(["tinp.split('/')[-1] if '/' in (tinp:='",
                                        LaunchConfiguration('test_inputdata'),
                                        "') else tinp"])
+    # 2) Ignore .exp and .tst in file extension
+    # test_inputdata = tinp[:-4] if '.exp' in (tinp:=test_inputdata) or '.tst' in tinp else tinp
     test_inputdata = PythonExpression(["tinp[:-4] if '.exp' in (tinp:='", test_inputdata,
                                        "') or '.tst' in tinp else tinp"])
+    # 3) Use file in buoy_tests/share/buoy_tests/test_inputdata/
+    # test_inputdata = os.path.join(get_package_share('buoy_tests'),
+    #                               'test_inputdata',
+    #                               test_inputdata)
     test_inputdata = PathJoinSubstitution([FindPackageShare('buoy_tests'),
                                            'test_inputdata',
                                            test_inputdata])
+    # 4) Now add extensions
+    # test_input_exp = test_inputdata + '.exp'
     test_inputdata_exp = PythonExpression(["'", test_inputdata, "' + '.exp'"])
+    # test_input_tst = test_inputdata + '.tst'
     test_inputdata_tst = PythonExpression(["'", test_inputdata, "' + '.tst'"])
 
     # Test fixture
+    # manual:=False
     gazebo_test_fixture = Node(
         package='buoy_tests',
         executable='experiment_comparison',
@@ -66,6 +74,7 @@ def generate_launch_description():
         on_exit=Shutdown()
     )
 
+    # manual:=True
     gazebo_test_fixture_manual = Node(
         package='buoy_tests',
         executable='experiment_comparison',
@@ -87,9 +96,11 @@ def generate_launch_description():
                   arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
                   output='screen')
 
+    # passthru nodes dependent on regenerate_models
     nodes = [gazebo_test_fixture,
              gazebo_test_fixture_manual,
              bridge]
+    # override default params for test
     sim_params = dict(inc_wave_spectrum='inc_wave_spectrum_type:None',
                       physics_rtf=11.0,
                       physics_step=0.001,
