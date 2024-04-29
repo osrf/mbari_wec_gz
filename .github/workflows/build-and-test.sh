@@ -32,7 +32,7 @@ apt install -y git \
 cd $COLCON_WS_SRC
 cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
 #wget https://raw.githubusercontent.com/osrf/mbari_wec/main/mbari_wec_all.yaml
-wget https://github.com/osrf/mbari_wec/blob/andermi/update_dependencies/mbari_wec_all.yaml
+wget https://raw.githubusercontent.com/osrf/mbari_wec/andermi/update_dependencies/mbari_wec_all.yaml
 vcs import --skip-existing < mbari_wec_all.yaml
 
 rosdep init
