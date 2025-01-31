@@ -27,7 +27,7 @@ jobs:
           ROS_DISTRO: ${{ matrix.ros-distro }}
       - name: Archive rosbags
         if: success() || failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rosbags
           path: ~/ws/build/buoy_tests/rosbag*
