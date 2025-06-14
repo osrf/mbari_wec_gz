@@ -19,7 +19,6 @@
 
   <depend>python3-empy</depend>
   <depend>gz_math_vendor</depend>
-  <!--depend>python3-gz-math7</depend-->
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
