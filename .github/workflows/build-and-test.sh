@@ -23,6 +23,7 @@ apt install -y git \
                python3-colcon-common-extensions \
                python3-rosdep \
                python3-vcstool \
+               python3-pip \
                wget  # \
 #               libfshydrodynamics
 
@@ -35,7 +36,7 @@ rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
 
-git clone -b main --single-branch https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
+git clone -b 1.4.0 --single-branch https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
 cd FreeSurfaceHydrodynamics
 touch COLCON_IGNORE
 mkdir build
@@ -45,6 +46,7 @@ make
 make install
 cd $COLCON_WS_SRC
 
+# python bindings for gz.sim gz.common gz.math
 python3 -m pip install -i https://mbari-org.github.io/gz-python-bindings/simple gz-python-bindings --break-system-packages
 
 # For rosbag2 test artifacts
