@@ -19,6 +19,7 @@ apt install /tmp/ros2-apt-source.deb
 apt update -qq
 apt install -y git \
                ros-jazzy-ros-gz \
+               ros-jazzy-sdformat-urdf \
                python3-colcon-common-extensions \
                python3-rosdep \
                python3-vcstool \
@@ -43,6 +44,8 @@ cmake ..
 make
 make install
 cd $COLCON_WS_SRC
+
+python3 -m pip install -i https://mbari-org.github.io/gz-python-bindings/simple gz-python-bindings --break-system-packages
 
 # For rosbag2 test artifacts
 apt install -y ros-$ROS_DISTRO-ros2cli ros-$ROS_DISTRO-rosbag2 ros-$ROS_DISTRO-rosbag2-transport
