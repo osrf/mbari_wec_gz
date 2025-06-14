@@ -11,18 +11,14 @@ mkdir -p $COLCON_WS_SRC
 apt update -qq
 apt install -qq -y lsb-release wget curl build-essential
 
-# Garden only has nightlies for now
-echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list
-echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-nightly `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-nightly.list
-wget https://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
-
-echo "deb http://packages.ros.org/ros2/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/ros2-latest.list
-curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
+export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
+curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb" # If using Ubuntu derivates use $UBUNTU_CODENAME
+sudo apt install /tmp/ros2-apt-source.deb
 # curl -s --compressed "https://hamilton8415.github.io/ppa/KEY.gpg" | gpg --dearmor | tee /etc/apt/trusted.gpg.d/ppa.gpg >/dev/null
 # curl -s --compressed -o /etc/apt/sources.list.d/my_list_file.list "https://hamilton8415.github.io/ppa/my_list_file.list"
 apt update -qq
 apt install -y git \
-               gz-garden \
+               ros-jazzy-ros-gz \
                python3-colcon-common-extensions \
                python3-rosdep \
                python3-vcstool \
@@ -31,14 +27,14 @@ apt install -y git \
 
 cd $COLCON_WS_SRC
 cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
-wget https://raw.githubusercontent.com/osrf/mbari_wec/main/mbari_wec_all.yaml
+wget https://raw.githubusercontent.com/osrf/mbari_wec/andermi/jazzy_harmonic/mbari_wec_all.yaml
 vcs import --skip-existing < mbari_wec_all.yaml
 
 rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
 
-git clone -b v1.3.1 --single-branch https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
+git clone -b v1.4.0 --single-branch https://github.com/andermi/FreeSurfaceHydrodynamics.git
 cd FreeSurfaceHydrodynamics
 touch COLCON_IGNORE
 mkdir build
@@ -49,10 +45,10 @@ make install
 cd $COLCON_WS_SRC
 
 # For rosbag2 test artifacts
-apt install -y ros-humble-ros2cli ros-humble-rosbag2 ros-humble-rosbag2-transport
+apt install -y ros-$ROS_DISTRO-ros2cli ros-$ROS_DISTRO-rosbag2 ros-$ROS_DISTRO-rosbag2-transport
 
 # for cyclonedds rmw implementation
-apt install -y ros-humble-rmw-cyclonedds-cpp
+apt install -y ros-$ROS_DISTRO-rmw-cyclonedds-cpp
 
 # Build everything up to buoy_gazebo
 source /opt/ros/$ROS_DISTRO/setup.bash
