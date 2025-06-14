@@ -131,7 +131,7 @@ struct IncWaveHeightPrivate
     // IncWaveHeight
     services_->inc_wave_height_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::IncWaveHeight::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::IncWaveHeight::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::IncWaveHeight::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),

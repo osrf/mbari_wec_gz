@@ -5,5 +5,7 @@ gz_add_plugin(PowerController
     ../..
   ROS
   EXTRA_ROS_PKGS
+    rclcpp_components
     ros_gz_sim
+    ros_gz_interfaces
 )

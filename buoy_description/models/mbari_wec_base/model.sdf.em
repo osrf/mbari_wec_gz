@@ -104,7 +104,7 @@ buoyancy_disp = pto_disp - stl_disp
 buoyancy_cob = (pto_cob*pto_disp - stl_cob*stl_disp)/buoyancy_disp
 buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
 }@
-<sdf version="1.8">
+<sdf version="1.10">
   <model name="MBARI_WEC_BASE">
     <self_collide>true</self_collide>
     <link name="Buoy">

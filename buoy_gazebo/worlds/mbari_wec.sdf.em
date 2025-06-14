@@ -26,7 +26,7 @@ except NameError:
     initial_buoy_height = 2.8  # not defined so default
 
 }@
-<sdf version="1.8">
+<sdf version="1.10">
   <world name="mbari_wec_world">
 
     <spherical_coordinates>

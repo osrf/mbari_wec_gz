@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 project(buoy_tests)
 
 find_package(ament_cmake REQUIRED)
@@ -12,8 +12,10 @@ find_package(buoy_gazebo REQUIRED)
 message(STATUS ${buoy_gazebo_INCLUDE_DIRS})
 
 if(BUILD_TESTING)
-  find_package(gz-sim7 REQUIRED)
-  set(GZ_SIM_VER ${gz-sim7_VERSION_MAJOR})
+  find_package(gz_sim_vendor REQUIRED)
+  find_package(gz-sim REQUIRED)
+  set(GZ_SIM_VER "")
+  #set(GZ_SIM_VER ${gz-sim7_VERSION_MAJOR})
 
   # Linters
   find_package(ament_lint_auto REQUIRED)
@@ -43,10 +45,16 @@ if(BUILD_TESTING)
     cmake_parse_arguments(buoy_add_gtest "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if(buoy_add_gtest_BOOST_COMPONENTS)
+
+      # Set policy CMP0167 so we avoid warnings about deprecated FindBoost
+      if(POLICY CMP0167)
+        cmake_policy(SET CMP0167 NEW)
+      endif()
+
       set(Boost_USE_STATIC_LIBS OFF)
       set(Boost_USE_MULTITHREADED ON)
       set(Boost_USE_STATIC_RUNTIME OFF)
-      find_package(Boost 1.71.0 REQUIRED COMPONENTS ${buoy_add_gtest_BOOST_COMPONENTS})
+      find_package(Boost 1.83.0 REQUIRED CONFIG COMPONENTS ${buoy_add_gtest_BOOST_COMPONENTS})
       set(BOOST_LIBS "")
       foreach(BOOST_COMP ${buoy_add_gtest_BOOST_COMPONENTS})
         list(APPEND BOOST_LIBS "Boost::${BOOST_COMP}")

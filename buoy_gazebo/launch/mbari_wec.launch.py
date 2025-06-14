@@ -116,7 +116,7 @@ def regenerate_models(context, *args, **kwargs):
     mbari_wec_model_params = []
     for world_param in supported_mbari_wec_model_params:
         if world_param in override_params:
-            print(f'{world_param = }\n{override_params[world_param] = }')
+            print(f'{world_param = }\n{override_params[world_param] = }')  # noqa: E202, E251
             if 'inc_wave_spectrum_type' in override_params[world_param]:
                 inc_wave_spectrum = override_params[world_param].split(';')
                 no_params = len(inc_wave_spectrum) > 1

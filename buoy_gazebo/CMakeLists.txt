@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 project(buoy_gazebo)
 
 # if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -17,13 +17,17 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(buoy_description REQUIRED)
 
+find_package(gz_cmake_vendor REQUIRED)
 find_package(gz-cmake3 REQUIRED)
-find_package(gz-plugin2 REQUIRED COMPONENTS register)
-set(GZ_PLUGIN_VER ${gz-plugin2_VERSION_MAJOR})
-find_package(gz-common5 REQUIRED COMPONENTS profiler)
-set(GZ_COMMON_VER ${gz-common5_VERSION_MAJOR})
-find_package(gz-sim7 REQUIRED)
-set(GZ_SIM_VER ${gz-sim7_VERSION_MAJOR})
+find_package(gz_plugin_vendor REQUIRED)
+find_package(gz-plugin REQUIRED COMPONENTS register)
+#set(GZ_PLUGIN_VER ${gz-plugin2_VERSION_MAJOR})
+find_package(gz_common_vendor REQUIRED COMPONENTS profiler)
+find_package(gz-common REQUIRED COMPONENTS profiler)
+#set(GZ_COMMON_VER ${gz-common5_VERSION_MAJOR})
+find_package(gz_sim_vendor REQUIRED)
+find_package(gz-sim REQUIRED)
+#set(GZ_SIM_VER ${gz-sim7_VERSION_MAJOR})
 
 # SDF Template
 set(WORLDS_PATH "/worlds")
@@ -82,9 +86,12 @@ function(gz_add_plugin plugin_name)
   )
   target_link_libraries(${plugin_name}
     PUBLIC
-      gz-sim${GZ_SIM_VER}::gz-sim${GZ_SIM_VER}
-      gz-plugin${GZ_PLUGIN_VER}::gz-plugin${GZ_PLUGIN_VER}
-      gz-common${GZ_COMMON_VER}::profiler
+      #gz-sim${GZ_SIM_VER}::gz-sim${GZ_SIM_VER}
+      #gz-plugin${GZ_PLUGIN_VER}::gz-plugin${GZ_PLUGIN_VER}
+      #gz-common${GZ_COMMON_VER}::profiler
+      gz-sim::gz-sim
+      gz-plugin::gz-plugin
+      gz-common::profiler
       ${gz_add_plugin_PUBLIC_LINK_LIBS}
     PRIVATE
       ${gz_add_plugin_PRIVATE_LINK_LIBS}

@@ -202,7 +202,7 @@ struct SpringControllerPrivate
     // Pack Rate
     services_->packrate_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::SCPackRateCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::SCPackRateCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::SCPackRateCommand::Response> response)
       {
         RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
@@ -220,7 +220,7 @@ struct SpringControllerPrivate
     // ValveCommand
     services_->valve_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::ValveCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::ValveCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::ValveCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
@@ -275,7 +275,7 @@ struct SpringControllerPrivate
     // PumpCommand
     services_->pump_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::PumpCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::PumpCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::PumpCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),

@@ -26,13 +26,13 @@ from buoy_tests.srv import RunServer
 from em import invoke as empy
 
 # TODO(anyone) Put back when fixed upstream
-# from gz.common import set_verbosity
-# from gz.sim import TestFixture
+# from gz.common5 import set_verbosity
+# from gz.sim8 import TestFixture
 
 import launch
-from launch.substitutions import LaunchConfiguration
 import launch.actions
 from launch.actions import OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 
 from launch_ros.actions import Node as launchNode
 
@@ -103,7 +103,7 @@ def regenerate_models(context, *args, **kwargs):
     for world_param in supported_mbari_wec_world_params:
         if world_param in kwargs:
             mbari_wec_world_params.extend(['-D',
-                                           f"{world_param} = {kwargs[world_param]}"])
+                                           f'{world_param} = {kwargs[world_param]}'])
     mbari_wec_world_params.extend(['-o', world_file,
                                    empy_world_file])
     empy(mbari_wec_world_params)
@@ -150,7 +150,7 @@ def regenerate_models(context, *args, **kwargs):
                             values_str_arr = ','.join([str(v) for v in values])
                             mbari_wec_model_params.extend(['-D',
                                                            f'{name} =' +
-                                                           f"[{values_str_arr}]"])
+                                                           f'[{values_str_arr}]'])
             else:
                 mbari_wec_model_params.extend(['-D',
                                                f"{world_param} = '{kwargs[world_param]}'"])
