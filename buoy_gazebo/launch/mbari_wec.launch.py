@@ -210,7 +210,7 @@ def generate_latest_rosbag2_symlink(context):
     pbloghome = Path(pbloghome)
     rosbag2_home = pbloghome / 'rosbag2'
 
-    rosbag2_dir = 'rosbag2_' + str(time.strftime("%Y%m%d%H%M%S"))
+    rosbag2_dir = 'rosbag2_' + str(time.strftime('%Y%m%d%H%M%S'))
     rosbag2_dir = rosbag2_home / rosbag2_dir
     rosbag2_dir = str(rosbag2_dir)
 
@@ -222,11 +222,12 @@ def generate_latest_rosbag2_symlink(context):
 
     # record all topics with rosbag2
     rosbag2 = ExecuteProcess(
-        cmd=['ros2', 'bag', 'record',
-             '-s', 'mcap',
-             '-o', rosbag2_dir,
-             '-a'
-            ],
+        cmd=[
+            'ros2', 'bag', 'record',
+            '-s', 'mcap',
+            '-o', rosbag2_dir,
+            '-a'
+        ],
         output='screen',
         # Probably don't need this since we won't even enter this func if rosbag2:=false
         condition=IfCondition(LaunchConfiguration('rosbag2'))
@@ -247,10 +248,10 @@ def generate_launch_description():
         description='Gazebo <world name>'
     )
 
-    #rviz_launch_arg = DeclareLaunchArgument(
-    #    'rviz', default_value='false',
-    #    description='Open RViz.'
-    #)
+    # rviz_launch_arg = DeclareLaunchArgument(
+    #     'rviz', default_value='false',
+    #     description='Open RViz.'
+    # )
 
     gazebo_debugger_arg = DeclareLaunchArgument(
         'debugger', default_value='false',
@@ -306,13 +307,13 @@ def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_pblog = get_package_share_directory('sim_pblog')
-    pkg_buoy_description = get_package_share_directory('buoy_description')
-    model_dir = 'mbari_wec_ros'
+    # pkg_buoy_description = get_package_share_directory('buoy_description')
+    # model_dir = 'mbari_wec_ros'
     model_name = 'MBARI_WEC_ROS'
-    ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
+    # ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
-    with open(ros_sdf_file, 'r') as infp:
-        robot_desc = infp.read()
+    # with open(ros_sdf_file, 'r') as infp:
+    #     robot_desc = infp.read()
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -364,35 +365,35 @@ def generate_launch_description():
     )
 
     # TODO(andermi) get this running again?
-    ## Get the parser plugin convert sdf to urdf using robot_description topic
-    #robot_state_publisher = Node(
-    #    package='robot_state_publisher',
-    #    executable='robot_state_publisher',
-    #    name='robot_state_publisher',
-    #    output='both',
-    #    parameters=[
-    #        {'use_sim_time': True},
-    #        {'robot_description': robot_desc},
-    #    ]
-    #)
+    # # Get the parser plugin convert sdf to urdf using robot_description topic
+    # robot_state_publisher = Node(
+    #     package='robot_state_publisher',
+    #     executable='robot_state_publisher',
+    #     name='robot_state_publisher',
+    #     output='both',
+    #     parameters=[
+    #         {'use_sim_time': True},
+    #         {'robot_description': robot_desc},
+    #     ]
+    # )
 
-    ## Launch rviz
-    #rviz = Node(
-    #    package='rviz2',
-    #    executable='rviz2',
-    #    arguments=['-d', os.path.join(pkg_buoy_gazebo, 'rviz', 'mbari_wec.rviz')],
-    #    condition=IfCondition(LaunchConfiguration('rviz')),
-    #    parameters=[
-    #        {'use_sim_time': True},
-    #    ]
-    #)
+    # # Launch rviz
+    # rviz = Node(
+    #     package='rviz2',
+    #     executable='rviz2',
+    #     arguments=['-d', os.path.join(pkg_buoy_gazebo, 'rviz', 'mbari_wec.rviz')],
+    #     condition=IfCondition(LaunchConfiguration('rviz')),
+    #     parameters=[
+    #         {'use_sim_time': True},
+    #     ]
+    # )
 
     # Generate files before running any nodes
     dependent_nodes = [gazebo,
                        bridge,
                        pblog]
-                       #robot_state_publisher,
-                       #rviz]
+    # robot_state_publisher,
+    # rviz]
 
     return LaunchDescription(supported_params_args + [
         gazebo_world_file_launch_arg,
@@ -400,7 +401,7 @@ def generate_launch_description():
         pblog_loghome_launch_arg,
         pblog_logdir_launch_arg,
         rosbag2_launch_arg,
-        #rviz_launch_arg,
+        # rviz_launch_arg,
         gazebo_debugger_arg,
         extra_gz_args,
         regenerate_models_arg,
