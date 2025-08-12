@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
 import os
 from threading import Thread
 import unittest
@@ -227,12 +226,12 @@ def default_generate_test_description(server='fixture_server',
     if enable_rosbag:
         if rosbag_name is not None:
             rosbag = launch.actions.ExecuteProcess(
-                cmd=['ros2', 'bag', 'record', '-o', rosbag_name, '-a'],
+                cmd=['ros2', 'bag', 'record', '-s', 'mcap', '-o', rosbag_name, '-a'],
                 output='screen'
             )
         else:
             rosbag = launch.actions.ExecuteProcess(
-                cmd=['ros2', 'bag', 'record', '-a'],
+                cmd=['ros2', 'bag', 'record', '-s', 'mcap', '-a'],
                 output='screen'
             )
 
@@ -323,16 +322,12 @@ class TestHelper(rclpyNode):
     """
 
     def run(self, _iterations):
-        return asyncio.run(self._run(_iterations))
-
-    async def _run(self, _iterations):
         # TODO(anyone) workaround until TestFixture is fixed upstream (see below)
         req = RunServer.Request()
         req.iterations = _iterations
-        future = self.fixture_client.call_async(req)
-        await future
-        self.run_status = future.result().success
-        self.iterations += future.result().iterations
+        resp = self.fixture_client.call(req)
+        self.run_status = resp.success
+        self.iterations += resp.iterations
 
         """ TODO(anyone) Expect the following to work but .run() with blocking = True
                          doesn't return.
@@ -348,20 +343,13 @@ class TestHelper(rclpyNode):
         self.run(0)
 
     def get_params_from_node(self, node_name, params):
-        return asyncio.run(self._get_params_from_node(node_name, params))
-
-    async def _get_params_from_node(self, node_name, params):
         srv_name = node_name + '/get_parameters'
         client = self.create_client(GetParameters, srv_name)
         while rclpy.ok() and not client.wait_for_service(0.1):
             pass
         req = GetParameters.Request()
         req.names = params
-        future = client.call_async(req)
-        await future
-        resp = None
-        if future.result is not None:
-            resp = future.result()
+        resp = client.call(req)
         return resp
 
 
