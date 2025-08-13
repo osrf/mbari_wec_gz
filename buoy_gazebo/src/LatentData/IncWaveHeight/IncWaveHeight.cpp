@@ -143,7 +143,8 @@ struct IncWaveHeightPrivate
         std::unique_lock data(data_mutex_);
         next.unlock();
 
-        response->valid = this->inc_wave_valid_;
+        response->result.value =
+          this->inc_wave_valid_ ? response->result.OK : response->result.INVALID_INC_WAVE;
         if (!this->inc_wave_valid_) {
           data.unlock();
           return;
