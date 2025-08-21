@@ -309,7 +309,7 @@ struct PowerControllerPrivate
     // Pack Rate
     services_->packrate_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::PCPackRateCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::PCPackRateCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::PCPackRateCommand::Response> response)
       {
         RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
@@ -326,7 +326,7 @@ struct PowerControllerPrivate
     services_->torque_command_watch_.SetClock(ros_->node_->get_clock());
     services_->torque_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::PCWindCurrCommand::Response> response)
       {
         RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),
@@ -356,7 +356,7 @@ struct PowerControllerPrivate
     services_->scale_command_watch_.SetClock(ros_->node_->get_clock());
     services_->scale_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::PCScaleCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
@@ -386,7 +386,7 @@ struct PowerControllerPrivate
     services_->retract_command_watch_.SetClock(ros_->node_->get_clock());
     services_->retract_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::PCRetractCommand::Response> response)
       {
         RCLCPP_INFO_STREAM(
           ros_->node_->get_logger(),
@@ -416,7 +416,7 @@ struct PowerControllerPrivate
     services_->bias_curr_command_watch_.SetClock(ros_->node_->get_clock());
     services_->bias_curr_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::PCBiasCurrCommand::Response> response)
       {
         RCLCPP_DEBUG_STREAM(
           ros_->node_->get_logger(),

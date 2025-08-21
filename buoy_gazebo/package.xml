@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>buoy_gazebo</name>
-  <version>0.0.0</version>
+  <version>1.1.0</version>
   <description>Gazebo simulation plugins and worlds for buoy.</description>
 
   <maintainer email="hamilton@mbari.org">Andrew Hamilton</maintainer>
@@ -23,16 +23,20 @@
   <depend>buoy_description</depend>
   <depend>buoy_interfaces</depend>
   <depend>sim_pblog</depend>
-  <depend>gz-sim7</depend>
   <depend>rclcpp</depend>
   <depend>robot_state_publisher</depend>
   <depend>ros_gz_bridge</depend>
   <depend>ros_gz_sim</depend>
+  <depend>ros_gz_interfaces</depend>
   <depend>rviz2</depend>
   <depend>sdformat_urdf</depend>
   <depend>simple_interp</depend>
   <depend>gnuplot-iostream</depend>
-  <depend>libfshydrodynamics</depend>
+
+  <depend>gz_sim_vendor</depend>
+  <depend>gz_cmake_vendor</depend>
+  <depend>gz_plugin_vendor</depend>
+  <depend>gz_common_vendor</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

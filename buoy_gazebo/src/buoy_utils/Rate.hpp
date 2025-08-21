@@ -98,6 +98,11 @@ public:
     return period_;
   }
 
+  virtual rcl_clock_type_t get_type() const
+  {
+    return clock->get_clock_type();
+  }
+
 private:
   RCLCPP_DISABLE_COPY(SimRate)
 

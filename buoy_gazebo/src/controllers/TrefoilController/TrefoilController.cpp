@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <gz/msgs/imu.pb.h>
+#include <gz/msgs/magnetometer.pb.h>
 
 #include <memory>
 #include <string>

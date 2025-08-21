@@ -29,7 +29,7 @@
   <test_depend>buoy_interfaces</test_depend>
   <test_depend>gnuplot-iostream</test_depend>
   <test_depend>launch_testing_ament_cmake</test_depend>
-  <test_depend>python3-gz-sim7</test_depend>
+  <test_depend>gz_sim_vendor</test_depend>
   <test_depend>rclcpp</test_depend>
   <test_depend>rclpy</test_depend>
   <test_depend>rosidl_default_runtime</test_depend>

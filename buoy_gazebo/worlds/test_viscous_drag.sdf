@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<sdf version="1.8">
+<sdf version="1.10">
   <world name="test_world">
 
     <spherical_coordinates>

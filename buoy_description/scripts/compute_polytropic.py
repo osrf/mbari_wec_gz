@@ -97,7 +97,7 @@ def load_atsea_logs(logs, plot=False):
                                 ' SC Upper PSI',
                                 'SC Lower PSI'])] for df_ in sc_df]
     spring_data = pd.concat(spring_data)
-    spring_data.rename(columns={k: v for k, v in zip(spring_data.columns,
+    spring_data.rename(columns={k: v for k, v in zip(spring_data.columns,  # noqa C416
                                                      ['t', 'p', 'up', 'lp'])}, inplace=True)
     spring_data['uv'] = None
     spring_data['lv'] = None
@@ -223,7 +223,7 @@ def computePolytropicForce(V_, P, V, n, c, v, is_upper):
     # Ideal Gas Law: T = P*V/(m*R)
     T = P * V / c
 
-    '''
+    """
     # no heat loss if adiabatic
     cp_R = c_p / R
     Q_rate = 0.0
@@ -239,7 +239,7 @@ def computePolytropicForce(V_, P, V, n, c, v, is_upper):
         r_ = 0.045
         A = (2.0 * piston_area) * r_ * x  # TODO(andermi) compute x from V_
         Q_rate = (1.0 - n / ADIABATIC_INDEX) * cp_R * P * A * v
-    '''
+    """
 
     # F = P*A
     F = P * piston_area

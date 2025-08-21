@@ -15,13 +15,16 @@
 """Launch Gazebo world with a buoy."""
 
 import os
+from pathlib import Path
+import time
 
 from ament_index_python.packages import get_package_share_directory
 
 from em import invoke as empy
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.actions import IncludeLaunchDescription, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -42,6 +45,11 @@ def regenerate_models(context, *args, **kwargs):
 
     Will grab overridden parameters from launch arguments via context object
     """
+    use_rosbag2 = LaunchConfiguration('rosbag2').perform(context)
+    if use_rosbag2 == 'true':
+        rosbag2 = generate_latest_rosbag2_symlink(context)
+        args = args + (rosbag2,)
+
     regenerate_models = LaunchConfiguration('regenerate_models').perform(context)
     if regenerate_models == 'false':
         return args
@@ -116,7 +124,7 @@ def regenerate_models(context, *args, **kwargs):
     mbari_wec_model_params = []
     for world_param in supported_mbari_wec_model_params:
         if world_param in override_params:
-            print(f'{world_param = }\n{override_params[world_param] = }')
+            print(f'{world_param = }\n{override_params[world_param] = }')  # noqa: E202, E251
             if 'inc_wave_spectrum_type' in override_params[world_param]:
                 inc_wave_spectrum = override_params[world_param].split(';')
                 no_params = len(inc_wave_spectrum) > 1
@@ -196,6 +204,38 @@ def regenerate_default_models(context, *args, **kwargs):
     return args
 
 
+def generate_latest_rosbag2_symlink(context):
+
+    pbloghome = LaunchConfiguration('pbloghome').perform(context)
+    pbloghome = Path(pbloghome)
+    rosbag2_home = pbloghome / 'rosbag2'
+
+    rosbag2_dir = 'rosbag2_' + str(time.strftime('%Y%m%d%H%M%S'))
+    rosbag2_dir = rosbag2_home / rosbag2_dir
+    rosbag2_dir = str(rosbag2_dir)
+
+    # python workaround for 'ln -sf'
+    os.symlink(rosbag2_dir,
+               str(pbloghome / 'latest_rosbag_temp'), target_is_directory=True)
+    os.replace(str(pbloghome / 'latest_rosbag_temp'),
+               str(pbloghome / 'latest_rosbag'))
+
+    # record all topics with rosbag2
+    rosbag2 = ExecuteProcess(
+        cmd=[
+            'ros2', 'bag', 'record',
+            '-s', 'mcap',
+            '-o', rosbag2_dir,
+            '-a'
+        ],
+        output='screen',
+        # Probably don't need this since we won't even enter this func if rosbag2:=false
+        condition=IfCondition(LaunchConfiguration('rosbag2'))
+    )
+
+    return rosbag2
+
+
 def generate_launch_description():
 
     gazebo_world_file_launch_arg = DeclareLaunchArgument(
@@ -208,10 +248,10 @@ def generate_launch_description():
         description='Gazebo <world name>'
     )
 
-    rviz_launch_arg = DeclareLaunchArgument(
-        'rviz', default_value='false',
-        description='Open RViz.'
-    )
+    # rviz_launch_arg = DeclareLaunchArgument(
+    #     'rviz', default_value='false',
+    #     description='Open RViz.'
+    # )
 
     gazebo_debugger_arg = DeclareLaunchArgument(
         'debugger', default_value='false',
@@ -236,7 +276,7 @@ def generate_launch_description():
                         'battery_emf': 'initial battery emf in Volts',
                         'x_mean_pos': 'desired mean piston position in meters',
                         'inc_wave_spectrum': 'incident wave spectrum defined as'
-                                             + 'inc_wave_spectrum_type:type;p1:v1:v2;p2:v1:v2'}
+                                             + ' inc_wave_spectrum_type:type;p1:v1:v2;p2:v1:v2'}
     supported_params_args = []
     for param in supported_params:
         supported_params_args.append(
@@ -246,8 +286,11 @@ def generate_launch_description():
             )
         )
 
+    home_path = Path.home()
+    pblog_home_default = home_path / '.pblogs'
+
     pblog_loghome_launch_arg = DeclareLaunchArgument(
-        'pbloghome', default_value=['~/.pblogs'],
+        'pbloghome', default_value=[str(pblog_home_default)],
         description='root pblog directory'
     )
 
@@ -256,16 +299,21 @@ def generate_launch_description():
         description='specific pblog directory in pbloghome'
     )
 
+    rosbag2_launch_arg = DeclareLaunchArgument(
+        'rosbag2', default_value='false',
+        description='save rosbags to <pblogdir>/rosbag2/rosbag2_<datetime>'
+    )
+
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_buoy_gazebo = get_package_share_directory('buoy_gazebo')
     pkg_pblog = get_package_share_directory('sim_pblog')
-    pkg_buoy_description = get_package_share_directory('buoy_description')
-    model_dir = 'mbari_wec_ros'
+    # pkg_buoy_description = get_package_share_directory('buoy_description')
+    # model_dir = 'mbari_wec_ros'
     model_name = 'MBARI_WEC_ROS'
-    ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
+    # ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
-    with open(ros_sdf_file, 'r') as infp:
-        robot_desc = infp.read()
+    # with open(ros_sdf_file, 'r') as infp:
+    #     robot_desc = infp.read()
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -316,46 +364,49 @@ def generate_launch_description():
                           'logdir': LaunchConfiguration('pblogdir')}.items(),
     )
 
-    # Get the parser plugin convert sdf to urdf using robot_description topic
-    robot_state_publisher = Node(
-        package='robot_state_publisher',
-        executable='robot_state_publisher',
-        name='robot_state_publisher',
-        output='both',
-        parameters=[
-            {'use_sim_time': True},
-            {'robot_description': robot_desc},
-        ]
-    )
+    # TODO(andermi) get this running again?
+    # # Get the parser plugin convert sdf to urdf using robot_description topic
+    # robot_state_publisher = Node(
+    #     package='robot_state_publisher',
+    #     executable='robot_state_publisher',
+    #     name='robot_state_publisher',
+    #     output='both',
+    #     parameters=[
+    #         {'use_sim_time': True},
+    #         {'robot_description': robot_desc},
+    #     ]
+    # )
 
-    # Launch rviz
-    rviz = Node(
-        package='rviz2',
-        executable='rviz2',
-        arguments=['-d', os.path.join(pkg_buoy_gazebo, 'rviz', 'mbari_wec.rviz')],
-        condition=IfCondition(LaunchConfiguration('rviz')),
-        parameters=[
-            {'use_sim_time': True},
-        ]
-    )
+    # # Launch rviz
+    # rviz = Node(
+    #     package='rviz2',
+    #     executable='rviz2',
+    #     arguments=['-d', os.path.join(pkg_buoy_gazebo, 'rviz', 'mbari_wec.rviz')],
+    #     condition=IfCondition(LaunchConfiguration('rviz')),
+    #     parameters=[
+    #         {'use_sim_time': True},
+    #     ]
+    # )
 
+    # Generate files before running any nodes
     dependent_nodes = [gazebo,
                        bridge,
-                       pblog,
-                       robot_state_publisher,
-                       rviz]
+                       pblog]
+    # robot_state_publisher,
+    # rviz]
 
     return LaunchDescription(supported_params_args + [
         gazebo_world_file_launch_arg,
         gazebo_world_name_launch_arg,
         pblog_loghome_launch_arg,
         pblog_logdir_launch_arg,
-        rviz_launch_arg,
+        rosbag2_launch_arg,
+        # rviz_launch_arg,
         gazebo_debugger_arg,
         extra_gz_args,
         regenerate_models_arg,
         OpaqueFunction(function=lambda context, *args, **kwargs: args,
                        args=supported_params_args),
         OpaqueFunction(function=regenerate_models,
-                       args=dependent_nodes),
+                       args=dependent_nodes),  # generate files before running nodes
     ])

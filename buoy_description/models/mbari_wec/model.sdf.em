@@ -197,7 +197,7 @@ if not ignore_piston_mean_pos:
     P0_l = m_l*R_specific*T0_l / V0_l
 }@
 
-<sdf version="1.8">
+<sdf version="1.10">
   <model name="MBARI_WEC">
 
     <include merge="true">

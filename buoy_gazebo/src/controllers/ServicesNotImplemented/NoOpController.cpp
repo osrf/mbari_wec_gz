@@ -51,7 +51,7 @@
     cmd_type, range_type) \
   services_->prefix ## _command_handler_ = \
     [this](const std::shared_ptr<buoy_interfaces::srv::type::Request> request, \
-      std::shared_ptr<buoy_interfaces::srv::type::Response> response) \
+    std::shared_ptr<buoy_interfaces::srv::type::Response> response) \
     { \
       RCLCPP_WARN_STREAM( \
         ros_->node_->get_logger(), \
@@ -268,7 +268,7 @@ struct NoOpControllerPrivate
     // BCResetCommand
     services_->bcreset_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::BCResetCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::BCResetCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::BCResetCommand::Response> response)
       {
         RCLCPP_WARN_STREAM(
           ros_->node_->get_logger(),
@@ -284,7 +284,7 @@ struct NoOpControllerPrivate
     // SCResetCommand
     services_->screset_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::SCResetCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::SCResetCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::SCResetCommand::Response> response)
       {
         RCLCPP_WARN_STREAM(
           ros_->node_->get_logger(),
@@ -300,7 +300,7 @@ struct NoOpControllerPrivate
     // TFResetCommand
     services_->tfreset_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::TFResetCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::TFResetCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::TFResetCommand::Response> response)
       {
         RCLCPP_WARN_STREAM(
           ros_->node_->get_logger(),
@@ -316,7 +316,7 @@ struct NoOpControllerPrivate
     // TFWatchDogCommand
     services_->tfwatchdog_command_handler_ =
       [this](const std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Request> request,
-        std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Response> response)
+      std::shared_ptr<buoy_interfaces::srv::TFWatchDogCommand::Response> response)
       {
         RCLCPP_WARN_STREAM(
           ros_->node_->get_logger(),

@@ -1,4 +1,4 @@
-<sdf version="1.8">
+<sdf version="1.10">
   <world name="PTO_TestBench">
 
     <spherical_coordinates>

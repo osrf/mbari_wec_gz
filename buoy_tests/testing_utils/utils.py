@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
 import os
 from threading import Thread
 import unittest
@@ -26,13 +25,13 @@ from buoy_tests.srv import RunServer
 from em import invoke as empy
 
 # TODO(anyone) Put back when fixed upstream
-# from gz.common import set_verbosity
-# from gz.sim import TestFixture
+# from gz.common5 import set_verbosity
+# from gz.sim8 import TestFixture
 
 import launch
-from launch.substitutions import LaunchConfiguration
 import launch.actions
 from launch.actions import OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 
 from launch_ros.actions import Node as launchNode
 
@@ -103,7 +102,7 @@ def regenerate_models(context, *args, **kwargs):
     for world_param in supported_mbari_wec_world_params:
         if world_param in kwargs:
             mbari_wec_world_params.extend(['-D',
-                                           f"{world_param} = {kwargs[world_param]}"])
+                                           f'{world_param} = {kwargs[world_param]}'])
     mbari_wec_world_params.extend(['-o', world_file,
                                    empy_world_file])
     empy(mbari_wec_world_params)
@@ -150,7 +149,7 @@ def regenerate_models(context, *args, **kwargs):
                             values_str_arr = ','.join([str(v) for v in values])
                             mbari_wec_model_params.extend(['-D',
                                                            f'{name} =' +
-                                                           f"[{values_str_arr}]"])
+                                                           f'[{values_str_arr}]'])
             else:
                 mbari_wec_model_params.extend(['-D',
                                                f"{world_param} = '{kwargs[world_param]}'"])
@@ -227,12 +226,12 @@ def default_generate_test_description(server='fixture_server',
     if enable_rosbag:
         if rosbag_name is not None:
             rosbag = launch.actions.ExecuteProcess(
-                cmd=['ros2', 'bag', 'record', '-o', rosbag_name, '-a'],
+                cmd=['ros2', 'bag', 'record', '-s', 'mcap', '-o', rosbag_name, '-a'],
                 output='screen'
             )
         else:
             rosbag = launch.actions.ExecuteProcess(
-                cmd=['ros2', 'bag', 'record', '-a'],
+                cmd=['ros2', 'bag', 'record', '-s', 'mcap', '-a'],
                 output='screen'
             )
 
@@ -323,16 +322,12 @@ class TestHelper(rclpyNode):
     """
 
     def run(self, _iterations):
-        return asyncio.run(self._run(_iterations))
-
-    async def _run(self, _iterations):
         # TODO(anyone) workaround until TestFixture is fixed upstream (see below)
         req = RunServer.Request()
         req.iterations = _iterations
-        future = self.fixture_client.call_async(req)
-        await future
-        self.run_status = future.result().success
-        self.iterations += future.result().iterations
+        resp = self.fixture_client.call(req)
+        self.run_status = resp.success
+        self.iterations += resp.iterations
 
         """ TODO(anyone) Expect the following to work but .run() with blocking = True
                          doesn't return.
@@ -348,20 +343,13 @@ class TestHelper(rclpyNode):
         self.run(0)
 
     def get_params_from_node(self, node_name, params):
-        return asyncio.run(self._get_params_from_node(node_name, params))
-
-    async def _get_params_from_node(self, node_name, params):
         srv_name = node_name + '/get_parameters'
         client = self.create_client(GetParameters, srv_name)
         while rclpy.ok() and not client.wait_for_service(0.1):
             pass
         req = GetParameters.Request()
         req.names = params
-        future = client.call_async(req)
-        await future
-        resp = None
-        if future.result is not None:
-            resp = future.result()
+        resp = client.call(req)
         return resp
 
 
