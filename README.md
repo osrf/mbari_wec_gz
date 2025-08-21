@@ -1,6 +1,6 @@
 This repository contains packages used for Gazebo simulation of marine buoys.
 
-Start from [MBARI WEC](https://github.com/osrf/mbari_wec).
+Start from [MBARI WEC](https://github.com/osrf/mbari_wec/tree/main).
 
 ## Development
 
