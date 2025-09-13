@@ -127,7 +127,7 @@ def regenerate_models(context, *args, **kwargs):
             print(f'{world_param = }\n{override_params[world_param] = }')  # noqa: E202, E251
             if 'inc_wave_spectrum_type' in override_params[world_param]:
                 inc_wave_spectrum = override_params[world_param].split(';')
-                no_params = len(inc_wave_spectrum) > 1
+                has_params = len(inc_wave_spectrum) > 1
                 inc_wave_spectrum_type = inc_wave_spectrum[0].split(':')
                 no_type = \
                     len(inc_wave_spectrum_type) < 2 \
@@ -140,7 +140,7 @@ def regenerate_models(context, *args, **kwargs):
                     mbari_wec_model_params.extend(['-D',
                                                    f'{inc_wave_spectrum_type[0]} ='
                                                    + "''"])
-                if not no_params and not no_type:
+                if has_params and not no_type:
                     for spectrum_param in inc_wave_spectrum[1:]:
                         spectrum_param = spectrum_param.split(':')
                         if len(spectrum_param) < 2 or 'default' in spectrum_param[1]:
