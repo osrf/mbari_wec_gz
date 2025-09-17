@@ -113,7 +113,7 @@ def generate_simulations(sim_params_yaml):
         sim_params = yaml.load(fd, Loader=yaml.CLoader)
 
     # don't print if param is None
-    print_optional = lambda param: str(param) if param is not None else ''  # noqa: E731
+    print_optional = lambda param: str(param) if param is not None else 'default'  # noqa: E731
 
     # Grab params from yaml
 
@@ -599,7 +599,7 @@ def generate_simulations(sim_params_yaml):
 
             def capture_start_pids(info_, unused):
                 proc_start_info.append(info_)
-                start_procs = resolveProcesses(proc_start_info, process='ruby $(which gz) sim')
+                start_procs = resolveProcesses(proc_start_info, process='gazebo')
                 for info in [proc_start_info[item] for item in start_procs]:
                     print(f'{info.pid}')
                     print(f'{info.cmd}')
@@ -629,7 +629,7 @@ def generate_simulations(sim_params_yaml):
                                     f'batch launch return code [{result}]')
 
         # get return codes from processes
-        procs = resolveProcesses(proc_exit_info, process='ruby $(which gz) sim')
+        procs = resolveProcesses(proc_exit_info, process='gazebo')
         gzsim_result = 0
         for info in [proc_exit_info[item] for item in procs]:
             gzsim_result = info.returncode
@@ -639,7 +639,7 @@ def generate_simulations(sim_params_yaml):
                 result = gzsim_result
                 if info.returncode < -2:
                     node.get_logger().error(f'gz sim process may still be running...')
-                    start_procs = resolveProcesses(proc_start_info, process='ruby $(which gz) sim')
+                    start_procs = resolveProcesses(proc_start_info, process='gazebo')
                     for info in [proc_start_info[item] for item in start_procs]:
                         for proc in ['ruby', 'sim_pblog']:
                             # kill whole process tree
