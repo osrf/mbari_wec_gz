@@ -34,8 +34,13 @@ struct IncWaveHeightPoint
   double x{0.0};  // input
   double y{0.0};  // input
 
+  // Eulerian surface velocities (East/North)
+  double u{0.0};  // output
+  double v{0.0};  // output
+
   // z (height)
   double eta{0.0};  // output
+  double etadot{0.0};  // output
 
   // ==== orientation ====
   // normal vector of deta/dx, deta/dy (slope of wave)
@@ -45,7 +50,10 @@ struct IncWaveHeightPoint
   {
     bool equal = fabs(this->x - that.x) < 1e-7F;
     equal &= fabs(this->y - that.y) < 1e-7F;
+    equal &= fabs(this->u - that.u) < 1e-7F;
+    equal &= fabs(this->v - that.v) < 1e-7F;
     equal &= fabs(this->eta - that.eta) < 1e-7F;
+    equal &= fabs(this->etadot - that.etadot) < 1e-7F;
     equal &= fabs(this->qx - that.qx) < 1e-7F;
     equal &= fabs(this->qy - that.qy) < 1e-7F;
     equal &= fabs(this->qz - that.qz) < 1e-7F;

@@ -100,7 +100,7 @@ struct IncWaveHeightPrivate
     thread_executor_spin_ = std::thread(spin);
   }
 
-  std::tuple<double, gz::math::Quaternion<double>> compute_eta(
+  std::tuple<double, double, double, double, gz::math::Quaternion<double>> compute_eta(
     double & x,
     double & y,
     const double & SimTime,
@@ -112,9 +112,10 @@ struct IncWaveHeightPrivate
       y += this->inc_wave_state.y;  // y of buoy
     }
 
-    double deta_dx{0.0}, deta_dy{0.0};
+    double deta_dx{0.0}, deta_dy{0.0}, u{0.0}, v{0.0};
     double eta = this->inc_wave_state.Inc.eta(
-      x, y, SimTime, &deta_dx, &deta_dy);
+      x, y, SimTime, &deta_dx, &deta_dy, &u, &v);
+    double etadot = this->inc_wave_state.Inc.etadot(x, y, SimTime);
 
     double roll = atan(deta_dx);
     double pitch = atan(deta_dy);
@@ -123,7 +124,7 @@ struct IncWaveHeightPrivate
     gz::math::Quaternion<double> q =
       gz::math::Quaternion<double>::EulerToQuaternion(roll, pitch, yaw);
 
-    return std::make_tuple(eta, q);
+    return std::make_tuple(eta, etadot, u, v, q);
   }
 
   void setup_services()
@@ -165,10 +166,10 @@ struct IncWaveHeightPrivate
           double x = request->points[idx].x;
           double y = request->points[idx].y;
 
-          double eta{0.0};
+          double eta{0.0}, etadot{0.0}, u{0.0}, v{0.0};
           gz::math::Quaternion<double> q;
           // x, y updated in place to world coords
-          std::tie(eta, q) = compute_eta(x, y, t, use_buoy_origin);
+          std::tie(eta, etadot, u, v, q) = compute_eta(x, y, t, use_buoy_origin);
 
           // Note: absolute time is converted to relative (from current SimTime)
           response->heights[idx].relative_time = t - SimTime;
@@ -184,6 +185,11 @@ struct IncWaveHeightPrivate
           response->heights[idx].pose.pose.orientation.y = q.Y();
           response->heights[idx].pose.pose.orientation.z = q.Z();
           response->heights[idx].pose.pose.orientation.w = q.W();
+
+          // velocities
+          response->heights[idx].velocities.x = u;  // East
+          response->heights[idx].velocities.y = v;  // North
+          response->heights[idx].velocities.z = etadot;  // Heave
         }
         data.unlock();
       };
@@ -350,10 +356,10 @@ void IncWaveHeight::PreUpdate(
     double x = this->dataPtr->inc_wave_heights.points[idx].x;
     double y = this->dataPtr->inc_wave_heights.points[idx].y;
 
-    double eta{0.0};
+    double eta{0.0}, etadot{0.0}, u{0.0}, v{0.0};
     gz::math::Quaternion<double> q;
     // x, y updated in place to world coords
-    std::tie(eta, q) = this->dataPtr->compute_eta(x, y, SimTime, use_buoy_origin);
+    std::tie(eta, etadot, u, v, q) = this->dataPtr->compute_eta(x, y, SimTime, use_buoy_origin);
 
     // always report in world coords
     latent_data.inc_wave_heights.points[idx].use_buoy_origin = false;
@@ -367,6 +373,11 @@ void IncWaveHeight::PreUpdate(
     latent_data.inc_wave_heights.points[idx].qy = q.Y();
     latent_data.inc_wave_heights.points[idx].qz = q.Z();
     latent_data.inc_wave_heights.points[idx].qw = q.W();
+
+    // velocities
+    latent_data.inc_wave_heights.points[idx].u = u;  // East
+    latent_data.inc_wave_heights.points[idx].v = v;  // North
+    latent_data.inc_wave_heights.points[idx].etadot = etadot;  // Heave
   }
 
   _ecm.SetComponentData<buoy_gazebo::components::LatentData>(

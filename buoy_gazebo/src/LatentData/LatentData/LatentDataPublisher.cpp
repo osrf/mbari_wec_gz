@@ -70,6 +70,9 @@ struct buoy_gazebo::LatentDataPublisherPrivate
     out.pose.pose.orientation.y = in.qy;
     out.pose.pose.orientation.z = in.qz;
     out.pose.pose.orientation.w = in.qw;
+    out.velocities.x = in.u;
+    out.velocities.y = in.v;
+    out.velocities.z = in.etadot;
   }
 };
 
