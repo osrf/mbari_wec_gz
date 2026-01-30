@@ -6,6 +6,7 @@ gz_add_plugin(BatteryController
   ROS
   EXTRA_ROS_PKGS
     rclcpp_components
+    simulation_interfaces
     ros_gz_sim
     ros_gz_interfaces
 )
