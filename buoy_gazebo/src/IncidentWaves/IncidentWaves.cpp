@@ -96,6 +96,7 @@ void IncidentWaves::Configure(
     double A = SdfParamDouble(_sdf, "A", 0.0);
     double T = SdfParamDouble(_sdf, "T", 14.0);
     double phase = SdfParamDouble(_sdf, "Phase", 0.0);
+    gzdbg << "A = " << A << "  T = " << T << std::endl;
     this->dataPtr->Inc.SetToMonoChromatic(A, T, phase, beta);
   }
 

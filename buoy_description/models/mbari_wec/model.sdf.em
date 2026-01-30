@@ -67,17 +67,17 @@ except NameError:
 
 if 'MonoChromatic' in inc_wave_spectrum_type:
     try:
-        inc_wave_spectrum = partial(monochromatic_spectrum, A, T)
+        inc_wave_spectrum = partial(monochromatic_spectrum, A=A, T=T)
     except NameError:
         inc_wave_spectrum = monochromatic_spectrum  # default
 elif 'Bretschneider' in inc_wave_spectrum_type:
     try:
-        inc_wave_spectrum = partial(bretschneider_spectrum, Hs, Tp)
+        inc_wave_spectrum = partial(bretschneider_spectrum, Hs=Hs, Tp=Tp)
     except NameError:
         inc_wave_spectrum = bretschneider_spectrum  # default
 elif 'Custom' in inc_wave_spectrum_type:
     try:
-        inc_wave_spectrum = partial(custom_spectrum, f, Szz)
+        inc_wave_spectrum = partial(custom_spectrum, f=f, Szz=Szz)
     except NameError:
         inc_wave_spectrum = custom_spectrum  # default
 else:
