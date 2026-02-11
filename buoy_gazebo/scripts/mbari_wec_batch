@@ -150,18 +150,6 @@ def generate_simulations(sim_params_yaml):
                                 ' must be a single value')
         sys.exit(-1)
 
-    # seed (random seed for incident waves plugin)
-    try:
-        if 'seed' in sim_params:
-            seed_ = int(sim_params['seed'])
-        else:
-            seed_ = None
-            node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
-    except TypeError:
-        node.get_logger().error('sim_params_yaml: seed parameter' +
-                                ' must be a single value')
-        sys.exit(-1)
-
     # duration (seconds)
     try:
         if 'duration' not in sim_params:
@@ -214,6 +202,18 @@ def generate_simulations(sim_params_yaml):
     ####################################
     # Run-Specific (Matrix) Parameters
     ####################################
+    # seed (random seed for incident waves plugin)
+    try:
+        if 'seed' in sim_params:
+            seeds = np.array(sim_params['seed'], dtype=int)
+            seeds = np.atleast_1d(seeds)
+        else:
+            seeds = None
+            node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
+    except TypeError:
+        node.get_logger().error('sim_params_yaml: seed parameter' +
+                                ' must be a single value')
+        sys.exit(-1)
 
     # physics time step (seconds)
     if 'physics_step' in sim_params:
@@ -421,7 +421,8 @@ def generate_simulations(sim_params_yaml):
     if 'matrix_mode' not in sim_params or \
       ('matrix_mode' in sim_params and sim_params['matrix_mode']):
         # generate test matrix
-        batch_params = list(zip(*[param.ravel() for param in np.meshgrid(physics_step,
+        batch_params = list(zip(*[param.ravel() for param in np.meshgrid(seeds,
+                                                                         physics_step,
                                                                          door_state,
                                                                          scale_factor,
                                                                          battery_state,
@@ -429,7 +430,8 @@ def generate_simulations(sim_params_yaml):
                                                                          incident_waves)]))
     elif 'matrix_mode' in sim_params and not sim_params['matrix_mode']:
         # generate test arrays
-        batch_params = [physics_step,
+        batch_params = [seeds,
+                        physics_step,
                         door_state,
                         scale_factor,
                         battery_state,
@@ -447,13 +449,13 @@ def generate_simulations(sim_params_yaml):
                             ', UpperSpringParams, LowerSpringParams' +
                             ', IncWaveSpectrumType;IncWaveSpectrumParams')
     [node.get_logger().debug(f'{print_optional(ps)}, {print_optional(physics_rtf)}' +
-                             f', {print_optional(seed_)}, {duration}, {ds}, {sf}' +
+                             f', {print_optional(sd)}, {duration}, {ds}, {sf}' +
                              f', {print_optional(bs)}' +
                              f', {print_optional(mpp)}' +
                              f', {print_optional(SpringParams("upper", usp))}' +
                              f', {print_optional(SpringParams("lower", lsp))}' +
                              f', {print_optional(iw)}')
-        for ps, ds, sf, bs, mpp, iw in batch_params]
+        for sd, ps, ds, sf, bs, mpp, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, 'batch_runs.log'))
@@ -485,11 +487,12 @@ def generate_simulations(sim_params_yaml):
 
     # Start batch runs
     rng = np.random.default_rng()
-    for idx, (ps, ds, sf, bs, mpp, iw) in enumerate(batch_params):
+    for idx, (sd, ps, ds, sf, bs, mpp, iw) in enumerate(batch_params):
         if not rclpy.ok():
             break  # Shutting down
-        seed = rng.integers(2**32-1) if seed_==0 else seed_
+        seed = rng.integers(2**32-1) if sd==0 else sd
         node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
+                               f" seed='{sd}" +
                                f" door state='{ds}', scale factor={sf}" +
                                f", battery state={bs if bs is not None else 'None'}" +
                                f", mean piston position={mpp if mpp is not None else 'None'}" +
