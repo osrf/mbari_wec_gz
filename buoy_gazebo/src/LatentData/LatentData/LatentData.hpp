@@ -66,7 +66,15 @@ struct IncWaveHeights
 {
   int32_t sec{0};
   uint32_t nsec{0U};
-  bool valid;
+  bool valid{false};
+
+  // GPS reference for the local Cartesian x/y coordinates used in points.
+  // (lat/lon in degrees, alt in meters)
+  bool gps_ref_valid{false};
+  double gps_ref_lat{0.0};
+  double gps_ref_lon{0.0};
+  double gps_ref_alt{0.0};
+
   std::vector<IncWaveHeightPoint> points;
 
   bool operator==(const IncWaveHeights & that) const
@@ -74,6 +82,12 @@ struct IncWaveHeights
     // shortcut different sizes as not equal
     bool equal = (this->points.size() == that.points.size());
     equal &= this->valid == that.valid;
+    equal &= this->gps_ref_valid == that.gps_ref_valid;
+    if (this->gps_ref_valid && that.gps_ref_valid) {
+      equal &= fabs(this->gps_ref_lat - that.gps_ref_lat) < 1e-7F;
+      equal &= fabs(this->gps_ref_lon - that.gps_ref_lon) < 1e-7F;
+      equal &= fabs(this->gps_ref_alt - that.gps_ref_alt) < 1e-7F;
+    }
     if (!equal) {
       return false;
     }

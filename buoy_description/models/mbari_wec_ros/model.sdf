@@ -68,6 +68,10 @@
         <!-- may add multiple xy tags -->
         <!-- <xy>-1.0 0.0</xy> -->
         <!-- <xy>1.0 0.0</xy> -->
+        <xy>100.0 0.0</xy>
+        <xy>150.0 0.0</xy>
+        <xy>150.0 100.0</xy>
+        <xy>200.0 0.0</xy>
       </points>
     </plugin>
 

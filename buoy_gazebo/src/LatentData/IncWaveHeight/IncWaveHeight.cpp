@@ -19,7 +19,9 @@
 
 #include <gz/sim/Model.hh>
 #include <gz/sim/Util.hh>
+#include <gz/sim/World.hh>
 #include <gz/sim/components/Name.hh>
+#include <gz/sim/components/World.hh>
 #include <gz/common/Profiler.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/transport/Node.hh>
@@ -55,6 +57,12 @@ struct IncWaveHeightPrivate
 {
   gz::sim::Entity IncWaveEntity{gz::sim::kNullEntity};
   buoy_gazebo::IncWaveState inc_wave_state;
+
+  gz::sim::Entity worldEntity{gz::sim::kNullEntity};
+  double gps_ref_lat_{0.0};
+  double gps_ref_lon_{0.0};
+  double gps_ref_alt_{0.0};
+  bool gps_ref_valid_{false};
 
   gz::sim::Entity entity{gz::sim::kNullEntity};
   gz::sim::Model model{gz::sim::kNullEntity};
@@ -174,6 +182,14 @@ struct IncWaveHeightPrivate
           // Note: absolute time is converted to relative (from current SimTime)
           response->heights[idx].relative_time = t - SimTime;
           response->heights[idx].use_buoy_origin = false;  // always return world coords
+
+          // Cartesian x/y in response are relative to this GPS reference.
+          if (this->gps_ref_valid_) {
+            response->heights[idx].gps_ref.latitude = this->gps_ref_lat_;
+            response->heights[idx].gps_ref.longitude = this->gps_ref_lon_;
+            response->heights[idx].gps_ref.altitude = this->gps_ref_alt_;
+          }
+
           response->heights[idx].pose.header.stamp.sec = sec_nsec.first;
           response->heights[idx].pose.header.stamp.nanosec = sec_nsec.second;
           response->heights[idx].pose.pose.position.x = x;  // in world coords
@@ -289,6 +305,26 @@ void IncWaveHeight::Configure(
   // controller scoped name
   std::string scoped_name = gz::sim::scopedName(_entity, _ecm, "/", false);
 
+  // Cache world entity for spherical coordinates lookup
+  this->dataPtr->worldEntity =
+    _ecm.EntityByComponents(gz::sim::components::World());
+
+  // Cache GPS reference once (world spherical coordinate reference)
+  if (this->dataPtr->worldEntity != gz::sim::kNullEntity) {
+    gz::sim::World world(this->dataPtr->worldEntity);
+    auto scOpt = world.SphericalCoordinates(_ecm);
+    if (scOpt) {
+      this->dataPtr->gps_ref_lat_ = scOpt->LatitudeReference().Degree();
+      this->dataPtr->gps_ref_lon_ = scOpt->LongitudeReference().Degree();
+      this->dataPtr->gps_ref_alt_ = scOpt->ElevationReference();
+      this->dataPtr->gps_ref_valid_ = true;
+    } else {
+      this->dataPtr->gps_ref_valid_ = false;
+    }
+  } else {
+    this->dataPtr->gps_ref_valid_ = false;
+  }
+
   // ROS node
   std::string ns = _sdf->Get<std::string>("namespace", scoped_name).first;
   if (ns.empty() || ns[0] != '/') {
@@ -348,6 +384,14 @@ void IncWaveHeight::PreUpdate(
   // all fixed points from SDF computed at SimTime (relative_time = 0.0)
   latent_data.inc_wave_heights.sec = sec_nsec.first;
   latent_data.inc_wave_heights.nsec = sec_nsec.second;
+
+  // GPS reference for x/y
+  latent_data.inc_wave_heights.gps_ref_valid = this->dataPtr->gps_ref_valid_;
+  if (this->dataPtr->gps_ref_valid_) {
+    latent_data.inc_wave_heights.gps_ref_lat = this->dataPtr->gps_ref_lat_;
+    latent_data.inc_wave_heights.gps_ref_lon = this->dataPtr->gps_ref_lon_;
+    latent_data.inc_wave_heights.gps_ref_alt = this->dataPtr->gps_ref_alt_;
+  }
 
   latent_data.inc_wave_heights.points.resize(this->dataPtr->inc_wave_heights.points.size());
   std::size_t idx = 0U;
