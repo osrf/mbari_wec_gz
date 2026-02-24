@@ -36,7 +36,8 @@ rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
 
-git clone -b 1.4.1 --single-branch https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
+# TODO update to 1.4.1 when it's released
+git clone -b main --single-branch https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
 cd FreeSurfaceHydrodynamics
 touch COLCON_IGNORE
 mkdir build
