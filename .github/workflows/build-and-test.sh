@@ -55,6 +55,9 @@ apt install -y ros-$ROS_DISTRO-ros2cli ros-$ROS_DISTRO-rosbag2 ros-$ROS_DISTRO-r
 # for cyclonedds rmw implementation
 apt install -y ros-$ROS_DISTRO-rmw-cyclonedds-cpp
 
+# possible fix for build issues
+apt install -y ros-$ROS_DISTRO-simulation-interfaces
+
 # Build everything up to buoy_gazebo
 source /opt/ros/$ROS_DISTRO/setup.bash
 cd $COLCON_WS
