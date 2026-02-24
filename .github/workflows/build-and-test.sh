@@ -29,7 +29,7 @@ apt install -y git \
 
 cd $COLCON_WS_SRC
 cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
-wget https://raw.githubusercontent.com/osrf/mbari_wec/dev/mbari_wec_all.yaml
+wget https://raw.githubusercontent.com/osrf/mbari_wec/andermi/add_latentdata_surfacevelocities/mbari_wec_all.yaml
 vcs import --skip-existing < mbari_wec_all.yaml
 
 rosdep init
