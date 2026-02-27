@@ -12,6 +12,15 @@ try:
 except NameError:
     inc_wave_seed = 0  # not defined so default to 0 which changes seed every run
 
+# Check if incident wave direction was passed in via empy.
+# Convention: compass degrees True, direction waves are coming FROM.
+try:
+    inc_wave_dir
+except NameError:
+    # Default chosen to match historical plugin default of beta=180 deg (math, propagation TOWARDS West).
+    # With the compass/FROM convention, that corresponds to waves coming FROM East: 90 deg.
+    inc_wave_dir = 90.0
+
 # Check if battery state (battery_soc or battery_emf) was passed in via empy
 try:
     battery_soc  # 0.0 to 1.0
@@ -284,6 +293,7 @@ if not ignore_piston_mean_pos:
 
     <plugin filename="IncidentWaves" name="buoy_gazebo::IncidentWaves">  
       <IncWaveSeed>@(inc_wave_seed)</IncWaveSeed>
+            <WaveDir>@(inc_wave_dir)</WaveDir>
       @(inc_wave_spectrum())
     </plugin>
 

@@ -17,12 +17,14 @@
 #include <gz/msgs/double.pb.h>
 
 #include <cstdio>
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <gz/common/Profiler.hh>
+#include <gz/math/Helpers.hh>
 #include <gz/math/Quaternion.hh>
 #include <gz/msgs.hh>
 #include <gz/plugin/Register.hh>
@@ -88,8 +90,29 @@ void IncidentWaves::Configure(
 
   auto SpectrumType = _sdf->Get<std::string>("IncWaveSpectrumType");
 
-//  double beta = SdfParamDouble(_sdf, "WaveDir", 180.0);  // Not yet implemented
-  double beta = 180.0;
+  // Wave direction convention (WaveDir): nautical / compass degrees True, direction waves are coming FROM.
+  // FreeSurfaceHydrodynamics uses `beta` as a standard math angle (radians) in the ENU x/y plane that
+  // sets the direction of wave propagation (TOWARDS), measured CCW from +x (East).
+  //
+  // Conversion:
+  //   dir_from_compass_deg: 0=N, 90=E, 180=S, 270=W
+  //   dir_towards_compass_deg = dir_from_compass_deg + 180 (mod 360)
+  //   beta_math_deg = 90 - dir_towards_compass_deg
+  // Default WaveDir chosen so that beta defaults to 180 deg (matching historical hard-coded beta=180).
+  const double dir_from_compass_deg = SdfParamDouble(_sdf, "WaveDir", 90.0);
+  double dir_towards_compass_deg = std::fmod(dir_from_compass_deg + 180.0, 360.0);
+  if (dir_towards_compass_deg < 0.0) {
+    dir_towards_compass_deg += 360.0;
+  }
+  double beta_math_deg = std::fmod(90.0 - dir_towards_compass_deg, 360.0);
+  if (beta_math_deg < 0.0) {
+    beta_math_deg += 360.0;
+  }
+  const double beta = GZ_DTOR(beta_math_deg);
+
+  gzdbg << "IncidentWaves WaveDir(from, degT)=" << dir_from_compass_deg
+        << " -> towards=" << dir_towards_compass_deg
+        << " -> beta_math_deg=" << beta_math_deg << std::endl;
 
   if (!SpectrumType.compare("MonoChromatic")) {
     gzdbg << "SpectrumType " << SpectrumType << std::endl;

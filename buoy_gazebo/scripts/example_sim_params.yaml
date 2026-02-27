@@ -26,6 +26,9 @@ scale_factor: [0.5, 0.625, 0.75, 0.875, 1.0, 1.125, 1.25, 1.375, 1.4]
 battery_soc: [0.25, 0.5, 0.75, 1.0]
 # battery_emf: [282.5, 295.0, 307.5, 320.0]
 mean_piston_position: [0.5, 0.7, 0.9, 1.1]
+# Incident wave direction (compass degrees True, waves are coming FROM)
+# 0=N, 90=E, 180=S, 270=W
+WaveDir: 180.0
 IncidentWaveSpectrumType:
   - MonoChromatic:
       # A & T may be vector/scalar in pairs (A & T same length)

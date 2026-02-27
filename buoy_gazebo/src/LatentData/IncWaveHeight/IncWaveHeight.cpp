@@ -121,6 +121,7 @@ struct IncWaveHeightPrivate
     }
 
     double deta_dx{0.0}, deta_dy{0.0}, u{0.0}, v{0.0};
+    // FreeSurfaceHydrodynamics returns Eulerian surface velocities as (u_east, v_north).
     double eta = this->inc_wave_state.Inc.eta(
       x, y, SimTime, &deta_dx, &deta_dy, &u, &v);
     double etadot = this->inc_wave_state.Inc.etadot(x, y, SimTime);

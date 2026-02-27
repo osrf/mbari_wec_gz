@@ -60,6 +60,7 @@ def regenerate_models(context, *args, **kwargs):
                                         'physics_rtf']
     supported_mbari_wec_model_params = ['scale_factor',
                                         'inc_wave_seed',
+                                        'inc_wave_dir',
                                         'battery_soc',
                                         'battery_emf',
                                         'x_mean_pos',
@@ -68,6 +69,7 @@ def regenerate_models(context, *args, **kwargs):
                     'physics_rtf',
                     'scale_factor',
                     'inc_wave_seed',
+                    'inc_wave_dir',
                     'battery_soc',
                     'battery_emf',
                     'x_mean_pos']
@@ -272,6 +274,7 @@ def generate_launch_description():
                         'physics_rtf': 'sim real-time factor',
                         'scale_factor': 'target winding current scale factor',
                         'inc_wave_seed': 'random seed for incident wave computation',
+                        'inc_wave_dir': 'incident wave direction (compass deg True, waves FROM)',
                         'battery_soc': 'initial battery state of charge as pct (0-1)',
                         'battery_emf': 'initial battery emf in Volts',
                         'x_mean_pos': 'desired mean piston position in meters',

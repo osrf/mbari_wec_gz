@@ -296,6 +296,13 @@ def generate_simulations(sim_params_yaml):
             ' -- defaulting'
         )
 
+    # WaveDir (compass degrees True, waves are coming FROM)
+    if 'WaveDir' in sim_params:
+        wave_dir = np.array(sim_params['WaveDir'], dtype=float)
+        wave_dir = np.atleast_1d(wave_dir)
+    else:
+        wave_dir = [None]
+
     # IncWaveSpectrumType
     if 'IncidentWaveSpectrumType' in sim_params:
         inc_wave_spectrum_types = sim_params['IncidentWaveSpectrumType']
@@ -426,6 +433,7 @@ def generate_simulations(sim_params_yaml):
                                                                          scale_factor,
                                                                          battery_state,
                                                                          mean_piston_position,
+                                                                         wave_dir,
                                                                          incident_waves)]))
     elif 'matrix_mode' in sim_params and not sim_params['matrix_mode']:
         # generate test arrays
@@ -434,6 +442,7 @@ def generate_simulations(sim_params_yaml):
                         scale_factor,
                         battery_state,
                         mean_piston_position,
+                        wave_dir,
                         incident_waves]
         shape = max(batch_params, key=len).shape
         for idx, param in enumerate(batch_params):
@@ -443,17 +452,18 @@ def generate_simulations(sim_params_yaml):
 
     node.get_logger().info(f'Generated {len(batch_params)} simulation runs')
     node.get_logger().debug('PhysicsStep, PhysicsRTF, Seed, Duration, DoorState, ScaleFactor' +
-                            ', BatteryState, MeanPistonPosition' +
+                            ', BatteryState, MeanPistonPosition, WaveDir(deg/from)' +
                             ', UpperSpringParams, LowerSpringParams' +
                             ', IncWaveSpectrumType;IncWaveSpectrumParams')
     [node.get_logger().debug(f'{print_optional(ps)}, {print_optional(physics_rtf)}' +
                              f', {print_optional(seed_)}, {duration}, {ds}, {sf}' +
                              f', {print_optional(bs)}' +
                              f', {print_optional(mpp)}' +
+                             f', {print_optional(wd)}' +
                              f', {print_optional(SpringParams("upper", usp))}' +
                              f', {print_optional(SpringParams("lower", lsp))}' +
                              f', {print_optional(iw)}')
-        for ps, ds, sf, bs, mpp, iw in batch_params]
+        for ps, ds, sf, bs, mpp, wd, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, 'batch_runs.log'))
@@ -462,7 +472,7 @@ def generate_simulations(sim_params_yaml):
         fd.write('RunIndex, SimReturnCode, StartTime, rosbag2Filename, pblogFilename' +
                  ', PhysicsStep, PhysicsRTF' +
                  ', Seed, Duration, DoorState, ScaleFactor, BatteryState' +
-                 ', MeanPistonPosition' +
+                 ', MeanPistonPosition, WaveDir(deg/from)' +
                  ', UpperSpringParams, LowerSpringParams' +
                  ', IncWaveSpectrumType;IncWaveSpectrumParams\n')
 
@@ -485,7 +495,7 @@ def generate_simulations(sim_params_yaml):
 
     # Start batch runs
     rng = np.random.default_rng()
-    for idx, (ps, ds, sf, bs, mpp, iw) in enumerate(batch_params):
+    for idx, (ps, ds, sf, bs, mpp, wd, iw) in enumerate(batch_params):
         if not rclpy.ok():
             break  # Shutting down
         seed = rng.integers(2**32-1) if seed_==0 else seed_
@@ -493,6 +503,7 @@ def generate_simulations(sim_params_yaml):
                                f" door state='{ds}', scale factor={sf}" +
                                f", battery state={bs if bs is not None else 'None'}" +
                                f", mean piston position={mpp if mpp is not None else 'None'}" +
+                               f", WaveDir(deg/from)={wd if wd is not None else 'default'}" +
                                ', UpperSpringParams=' +
                                f"{str(SpringParams('upper', usp))}" +
                                ', LowerSpringParams=' +
@@ -526,6 +537,8 @@ def generate_simulations(sim_params_yaml):
                 mbari_wec_model_params.extend(['-D', f'battery_emf = {bs}'])
         if mpp is not None:
             mbari_wec_model_params.extend(['-D', f'x_mean_pos = {mpp}'])
+        if wd is not None:
+            mbari_wec_model_params.extend(['-D', f'inc_wave_dir = {wd}'])
         if usp is not None:
             mbari_wec_model_params.extend(['-D', f'upper_polytropic_params = {usp.tolist()}'])
         if lsp is not None:
@@ -666,6 +679,7 @@ def generate_simulations(sim_params_yaml):
                      f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
                      f', {print_optional(bs)}' +
                      f', {print_optional(mpp)}' +
+                     f', {print_optional(wd)}' +
                      f', {print_optional(SpringParams("upper", usp))}' +
                      f', {print_optional(SpringParams("lower", lsp))}' +
                      f', {print_optional(iw)}\n')
