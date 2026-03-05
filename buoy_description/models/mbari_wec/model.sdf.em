@@ -19,7 +19,7 @@ try:
 except NameError:
     # Default chosen to match historical plugin default of beta=180 deg (math, propagation TOWARDS West).
     # With the compass/FROM convention, that corresponds to waves coming FROM East: 90 deg.
-    inc_wave_dir = 90.0
+    inc_wave_dir = 200.0
 
 # Check if battery state (battery_soc or battery_emf) was passed in via empy
 try:
