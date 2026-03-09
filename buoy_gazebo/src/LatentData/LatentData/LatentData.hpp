@@ -34,7 +34,7 @@ struct IncWaveHeightPoint
   double x{0.0};  // input
   double y{0.0};  // input
 
-  // Eulerian surface velocities (East/North)
+  // Surface velocities in ENU (East/North)
   double u{0.0};  // output
   double v{0.0};  // output
 
@@ -68,8 +68,7 @@ struct IncWaveHeights
   uint32_t nsec{0U};
   bool valid{false};
 
-  // GPS reference for the local Cartesian x/y coordinates used in points.
-  // (lat/lon in degrees, alt in meters)
+  // GPS reference for local Cartesian x/y used by points (lat/lon degrees, alt meters)
   bool gps_ref_valid{false};
   double gps_ref_lat{0.0};
   double gps_ref_lon{0.0};

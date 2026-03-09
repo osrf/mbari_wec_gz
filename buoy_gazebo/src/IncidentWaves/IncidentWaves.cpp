@@ -90,15 +90,15 @@ void IncidentWaves::Configure(
 
   auto SpectrumType = _sdf->Get<std::string>("IncWaveSpectrumType");
 
-  // Wave direction convention (WaveDir): nautical / compass degrees True, direction waves are coming FROM.
-  // FreeSurfaceHydrodynamics uses `beta` as a standard math angle (radians) in the ENU x/y plane that
-  // sets the direction of wave propagation (TOWARDS), measured CCW from +x (East).
+  // WaveDir is compass degrees True and indicates where waves come FROM.
+  // LinearIncidentWave expects beta as a math angle (radians, CCW from +x/East)
+  // for the propagation direction (where waves travel TO).
   //
   // Conversion:
-  //   dir_from_compass_deg: 0=N, 90=E, 180=S, 270=W
-  //   dir_towards_compass_deg = dir_from_compass_deg + 180 (mod 360)
-  //   beta_math_deg = 90 - dir_towards_compass_deg
-  // Default WaveDir chosen so that beta defaults to 180 deg (matching historical hard-coded beta=180).
+  //   from_deg: 0=N, 90=E, 180=S, 270=W
+  //   to_deg = from_deg + 180 (mod 360)
+  //   beta_deg = 90 - to_deg
+  // Default WaveDir is 90 deg to preserve historical beta=180 behavior.
   const double dir_from_compass_deg = SdfParamDouble(_sdf, "WaveDir", 90.0);
   double dir_towards_compass_deg = std::fmod(dir_from_compass_deg + 180.0, 360.0);
   if (dir_towards_compass_deg < 0.0) {

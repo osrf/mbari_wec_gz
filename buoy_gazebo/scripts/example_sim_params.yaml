@@ -26,9 +26,17 @@ scale_factor: [0.5, 0.625, 0.75, 0.875, 1.0, 1.125, 1.25, 1.375, 1.4]
 battery_soc: [0.25, 0.5, 0.75, 1.0]
 # battery_emf: [282.5, 295.0, 307.5, 320.0]
 mean_piston_position: [0.5, 0.7, 0.9, 1.1]
-# Incident wave direction (compass degrees True, waves are coming FROM)
+# Incident wave direction: compass degrees True, waves coming FROM
 # 0=N, 90=E, 180=S, 270=W
-WaveDir: 180.0
+wave_dir: 90.0
+# TODO(andermi) make wave dir an array that must be same size as number of configurations of points
+# IncidentWaveDir: [90.0, 200.0]
+# TODO(andermi) add ability to add multiple configurations of points to model.sdf (not empy yet)
+# IncidentWaveHeightPoints:
+#  - x: [0.0, -125.0, -185.0, -100.0, 45.0]
+#    y: [0.0, -25.0, -115.0, -135.0, -175.0]
+#  - x: [0.0, -90.0, -37.0, -135.0, 8.0]
+#    y: [0.0, -246.0, -103.0, -148.0, -201.0]
 IncidentWaveSpectrumType:
   - MonoChromatic:
       # A & T may be vector/scalar in pairs (A & T same length)

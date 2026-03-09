@@ -17,9 +17,8 @@ except NameError:
 try:
     inc_wave_dir
 except NameError:
-    # Default chosen to match historical plugin default of beta=180 deg (math, propagation TOWARDS West).
-    # With the compass/FROM convention, that corresponds to waves coming FROM East: 90 deg.
-    inc_wave_dir = 200.0
+    # Keep the historical default for this template (compass deg True, waves FROM).
+    inc_wave_dir = 250.0
 
 # Check if battery state (battery_soc or battery_emf) was passed in via empy
 try:

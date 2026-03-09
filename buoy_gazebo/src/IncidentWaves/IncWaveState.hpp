@@ -30,9 +30,6 @@ namespace buoy_gazebo
 struct IncWaveState
 {
   LinearIncidentWave Inc;
-  // Buoy position in world horizontal coordinates (meters), used as an offset when
-  // requests specify positions relative to the buoy.
-  // Convention: x=East, y=North.
   double x;
   double y;
 };

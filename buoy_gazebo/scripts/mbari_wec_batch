@@ -296,9 +296,9 @@ def generate_simulations(sim_params_yaml):
             ' -- defaulting'
         )
 
-    # WaveDir (compass degrees True, waves are coming FROM)
-    if 'WaveDir' in sim_params:
-        wave_dir = np.array(sim_params['WaveDir'], dtype=float)
+    # WaveDir: compass degrees True, waves coming FROM
+    if 'wave_dir' in sim_params:
+        wave_dir = np.array(sim_params['wave_dir'], dtype=float)
         wave_dir = np.atleast_1d(wave_dir)
     else:
         wave_dir = [None]

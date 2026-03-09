@@ -69,20 +69,20 @@
         <!-- <xy>-1.0 0.0</xy> -->
         <!-- <xy>1.0 0.0</xy> -->
         <!-- matches relative positions of example SWIFT data -->
-        <!--xy>-125.0 -25.0</xy-->
-        <!--xy>-185.0 -115.0</xy-->
-        <!--xy>-100.0 -135.0</xy-->
-        <!--xy>45.0 -175.0</xy-->
+        <xy>-125.0 -25.0</xy>
+        <xy>-185.0 -115.0</xy>
+        <xy>-100.0 -135.0</xy>
+        <xy>45.0 -175.0</xy>
         <!-- "optimal" diamond configuration for wave dir from=225 deg -->
         <!--xy>-185.0 -185.0</xy-->
         <!--xy>-77.0 -77.0</xy-->
         <!--xy>-185.0 -77.0</xy-->
         <!--xy>-77.0 -185.0</xy-->
         <!-- "optimal" diamond configuration for wave dir from=200 deg -->
-        <xy>-90.0 -246.0</xy>
-        <xy>-37.0 -103.0</xy>
-        <xy>-135.0 -148.0</xy>
-        <xy>8.0 -201.0</xy>
+        <!--xy>-90.0 -246.0</xy-->
+        <!--xy>-37.0 -103.0</xy-->
+        <!--xy>-135.0 -148.0</xy-->
+        <!--xy>8.0 -201.0</xy-->
       </points>
     </plugin>
 

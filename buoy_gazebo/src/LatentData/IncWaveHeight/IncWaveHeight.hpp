@@ -25,16 +25,11 @@ namespace buoy_gazebo
 struct IncWaveHeightPrivate;
 
 /// \brief ROS 2 Incident Wave Height node for requesting wave heights at given positions
-/// Currently accepts incident wave height requests.
-/// Uses ros_gz_bridge
 ///
-/// Frames / conventions
-/// --------------------
-/// This plugin wraps FreeSurfaceHydrodynamics' `LinearIncidentWave` and publishes incident-wave
-/// kinematics in a fixed world horizontal frame:
-/// - pose.position.x/y are world coordinates in meters (x=East, y=North)
-/// - pose.position.z is eta (height above waterplane), up-positive (meters)
-/// - velocities.x/y are Eulerian surface velocities u/v in East/North (m/s)
+/// Frames:
+/// - pose.position.x/y are world ENU coordinates in meters (x=East, y=North)
+/// - pose.position.z is eta (meters above waterplane, up-positive)
+/// - velocities.x/y are surface velocities u/v in East/North (m/s)
 /// - velocities.z is etadot (m/s)
 
 /// SDF parameters:
