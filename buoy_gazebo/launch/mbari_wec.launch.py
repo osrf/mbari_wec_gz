@@ -65,6 +65,7 @@ def regenerate_models(context, *args, **kwargs):
                                         'battery_emf',
                                         'x_mean_pos',
                                         'inc_wave_spectrum']
+    supported_mbari_wec_ros_params = ['inc_wave_height_points']
     float_params = ['physics_step',
                     'physics_rtf',
                     'scale_factor',
@@ -75,7 +76,8 @@ def regenerate_models(context, *args, **kwargs):
                     'x_mean_pos']
     all_params = supported_mbari_wec_base_params \
         + supported_mbari_wec_world_params \
-        + supported_mbari_wec_model_params
+        + supported_mbari_wec_model_params \
+        + supported_mbari_wec_ros_params
     override_params = {param: LaunchConfiguration(param).perform(context) for param in all_params}
     override_params = {k: v for k, v in override_params.items() if v != 'None'}
     print('Sim Parameter Overrides:', override_params)
@@ -95,6 +97,10 @@ def regenerate_models(context, *args, **kwargs):
     empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
+    model_dir = 'mbari_wec_ros'
+    empy_ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
+    ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
+
     # Find world file template
     empy_world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf.em')
     world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf')
@@ -110,6 +116,24 @@ def regenerate_models(context, *args, **kwargs):
     mbari_wec_base_params.extend(['-o', base_sdf_file,
                                   empy_base_sdf_file])
     empy(mbari_wec_base_params)
+
+    # fill mbari_wec_ros model template with params
+    mbari_wec_ros_params = []
+    for wec_ros_param in supported_mbari_wec_ros_params:
+        if wec_ros_param in override_params:
+            inc_wave_height_points_ = override_params[wec_ros_param].split(';')
+            inc_wave_height_points = []
+            for point_str in inc_wave_height_points_:
+                point = point_str.split(':')
+                inc_wave_height_points.append([float(p) for p in point])
+            mbari_wec_ros_params.extend(['-D',
+                                          f'{wec_ros_param}'
+                                          + f' = {inc_wave_height_points}'])
+
+    mbari_wec_ros_params.extend(['-o', ros_sdf_file,
+                                  empy_ros_sdf_file])
+    print(f'{mbari_wec_ros_params = }')
+    empy(mbari_wec_ros_params)
 
     # fill mbari_wec world template with params
     mbari_wec_world_params = []
@@ -274,6 +298,10 @@ def generate_launch_description():
                         'physics_rtf': 'sim real-time factor',
                         'scale_factor': 'target winding current scale factor',
                         'inc_wave_seed': 'random seed for incident wave computation',
+                        'inc_wave_height_points': 'points where wave height is reported defined as'
+                                                + ' x1:y1;x2:y2;...'
+                                                + ' (x, y: local cartesian coords relative to buoy'
+                                                + ' origin in meters)',
                         'inc_wave_dir': 'incident wave direction (compass deg True, waves FROM)',
                         'battery_soc': 'initial battery state of charge as pct (0-1)',
                         'battery_emf': 'initial battery emf in Volts',
