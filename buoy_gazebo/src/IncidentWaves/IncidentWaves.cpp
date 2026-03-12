@@ -128,7 +128,9 @@ void IncidentWaves::Configure(
     double Hs = SdfParamDouble(_sdf, "Hs", 0.0);
     double Tp = SdfParamDouble(_sdf, "Tp", 14.0);
     gzdbg << "Hs = " << Hs << "  Tp = " << Tp << std::endl;
-    this->dataPtr->Inc.SetToBretschneiderSpectrum(Hs, Tp, beta);
+//    this->dataPtr->Inc.SetToBretschneiderSpectrum(Hs, Tp, beta);
+    this->dataPtr->Inc.SetToBretschneiderSpectrumWithCos2Spreading(Hs, Tp, beta, 500, 10, 20);
+
   }
 
   if (!SpectrumType.compare("Custom")) {
