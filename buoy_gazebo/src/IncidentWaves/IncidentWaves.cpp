@@ -69,6 +69,14 @@ double SdfParamDouble(
   return _sdf->Get<double>(_field, _default).first;
 }
 
+/////////////////////////////////////////////////
+int SdfParamInt(
+  const std::shared_ptr<const sdf::Element> & _sdf,
+  const std::string & _field, int _default)
+{
+  return _sdf->Get<int>(_field, _default).first;
+}
+
 //////////////////////////////////////////////////
 void IncidentWaves::Configure(
   const gz::sim::Entity & _entity,
@@ -127,9 +135,34 @@ void IncidentWaves::Configure(
     gzdbg << "SpectrumType " << SpectrumType << std::endl;
     double Hs = SdfParamDouble(_sdf, "Hs", 0.0);
     double Tp = SdfParamDouble(_sdf, "Tp", 14.0);
-    gzdbg << "Hs = " << Hs << "  Tp = " << Tp << std::endl;
-//    this->dataPtr->Inc.SetToBretschneiderSpectrum(Hs, Tp, beta);
-    this->dataPtr->Inc.SetToBretschneiderSpectrumWithCos2Spreading(Hs, Tp, beta, 500, 10, 20);
+    int nPhases = SdfParamInt(_sdf, "NPhases", 500);
+    if (nPhases <= 0) {
+      gzwarn << "Invalid NPhases=" << nPhases
+             << " for IncidentWaves plugin. Falling back to 500." << std::endl;
+      nPhases = 500;
+    }
+
+    constexpr int kDefaultNSectors = 20;
+    const bool hasSpreadingFactor = _sdf->HasElement("SpreadingFactor");
+    if (hasSpreadingFactor) {
+      double spreadingFactor = SdfParamDouble(_sdf, "SpreadingFactor", 10.0);
+      if (spreadingFactor < 0.0) {
+        gzwarn << "Invalid SpreadingFactor=" << spreadingFactor
+               << " for IncidentWaves plugin. Falling back to 10." << std::endl;
+        spreadingFactor = 10.0;
+      }
+      gzdbg << "Hs = " << Hs << "  Tp = " << Tp
+            << "  NPhases = " << nPhases
+            << "  SpreadingFactor = " << spreadingFactor << std::endl;
+      this->dataPtr->Inc.SetToBretschneiderSpectrumWithCos2Spreading(
+        Hs, Tp, beta, nPhases, static_cast<int>(std::lround(spreadingFactor)),
+        kDefaultNSectors);
+    } else {
+      // No SpreadingFactor element: use 1D (non-directional) Bretschneider spectrum.
+      gzdbg << "Hs = " << Hs << "  Tp = " << Tp
+            << "  NPhases = " << nPhases << "  (no directional spreading)" << std::endl;
+      this->dataPtr->Inc.SetToBretschneiderSpectrum(Hs, Tp, beta, nPhases);
+    }
 
   }
 

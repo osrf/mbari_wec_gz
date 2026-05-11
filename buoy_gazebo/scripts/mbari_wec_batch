@@ -42,7 +42,34 @@ import rclpy
 from rclpy.node import Node
 
 
-DEFAULT_PHYSICS_MAX_STEP_SIZE = 0.001  # seconds
+DEFAULT_PHYSICS_MAX_STEP_SIZE = 0.01  # seconds
+
+
+def spreading_factor_from_spotter_spread_deg(spread_deg):
+    """
+    Convert Spotter/SWIFT first-moment directional spread [deg]
+    to the cos^(2s) spreading exponent `s`.
+
+    Supports scalars or numpy arrays.
+    """
+    scalar_input = np.ndim(spread_deg) == 0
+    spread_deg = np.asarray(spread_deg, dtype=float)
+
+    if np.any(spread_deg < 0):
+        raise ValueError("spread_deg must be >= 0 (use 0 to disable directional spreading)")
+
+    max_spread_deg = np.degrees(np.sqrt(2.0))  # ~81.03 deg
+    if np.any(spread_deg[spread_deg > 0] > max_spread_deg):
+        raise ValueError(
+            f"spread_deg must be <= {max_spread_deg:.3f} deg for this mapping"
+        )
+
+    # 0 degrees means no directional spreading; return None.
+    if scalar_input and spread_deg.item() == 0.0:
+        return None
+
+    spread_rad = np.radians(spread_deg)
+    return 2.0 / (spread_rad ** 2) - 1.0
 
 
 def to_shape(a, shape):
@@ -66,15 +93,25 @@ class MonoChromatic(object):
 
 
 class Bretschneider(object):
-    def __init__(self, Hs, Tp):
+    def __init__(self, Hs, Tp, n_phases=None, spreading_deg=None, spreading_factor=None):
         self.Hs, self.Tp = Hs, Tp
+        self.n_phases = n_phases
+        self.spreading_deg = spreading_deg
+        self.spreading_factor = spreading_factor
         self.name = 'Bretschneider'
 
     def __str__(self):
+        n_phases = int(self.n_phases) if self.n_phases is not None else 'default'
+        spreading_deg = self.spreading_deg if self.spreading_deg is not None else 'default'
+        spreading_factor = self.spreading_factor if self.spreading_factor is not None else 'default'
         if self.Hs is not None:
-            return f'{self.name};Hs:{self.Hs};Tp:{self.Tp}'
+            return f'{self.name};Hs:{self.Hs};Tp:{self.Tp};' + \
+                   f'n_phases:{n_phases};spreading_deg:{spreading_deg};' + \
+                   f'spreading_factor:{spreading_factor}'
         else:
-            return f'{self.name};Hs:default;Tp:default'
+            return f'{self.name};Hs:default;Tp:default;' + \
+                   f'n_phases:{n_phases};spreading_deg:{spreading_deg};' + \
+                   f'spreading_factor:{spreading_factor}'
 
 
 class Custom(object):
@@ -102,6 +139,16 @@ class SpringParams(object):
                    f'{";".join([f"{p}:{v}" for p, v in zip(["n1", "n2", "P0", "V0", "T0"], self.params)])}'
         else:
             return f'{self.name};defaults'
+
+
+class IncidentWaveHeightPoints(object):
+    def __init__(self, points):
+        self.points = points
+
+    def __str__(self):
+        if self.points is None:
+            return 'default'
+        return ';'.join([f'{x}:{y}' for x, y in self.points])
 
 
 def generate_simulations(sim_params_yaml):
@@ -303,6 +350,45 @@ def generate_simulations(sim_params_yaml):
     else:
         wave_dir = [None]
 
+    # IncidentWaveHeightPoints: list of point sets, each with x/y arrays of equal length.
+    if 'IncidentWaveHeightPoints' in sim_params:
+        incident_wave_height_points = []
+        try:
+            point_sets = sim_params['IncidentWaveHeightPoints']
+            if isinstance(point_sets, dict):
+                point_sets = [point_sets]
+
+            for point_set in point_sets:
+                if not isinstance(point_set, dict):
+                    raise TypeError
+
+                if 'x' not in point_set or 'y' not in point_set:
+                    node.get_logger().error(
+                        'sim_params_yaml: IncidentWaveHeightPoints entries must define both x and y'
+                    )
+                    sys.exit(-1)
+
+                x_vals = np.atleast_1d(np.array(point_set['x'], dtype=float))
+                y_vals = np.atleast_1d(np.array(point_set['y'], dtype=float))
+                if x_vals.shape != y_vals.shape:
+                    node.get_logger().error(
+                        'sim_params_yaml: IncidentWaveHeightPoints: x and y have different length'
+                    )
+                    sys.exit(-1)
+
+                incident_wave_height_points.append(
+                    IncidentWaveHeightPoints([[float(x), float(y)]
+                                              for x, y in zip(x_vals, y_vals)])
+                )
+        except TypeError:
+            node.get_logger().error(
+                'sim_params_yaml: IncidentWaveHeightPoints must be a mapping or list of mappings '
+                + 'with x/y arrays'
+            )
+            sys.exit(-1)
+    else:
+        incident_wave_height_points = [None]
+
     # IncWaveSpectrumType
     if 'IncidentWaveSpectrumType' in sim_params:
         inc_wave_spectrum_types = sim_params['IncidentWaveSpectrumType']
@@ -351,6 +437,16 @@ def generate_simulations(sim_params_yaml):
                     Tp = np.atleast_1d(Tp)
                 else:
                     Tp = None
+                if 'n_phases' in bretschneider_spectrum:
+                    n_phases = np.array(bretschneider_spectrum['n_phases'], dtype=int)
+                    n_phases = np.atleast_1d(n_phases)
+                else:
+                    n_phases = None
+                if 'spreading_deg' in bretschneider_spectrum:
+                    spreading_deg = np.array(bretschneider_spectrum['spreading_deg'], dtype=float)
+                    spreading_deg = np.atleast_1d(spreading_deg)
+                else:
+                    spreading_deg = None
 
                 if (Hs is None) ^ (Tp is None):
                     node.get_logger().error(
@@ -363,7 +459,47 @@ def generate_simulations(sim_params_yaml):
                         'sim_params_yaml: Bretschneider: Hs and Tp have different length.'
                     )
                     sys.exit(-1)
-                incident_waves.extend([Bretschneider(hs, tp) for hs, tp in zip(Hs, Tp)])
+
+                if n_phases is None:
+                    n_phases = np.full(Hs.shape, None, dtype=object)
+                elif n_phases.size == 1 and Hs.size > 1:
+                    n_phases = np.full(Hs.shape, int(n_phases.item()), dtype=int)
+                elif n_phases.shape != Hs.shape:
+                    node.get_logger().error(
+                        'sim_params_yaml: Bretschneider: n_phases must be scalar or match Hs/Tp length.'
+                    )
+                    sys.exit(-1)
+
+                if spreading_deg is None:
+                    spreading_deg = np.full(Hs.shape, None, dtype=object)
+                elif spreading_deg.size == 1 and Hs.size > 1:
+                    spreading_deg = np.full(Hs.shape, float(spreading_deg.item()), dtype=float)
+                elif spreading_deg.shape != Hs.shape:
+                    node.get_logger().error(
+                        'sim_params_yaml: Bretschneider: spreading_deg must be scalar or match Hs/Tp length.'
+                    )
+                    sys.exit(-1)
+
+                spreading_factor = np.full(Hs.shape, None, dtype=object)
+                # spread_mask: non-None and non-zero spreading_deg values get converted
+                # spreading_deg=0 stays as spreading_factor=None → no directional spreading
+                spread_mask = np.array(
+                    [sd is not None and float(sd) != 0.0 for sd in spreading_deg], dtype=bool
+                )
+                if np.any(spread_mask):
+                    try:
+                        spreading_factor[spread_mask] = spreading_factor_from_spotter_spread_deg(
+                            np.array(spreading_deg[spread_mask], dtype=float)
+                        )
+                    except ValueError as exc:
+                        node.get_logger().error(f'sim_params_yaml: Bretschneider: {exc}')
+                        sys.exit(-1)
+
+                incident_waves.extend([
+                    Bretschneider(hs, tp, np_, sd, sf)
+                    for hs, tp, np_, sd, sf in zip(Hs, Tp, n_phases,
+                                                   spreading_deg, spreading_factor)
+                ])
             elif 'Custom' in inc_wave_spectrum_type:
                 try:
                     custom_spectrum = inc_wave_spectrum_type['Custom']
@@ -434,6 +570,7 @@ def generate_simulations(sim_params_yaml):
                                                                          battery_state,
                                                                          mean_piston_position,
                                                                          wave_dir,
+                                                                         incident_wave_height_points,
                                                                          incident_waves)]))
     elif 'matrix_mode' in sim_params and not sim_params['matrix_mode']:
         # generate test arrays
@@ -443,6 +580,7 @@ def generate_simulations(sim_params_yaml):
                         battery_state,
                         mean_piston_position,
                         wave_dir,
+                        incident_wave_height_points,
                         incident_waves]
         shape = max(batch_params, key=len).shape
         for idx, param in enumerate(batch_params):
@@ -453,6 +591,7 @@ def generate_simulations(sim_params_yaml):
     node.get_logger().info(f'Generated {len(batch_params)} simulation runs')
     node.get_logger().debug('PhysicsStep, PhysicsRTF, Seed, Duration, DoorState, ScaleFactor' +
                             ', BatteryState, MeanPistonPosition, WaveDir(deg/from)' +
+                            ', IncidentWaveHeightPoints' +
                             ', UpperSpringParams, LowerSpringParams' +
                             ', IncWaveSpectrumType;IncWaveSpectrumParams')
     [node.get_logger().debug(f'{print_optional(ps)}, {print_optional(physics_rtf)}' +
@@ -460,10 +599,11 @@ def generate_simulations(sim_params_yaml):
                              f', {print_optional(bs)}' +
                              f', {print_optional(mpp)}' +
                              f', {print_optional(wd)}' +
+                             f', {print_optional(ihp)}' +
                              f', {print_optional(SpringParams("upper", usp))}' +
                              f', {print_optional(SpringParams("lower", lsp))}' +
                              f', {print_optional(iw)}')
-        for ps, ds, sf, bs, mpp, wd, iw in batch_params]
+        for ps, ds, sf, bs, mpp, wd, ihp, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, 'batch_runs.log'))
@@ -473,6 +613,7 @@ def generate_simulations(sim_params_yaml):
                  ', PhysicsStep, PhysicsRTF' +
                  ', Seed, Duration, DoorState, ScaleFactor, BatteryState' +
                  ', MeanPistonPosition, WaveDir(deg/from)' +
+                 ', IncidentWaveHeightPoints' +
                  ', UpperSpringParams, LowerSpringParams' +
                  ', IncWaveSpectrumType;IncWaveSpectrumParams\n')
 
@@ -489,13 +630,17 @@ def generate_simulations(sim_params_yaml):
     empy_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
     sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
 
+    model_dir = 'mbari_wec_ros'
+    empy_ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf.em')
+    ros_sdf_file = os.path.join(pkg_buoy_description, 'models', model_dir, 'model.sdf')
+
     # Find world file template
     empy_world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf.em')
     world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec_batch.sdf')
 
     # Start batch runs
     rng = np.random.default_rng()
-    for idx, (ps, ds, sf, bs, mpp, wd, iw) in enumerate(batch_params):
+    for idx, (ps, ds, sf, bs, mpp, wd, ihp, iw) in enumerate(batch_params):
         if not rclpy.ok():
             break  # Shutting down
         seed = rng.integers(2**32-1) if seed_==0 else seed_
@@ -504,6 +649,7 @@ def generate_simulations(sim_params_yaml):
                                f", battery state={bs if bs is not None else 'None'}" +
                                f", mean piston position={mpp if mpp is not None else 'None'}" +
                                f", WaveDir(deg/from)={wd if wd is not None else 'default'}" +
+                               f", IncidentWaveHeightPoints={ihp if ihp is not None else 'default'}" +
                                ', UpperSpringParams=' +
                                f"{str(SpringParams('upper', usp))}" +
                                ', LowerSpringParams=' +
@@ -525,6 +671,15 @@ def generate_simulations(sim_params_yaml):
         mbari_wec_world_params.extend(['-o', world_file,
                                        empy_world_file])
         empy(mbari_wec_world_params)
+
+        # fill mbari_wec_ros model template with params
+        mbari_wec_ros_params = []
+        if ihp is not None:
+            mbari_wec_ros_params.extend(['-D', f'inc_wave_height_points = {ihp.points}'])
+        mbari_wec_ros_params.extend(['-o', ros_sdf_file,
+                                     empy_ros_sdf_file])
+        node.get_logger().debug(mbari_wec_ros_params)
+        empy(mbari_wec_ros_params)
 
         # fill mbari_wec model template with params
         mbari_wec_model_params = ['-D', f'scale_factor = {sf}']
@@ -553,6 +708,13 @@ def generate_simulations(sim_params_yaml):
                 if iw.Hs is not None:
                     mbari_wec_model_params.extend(['-D', f'Hs = {iw.Hs}'])
                     mbari_wec_model_params.extend(['-D', f'Tp = {iw.Tp}'])
+                if iw.n_phases is not None:
+                    mbari_wec_model_params.extend(['-D', f'n_phases = {int(iw.n_phases)}'])
+                if iw.spreading_factor is not None:
+                    mbari_wec_model_params.extend(['-D', f'spreading_factor = {iw.spreading_factor}'])
+                elif iw.spreading_deg is not None:
+                    # spreading_deg was explicitly 0 → no directional spreading
+                    mbari_wec_model_params.extend(['-D', 'spreading_factor = None'])
             if 'Custom' in iw.name:
                 if iw.f is not None:
                     mbari_wec_model_params.extend(['-D', f'f = {iw.f.tolist()}'])
@@ -680,6 +842,7 @@ def generate_simulations(sim_params_yaml):
                      f', {print_optional(bs)}' +
                      f', {print_optional(mpp)}' +
                      f', {print_optional(wd)}' +
+                     f', {print_optional(ihp)}' +
                      f', {print_optional(SpringParams("upper", usp))}' +
                      f', {print_optional(SpringParams("lower", lsp))}' +
                      f', {print_optional(iw)}\n')
@@ -689,6 +852,8 @@ def generate_simulations(sim_params_yaml):
           empy_base_sdf_file])
     empy(['-o', world_file,
           empy_world_file])
+    empy(['-o', ros_sdf_file,
+          empy_ros_sdf_file])
     empy(['-o', sdf_file,
           empy_sdf_file])
 
