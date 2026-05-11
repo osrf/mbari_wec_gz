@@ -20,6 +20,18 @@ except NameError:
     # Keep the historical default for this template (compass deg True, waves FROM).
     inc_wave_dir = 250.0
 
+# Check if Bretschneider n_phases was passed in via empy.
+try:
+    n_phases
+except NameError:
+    n_phases = 500  # preserve historical plugin default
+
+# Check if Bretschneider spreading_factor was passed in via empy.
+try:
+    spreading_factor
+except NameError:
+    spreading_factor = 10.0  # preserve historical plugin default
+
 # Check if battery state (battery_soc or battery_emf) was passed in via empy
 try:
     battery_soc  # 0.0 to 1.0
@@ -43,13 +55,17 @@ def monochromatic_spectrum(A=1.0, T=12.0):
       <T>{T}</T>
 ''')
 
-def bretschneider_spectrum(Hs=2.0, Tp=13.0):
-    ''' Prints the Bretschneider <IncWaveSpectrumType> block for the IncidentWave plugin. '''
+def bretschneider_spectrum(Hs=2.0, Tp=13.0, n_phases=500, spreading_factor=10.0):
+    ''' Prints the Bretschneider <IncWaveSpectrumType> block for the IncidentWave plugin.
+        When spreading_factor is None, no <SpreadingFactor> tag is emitted and the plugin
+        falls back to the 1D (non-directional) SetToBretschneiderSpectrum code path. '''
     print(f'''
       <IncWaveSpectrumType>Bretschneider</IncWaveSpectrumType>
       <Hs>{Hs}</Hs>
       <Tp>{Tp}</Tp>
-''')
+            <NPhases>{n_phases}</NPhases>''')
+    if spreading_factor is not None:
+        print(f'            <SpreadingFactor>{spreading_factor}</SpreadingFactor>')
 
 def custom_spectrum(f=None, Szz=None):
     ''' Prints the Custom <IncWaveSpectrumType> block for the IncidentWave plugin. '''
@@ -80,7 +96,10 @@ if 'MonoChromatic' in inc_wave_spectrum_type:
         inc_wave_spectrum = monochromatic_spectrum  # default
 elif 'Bretschneider' in inc_wave_spectrum_type:
     try:
-        inc_wave_spectrum = partial(bretschneider_spectrum, Hs=Hs, Tp=Tp)
+        inc_wave_spectrum = partial(bretschneider_spectrum,
+                                    Hs=Hs, Tp=Tp,
+                                    n_phases=n_phases,
+                                    spreading_factor=spreading_factor)
     except NameError:
         inc_wave_spectrum = bretschneider_spectrum  # default
 elif 'Custom' in inc_wave_spectrum_type:

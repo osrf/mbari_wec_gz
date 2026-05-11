@@ -18,6 +18,8 @@ import os
 from pathlib import Path
 import time
 
+import numpy as np
+
 from ament_index_python.packages import get_package_share_directory
 
 from em import invoke as empy
@@ -29,6 +31,29 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+
+
+def spreading_factor_from_spotter_spread_deg(spread_deg):
+    """Convert Spotter/SWIFT first-moment directional spread [deg] to cos^(2s) exponent."""
+    spread_deg = np.asarray(spread_deg, dtype=float)
+    scalar_input = np.ndim(spread_deg) == 0
+
+    max_spread_deg = np.degrees(np.sqrt(2.0))
+
+    if np.any(spread_deg < 0):
+        raise ValueError('spread_deg must be >= 0 (use 0 to disable directional spreading)')
+
+    if np.any(spread_deg[spread_deg > 0] > max_spread_deg):
+        raise ValueError(
+            f'spread_deg must be <= {max_spread_deg:.3f} deg for this mapping'
+        )
+
+    # 0 degrees means no directional spreading; return None for scalar.
+    if scalar_input and spread_deg.item() == 0.0:
+        return None
+
+    spread_rad = np.radians(spread_deg)
+    return 2.0 / (spread_rad ** 2) - 1.0
 
 
 def regenerate_models(context, *args, **kwargs):
@@ -167,15 +192,26 @@ def regenerate_models(context, *args, **kwargs):
                                                    f'{inc_wave_spectrum_type[0]} ='
                                                    + "''"])
                 if has_params and not no_type:
+                    int_spectrum_params = {'n_phases'}
                     for spectrum_param in inc_wave_spectrum[1:]:
                         spectrum_param = spectrum_param.split(':')
                         if len(spectrum_param) < 2 or 'default' in spectrum_param[1]:
                             pass  # just default
                         elif len(spectrum_param) == 2:
-                            name, value = spectrum_param[0], float(spectrum_param[1])
+                            name = spectrum_param[0]
+                            if name == 'spreading_deg':
+                                sf = spreading_factor_from_spotter_spread_deg(
+                                    float(spectrum_param[1])
+                                )
+                                # spreading_deg=0 → sf=None → no directional spreading
+                                value = None if sf is None else float(sf)
+                                name = 'spreading_factor'
+                            else:
+                                value = int(spectrum_param[1]) if name in int_spectrum_params \
+                                    else float(spectrum_param[1])
                             mbari_wec_model_params.extend(['-D',
                                                            f'{name} = '
-                                                           + f'{value}'])
+                                                           + repr(value)])
                         else:  # Custom Spectrum
                             name, values = spectrum_param[0], spectrum_param[1:]
                             values = [float(v) for v in values]
@@ -307,7 +343,10 @@ def generate_launch_description():
                         'battery_emf': 'initial battery emf in Volts',
                         'x_mean_pos': 'desired mean piston position in meters',
                         'inc_wave_spectrum': 'incident wave spectrum defined as'
-                                             + ' inc_wave_spectrum_type:type;p1:v1:v2;p2:v1:v2'}
+                                             + ' inc_wave_spectrum_type:type;'
+                                             + 'p1:v1[:v2...];p2:v1[:v2...]'
+                                             + ' (e.g. Bretschneider supports Hs, Tp,'
+                                             + ' n_phases, spreading_deg -> spreading_factor)'}
     supported_params_args = []
     for param in supported_params:
         supported_params_args.append(

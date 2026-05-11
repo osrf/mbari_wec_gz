@@ -42,9 +42,14 @@ IncidentWaveSpectrumType:
       T: [12.0, 14.0, 15.0]
   - Bretschneider:
       # Hs & Tp may be vector/scalar in pairs (Hs & Tp same length)
+      # n_phases & spreading_deg may also be vector/scalar in pairs with Hs & Tp
+      # (either scalar or same length as Hs/Tp)
       # May omit Hs & Tp to use default values
       Hs: 3.0
       Tp: 14.0
+      n_phases: 500  # Number of random phases to use for Bretschneider spectrum
+      spreading_deg: 22.0  # first-moment directional spreading in degrees (Spotter/SWIFT convention)
+                           # use 0 to disable directional spreading (1D Bretschneider)
   # Multiple Custom Spectra must be listed individually (f & Szz are already vectors of same size)
   - Custom:
       # May omit f & Szz to use default values
