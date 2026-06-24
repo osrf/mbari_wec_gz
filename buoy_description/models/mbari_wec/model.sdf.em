@@ -212,8 +212,8 @@ if not ignore_piston_mean_pos:
     # shift mass between upper and lower to bring equilibrium point to desired x_mean_pos
     m_delta_guess = 0.0
     m_delta = spo.fsolve(lambda m_delta: x_mean_pos - x_eq(Ap_u, Ap_l,
-                                                           m_u - m_delta,
-                                                           m_l + m_delta,
+                                                           m_u - m_delta[0],
+                                                           m_l + m_delta[0],
                                                            Vd_u, Vd_l, c), m_delta_guess)[0]
     # recompute setpoints based on new x_mean_pos and new masses
     V0_u = Ap_u*x_mean_pos + Vd_u
