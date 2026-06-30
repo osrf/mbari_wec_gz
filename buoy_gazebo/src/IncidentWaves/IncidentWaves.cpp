@@ -163,7 +163,6 @@ void IncidentWaves::Configure(
             << "  NPhases = " << nPhases << "  (no directional spreading)" << std::endl;
       this->dataPtr->Inc.SetToBretschneiderSpectrum(Hs, Tp, beta, nPhases);
     }
-
   }
 
   if (!SpectrumType.compare("Custom")) {

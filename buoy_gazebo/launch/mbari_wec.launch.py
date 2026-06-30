@@ -18,10 +18,7 @@ import os
 from pathlib import Path
 import time
 
-import numpy as np
-
 from ament_index_python.packages import get_package_share_directory
-
 from em import invoke as empy
 
 from launch import LaunchDescription
@@ -31,6 +28,8 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+
+import numpy as np
 
 
 def spreading_factor_from_spotter_spread_deg(spread_deg):
@@ -152,12 +151,12 @@ def regenerate_models(context, *args, **kwargs):
                 point = point_str.split(':')
                 inc_wave_height_points.append([float(p) for p in point])
             mbari_wec_ros_params.extend(['-D',
-                                          f'{wec_ros_param}'
-                                          + f' = {inc_wave_height_points}'])
+                                         f'{wec_ros_param}'
+                                         + f' = {inc_wave_height_points}'])
 
     mbari_wec_ros_params.extend(['-o', ros_sdf_file,
-                                  empy_ros_sdf_file])
-    print(f'{mbari_wec_ros_params = }')
+                                 empy_ros_sdf_file])
+    print(f'{mbari_wec_ros_params = }')  # noqa: E202, E251
     empy(mbari_wec_ros_params)
 
     # fill mbari_wec world template with params
@@ -335,9 +334,9 @@ def generate_launch_description():
                         'scale_factor': 'target winding current scale factor',
                         'inc_wave_seed': 'random seed for incident wave computation',
                         'inc_wave_height_points': 'points where wave height is reported defined as'
-                                                + ' x1:y1;x2:y2;...'
-                                                + ' (x, y: local cartesian coords relative to buoy'
-                                                + ' origin in meters)',
+                                                  + ' x1:y1;x2:y2;...'
+                                                  + ' (x, y: local cartesian coords relative to'
+                                                  + ' buoy origin in meters)',
                         'inc_wave_dir': 'incident wave direction (compass deg True, waves FROM)',
                         'battery_soc': 'initial battery state of charge as pct (0-1)',
                         'battery_emf': 'initial battery emf in Volts',
