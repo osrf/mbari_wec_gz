@@ -108,6 +108,7 @@ def regenerate_models(context, *args, **kwargs):
     mbari_wec_base_params.extend(['-o', base_sdf_file,
                                   empy_base_sdf_file])
     empy(mbari_wec_base_params)
+    # print(mbari_wec_base_params)
 
     # fill mbari_wec world template with params
     mbari_wec_world_params = []
@@ -119,6 +120,7 @@ def regenerate_models(context, *args, **kwargs):
     mbari_wec_world_params.extend(['-o', world_file,
                                    empy_world_file])
     empy(mbari_wec_world_params)
+    # print(mbari_wec_world_params)
 
     # fill mbari_wec model template with params
     mbari_wec_model_params = []
@@ -127,7 +129,7 @@ def regenerate_models(context, *args, **kwargs):
             print(f'{world_param = }\n{override_params[world_param] = }')  # noqa: E202, E251
             if 'inc_wave_spectrum_type' in override_params[world_param]:
                 inc_wave_spectrum = override_params[world_param].split(';')
-                no_params = len(inc_wave_spectrum) > 1
+                has_params = len(inc_wave_spectrum) > 1
                 inc_wave_spectrum_type = inc_wave_spectrum[0].split(':')
                 no_type = \
                     len(inc_wave_spectrum_type) < 2 \
@@ -140,7 +142,7 @@ def regenerate_models(context, *args, **kwargs):
                     mbari_wec_model_params.extend(['-D',
                                                    f'{inc_wave_spectrum_type[0]} ='
                                                    + "''"])
-                if not no_params and not no_type:
+                if has_params and not no_type:
                     for spectrum_param in inc_wave_spectrum[1:]:
                         spectrum_param = spectrum_param.split(':')
                         if len(spectrum_param) < 2 or 'default' in spectrum_param[1]:
@@ -167,6 +169,7 @@ def regenerate_models(context, *args, **kwargs):
     mbari_wec_model_params.extend(['-o', sdf_file,
                                    empy_sdf_file])
     empy(mbari_wec_model_params)
+    # print(mbari_wec_model_params)
 
     return args
 
