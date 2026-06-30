@@ -28,7 +28,7 @@ tether_top_length = 2.5
 num_tether_bottom_links = 5
 
 # TrefoilDoors
-trefoil_pose = {'open': 1.047, 'closed': 0.0}
+trefoil_pose = {'closed': 1.047, 'open': 0.0}
 # check if door_state was passed in by empy
 try:
     door_state
@@ -514,7 +514,7 @@ buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
     </link>
 
     <link name="Trefoil">
-      <pose relative_to="HeaveCone">0 0 0 0 0 0</pose>
+      <pose relative_to="HeaveCone">0 0 0 0 0 @(trefoil_pose[door_state])</pose>
 <!--      <inertial>-->
 <!--        <pose>0 0 -1.2 0 0 0</pose>-->
 <!--        <mass>@(trefoil_mass)</mass>-->
@@ -546,7 +546,7 @@ buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
       <parent>Buoy</parent>
       <child>PTO</child>
       <provide_feedback>1</provide_feedback>
-      <pose>0.0 0.0 0.0 0 0 0</pose>
+      <pose>0.0 0.0 0.0 0.0 0.0 0.0</pose>
       <axis>
         <xyz>1 0 0</xyz>
         @(tether_joint_properties())
@@ -570,7 +570,7 @@ buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
     <joint name="HydraulicRam" type="prismatic">
       <parent>PTO</parent>
       <child>Piston</child>
-      <pose>0.0 0.0 0.0 0 0 0</pose>
+      <pose>0.0 0.0 0.0 0.0 0.0 0.0</pose>
       <axis>
         <limit>
           <lower>0.0</lower>
@@ -585,7 +585,7 @@ buoyancy_radius = ((3*buoyancy_disp)/(4*math.pi))**(1/3)
       <parent>HeaveCone</parent>
       <child>Trefoil</child>
       <provide_feedback>1</provide_feedback>
-      <pose>0.0 0.0 0.0 0 0 @(trefoil_pose[door_state])</pose>
+      <pose>0.0 0.0 0.0 0.0 0.0 0.0</pose>
     </joint>
 
     <!-- Viscous Drag for Buoy -->
