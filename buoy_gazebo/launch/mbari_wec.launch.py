@@ -140,6 +140,7 @@ def regenerate_models(context, *args, **kwargs):
     mbari_wec_base_params.extend(['-o', base_sdf_file,
                                   empy_base_sdf_file])
     empy(mbari_wec_base_params)
+    # print(mbari_wec_base_params)
 
     # fill mbari_wec_ros model template with params
     mbari_wec_ros_params = []
@@ -169,6 +170,7 @@ def regenerate_models(context, *args, **kwargs):
     mbari_wec_world_params.extend(['-o', world_file,
                                    empy_world_file])
     empy(mbari_wec_world_params)
+    # print(mbari_wec_world_params)
 
     # fill mbari_wec model template with params
     mbari_wec_model_params = []
@@ -228,6 +230,7 @@ def regenerate_models(context, *args, **kwargs):
     mbari_wec_model_params.extend(['-o', sdf_file,
                                    empy_sdf_file])
     empy(mbari_wec_model_params)
+    # print(mbari_wec_model_params)
 
     return args
 

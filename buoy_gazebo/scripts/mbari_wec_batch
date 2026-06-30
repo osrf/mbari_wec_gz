@@ -80,6 +80,14 @@ def to_shape(a, shape):
                   mode = 'constant', constant_values=a[-1])
 
 
+class Controller(object):
+    def __init__(self, package, launch_file):
+        self.package = package
+        self.launch_file = launch_file
+    def __str__(self):
+        return f'pkg:{self.package};launch_file:{self.launch_file}'
+
+
 class MonoChromatic(object):
     def __init__(self, A, T):
         self.A, self.T = A, T
@@ -197,18 +205,6 @@ def generate_simulations(sim_params_yaml):
                                 ' must be a single value')
         sys.exit(-1)
 
-    # seed (random seed for incident waves plugin)
-    try:
-        if 'seed' in sim_params:
-            seed_ = int(sim_params['seed'])
-        else:
-            seed_ = None
-            node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
-    except TypeError:
-        node.get_logger().error('sim_params_yaml: seed parameter' +
-                                ' must be a single value')
-        sys.exit(-1)
-
     # duration (seconds)
     try:
         if 'duration' not in sim_params:
@@ -261,6 +257,13 @@ def generate_simulations(sim_params_yaml):
     ####################################
     # Run-Specific (Matrix) Parameters
     ####################################
+    # seed (random seed for incident waves plugin)
+    if 'seed' in sim_params:
+        seeds = np.array(sim_params['seed'], dtype=int)
+        seeds = np.atleast_1d(seeds)
+    else:
+        seeds = None
+        node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
 
     # physics time step (seconds)
     if 'physics_step' in sim_params:
@@ -388,6 +391,17 @@ def generate_simulations(sim_params_yaml):
             sys.exit(-1)
     else:
         incident_wave_height_points = [None]
+
+    if 'controller' in sim_params:
+        controller_params = sim_params['controller']
+        controllers = []
+        for controller in controller_params:
+            controllers.append(Controller(**controller))
+    else:
+        controllers = [None]
+        node.get_logger().warn(
+            'sim_params_yaml: optional controller parameter not specified -- assuming None'
+        )
 
     # IncWaveSpectrumType
     if 'IncidentWaveSpectrumType' in sim_params:
@@ -564,23 +578,27 @@ def generate_simulations(sim_params_yaml):
     if 'matrix_mode' not in sim_params or \
       ('matrix_mode' in sim_params and sim_params['matrix_mode']):
         # generate test matrix
-        batch_params = list(zip(*[param.ravel() for param in np.meshgrid(physics_step,
+        batch_params = list(zip(*[param.ravel() for param in np.meshgrid(seeds,
+                                                                         physics_step,
                                                                          door_state,
                                                                          scale_factor,
                                                                          battery_state,
                                                                          mean_piston_position,
                                                                          wave_dir,
                                                                          incident_wave_height_points,
+                                                                         controllers,
                                                                          incident_waves)]))
     elif 'matrix_mode' in sim_params and not sim_params['matrix_mode']:
         # generate test arrays
-        batch_params = [physics_step,
+        batch_params = [seeds,
+                        physics_step,
                         door_state,
                         scale_factor,
                         battery_state,
                         mean_piston_position,
                         wave_dir,
                         incident_wave_height_points,
+                        controllers,
                         incident_waves]
         shape = max(batch_params, key=len).shape
         for idx, param in enumerate(batch_params):
@@ -593,17 +611,19 @@ def generate_simulations(sim_params_yaml):
                             ', BatteryState, MeanPistonPosition, WaveDir(deg/from)' +
                             ', IncidentWaveHeightPoints' +
                             ', UpperSpringParams, LowerSpringParams' +
+                            ', Controller' +
                             ', IncWaveSpectrumType;IncWaveSpectrumParams')
     [node.get_logger().debug(f'{print_optional(ps)}, {print_optional(physics_rtf)}' +
-                             f', {print_optional(seed_)}, {duration}, {ds}, {sf}' +
+                             f', {print_optional(sd)}, {duration}, {ds}, {sf}' +
                              f', {print_optional(bs)}' +
                              f', {print_optional(mpp)}' +
                              f', {print_optional(wd)}' +
                              f', {print_optional(ihp)}' +
                              f', {print_optional(SpringParams("upper", usp))}' +
                              f', {print_optional(SpringParams("lower", lsp))}' +
+                             f', {print_optional(ctl)}' +
                              f', {print_optional(iw)}')
-        for ps, ds, sf, bs, mpp, wd, ihp, iw in batch_params]
+        for ps, ds, sf, bs, mpp, wd, ihp, ctl, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, 'batch_runs.log'))
@@ -615,6 +635,7 @@ def generate_simulations(sim_params_yaml):
                  ', MeanPistonPosition, WaveDir(deg/from)' +
                  ', IncidentWaveHeightPoints' +
                  ', UpperSpringParams, LowerSpringParams' +
+                 ', Controller' +
                  ', IncWaveSpectrumType;IncWaveSpectrumParams\n')
 
     # Find packages
@@ -640,11 +661,12 @@ def generate_simulations(sim_params_yaml):
 
     # Start batch runs
     rng = np.random.default_rng()
-    for idx, (ps, ds, sf, bs, mpp, wd, ihp, iw) in enumerate(batch_params):
+    for idx, (ps, ds, sf, bs, mpp, wd, ihp, ctl, iw) in enumerate(batch_params):
         if not rclpy.ok():
             break  # Shutting down
-        seed = rng.integers(2**32-1) if seed_==0 else seed_
+        seed = rng.integers(2**32-1) if sd==0 else sd
         node.get_logger().info(f'\n\nSim run [{idx}] for {duration} seconds:' +
+                               f" seed='{sd}" +
                                f" door state='{ds}', scale factor={sf}" +
                                f", battery state={bs if bs is not None else 'None'}" +
                                f", mean piston position={mpp if mpp is not None else 'None'}" +
@@ -654,6 +676,7 @@ def generate_simulations(sim_params_yaml):
                                f"{str(SpringParams('upper', usp))}" +
                                ', LowerSpringParams=' +
                                f"{str(SpringParams('lower', lsp))}" +
+                               f", controller={str(ctl) if ctl is not None else 'None'}" +
                                ', IncidentWaveSpectrumType=' +
                                f"{str(iw) if iw is not None else 'None'}\n")
 
@@ -753,6 +776,7 @@ def generate_simulations(sim_params_yaml):
                    os.path.join(batch_results_dir, f'latest_rosbag'))
 
         def generate_launch_description():
+            ld = []
             mbari_wec = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(pkg_buoy_gazebo, 'launch', 'mbari_wec.launch.py'),
@@ -772,6 +796,28 @@ def generate_simulations(sim_params_yaml):
                 output='screen'
             )
 
+            ld.append(rosbag2)
+            ld.append(mbari_wec)
+            ld.append(
+                RegisterEventHandler(  # get info from processes
+                    OnProcessStart(on_start=lambda info, unused: proc_start_info.append(info))
+                )
+            )
+            ld.append(
+                RegisterEventHandler(  # get return codes from processes
+                    OnProcessExit(on_exit=lambda info, unused: proc_exit_info.append(info))
+                )
+            )
+
+            if ctl is not None:
+                pkg_ctl = get_package_share_directory(ctl.package)
+                controller_launch = IncludeLaunchDescription(
+                    PythonLaunchDescriptionSource(
+                        os.path.join(pkg_ctl, 'launch', ctl.launch_file)
+                    ),
+                )
+                ld.append(controller_launch)
+
             def capture_start_pids(info_, unused):
                 proc_start_info.append(info_)
                 start_procs = resolveProcesses(proc_start_info, process='gazebo')
@@ -783,16 +829,7 @@ def generate_simulations(sim_params_yaml):
                     print(f'{output.stdout}')
                     print(f'{output.stderr}')
 
-            return LaunchDescription([
-                rosbag2,
-                mbari_wec,
-                RegisterEventHandler(  # get info from processes
-                    OnProcessStart(on_start=lambda info, unused: proc_start_info.append(info))
-                ),
-                RegisterEventHandler(  # get return codes from processes
-                    OnProcessExit(on_exit=lambda info, unused: proc_exit_info.append(info))
-                ),
-            ])
+            return LaunchDescription(ld)
 
         # Launch sim instance
         ls = LaunchService()
@@ -845,6 +882,7 @@ def generate_simulations(sim_params_yaml):
                      f', {print_optional(ihp)}' +
                      f', {print_optional(SpringParams("upper", usp))}' +
                      f', {print_optional(SpringParams("lower", lsp))}' +
+                     f', {print_optional(ctl)}' +
                      f', {print_optional(iw)}\n')
 
     # Return all files to defaults
