@@ -211,17 +211,12 @@ def generate_simulations(sim_params_yaml):
     # Run-Specific (Matrix) Parameters
     ####################################
     # seed (random seed for incident waves plugin)
-    try:
-        if 'seed' in sim_params:
-            seeds = np.array(sim_params['seed'], dtype=int)
-            seeds = np.atleast_1d(seeds)
-        else:
-            seeds = None
-            node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
-    except TypeError:
-        node.get_logger().error('sim_params_yaml: seed parameter' +
-                                ' must be a single value')
-        sys.exit(-1)
+    if 'seed' in sim_params:
+        seeds = np.array(sim_params['seed'], dtype=int)
+        seeds = np.atleast_1d(seeds)
+    else:
+        seeds = None
+        node.get_logger().warn('sim_params_yaml: optional seed parameter not specified')
 
     # physics time step (seconds)
     if 'physics_step' in sim_params:
