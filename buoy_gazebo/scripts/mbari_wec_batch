@@ -623,7 +623,7 @@ def generate_simulations(sim_params_yaml):
                              f', {print_optional(SpringParams("lower", lsp))}' +
                              f', {print_optional(ctl)}' +
                              f', {print_optional(iw)}')
-        for ps, ds, sf, bs, mpp, wd, ihp, ctl, iw in batch_params]
+        for sd, ps, ds, sf, bs, mpp, wd, ihp, ctl, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, 'batch_runs.log'))
@@ -661,7 +661,7 @@ def generate_simulations(sim_params_yaml):
 
     # Start batch runs
     rng = np.random.default_rng()
-    for idx, (ps, ds, sf, bs, mpp, wd, ihp, ctl, iw) in enumerate(batch_params):
+    for idx, (sd, ps, ds, sf, bs, mpp, wd, ihp, ctl, iw) in enumerate(batch_params):
         if not rclpy.ok():
             break  # Shutting down
         seed = rng.integers(2**32-1) if sd==0 else sd
