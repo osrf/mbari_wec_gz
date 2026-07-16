@@ -28,11 +28,20 @@ def generate_launch_description():
         description='Input batch sim params yaml'
     )
 
+    # NEW: declare rosbag2 argument so ros2 launch accepts it
+    rosbag2_launch_arg = DeclareLaunchArgument(
+        'rosbag2',
+        default_value='true',
+        description='Enable rosbag2 recording (true/false)'
+    )
+
     batch_sim = Node(
         package='buoy_gazebo',
         executable='mbari_wec_batch',
         arguments=[
             LaunchConfiguration('sim_params_yaml'),
+            '--rosbag2',                    # NEW: forward flag to the executable
+            LaunchConfiguration('rosbag2'), # will be the string 'true' or 'false'
         ],
         output='screen',
         on_exit=Shutdown()
@@ -40,5 +49,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         sim_params_yaml_launch_arg,
+        rosbag2_launch_arg,   # NEW
         batch_sim,
     ])
