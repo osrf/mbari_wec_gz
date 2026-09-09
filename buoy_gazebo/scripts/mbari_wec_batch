@@ -905,8 +905,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch running for mbari_wec_gz')
     parser.add_argument('sim_params_yaml',
                         help='yaml file with batch parameters')
-    parser.add_argument('--rosbag2',
-                    default='true',
-                    help='Enable rosbag2 recording (true/false)')
+    parser.add_argument('--no-rosbag2',
+                    action='store_true',
+                    help='Disable rosbag2 recording')
     args, unknown = parser.parse_known_args()
-    generate_simulations(args.sim_params_yaml, rosbag2=args.rosbag2.lower() == 'true')
+    if args.no_rosbag2:
+        rosbag2 = False
+    else:
+        rosbag2 = True
+    generate_simulations(args.sim_params_yaml, rosbag2=rosbag2)
