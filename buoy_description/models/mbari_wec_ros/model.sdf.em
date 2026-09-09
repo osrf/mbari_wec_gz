@@ -1,4 +1,25 @@
 <?xml version="1.0" ?>
+@{
+from functools import partial
+
+def _IncidentWaveHeightPoints(points):
+    ''' Prints the points tags for the IncWaveHeight plugin. '''
+    points_ = []
+    for x, y in points:
+        points_.append(f'<xy>{x} {y}</xy>')
+    print('\n\t'.join(points_))
+
+# Check if inc_wave_height_points was passed in via empy
+try:
+    inc_wave_height_points
+except NameError:
+    inc_wave_height_points = None  # not defined so default
+
+if inc_wave_height_points is not None:
+    IncidentWaveHeightPoints = partial(_IncidentWaveHeightPoints, points=inc_wave_height_points)
+else:
+    IncidentWaveHeightPoints = lambda: None  # no points to print
+}
 <sdf version="1.10">
   <model name="MBARI_WEC_ROS">
 
@@ -65,9 +86,25 @@
       <node_name>inc_wave_service</node_name>
       <points use_buoy_origin="true">
         <xy>0.0 0.0</xy>
+        @(IncidentWaveHeightPoints())
         <!-- may add multiple xy tags -->
         <!-- <xy>-1.0 0.0</xy> -->
         <!-- <xy>1.0 0.0</xy> -->
+        <!-- matches relative positions of example SWIFT data -->
+        <!--xy>-125.0 -25.0</xy-->
+        <!--xy>-185.0 -115.0</xy-->
+        <!--xy>-100.0 -135.0</xy-->
+        <!--xy>45.0 -175.0</xy-->
+        <!-- "optimal" diamond configuration for wave dir from=225 deg -->
+        <!--xy>-185.0 -185.0</xy-->
+        <!--xy>-77.0 -77.0</xy-->
+        <!--xy>-185.0 -77.0</xy-->
+        <!--xy>-77.0 -185.0</xy-->
+        <!-- "optimal" diamond configuration for wave dir from=200 deg -->
+        <!--xy>-90.0 -246.0</xy-->
+        <!--xy>-37.0 -103.0</xy-->
+        <!--xy>-135.0 -148.0</xy-->
+        <!--xy>8.0 -201.0</xy-->
       </points>
     </plugin>
 

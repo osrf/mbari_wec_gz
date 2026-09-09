@@ -70,6 +70,9 @@ struct buoy_gazebo::LatentDataPublisherPrivate
     out.pose.pose.orientation.y = in.qy;
     out.pose.pose.orientation.z = in.qz;
     out.pose.pose.orientation.w = in.qw;
+    out.velocities.x = in.u;
+    out.velocities.y = in.v;
+    out.velocities.z = in.etadot;
   }
 };
 
@@ -241,6 +244,14 @@ void LatentDataPublisher::PostUpdate(
   std::size_t idx = 0U;
   for (; idx < latent_data.inc_wave_heights.points.size(); ++idx) {
     // all fixed points from SDF computed at SimTime (relative_time = 0.0)
+    if (latent_data.inc_wave_heights.gps_ref_valid) {
+      this->dataPtr->latent_data_.inc_wave_heights[idx].gps_ref.latitude =
+        latent_data.inc_wave_heights.gps_ref_lat;
+      this->dataPtr->latent_data_.inc_wave_heights[idx].gps_ref.longitude =
+        latent_data.inc_wave_heights.gps_ref_lon;
+      this->dataPtr->latent_data_.inc_wave_heights[idx].gps_ref.altitude =
+        latent_data.inc_wave_heights.gps_ref_alt;
+    }
     this->dataPtr->latent_data_.inc_wave_heights[idx].pose.header.stamp.sec =
       latent_data.inc_wave_heights.sec;
     this->dataPtr->latent_data_.inc_wave_heights[idx].pose.header.stamp.nanosec =

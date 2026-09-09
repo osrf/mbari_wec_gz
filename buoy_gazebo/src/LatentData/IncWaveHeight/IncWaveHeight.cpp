@@ -19,7 +19,9 @@
 
 #include <gz/sim/Model.hh>
 #include <gz/sim/Util.hh>
+#include <gz/sim/World.hh>
 #include <gz/sim/components/Name.hh>
+#include <gz/sim/components/World.hh>
 #include <gz/common/Profiler.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/transport/Node.hh>
@@ -55,6 +57,12 @@ struct IncWaveHeightPrivate
 {
   gz::sim::Entity IncWaveEntity{gz::sim::kNullEntity};
   buoy_gazebo::IncWaveState inc_wave_state;
+
+  gz::sim::Entity worldEntity{gz::sim::kNullEntity};
+  double gps_ref_lat_{0.0};
+  double gps_ref_lon_{0.0};
+  double gps_ref_alt_{0.0};
+  bool gps_ref_valid_{false};
 
   gz::sim::Entity entity{gz::sim::kNullEntity};
   gz::sim::Model model{gz::sim::kNullEntity};
@@ -100,7 +108,7 @@ struct IncWaveHeightPrivate
     thread_executor_spin_ = std::thread(spin);
   }
 
-  std::tuple<double, gz::math::Quaternion<double>> compute_eta(
+  std::tuple<double, double, double, double, gz::math::Quaternion<double>> compute_eta(
     double & x,
     double & y,
     const double & SimTime,
@@ -112,9 +120,11 @@ struct IncWaveHeightPrivate
       y += this->inc_wave_state.y;  // y of buoy
     }
 
-    double deta_dx{0.0}, deta_dy{0.0};
+    double deta_dx{0.0}, deta_dy{0.0}, u{0.0}, v{0.0};
+    // LinearIncidentWave returns Eulerian surface velocities (u_east, v_north).
     double eta = this->inc_wave_state.Inc.eta(
-      x, y, SimTime, &deta_dx, &deta_dy);
+      x, y, SimTime, &deta_dx, &deta_dy, &u, &v);
+    double etadot = this->inc_wave_state.Inc.etadot(x, y, SimTime);
 
     double roll = atan(deta_dx);
     double pitch = atan(deta_dy);
@@ -123,7 +133,7 @@ struct IncWaveHeightPrivate
     gz::math::Quaternion<double> q =
       gz::math::Quaternion<double>::EulerToQuaternion(roll, pitch, yaw);
 
-    return std::make_tuple(eta, q);
+    return std::make_tuple(eta, etadot, u, v, q);
   }
 
   void setup_services()
@@ -165,25 +175,38 @@ struct IncWaveHeightPrivate
           double x = request->points[idx].x;
           double y = request->points[idx].y;
 
-          double eta{0.0};
+          double eta{0.0}, etadot{0.0}, u{0.0}, v{0.0};
           gz::math::Quaternion<double> q;
-          // x, y updated in place to world coords
-          std::tie(eta, q) = compute_eta(x, y, t, use_buoy_origin);
+          // compute_eta updates x/y in place to world coordinates
+          std::tie(eta, etadot, u, v, q) = compute_eta(x, y, t, use_buoy_origin);
 
           // Note: absolute time is converted to relative (from current SimTime)
           response->heights[idx].relative_time = t - SimTime;
           response->heights[idx].use_buoy_origin = false;  // always return world coords
+
+          // Response x/y are local Cartesian coordinates relative to this GPS reference.
+          if (this->gps_ref_valid_) {
+            response->heights[idx].gps_ref.latitude = this->gps_ref_lat_;
+            response->heights[idx].gps_ref.longitude = this->gps_ref_lon_;
+            response->heights[idx].gps_ref.altitude = this->gps_ref_alt_;
+          }
+
           response->heights[idx].pose.header.stamp.sec = sec_nsec.first;
           response->heights[idx].pose.header.stamp.nanosec = sec_nsec.second;
           response->heights[idx].pose.pose.position.x = x;  // in world coords
           response->heights[idx].pose.pose.position.y = y;  // in world coords
           response->heights[idx].pose.pose.position.z = eta;  // height above waterplane
 
-          // normal vector (2D slope) of wave at point
+          // Surface normal derived from local slope at this point
           response->heights[idx].pose.pose.orientation.x = q.X();
           response->heights[idx].pose.pose.orientation.y = q.Y();
           response->heights[idx].pose.pose.orientation.z = q.Z();
           response->heights[idx].pose.pose.orientation.w = q.W();
+
+          // Velocities in ENU: (u_east, v_north, etadot)
+          response->heights[idx].velocities.x = u;  // East
+          response->heights[idx].velocities.y = v;  // North
+          response->heights[idx].velocities.z = etadot;  // Heave
         }
         data.unlock();
       };
@@ -204,7 +227,7 @@ IncWaveHeight::IncWaveHeight()
 
 IncWaveHeight::~IncWaveHeight()
 {
-  // Stop ros2 threads
+  // Stop ROS 2 threads
   if (rclcpp::ok()) {
     rclcpp::shutdown();
   }
@@ -280,8 +303,28 @@ void IncWaveHeight::Configure(
     }
   }
 
-  // controller scoped name
+  // Controller scoped name
   std::string scoped_name = gz::sim::scopedName(_entity, _ecm, "/", false);
+
+  // Cache world entity for spherical coordinates lookup
+  this->dataPtr->worldEntity =
+    _ecm.EntityByComponents(gz::sim::components::World());
+
+  // Cache GPS reference once (world spherical coordinate reference)
+  if (this->dataPtr->worldEntity != gz::sim::kNullEntity) {
+    gz::sim::World world(this->dataPtr->worldEntity);
+    auto scOpt = world.SphericalCoordinates(_ecm);
+    if (scOpt) {
+      this->dataPtr->gps_ref_lat_ = scOpt->LatitudeReference().Degree();
+      this->dataPtr->gps_ref_lon_ = scOpt->LongitudeReference().Degree();
+      this->dataPtr->gps_ref_alt_ = scOpt->ElevationReference();
+      this->dataPtr->gps_ref_valid_ = true;
+    } else {
+      this->dataPtr->gps_ref_valid_ = false;
+    }
+  } else {
+    this->dataPtr->gps_ref_valid_ = false;
+  }
 
   // ROS node
   std::string ns = _sdf->Get<std::string>("namespace", scoped_name).first;
@@ -343,6 +386,14 @@ void IncWaveHeight::PreUpdate(
   latent_data.inc_wave_heights.sec = sec_nsec.first;
   latent_data.inc_wave_heights.nsec = sec_nsec.second;
 
+  // GPS reference for local x/y
+  latent_data.inc_wave_heights.gps_ref_valid = this->dataPtr->gps_ref_valid_;
+  if (this->dataPtr->gps_ref_valid_) {
+    latent_data.inc_wave_heights.gps_ref_lat = this->dataPtr->gps_ref_lat_;
+    latent_data.inc_wave_heights.gps_ref_lon = this->dataPtr->gps_ref_lon_;
+    latent_data.inc_wave_heights.gps_ref_alt = this->dataPtr->gps_ref_alt_;
+  }
+
   latent_data.inc_wave_heights.points.resize(this->dataPtr->inc_wave_heights.points.size());
   std::size_t idx = 0U;
   for (; idx < latent_data.inc_wave_heights.points.size(); ++idx) {
@@ -350,10 +401,10 @@ void IncWaveHeight::PreUpdate(
     double x = this->dataPtr->inc_wave_heights.points[idx].x;
     double y = this->dataPtr->inc_wave_heights.points[idx].y;
 
-    double eta{0.0};
+    double eta{0.0}, etadot{0.0}, u{0.0}, v{0.0};
     gz::math::Quaternion<double> q;
-    // x, y updated in place to world coords
-    std::tie(eta, q) = this->dataPtr->compute_eta(x, y, SimTime, use_buoy_origin);
+    // compute_eta updates x/y in place to world coordinates
+    std::tie(eta, etadot, u, v, q) = this->dataPtr->compute_eta(x, y, SimTime, use_buoy_origin);
 
     // always report in world coords
     latent_data.inc_wave_heights.points[idx].use_buoy_origin = false;
@@ -362,11 +413,16 @@ void IncWaveHeight::PreUpdate(
     latent_data.inc_wave_heights.points[idx].y = y;  // in world coords
     latent_data.inc_wave_heights.points[idx].eta = eta;  // height above waterplane
 
-    // normal vector (2D slope) of wave at point
+    // Surface normal derived from local slope at this point
     latent_data.inc_wave_heights.points[idx].qx = q.X();
     latent_data.inc_wave_heights.points[idx].qy = q.Y();
     latent_data.inc_wave_heights.points[idx].qz = q.Z();
     latent_data.inc_wave_heights.points[idx].qw = q.W();
+
+    // Velocities in ENU: (u_east, v_north, etadot)
+    latent_data.inc_wave_heights.points[idx].u = u;  // East
+    latent_data.inc_wave_heights.points[idx].v = v;  // North
+    latent_data.inc_wave_heights.points[idx].etadot = etadot;  // Heave
   }
 
   _ecm.SetComponentData<buoy_gazebo::components::LatentData>(

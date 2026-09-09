@@ -29,14 +29,15 @@ apt install -y git \
 
 cd $COLCON_WS_SRC
 cp -r $GITHUB_WORKSPACE $COLCON_WS_SRC
-wget https://raw.githubusercontent.com/osrf/mbari_wec/dev/mbari_wec_all.yaml
+wget https://raw.githubusercontent.com/osrf/mbari_wec/andermi/add_latentdata_surfacevelocities/mbari_wec_all.yaml
 vcs import --skip-existing < mbari_wec_all.yaml
 
 rosdep init
 rosdep update
 rosdep install --from-paths ./ -i -y -r --rosdistro $ROS_DISTRO
 
-git clone -b 1.4.0 --single-branch https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
+# TODO update to 1.4.1 when it's released
+git clone -b TestBeta --single-branch https://github.com/hamilton8415/FreeSurfaceHydrodynamics.git
 cd FreeSurfaceHydrodynamics
 touch COLCON_IGNORE
 mkdir build

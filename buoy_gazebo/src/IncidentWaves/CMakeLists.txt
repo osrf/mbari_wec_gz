@@ -1,4 +1,4 @@
-find_package(FreeSurfaceHydrodynamics REQUIRED)
+find_package(FreeSurfaceHydrodynamics 1.4.2 REQUIRED)
 
 # Set policy CMP0167 so we avoid warnings about deprecated FindBoost
 if(POLICY CMP0167)

@@ -17,12 +17,14 @@
 #include <gz/msgs/double.pb.h>
 
 #include <cstdio>
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <gz/common/Profiler.hh>
+#include <gz/math/Helpers.hh>
 #include <gz/math/Quaternion.hh>
 #include <gz/msgs.hh>
 #include <gz/plugin/Register.hh>
@@ -67,6 +69,14 @@ double SdfParamDouble(
   return _sdf->Get<double>(_field, _default).first;
 }
 
+/////////////////////////////////////////////////
+int SdfParamInt(
+  const std::shared_ptr<const sdf::Element> & _sdf,
+  const std::string & _field, int _default)
+{
+  return _sdf->Get<int>(_field, _default).first;
+}
+
 //////////////////////////////////////////////////
 void IncidentWaves::Configure(
   const gz::sim::Entity & _entity,
@@ -88,8 +98,29 @@ void IncidentWaves::Configure(
 
   auto SpectrumType = _sdf->Get<std::string>("IncWaveSpectrumType");
 
-//  double beta = SdfParamDouble(_sdf, "WaveDir", 180.0);  // Not yet implemented
-  double beta = 180.0;
+  // WaveDir is compass degrees True and indicates where waves come FROM.
+  // LinearIncidentWave expects beta as a math angle (radians, CCW from +x/East)
+  // for the propagation direction (where waves travel TO).
+  //
+  // Conversion:
+  //   from_deg: 0=N, 90=E, 180=S, 270=W
+  //   to_deg = from_deg + 180 (mod 360)
+  //   beta_deg = 90 - to_deg
+  // Default WaveDir is 90 deg to preserve historical beta=180 behavior.
+  const double dir_from_compass_deg = SdfParamDouble(_sdf, "WaveDir", 90.0);
+  double dir_towards_compass_deg = std::fmod(dir_from_compass_deg + 180.0, 360.0);
+  if (dir_towards_compass_deg < 0.0) {
+    dir_towards_compass_deg += 360.0;
+  }
+  double beta_math_deg = std::fmod(90.0 - dir_towards_compass_deg, 360.0);
+  if (beta_math_deg < 0.0) {
+    beta_math_deg += 360.0;
+  }
+  const double beta = GZ_DTOR(beta_math_deg);
+
+  gzdbg << "IncidentWaves WaveDir(from, degT)=" << dir_from_compass_deg
+        << " -> towards=" << dir_towards_compass_deg
+        << " -> beta_math_deg=" << beta_math_deg << std::endl;
 
   if (!SpectrumType.compare("MonoChromatic")) {
     gzdbg << "SpectrumType " << SpectrumType << std::endl;
@@ -104,8 +135,34 @@ void IncidentWaves::Configure(
     gzdbg << "SpectrumType " << SpectrumType << std::endl;
     double Hs = SdfParamDouble(_sdf, "Hs", 0.0);
     double Tp = SdfParamDouble(_sdf, "Tp", 14.0);
-    gzdbg << "Hs = " << Hs << "  Tp = " << Tp << std::endl;
-    this->dataPtr->Inc.SetToBretschneiderSpectrum(Hs, Tp, beta);
+    int nPhases = SdfParamInt(_sdf, "NPhases", 500);
+    if (nPhases <= 0) {
+      gzwarn << "Invalid NPhases=" << nPhases
+             << " for IncidentWaves plugin. Falling back to 500." << std::endl;
+      nPhases = 500;
+    }
+
+    constexpr int kDefaultNSectors = 20;
+    const bool hasSpreadingFactor = _sdf->HasElement("SpreadingFactor");
+    if (hasSpreadingFactor) {
+      double spreadingFactor = SdfParamDouble(_sdf, "SpreadingFactor", 10.0);
+      if (spreadingFactor < 0.0) {
+        gzwarn << "Invalid SpreadingFactor=" << spreadingFactor
+               << " for IncidentWaves plugin. Falling back to 10." << std::endl;
+        spreadingFactor = 10.0;
+      }
+      gzdbg << "Hs = " << Hs << "  Tp = " << Tp
+            << "  NPhases = " << nPhases
+            << "  SpreadingFactor = " << spreadingFactor << std::endl;
+      this->dataPtr->Inc.SetToBretschneiderSpectrumWithCos2Spreading(
+        Hs, Tp, beta, nPhases, static_cast<int>(std::lround(spreadingFactor)),
+        kDefaultNSectors);
+    } else {
+      // No SpreadingFactor element: use 1D (non-directional) Bretschneider spectrum.
+      gzdbg << "Hs = " << Hs << "  Tp = " << Tp
+            << "  NPhases = " << nPhases << "  (no directional spreading)" << std::endl;
+      this->dataPtr->Inc.SetToBretschneiderSpectrum(Hs, Tp, beta, nPhases);
+    }
   }
 
   if (!SpectrumType.compare("Custom")) {
