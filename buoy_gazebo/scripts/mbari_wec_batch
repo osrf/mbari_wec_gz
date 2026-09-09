@@ -159,7 +159,7 @@ class IncidentWaveHeightPoints(object):
         return ';'.join([f'{x}:{y}' for x, y in self.points])
 
 
-def generate_simulations(sim_params_yaml):
+def generate_simulations(sim_params_yaml, rosbag2=True):
 
     rclpy.init()
     node = Node('mbari_wec_batch')
@@ -623,7 +623,7 @@ def generate_simulations(sim_params_yaml):
                              f', {print_optional(SpringParams("lower", lsp))}' +
                              f', {print_optional(ctl)}' +
                              f', {print_optional(iw)}')
-        for ps, ds, sf, bs, mpp, wd, ihp, ctl, iw in batch_params]
+        for sd, ps, ds, sf, bs, mpp, wd, ihp, ctl, iw in batch_params]
 
     node.get_logger().info('Creating log file: ' +
                            os.path.join(batch_results_dir, 'batch_runs.log'))
@@ -659,9 +659,11 @@ def generate_simulations(sim_params_yaml):
     empy_world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec.sdf.em')
     world_file = os.path.join(pkg_buoy_gazebo, 'worlds', 'mbari_wec_batch.sdf')
 
+    node.get_logger().info(f'rosbag2 recording enabled: {rosbag2}')
+
     # Start batch runs
     rng = np.random.default_rng()
-    for idx, (ps, ds, sf, bs, mpp, wd, ihp, ctl, iw) in enumerate(batch_params):
+    for idx, (sd, ps, ds, sf, bs, mpp, wd, ihp, ctl, iw) in enumerate(batch_params):
         if not rclpy.ok():
             break  # Shutting down
         seed = rng.integers(2**32-1) if sd==0 else sd
@@ -770,10 +772,11 @@ def generate_simulations(sim_params_yaml):
         proc_exit_info = ActiveProcInfoHandler()
 
         # python workaround for 'ln -sf'
-        os.symlink(os.path.join(run_results_dir, rosbag2_dir),
-                   os.path.join(batch_results_dir, f'latest_rosbag_{start_time}'), target_is_directory=True)
-        os.replace(os.path.join(batch_results_dir, f'latest_rosbag_{start_time}'),
-                   os.path.join(batch_results_dir, f'latest_rosbag'))
+        if rosbag2:
+            os.symlink(os.path.join(run_results_dir, rosbag2_dir),
+                    os.path.join(batch_results_dir, f'latest_rosbag_{start_time}'), target_is_directory=True)
+            os.replace(os.path.join(batch_results_dir, f'latest_rosbag_{start_time}'),
+                    os.path.join(batch_results_dir, f'latest_rosbag'))
 
         def generate_launch_description():
             ld = []
@@ -790,13 +793,14 @@ def generate_simulations(sim_params_yaml):
             )
 
             # record all topics with rosbag2
-            rosbag2 = ExecuteProcess(
-                cmd=['ros2', 'bag', 'record', '-s', 'mcap',
-                     '-o', os.path.join(batch_results_dir, run_results_dir, rosbag2_dir), '-a'],
-                output='screen'
-            )
+            if rosbag2:
+                rosbag2_proc = ExecuteProcess(
+                    cmd=['ros2', 'bag', 'record', '-s', 'mcap',
+                        '-o', os.path.join(batch_results_dir, run_results_dir, rosbag2_dir), '-a'],
+                    output='screen'
+                )
+                ld.append(rosbag2_proc)
 
-            ld.append(rosbag2)
             ld.append(mbari_wec)
             ld.append(
                 RegisterEventHandler(  # get info from processes
@@ -872,7 +876,7 @@ def generate_simulations(sim_params_yaml):
         # Write to log
         with open(os.path.join(batch_results_dir, 'batch_runs.log'), 'a') as fd:
             fd.write(f'{idx}, {result}, {start_time}' +
-                     f', {os.path.join(run_results_dir, rosbag2_dir)}' +
+                     f', {os.path.join(run_results_dir, rosbag2_dir)}' + #Left unchanged to match previous system, potential #TODO
                      f', {os.path.join(run_results_dir, pblog_dir)}' +
                      f', {print_optional(ps)}, {print_optional(physics_rtf)}' +
                      f', {print_optional(seed)}, {duration}, {ds}, {sf}' +
@@ -901,5 +905,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch running for mbari_wec_gz')
     parser.add_argument('sim_params_yaml',
                         help='yaml file with batch parameters')
+    parser.add_argument('--no-rosbag2',
+                    action='store_true',
+                    help='Disable rosbag2 recording')
     args, unknown = parser.parse_known_args()
-    generate_simulations(args.sim_params_yaml)
+    if args.no_rosbag2:
+        rosbag2 = False
+    else:
+        rosbag2 = True
+    generate_simulations(args.sim_params_yaml, rosbag2=rosbag2)
