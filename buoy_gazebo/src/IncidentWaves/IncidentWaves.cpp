@@ -38,6 +38,10 @@
 #include "IncWaveState.hpp"
 
 
+static bool IW_DBG_FLAG{false};
+#define iwdbg  if (IW_DBG_FLAG) gzdbg
+
+
 namespace buoy_gazebo
 {
 class IncidentWavesPrivate

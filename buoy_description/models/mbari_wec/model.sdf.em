@@ -309,7 +309,8 @@ if not ignore_piston_mean_pos:
     </plugin>
 
 
-    <plugin filename="IncidentWaves" name="buoy_gazebo::IncidentWaves">  
+    <plugin filename="IncidentWaves" name="buoy_gazebo::IncidentWaves">
+      <gz:system_priority>-10</gz:system_priority> <!-- run first before wave body interactions -->
       <IncWaveSeed>@(inc_wave_seed)</IncWaveSeed>
             <WaveDir>@(inc_wave_dir)</WaveDir>
       @(inc_wave_spectrum())
