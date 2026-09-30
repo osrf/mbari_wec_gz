@@ -237,8 +237,21 @@ void IncidentWaves::PreUpdate(
   req.mutable_position()->set_y(this->dataPtr->inc_wave_state.y);
   req.mutable_position()->set_z(eta);
 
-  double roll = atan(deta_dx);
-  double pitch = atan(deta_dy);
+  // deta_dy is slope in y, which is a roll about x-axis
+  // deta_dx is slope in x, which is a pitch about y-axis
+  // Extrinsic XYZ ordering in EulerToQuaternion
+  // we want plane z with upward normal n --> (-deta_dx, -deta_dy, 1)
+  // R = Ry(p)Rx(r), plane normal R*z^ (z-hat)
+  // Rx(r)z^ = (0, -sin(r), cos(r))'
+  // n = Ry(p)Rx(r)z^ = (sin(p)cos(r), -sin(r), cos(p)cos(r))'
+
+  // deta_dx = -n_x/n_z = -sin(p)cos(r) / (cos(p)cos(r)) = -tan(p)
+  // tan(p) = -deta_dx
+  double pitch = -atan(deta_dx);
+
+  // deta_dy = -n_y/n_z = sin(r) / (cos(p)cos(r)) = tan(r) / cos(p)
+  // tan(r) = deta_dy * cos(p)
+  double roll = atan(deta_dy * cos(pitch));
   double yaw = 0.0;
 
   gz::math::Quaternion<double> q =
