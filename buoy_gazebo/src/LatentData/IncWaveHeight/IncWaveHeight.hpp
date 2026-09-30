@@ -25,8 +25,12 @@ namespace buoy_gazebo
 struct IncWaveHeightPrivate;
 
 /// \brief ROS 2 Incident Wave Height node for requesting wave heights at given positions
-/// Currently accepts incident wave height requests.
-/// Uses ros_gz_bridge
+///
+/// Frames:
+/// - pose.position.x/y are world ENU coordinates in meters (x=East, y=North)
+/// - pose.position.z is eta (meters above waterplane, up-positive)
+/// - velocities.x/y are surface velocities u/v in East/North (m/s)
+/// - velocities.z is etadot (m/s)
 
 /// SDF parameters:
 /// * `<namespace>`: Namespace for ROS node, defaults to scoped name

@@ -192,11 +192,6 @@ void WaveBodyInteractions::PreUpdate(
   }
 
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
-  if (_info.iterations == 1) {  // First iteration, set timestep size.
-    double dt = std::chrono::duration<double>(_info.dt).count();
-    dataPtr->FloatingBody.SetTimestepSize(dt);
-    wbidbg << " Set Wave Forcing timestep size:  dt = " << dt << std::endl;
-  }
 
   // \TODO(anyone): Support rewind
   if (_info.dt < std::chrono::steady_clock::duration::zero()) {
@@ -221,6 +216,13 @@ void WaveBodyInteractions::PreUpdate(
     const std::shared_ptr<IncidentWave> Inc(dynamic_cast<IncidentWave *>(new LinearIncidentWave(
         inc_wave_state.Inc)));
     this->dataPtr->FloatingBody.AssignIncidentWave(Inc);
+  }
+
+  // Must set timestep size for FloatingBody AFTER assigning incident wave pointer
+  if (_info.iterations == 1) {  // First iteration, set timestep size.
+    double dt = std::chrono::duration<double>(_info.dt).count();
+    dataPtr->FloatingBody.SetTimestepSize(dt);
+    wbidbg << " Set Wave Forcing timestep size:  dt = " << dt << std::endl;
   }
 
   gz::sim::Link baseLink(this->dataPtr->linkEntity);
