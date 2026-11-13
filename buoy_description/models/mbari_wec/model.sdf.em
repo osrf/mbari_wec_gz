@@ -316,6 +316,13 @@ if not ignore_piston_mean_pos:
       @(inc_wave_spectrum())
     </plugin>
 
+    <!-- Incident wave surface around the buoy, drawn in the GUI as a marker mesh -->
+    <plugin filename="IncWaveSurface" name="buoy_gazebo::IncWaveSurface">
+      <grid_size>64 64</grid_size>  <!-- vertices along x, y -->
+      <grid_spacing>2.0 2.0</grid_spacing>  <!-- m -->
+      <publish_rate>10</publish_rate>  <!-- Hz, wall clock -->
+    </plugin>
+
     <!-- Adding Friction to PTO -->
     <plugin filename="PTOFriction" name="buoy_gazebo::PTOFriction">
       <PrismaticJointName>HydraulicRam</PrismaticJointName>
