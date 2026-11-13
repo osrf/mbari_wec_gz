@@ -45,6 +45,10 @@ except NameError:
 
     <!-- rely on world plugins from server.config -->
 
+    <scene>
+      <sky></sky>
+    </scene>
+
     <light name="sun" type="directional">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -59,21 +63,29 @@ except NameError:
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <model name="water_plane">
+    <!-- Incident wave surface. IncWaveSurfaceVisual draws it in the GUI from the
+         wave components the IncWaveSurface plugin on the buoy serves. -->
+    <model name="inc_wave_surface">
       <static>true</static>
       <link name="link">
-        <visual name="water_plane">
+        <visual name="visual">
+          <!-- Placeholder: the plugin draws the surface itself -->
           <geometry>
-            <plane>
-              <size>5 5</size>
-              <normal>0 0 1</normal>
-            </plane>
+            <box>
+              <size>0.001 0.001 0.001</size>
+            </box>
           </geometry>
-          <material>
-            <ambient>0 0 1 0.5</ambient>
-            <diffuse>0 0 1 0.5</diffuse>
-            <specular>0 0 1 0.5</specular>
-          </material>
+          <transparency>1</transparency>
+          <cast_shadows>false</cast_shadows>
+          <plugin filename="IncWaveSurfaceVisual" name="buoy_gazebo::IncWaveSurfaceVisual">
+            <follow_link>Buoy</follow_link>
+            <update_rate>30</update_rate>  <!-- Hz, wall clock -->
+            <!-- Short waves above the 0.5 Hz FreeSurfaceHydrodynamics cutoff, visual only:
+                 none, tail (continue the spectrum) or wind (wind sea) -->
+            <chop>wind</chop>
+            <wind_speed>8</wind_speed>  <!-- m/s -->
+            <opacity>0.75</opacity>
+          </plugin>
         </visual>
       </link>
     </model>

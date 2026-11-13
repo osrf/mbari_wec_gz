@@ -31,6 +31,7 @@
 #include <gz/sim/components/JointForceCmd.hh>
 #include <gz/sim/components/JointVelocityCmd.hh>
 #include <gz/sim/components/JointVelocity.hh>
+#include <gz/sim/components/Model.hh>
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/Model.hh>
 
@@ -57,6 +58,10 @@ public:
 
   gz::sim::Entity IncWaveEntity;
   buoy_gazebo::IncWaveState inc_wave_state;
+
+  /// \brief Whether the world has a water_plane model to move
+  bool waterPlaneChecked{false};
+  bool hasWaterPlane{false};
 };
 
 //////////////////////////////////////////////////
@@ -213,6 +218,19 @@ void IncidentWaves::PreUpdate(
   if (_info.paused) {
     return;
   }
+
+  // The rest only moves the water_plane model. Worlds that draw the surface
+  // with IncWaveSurfaceVisual don't have one.
+  if (!this->dataPtr->waterPlaneChecked) {
+    this->dataPtr->hasWaterPlane = _ecm.EntityByComponents(
+      gz::sim::components::Model(),
+      gz::sim::components::Name("water_plane")) != gz::sim::kNullEntity;
+    this->dataPtr->waterPlaneChecked = true;
+  }
+  if (!this->dataPtr->hasWaterPlane) {
+    return;
+  }
+
   auto SimTime = std::chrono::duration<double>(_info.simTime).count();
 
   // buoy_gazebo::IncWaveState inc_wave_state;

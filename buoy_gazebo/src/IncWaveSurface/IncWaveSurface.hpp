@@ -25,21 +25,17 @@ namespace buoy_gazebo
 // Forward declaration
 class IncWaveSurfacePrivate;
 
-/// \brief Draws the incident wave surface around the buoy in the GUI.
+/// \brief Serves the incident wave field to the GUI, where the
+/// IncWaveSurfaceVisual plugin draws it.
 ///
-/// Computes eta on a grid of vertices from the shared FreeSurfaceHydrodynamics
-/// object in the IncWaveState component (created by the IncidentWaves plugin)
-/// and sends the grid as a triangle-list marker to the GUI's /marker service.
-/// The grid is centered on the buoy, snapped to whole cells so the vertices
-/// stay fixed in the world as the buoy moves. Heights are computed on a worker
-/// thread, and nothing is computed while no GUI is serving /marker.
+/// Reads the shared FreeSurfaceHydrodynamics object in the IncWaveState
+/// component (created by the IncidentWaves plugin) once and serves its wave
+/// components on /world/<world>/inc_wave_components (reply
+/// gz::msgs::Double_V, layout in IncWaveComponents.hpp). It sends the
+/// components FreeSurfaceHydrodynamics generated rather than the spectrum
+/// settings, so it works the same for every wave type.
 ///
-/// SDF parameters:
-/// * `<grid_size>`: number of vertices along x and y, defaults to "64 64"
-/// * `<grid_spacing>`: distance between vertices along x and y in meters,
-///   defaults to "2.0 2.0"
-/// * `<publish_rate>`: surface updates per second of wall-clock time,
-///   defaults to 10
+/// No SDF parameters.
 class IncWaveSurface : public gz::sim::System,
   public gz::sim::ISystemConfigure,
   public gz::sim::ISystemPostUpdate
