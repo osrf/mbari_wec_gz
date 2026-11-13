@@ -76,7 +76,8 @@ class IncWaveSurfaceVisualPrivate;
 ///   * `<color>`: diffuse color, defaults to "0.02 0.15 0.25 1"
 ///   * `<opacity>`: 0 to 1, defaults to 0.75. Below 1 the underwater parts
 ///     show through; the reflections stay.
-///   * `<roughness>`: defaults to 0.1
+///   * `<roughness>`: defaults to 0.3. Lower makes the sun glints so small
+///     that they flicker as the chop moves.
 ///   * `<environment_map>`: cubemap the surface reflects, defaults to the sky
 ///     gz-rendering draws
 /// * `<threads>`: threads to compute with, defaults to half the cores, at

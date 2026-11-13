@@ -112,7 +112,9 @@ public:
   std::string followLink{"Buoy"};
   gz::math::Color color{0.02f, 0.15f, 0.25f, 1.0f};
   double opacity{0.75};
-  double roughness{0.1};
+  /// \brief Lower makes the sun glints so small that they flicker as the
+  /// chop moves
+  double roughness{0.3};
   std::string environmentMap{INC_WAVE_SURFACE_DEFAULT_ENV_MAP};
 
   /// \brief The visual this plugin is attached to
