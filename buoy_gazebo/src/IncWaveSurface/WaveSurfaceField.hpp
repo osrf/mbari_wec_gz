@@ -149,7 +149,8 @@ public:
 
   /// \brief The chop normal map from the last Compute, one entry per mip
   /// level from the full size down to 1 x 1. Two signed bytes per texel:
-  /// the x and y of the tangent-space normal, scaled by 127.
+  /// the x and y of the tangent-space normal, scaled by 127. Each level is
+  /// computed from the spectrum and holds only the waves it can show.
   const std::vector<std::vector<std::int8_t>> & NormalMapLevels() const;
 
   /// \brief Wave height and slopes from the FreeSurfaceHydrodynamics
@@ -183,8 +184,8 @@ private:
   void InitChop(const IncWaveComponents & _waves, double _omegaCut);
   void ComputeLines(double _t);
   void ComputeChop(double _t);
-  void InverseFft(std::complex<float> * _data) const;
-  void InverseFft2d(std::vector<std::complex<float>> & _data);
+  void InverseFft(std::complex<float> * _data, int _n) const;
+  void InverseFft2d(std::vector<std::complex<float>> & _data, int _n);
   void SampleChop(double _x, double _y, float _out[5]) const;
   void ComputeNormalMap();
 
@@ -219,9 +220,11 @@ private:
   std::vector<std::complex<double>> chopAmplitude;
   std::vector<double> chopOmega;
   std::vector<std::complex<float>> chopSpectrum[3];
+  /// \brief h(k, t) of each mode, for the last Compute
+  std::vector<std::complex<float>> chopH;
   /// \brief eta, d eta/dx, d eta/dy, dx, dy at each cell
   std::vector<float> chopTile;
-  std::vector<int> fftReverse;
+  /// \brief exp(2 pi i j / chopN), for every FFT size up to chopN
   std::vector<std::complex<float>> fftTwiddle;
   bool normalMapOn{false};
   std::vector<std::vector<std::int8_t>> normalLevels;

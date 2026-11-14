@@ -561,21 +561,7 @@ void WaveSurfaceField::InitChop(const IncWaveComponents & _waves, double _omegaC
   this->chopSigma = std::sqrt(variance);
   this->chopOn = true;
 
-  // Radix-2 FFT tables
-  int bits = 0;
-  while ((1 << bits) < n) {
-    ++bits;
-  }
-  this->fftReverse.resize(n);
-  for (int i = 0; i < n; ++i) {
-    int r = 0;
-    for (int b = 0; b < bits; ++b) {
-      if ((i >> b) & 1) {
-        r |= 1 << (bits - 1 - b);
-      }
-    }
-    this->fftReverse[i] = r;
-  }
+  // Radix-2 FFT twiddles
   this->fftTwiddle.resize(n / 2);
   for (int i = 0; i < n / 2; ++i) {
     this->fftTwiddle[i] = std::complex<float>(std::polar(1.0, 2.0 * kPi * i / n));
@@ -583,6 +569,7 @@ void WaveSurfaceField::InitChop(const IncWaveComponents & _waves, double _omegaC
   for (auto & spectrum : this->chopSpectrum) {
     spectrum.assign(n * n, std::complex<float>(0.0f, 0.0f));
   }
+  this->chopH.assign(n * n, std::complex<float>(0.0f, 0.0f));
   this->chopTile.assign(5 * n * n, 0.0f);
 }
 
@@ -736,6 +723,7 @@ void WaveSurfaceField::ComputeChop(double _t)
         const double omega = this->chopOmega[index];
         if (omega == 0.0) {
           spectrum0[index] = spectrum1[index] = spectrum2[index] = std::complex<float>();
+          this->chopH[index] = std::complex<float>();
           continue;
         }
         const int mx = col < n / 2 ? col : col - n;
@@ -753,11 +741,12 @@ void WaveSurfaceField::ComputeChop(double _t)
         spectrum0[index] = std::complex<float>(h + i * slopeX);
         spectrum1[index] = std::complex<float>(slopeY + i * shiftX);
         spectrum2[index] = std::complex<float>(shiftY);
+        this->chopH[index] = std::complex<float>(h);
       }
     });
 
   for (auto & spectrum : this->chopSpectrum) {
-    this->InverseFft2d(spectrum);
+    this->InverseFft2d(spectrum, n);
   }
 
   this->pool->Run(
@@ -776,20 +765,25 @@ void WaveSurfaceField::ComputeChop(double _t)
 }
 
 //////////////////////////////////////////////////
-void WaveSurfaceField::InverseFft(std::complex<float> * _data) const
+void WaveSurfaceField::InverseFft(std::complex<float> * _data, int _n) const
 {
-  // Iterative radix-2, unnormalized, exp(+i ...)
-  const int n = this->chopN;
-  for (int i = 0; i < n; ++i) {
-    const int r = this->fftReverse[i];
-    if (i < r) {
-      std::swap(_data[i], _data[r]);
+  // Iterative radix-2, unnormalized, exp(+i ...). _n is a power of 2, at
+  // most chopN.
+  for (int i = 1, j = 0; i < _n; ++i) {
+    int bit = _n >> 1;
+    for (; j & bit; bit >>= 1) {
+      j ^= bit;
+    }
+    j ^= bit;
+    if (i < j) {
+      std::swap(_data[i], _data[j]);
     }
   }
-  for (int len = 2; len <= n; len <<= 1) {
+  for (int len = 2; len <= _n; len <<= 1) {
     const int halfLen = len >> 1;
-    const int step = n / len;
-    for (int i = 0; i < n; i += len) {
+    // Twiddle j of this stage is exp(2 pi i j / len)
+    const int step = this->chopN / len;
+    for (int i = 0; i < _n; i += len) {
       for (int j = 0; j < halfLen; ++j) {
         const std::complex<float> w = this->fftTwiddle[j * step];
         const std::complex<float> u = _data[i + j];
@@ -804,10 +798,10 @@ void WaveSurfaceField::InverseFft(std::complex<float> * _data) const
 }
 
 //////////////////////////////////////////////////
-void WaveSurfaceField::InverseFft2d(std::vector<std::complex<float>> & _data)
+void WaveSurfaceField::InverseFft2d(std::vector<std::complex<float>> & _data, int _n)
 {
-  const int n = this->chopN;
-  this->pool->Run(n, [this, &_data, n](int _row) {this->InverseFft(&_data[_row * n]);});
+  const int n = _n;
+  this->pool->Run(n, [this, &_data, n](int _row) {this->InverseFft(&_data[_row * n], n);});
   this->pool->Run(
     n, [this, &_data, n](int _col)
     {
@@ -815,7 +809,7 @@ void WaveSurfaceField::InverseFft2d(std::vector<std::complex<float>> & _data)
       for (int row = 0; row < n; ++row) {
         column[row] = _data[row * n + _col];
       }
-      this->InverseFft(column.data());
+      this->InverseFft(column.data(), n);
       for (int row = 0; row < n; ++row) {
         _data[row * n + _col] = column[row];
       }
@@ -925,43 +919,75 @@ void WaveSurfaceField::Compute(double _t, std::vector<float> & _vertices)
 //////////////////////////////////////////////////
 void WaveSurfaceField::ComputeNormalMap()
 {
-  // Level 0 from the chop slopes; each further level averages the slopes of
-  // the one above, so distant chop blends instead of aliasing
+  // Each mip level straight from the spectrum, holding only the waves it can
+  // show: the modes below its Nyquist, faded out from 60% of it. Averaging
+  // the level above instead (a box filter) lets the chop through into the
+  // small levels, where it aliases into large false patterns that change as
+  // fast as the chop. Those flicker in the distance, where the GPU samples
+  // the small levels.
   const int n = this->chopN;
-  std::vector<float> slopeX(static_cast<std::size_t>(n) * n);
-  std::vector<float> slopeY(slopeX.size());
-  for (std::size_t i = 0; i < slopeX.size(); ++i) {
-    slopeX[i] = this->chopTile[5 * i + 1];
-    slopeY[i] = this->chopTile[5 * i + 2];
-  }
+  const double dk = 2.0 * kPi / this->params.chopPatchSize;
   int levels = 1;
   while ((n >> levels) > 0) {
     ++levels;
   }
   this->normalLevels.resize(levels);
+  std::vector<std::complex<float>> spectrum;
   for (int level = 0; level < levels; ++level) {
     const int size = n >> level;
     auto & texels = this->normalLevels[level];
-    texels.resize(2 * static_cast<std::size_t>(size) * size);
-    for (int i = 0; i < size * size; ++i) {
-      const float invLength = 1.0f /
-        std::sqrt(slopeX[i] * slopeX[i] + slopeY[i] * slopeY[i] + 1.0f);
-      texels[2 * i] = static_cast<std::int8_t>(std::lround(-slopeX[i] * invLength * 127.0f));
-      texels[2 * i + 1] = static_cast<std::int8_t>(std::lround(-slopeY[i] * invLength * 127.0f));
-    }
-    if (size == 1) {
-      break;
+    texels.assign(2 * static_cast<std::size_t>(size) * size, 0);
+    // Too small to hold any wave: flat
+    if (size < 4) {
+      continue;
     }
     const int half = size / 2;
-    for (int row = 0; row < half; ++row) {
-      for (int col = 0; col < half; ++col) {
-        const int a = 2 * row * size + 2 * col;
-        const int b = a + size;
-        slopeX[row * half + col] =
-          0.25f * (slopeX[a] + slopeX[a + 1] + slopeX[b] + slopeX[b + 1]);
-        slopeY[row * half + col] =
-          0.25f * (slopeY[a] + slopeY[a + 1] + slopeY[b] + slopeY[b + 1]);
-      }
+    const double cellSize = this->params.chopPatchSize / size;
+    const double kNyquist = kPi / cellSize;
+    spectrum.assign(static_cast<std::size_t>(size) * size, std::complex<float>());
+
+    // Slopes as d eta/dx + i d eta/dy; both are real, so one FFT does both
+    this->pool->Run(
+      2 * half - 1, [&](int _row)
+      {
+        const int my = _row - (half - 1);
+        const std::complex<double> i(0.0, 1.0);
+        for (int mx = -(half - 1); mx <= half - 1; ++mx) {
+          if (mx == 0 && my == 0) {
+            continue;
+          }
+          const double kx = mx * dk;
+          const double ky = my * dk;
+          const double x = std::hypot(kx, ky) / kNyquist;
+          if (x >= 1.0) {
+            continue;
+          }
+          const std::complex<float> h = this->chopH[((my + n) % n) * n + ((mx + n) % n)];
+          if (h == std::complex<float>()) {
+            continue;
+          }
+          double fade = 1.0;
+          if (x > 0.6) {
+            const double c = std::cos(0.5 * kPi * (x - 0.6) / 0.4);
+            fade = c * c;
+          }
+          // Sampled at the texel centers, where the GPU expects each level's
+          // values, so the levels line up when it blends between them
+          const std::complex<double> shift = std::polar(fade, 0.5 * cellSize * (kx + ky));
+          const std::complex<double> value =
+          (i * kx + i * i * ky) * std::complex<double>(h) * shift;
+          spectrum[((my + size) % size) * size + ((mx + size) % size)] =
+          std::complex<float>(value);
+        }
+      });
+    this->InverseFft2d(spectrum, size);
+
+    for (int t = 0; t < size * size; ++t) {
+      const float slopeX = spectrum[t].real();
+      const float slopeY = spectrum[t].imag();
+      const float invLength = 1.0f / std::sqrt(slopeX * slopeX + slopeY * slopeY + 1.0f);
+      texels[2 * t] = static_cast<std::int8_t>(std::lround(-slopeX * invLength * 127.0f));
+      texels[2 * t + 1] = static_cast<std::int8_t>(std::lround(-slopeY * invLength * 127.0f));
     }
   }
 }
