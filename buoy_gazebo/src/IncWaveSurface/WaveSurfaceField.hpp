@@ -31,14 +31,18 @@ namespace buoy_gazebo
 namespace inc_wave_surface
 {
 /// \brief Where the short waves above the FreeSurfaceHydrodynamics cutoff
-/// come from
+/// come from. Either way they're only drawn; the physics doesn't see them.
 enum class ChopMode
 {
   /// \brief No chop
   kNone,
-  /// \brief Continue each direction's spectrum past the cutoff
+  /// \brief Continue each direction's spectrum past the cutoff: its level
+  /// just below the cutoff, falling as omega^-p, in its direction. The chop
+  /// follows the sea. Nothing for spectra that stop short of the cutoff, like
+  /// a single wave.
   kTail,
-  /// \brief Wind sea (Pierson-Moskowitz) past the cutoff
+  /// \brief The part past the cutoff of a Pierson-Moskowitz wind sea for
+  /// windSpeed, toward windDirection, whatever the waves below the cutoff
   kWind
 };
 
@@ -94,13 +98,51 @@ class WorkerPool;
 
 /// \brief Computes the wave surface on a mesh centered on a followed point.
 ///
+/// The FreeSurfaceHydrodynamics waves are the sum LinearIncidentWave::eta
+/// computes, over the components the server realized:
+///
+///   eta(x, y, t) = sum over the directions d, and the components c of d, of
+///                  A_c cos(k_c xi_d - omega_c t + phase_c)
+///   where xi_d = x cos(beta_d) + y sin(beta_d)
+///
+/// Both use the fact that the components of direction d depend on x and y
+/// only through xi_d, the distance along d. Each direction is a 1D profile,
+/// the same along every crest, and the surface is the sum of those profiles.
+/// They differ in where they evaluate the profiles.
+///
+/// LinearIncidentWave::eta evaluates them at one point. It projects the point
+/// onto each direction (its xx is xi_d) and sums a cosine per component, plus
+/// a sine per component when asked for the slopes. That's exact, and right
+/// for the physics, which needs one point per step. For a mesh it would be a
+/// cosine per component per vertex every update: 9,500 components on 66,000
+/// vertices for the default sea, which takes seconds.
+///
+/// Here, every vertex on the same crest of direction d has the same xi_d, so
+/// each direction's profile is computed once and shared. Each update:
+///
+///   1. Sums each direction's components along a line of xi_d that spans the
+///      mesh, at 12 samples per shortest wavelength, and keeps the height and
+///      the slope d eta / d xi_d at each sample (ComputeLines).
+///   2. At each vertex, finds its xi_d on each line, interpolates between
+///      the two samples around it (cubic Hermite, from the height and slope
+///      at both), and adds up the directions. The slopes along x and y are
+///      the slope along d times cos(beta_d) and sin(beta_d), as in eta
+///      (FilteredWavesAt).
+///
+/// Compared with eta: step 1 steps each component along its line by complex
+/// multiplies, with no cosines in the loop, and step 2 costs a few lookups
+/// per direction per vertex, however many components there are. The heights
+/// are interpolated rather than exact, and match eta to a fraction of a
+/// millimeter. Unlike eta, this doesn't compute the surface velocities, and
+/// it drops the short waves at coarse vertices, as below.
+///
 /// Each vertex holds the FreeSurfaceHydrodynamics waves its spacing can show:
-/// all of them, exactly, where the mesh is fine, and only the longer ones
-/// farther out. Waves shorter than a few spacings would alias there, giving
-/// each vertex a random slope, so patches of the mesh would flash light and
-/// dark as the waves pass. Each direction entry depends only on
-/// xi = x cos(beta) + y sin(beta), so it is evaluated on a fine line of xi,
-/// in bands of k, and interpolated (cubic Hermite, with exact slopes).
+/// all of them where the mesh is fine, and only the longer ones farther out.
+/// Waves shorter than a few spacings would alias there, giving each vertex a
+/// random slope, so patches of the mesh would flash light and dark as the
+/// waves pass. Each line keeps running sums over bands of k, from the longest
+/// waves up, so a vertex reads the sum up to its own cutoff.
+///
 /// The chop is a periodic FFT patch (Tessendorf) that holds only the band
 /// above the FreeSurfaceHydrodynamics cutoff. It fades out where the mesh is
 /// too coarse to show it.
@@ -162,7 +204,8 @@ public:
   double WavesAt(double _x, double _y, double & _slopeX, double & _slopeY) const;
 
 private:
-  /// \brief eta and d eta / d xi of one direction entry along a line of xi
+  /// \brief One direction entry as a 1D profile: eta and d eta / d xi at
+  /// samples of xi = x cos(beta) + y sin(beta), dxi apart
   struct Line
   {
     double cosBeta{1.0};

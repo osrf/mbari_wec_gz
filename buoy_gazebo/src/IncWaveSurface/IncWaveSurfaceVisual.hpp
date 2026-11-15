@@ -34,11 +34,15 @@ class IncWaveSurfaceVisualPrivate;
 /// FreeSurfaceHydrodynamics generated. It needs the ogre2 render engine.
 ///
 /// The surface is the FreeSurfaceHydrodynamics waves, exact where the mesh is
-/// fine, plus optional chop. Farther out, each vertex leaves out the waves
-/// shorter than a few of its spacings, which it can't show: they would alias
-/// into patches that flash light and dark. The chop is a periodic FFT patch (Tessendorf) holding only the band
-/// above the FreeSurfaceHydrodynamics cutoff, so the two never overlap. The
-/// physics doesn't see the chop.
+/// fine, plus optional chop. WaveSurfaceField computes it without
+/// FreeSurfaceHydrodynamics: it sums each direction's waves once along a 1D
+/// line and interpolates them at the vertices, rather than summing every
+/// component at every vertex (see WaveSurfaceField). Farther out, each vertex
+/// leaves out the waves shorter than a few of its spacings, which it can't
+/// show: they would alias into patches that flash light and dark. The chop is
+/// a periodic FFT patch (Tessendorf) holding only the band above the
+/// FreeSurfaceHydrodynamics cutoff, so the two never overlap. The physics
+/// doesn't see the chop.
 ///
 /// SDF parameters, all optional:
 /// * `<follow_link>`: name of the link the mesh stays centered on, defaults to

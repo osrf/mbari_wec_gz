@@ -41,7 +41,9 @@ struct IncWaveEntry
 };
 
 /// \brief The incident wave field as FreeSurfaceHydrodynamics generated it.
-/// Every wave type has this form, so this covers all of them.
+/// Every wave type has this form, so this covers all of them. The GUI sums
+/// these itself, in WaveSurfaceField, so the surface it draws is the one the
+/// physics uses without the GUI linking FreeSurfaceHydrodynamics.
 struct IncWaveComponents
 {
   /// \brief Highest frequency FreeSurfaceHydrodynamics generates (Hz)

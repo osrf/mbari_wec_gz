@@ -399,8 +399,9 @@ void WaveSurfaceField::Init(const SurfaceParams & _params, const IncWaveComponen
     }
   }
 
-  // One line per direction entry, sampled finely enough for cubic Hermite
-  // interpolation of its shortest wave
+  // One line per direction entry (see the class description), sampled
+  // finely enough for cubic Hermite interpolation of its shortest wave, and
+  // long enough to span the mesh's width along beta
   this->lines.clear();
   for (const auto & entry : _waves.entries) {
     if (entry.A.empty()) {
@@ -661,6 +662,8 @@ void WaveSurfaceField::Follow(double _x, double _y)
 //////////////////////////////////////////////////
 void WaveSurfaceField::ComputeLines(double _t)
 {
+  // Step 1 of the class description: each direction's height and slope at
+  // time _t, at every sample of its line, placed around the current center
   if (this->lines.empty()) {
     return;
   }
@@ -780,6 +783,8 @@ double WaveSurfaceField::FilteredWavesAt(
       partial = clamped - static_cast<double>(band);
     }
 
+    // Step 2 of the class description: the point's distance along this
+    // direction, as sample j of the line plus a fraction f of the way to j + 1
     const double xi = _x * line.cosBeta + _y * line.sinBeta;
     const double s = Clamp(
       (xi - line.xi0) / line.dxi, 0.0, static_cast<double>(line.numSamples - 1));
