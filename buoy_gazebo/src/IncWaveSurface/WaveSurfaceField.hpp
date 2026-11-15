@@ -94,9 +94,13 @@ class WorkerPool;
 
 /// \brief Computes the wave surface on a mesh centered on a followed point.
 ///
-/// The FreeSurfaceHydrodynamics part is exact at every vertex. Each direction
-/// entry depends only on xi = x cos(beta) + y sin(beta), so it is evaluated
-/// on a fine line of xi and interpolated (cubic Hermite, with exact slopes).
+/// Each vertex holds the FreeSurfaceHydrodynamics waves its spacing can show:
+/// all of them, exactly, where the mesh is fine, and only the longer ones
+/// farther out. Waves shorter than a few spacings would alias there, giving
+/// each vertex a random slope, so patches of the mesh would flash light and
+/// dark as the waves pass. Each direction entry depends only on
+/// xi = x cos(beta) + y sin(beta), so it is evaluated on a fine line of xi,
+/// in bands of k, and interpolated (cubic Hermite, with exact slopes).
 /// The chop is a periodic FFT patch (Tessendorf) that holds only the band
 /// above the FreeSurfaceHydrodynamics cutoff. It fades out where the mesh is
 /// too coarse to show it.
@@ -153,8 +157,8 @@ public:
   /// computed from the spectrum and holds only the waves it can show.
   const std::vector<std::vector<std::int8_t>> & NormalMapLevels() const;
 
-  /// \brief Wave height and slopes from the FreeSurfaceHydrodynamics
-  /// components alone, at a point the last Compute covered. For testing.
+  /// \brief Wave height and slopes from all of the FreeSurfaceHydrodynamics
+  /// components, at a point the last Compute covered. For testing.
   double WavesAt(double _x, double _y, double & _slopeX, double & _slopeY) const;
 
 private:
@@ -163,6 +167,9 @@ private:
   {
     double cosBeta{1.0};
     double sinBeta{0.0};
+    /// \brief log |cos(beta)| and log |sin(beta)|, for the band limit
+    double logAbsCos{0.0};
+    double logAbsSin{0.0};
     /// \brief Sample spacing
     double dxi{1.0};
     /// \brief Half the span of xi the mesh covers
@@ -170,19 +177,30 @@ private:
     /// \brief xi of the first sample, for the last Compute
     double xi0{0.0};
     std::size_t numSamples{0};
+    /// \brief The components, sorted by k
     std::vector<double> A;
     std::vector<double> omega;
     std::vector<double> k;
     std::vector<double> phase;
+    /// \brief Band b holds the components from bandStart[b] up to
+    /// bandStart[b + 1]
+    std::vector<std::size_t> bandStart;
     /// \brief exp(i k dxi), to step along the line
     std::vector<double> stepRe;
     std::vector<double> stepIm;
+    /// \brief At [sample * numBands + b]: the sum over bands 0 to b
     std::vector<double> value;
     std::vector<double> slope;
   };
 
   void InitChop(const IncWaveComponents & _waves, double _omegaCut);
   void ComputeLines(double _t);
+  /// \brief Like WavesAt, but only with the waves a vertex can show where
+  /// the log of the spacing is _logSpacingX along x and _logSpacingY along
+  /// y. -infinity: all of them.
+  double FilteredWavesAt(
+    double _x, double _y, double _logSpacingX, double _logSpacingY,
+    double & _slopeX, double & _slopeY) const;
   void ComputeChop(double _t);
   void InverseFft(std::complex<float> * _data, int _n) const;
   void InverseFft2d(std::vector<std::complex<float>> & _data, int _n);
@@ -193,9 +211,16 @@ private:
   int numThreads{1};
   std::unique_ptr<WorkerPool> pool;
   std::vector<Line> lines;
+  /// \brief Bands of k the lines are split into. Band 0 holds every wave the
+  /// coarsest vertices can show.
+  int numBands{1};
 
   // Mesh, the same along x and y
   std::vector<double> offsets;
+  /// \brief log of the spacing at each vertex, for the band limit
+  std::vector<double> logSpacing;
+  /// \brief log of the largest spacing of the wave part
+  double logMaxSpacing{0.0};
   std::vector<float> chopWeight;
   /// \brief Tapers the waves to flat at the edge of the wave part, so it
   /// meets the flat skirt smoothly

@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <numeric>
@@ -43,6 +44,22 @@ namespace
 constexpr double kGravity = 9.81;
 
 constexpr double kPi = 3.14159265358979323846;
+
+/// \brief A vertex holds none of the waves with this many of its spacings
+/// per wavelength or fewer, and all of those with twice as many. Between, it
+/// fades them out. With fewer spacings, the waves alias, and even without
+/// that, the mesh makes them pulse light and dark in place as they pass.
+constexpr double kMinSpacingsPerWave = 4.0;
+
+/// \brief The waves are split into bands of k this far apart, sqrt(2), which
+/// gives the factor of two of the fade
+constexpr double kBandRatio = 1.4142135623730951;
+
+/// \brief 1 / log(kBandRatio)
+constexpr double kInvLogBandRatio = 2.8853900817779268;
+
+/// \brief At most this many bands
+constexpr int kMaxBands = 40;
 
 double Clamp(double _value, double _low, double _high)
 {
@@ -317,6 +334,29 @@ void WaveSurfaceField::Init(const SurfaceParams & _params, const IncWaveComponen
     }
   }
 
+  // The spacing at each vertex of the wave part, the larger of the cells on
+  // either side, for the band limit
+  const double inner = this->meshHalf + 1e-6;
+  this->logSpacing.assign(side, std::log(fine));
+  double maxSpacing = fine;
+  for (int i = 0; i < side; ++i) {
+    if (std::abs(this->offsets[i]) > inner) {
+      continue;
+    }
+    double h = 0.0;
+    if (i > 0 && std::abs(this->offsets[i - 1]) <= inner) {
+      h = this->offsets[i] - this->offsets[i - 1];
+    }
+    if (i + 1 < side && std::abs(this->offsets[i + 1]) <= inner) {
+      h = std::max(h, this->offsets[i + 1] - this->offsets[i]);
+    }
+    if (h > 0.0) {
+      this->logSpacing[i] = std::log(h);
+      maxSpacing = std::max(maxSpacing, h);
+    }
+  }
+  this->logMaxSpacing = std::log(maxSpacing);
+
   this->InitChop(_waves, omegaCut);
   this->normalMapOn = this->chopOn && _params.chopNormalMap;
   this->normalLevels.clear();
@@ -343,6 +383,22 @@ void WaveSurfaceField::Init(const SurfaceParams & _params, const IncWaveComponen
     }
   }
 
+  // Bands of k for the band limit. Band 0 reaches the cutoff of the coarsest
+  // vertices, sqrt(2) pi / (kMinSpacingsPerWave spacings), and each band
+  // after it reaches kBandRatio further.
+  const double bandK0 = kBandRatio * kPi / (kMinSpacingsPerWave * maxSpacing);
+  auto bandOf = [bandK0](double _k)
+    {
+      const double b = std::ceil(std::log(std::abs(_k) / bandK0) * kInvLogBandRatio - 1e-9);
+      return b > 0.0 ? static_cast<int>(std::min(b, kMaxBands - 1.0)) : 0;
+    };
+  this->numBands = 1;
+  for (const auto & entry : _waves.entries) {
+    for (const double k : entry.k) {
+      this->numBands = std::max(this->numBands, bandOf(k) + 1);
+    }
+  }
+
   // One line per direction entry, sampled finely enough for cubic Hermite
   // interpolation of its shortest wave
   this->lines.clear();
@@ -353,6 +409,8 @@ void WaveSurfaceField::Init(const SurfaceParams & _params, const IncWaveComponen
     Line line;
     line.cosBeta = std::cos(entry.beta);
     line.sinBeta = std::sin(entry.beta);
+    line.logAbsCos = std::log(std::max(std::abs(line.cosBeta), 1e-12));
+    line.logAbsSin = std::log(std::max(std::abs(line.sinBeta), 1e-12));
     double kMax = 0.0;
     for (const double k : entry.k) {
       kMax = std::max(kMax, std::abs(k));
@@ -362,18 +420,31 @@ void WaveSurfaceField::Init(const SurfaceParams & _params, const IncWaveComponen
       this->meshHalf * (std::abs(line.cosBeta) + std::abs(line.sinBeta)) + line.dxi;
     line.numSamples =
       static_cast<std::size_t>(std::ceil(2.0 * line.halfSpan / line.dxi)) + 2;
-    line.A = entry.A;
-    line.omega = entry.omega;
-    line.k = entry.k;
-    line.phase = entry.phase;
+    // Sorted by k, so each band is a run of components
+    std::vector<std::size_t> order(entry.A.size());
+    std::iota(order.begin(), order.end(), std::size_t{0});
+    std::stable_sort(
+      order.begin(), order.end(), [&entry](std::size_t _a, std::size_t _b)
+      {
+        return std::abs(entry.k[_a]) < std::abs(entry.k[_b]);
+      });
+    line.bandStart.assign(this->numBands + 1, 0);
+    for (const std::size_t i : order) {
+      line.A.push_back(entry.A[i]);
+      line.omega.push_back(entry.omega[i]);
+      line.k.push_back(entry.k[i]);
+      line.phase.push_back(entry.phase[i]);
+      ++line.bandStart[bandOf(entry.k[i]) + 1];
+    }
+    std::partial_sum(line.bandStart.begin(), line.bandStart.end(), line.bandStart.begin());
     line.stepRe.resize(line.k.size());
     line.stepIm.resize(line.k.size());
     for (std::size_t i = 0; i < line.k.size(); ++i) {
       line.stepRe[i] = std::cos(line.k[i] * line.dxi);
       line.stepIm[i] = std::sin(line.k[i] * line.dxi);
     }
-    line.value.assign(line.numSamples, 0.0);
-    line.slope.assign(line.numSamples, 0.0);
+    line.value.assign(line.numSamples * this->numBands, 0.0);
+    line.slope.assign(line.numSamples * this->numBands, 0.0);
     this->lines.push_back(std::move(line));
   }
 
@@ -635,33 +706,43 @@ void WaveSurfaceField::ComputeLines(double _t)
       const double * k = line.k.data();
       const double * stepRe = line.stepRe.data();
       const double * stepIm = line.stepIm.data();
+      const std::size_t numBands = static_cast<std::size_t>(this->numBands);
 
       for (std::size_t j = task.begin; j < task.end; ++j) {
-        // Four partial sums keep the additions from serializing
-        double value[4] = {0.0, 0.0, 0.0, 0.0};
-        double slope[4] = {0.0, 0.0, 0.0, 0.0};
-        std::size_t c = 0;
-        for (; c + 4 <= n; c += 4) {
-          for (int u = 0; u < 4; ++u) {
-            const double r = re[c + u];
-            const double i = im[c + u];
-            value[u] += r;
-            slope[u] += k[c + u] * i;
-            re[c + u] = r * stepRe[c + u] - i * stepIm[c + u];
-            im[c + u] = r * stepIm[c + u] + i * stepRe[c + u];
+        double * valueOut = &line.value[j * numBands];
+        double * slopeOut = &line.slope[j * numBands];
+        double valueSum = 0.0;
+        double slopeSum = 0.0;
+        for (std::size_t b = 0; b < numBands; ++b) {
+          // Four partial sums keep the additions from serializing
+          double value[4] = {0.0, 0.0, 0.0, 0.0};
+          double slope[4] = {0.0, 0.0, 0.0, 0.0};
+          std::size_t c = line.bandStart[b];
+          const std::size_t end = line.bandStart[b + 1];
+          for (; c + 4 <= end; c += 4) {
+            for (int u = 0; u < 4; ++u) {
+              const double r = re[c + u];
+              const double i = im[c + u];
+              value[u] += r;
+              slope[u] += k[c + u] * i;
+              re[c + u] = r * stepRe[c + u] - i * stepIm[c + u];
+              im[c + u] = r * stepIm[c + u] + i * stepRe[c + u];
+            }
           }
+          for (; c < end; ++c) {
+            const double r = re[c];
+            const double i = im[c];
+            value[0] += r;
+            slope[0] += k[c] * i;
+            re[c] = r * stepRe[c] - i * stepIm[c];
+            im[c] = r * stepIm[c] + i * stepRe[c];
+          }
+          valueSum += (value[0] + value[1]) + (value[2] + value[3]);
+          slopeSum += (slope[0] + slope[1]) + (slope[2] + slope[3]);
+          valueOut[b] = valueSum;
+          // d/dxi of A cos(theta) is -k A sin(theta)
+          slopeOut[b] = -slopeSum;
         }
-        for (; c < n; ++c) {
-          const double r = re[c];
-          const double i = im[c];
-          value[0] += r;
-          slope[0] += k[c] * i;
-          re[c] = r * stepRe[c] - i * stepIm[c];
-          im[c] = r * stepIm[c] + i * stepRe[c];
-        }
-        line.value[j] = (value[0] + value[1]) + (value[2] + value[3]);
-        // d/dxi of A cos(theta) is -k A sin(theta)
-        line.slope[j] = -((slope[0] + slope[1]) + (slope[2] + slope[3]));
       }
     });
 }
@@ -670,26 +751,64 @@ void WaveSurfaceField::ComputeLines(double _t)
 double WaveSurfaceField::WavesAt(
   double _x, double _y, double & _slopeX, double & _slopeY) const
 {
+  const double all = -std::numeric_limits<double>::infinity();
+  return this->FilteredWavesAt(_x, _y, all, all, _slopeX, _slopeY);
+}
+
+//////////////////////////////////////////////////
+double WaveSurfaceField::FilteredWavesAt(
+  double _x, double _y, double _logSpacingX, double _logSpacingY,
+  double & _slopeX, double & _slopeY) const
+{
+  const std::size_t numBands = static_cast<std::size_t>(this->numBands);
+  const int top = this->numBands - 1;
   double eta = 0.0;
   _slopeX = 0.0;
   _slopeY = 0.0;
   for (const Line & line : this->lines) {
+    // The vertices sample a wave along this direction at this spacing, so
+    // the cutoff is sqrt(2) pi / (kMinSpacingsPerWave times it). It reaches
+    // band u, a part of the way into band floor(u) + 1.
+    const double logSpacing = std::max(
+      line.logAbsCos + _logSpacingX, line.logAbsSin + _logSpacingY);
+    const double u = (this->logMaxSpacing - logSpacing) * kInvLogBandRatio;
+    std::size_t band = static_cast<std::size_t>(top);
+    double partial = 0.0;
+    if (u < top) {
+      const double clamped = std::max(u, 0.0);
+      band = static_cast<std::size_t>(clamped);
+      partial = clamped - static_cast<double>(band);
+    }
+
     const double xi = _x * line.cosBeta + _y * line.sinBeta;
-    const double u = Clamp(
+    const double s = Clamp(
       (xi - line.xi0) / line.dxi, 0.0, static_cast<double>(line.numSamples - 1));
-    const std::size_t j = std::min(static_cast<std::size_t>(u), line.numSamples - 2);
-    const double f = u - static_cast<double>(j);
+    const std::size_t j = std::min(static_cast<std::size_t>(s), line.numSamples - 2);
+    const double f = s - static_cast<double>(j);
     const double f2 = f * f;
     const double f3 = f2 * f;
-    const double p0 = line.value[j];
-    const double p1 = line.value[j + 1];
-    const double m0 = line.slope[j] * line.dxi;
-    const double m1 = line.slope[j + 1] * line.dxi;
-    // Cubic Hermite and its derivative
-    const double value = (2.0 * f3 - 3.0 * f2 + 1.0) * p0 + (f3 - 2.0 * f2 + f) * m0 +
-      (-2.0 * f3 + 3.0 * f2) * p1 + (f3 - f2) * m1;
-    const double slope = ((6.0 * f2 - 6.0 * f) * (p0 - p1) + (3.0 * f2 - 4.0 * f + 1.0) * m0 +
-      (3.0 * f2 - 2.0 * f) * m1) / line.dxi;
+    // Cubic Hermite and its derivative, of the sum over bands 0 to _band
+    auto hermite = [&](std::size_t _band, double & _slope)
+      {
+        const std::size_t i0 = j * numBands + _band;
+        const std::size_t i1 = i0 + numBands;
+        const double p0 = line.value[i0];
+        const double p1 = line.value[i1];
+        const double m0 = line.slope[i0] * line.dxi;
+        const double m1 = line.slope[i1] * line.dxi;
+        _slope = ((6.0 * f2 - 6.0 * f) * (p0 - p1) + (3.0 * f2 - 4.0 * f + 1.0) * m0 +
+          (3.0 * f2 - 2.0 * f) * m1) / line.dxi;
+        return (2.0 * f3 - 3.0 * f2 + 1.0) * p0 + (f3 - 2.0 * f2 + f) * m0 +
+               (-2.0 * f3 + 3.0 * f2) * p1 + (f3 - f2) * m1;
+      };
+    double slope;
+    double value = hermite(band, slope);
+    if (partial > 0.0) {
+      double nextSlope;
+      const double next = hermite(band + 1, nextSlope);
+      value += partial * (next - value);
+      slope += partial * (nextSlope - slope);
+    }
     eta += value;
     _slopeX += line.cosBeta * slope;
     _slopeY += line.sinBeta * slope;
@@ -876,7 +995,8 @@ void WaveSurfaceField::Compute(double _t, std::vector<float> & _vertices)
         // The skirt stays flat
         const double edge = this->edgeWeight[_row] * this->edgeWeight[col];
         if (!skirtRow && edge > 0.0) {
-          eta = edge * this->WavesAt(x, y, slopeX, slopeY);
+          eta = edge * this->FilteredWavesAt(
+            x, y, this->logSpacing[col], this->logSpacing[_row], slopeX, slopeY);
           slopeX *= edge;
           slopeY *= edge;
           const float weight = std::min(rowWeight, this->chopWeight[col]);

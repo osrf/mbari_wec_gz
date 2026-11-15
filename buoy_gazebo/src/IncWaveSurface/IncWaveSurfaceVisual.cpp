@@ -31,6 +31,7 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 #include <utility>
@@ -88,6 +89,15 @@ namespace buoy_gazebo
 {
 using inc_wave_surface::WaveSurfaceField;
 
+namespace
+{
+/// \brief The visuals that have a surface in this process. The GUI can load
+/// a visual's plugins twice, and two surfaces in one place flicker: wherever
+/// one is an update ahead of the other, the other shows through in patches.
+std::mutex gDrawnMutex;
+std::set<gz::sim::Entity> gDrawnVisuals;
+}  // namespace
+
 class IncWaveSurfaceVisualPrivate
 {
 public:
@@ -119,6 +129,9 @@ public:
 
   /// \brief The visual this plugin is attached to
   gz::sim::Entity entity{gz::sim::kNullEntity};
+
+  /// \brief This copy of the plugin draws the visual's surface
+  bool drawing{false};
 
   gz::common::ConnectionPtr sceneUpdateConnection;
   gz::common::ConnectionPtr teardownConnection;
@@ -637,6 +650,10 @@ IncWaveSurfaceVisual::~IncWaveSurfaceVisual()
   if (this->dataPtr->worker.joinable()) {
     this->dataPtr->worker.join();
   }
+  if (this->dataPtr->drawing) {
+    std::lock_guard<std::mutex> lock(gDrawnMutex);
+    gDrawnVisuals.erase(this->dataPtr->entity);
+  }
 }
 
 //////////////////////////////////////////////////
@@ -649,6 +666,18 @@ void IncWaveSurfaceVisual::Configure(
   auto & d = *this->dataPtr;
   auto & p = d.params;
   d.entity = _entity;
+
+  // One surface per visual. A second copy of the plugin stays idle.
+  {
+    std::lock_guard<std::mutex> lock(gDrawnMutex);
+    if (!gDrawnVisuals.insert(_entity).second) {
+      gzmsg << "IncWaveSurfaceVisual: visual [" << _entity
+            << "] already has a surface. This copy of the plugin does nothing."
+            << std::endl;
+      return;
+    }
+  }
+  d.drawing = true;
 
   d.followLink = _sdf->Get<std::string>("follow_link", d.followLink).first;
   const double rate = _sdf->Get<double>("update_rate", 30.0).first;

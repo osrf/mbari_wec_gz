@@ -33,8 +33,10 @@ class IncWaveSurfaceVisualPrivate;
 /// render thread. It works for every wave type, since it uses the components
 /// FreeSurfaceHydrodynamics generated. It needs the ogre2 render engine.
 ///
-/// The surface is the FreeSurfaceHydrodynamics waves, exact at every vertex,
-/// plus optional chop: a periodic FFT patch (Tessendorf) holding only the band
+/// The surface is the FreeSurfaceHydrodynamics waves, exact where the mesh is
+/// fine, plus optional chop. Farther out, each vertex leaves out the waves
+/// shorter than a few of its spacings, which it can't show: they would alias
+/// into patches that flash light and dark. The chop is a periodic FFT patch (Tessendorf) holding only the band
 /// above the FreeSurfaceHydrodynamics cutoff, so the two never overlap. The
 /// physics doesn't see the chop.
 ///
